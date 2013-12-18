@@ -1,0 +1,58 @@
+ArgChecker
+    -dans les argChecker, quand il y a une erreur, afficher systèmatiquement la valeur foireuse
+    
+ArgChecherS
+
+Decorator
+
+Command
+    -permettre de transfèrer des informations entre les pre et les post
+        -cas de figure : lecture d'un fichier en plusieurs pass, ou une auth, ... 
+            -desfire
+
+Executeur
+    -faire une liste d'alias
+    -l'autocomplétion
+    -gérer des trucs comme >, >>, ...
+    -quand il y a une ambiguité sur une commande, afficher directement les possibilités
+    -n'afficher que les commandes terminal dans l'aide, comme dans le shell du proxmark
+        -utiliser le setStopTraversal dans les mltries
+        -l'aide doit s'arreter là et afficher un subset des clés
+            mettre une empty command avec un message __doc__ personnalisé
+        -lors du insertion, mettre a jour tout les noeuds parents vide
+RFID
+    /System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
+        le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
+   
+   - faire un système de gestion des codes d'erreurs
+	    à faire dans executeAPDU
+
+   -faire un système de décapsulation des réponses
+	    +- en place
+
+    -manage error code
+	    -pouvoir ajouter son propre handler d'erreur
+
+TEST
+    en faire tout plein :)
+	    
+######################################################
+
+??? Executeur ou ArgChecherS
+    -permettre a l'utilisateur de binder uniquement certains argument
+        exemple:
+            cmd(a,b,c=None,d=None,e=None)
+            
+        cmd ValueA ValueB -e ValueE
+        
+        attention aux nombres négatif -5, -42.23, ...
+        attention au cas ou on a un arg en dernier de liste
+        attention au cas ou on a deux (ou plusieurs) param qui se suivent -a -c -d
+
+    -ne devrait rien changer au decorateur et ArgChecker
+
+       
+
+    
+
+
