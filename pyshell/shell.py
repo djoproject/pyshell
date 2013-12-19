@@ -10,6 +10,7 @@ from simpleProcess import *
 
 #sys.excepthook = my_excepthook
 
+#TODO
 #def printTrqceBack():
 #    for k,v in sys._current_frames().iteritems():
 #        print "TRQCEBACK : "+str(v.f_exc_traceback)
@@ -44,10 +45,10 @@ class shell(CommandExecuter):
             c.showInHelp = False
 
         ## utils ##
-        Executer.addCommand(CommandStrings=["exit"]         ,process=exitFun)
-        Executer.addCommand(CommandStrings=["quit"]         ,process=exitFun)
-        Executer.addCommand(CommandStrings=["help"]         ,process=helperFun      )
-        Executer.addCommand(CommandStrings=["usage"]        ,process=usageFun       )
+        Executer.addCommand(CommandStrings=["exit"] ,process=exitFun  )
+        Executer.addCommand(CommandStrings=["quit"] ,process=exitFun  )
+        Executer.addCommand(CommandStrings=["help"] ,process=helperFun)
+        Executer.addCommand(CommandStrings=["usage"],process=usageFun )
         
         ## debug management ##
         Executer.addCommand(CommandStrings=["empty"])
@@ -56,14 +57,16 @@ class shell(CommandExecuter):
                 #Executer.addCommand(CommandStrings=["t"]           ,process=printTrqceBack) 
             
         ## environment management ##
-        Executer.addCommand(CommandStrings=["list","environment"] ,preProcess=listEnvFun,postProcess=stringListResultHandler)
+        Executer.addCommand(CommandStrings=["list","environment"],preProcess=listEnvFun,postProcess=stringListResultHandler)
             #TODO
                 #get
                 #set
+                    #ne pas pouvoir setter n'importe quoi
+                    #faire des verifs et mettre des locks
         
         ## addon management ##
-        Executer.addCommand(CommandStrings=["list","addon"] ,preProcess=listAddonFun,postProcess=stringListResultHandler)
-        Executer.addCommand(CommandStrings=["loadaddon"]    ,process=loadAddonFun   )
+        Executer.addCommand(CommandStrings=["list","addon"],preProcess=listAddonFun,postProcess=stringListResultHandler)
+        Executer.addCommand(CommandStrings=["loadaddon"]   ,process=loadAddonFun                                       )
             #TODO
                 #load
                 #unload
@@ -72,11 +75,11 @@ class shell(CommandExecuter):
                 #list all
 
         ## printing management ##
-        Executer.addCommand(CommandStrings=["echo"]         ,process=echo                        ,postProcess=printResultHandler)        
-        Executer.addCommand(CommandStrings=["echo16"]       ,process=echo16                      ,postProcess=printResultHandler)
-        Executer.addCommand(CommandStrings=["toascii"]      ,process=intToAscii           ,postProcess=printResultHandler)
+        Executer.addCommand(CommandStrings=["echo"]   ,process=echo                 ,postProcess=printResultHandler)        
+        Executer.addCommand(CommandStrings=["echo16"] ,process=echo16               ,postProcess=printResultHandler)
+        Executer.addCommand(CommandStrings=["toascii"],process=intToAscii           ,postProcess=printResultHandler)
             #TODO
-                #tostring encoding
+                #tostring encoding(unicode, utf8, ...)
 
 if __name__ == "__main__":
     s = shell()

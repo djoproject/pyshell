@@ -7,8 +7,10 @@ TODO
 	ça provient de pyscard, hexstring?
 
 -quand on déconnecte un lecteur avec une carte connecté, il y a parfois une exception qui saute dans un des threads :/
+    voir plus bas
 
 -on peut ecrire 16 ou 0x16, ce sera accepté par int(,16)
+    par convention s'il n'y a pas x ou 0x devant l'entier, c'est du decimal
 
 -quand on deconnecte un reader avec une carte connectée :
 
@@ -23,7 +25,7 @@ Exception smartcard.Exceptions.CardConnectionException: CardConnectionException(
 
 	s'affiche quand il n'y a pas de carte
 	
-	
+######################################################################################################
 	
 File "/usr/lib/python2.7/threading.py", line 524, in __bootstrap
     self.__bootstrap_inner()

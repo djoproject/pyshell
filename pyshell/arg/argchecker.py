@@ -1,5 +1,5 @@
 from exception import *
-from ordereddict import OrderedDict
+from pyshell.utils.ordereddict import OrderedDict
 from tries import tries
 from tries.exception import ambiguousPathException
 
@@ -164,7 +164,7 @@ class stringArgChecker(ArgChecker):
         if value == None:
             raise argException("(String) Argument %s: the string arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
 
-        if type(value) != str or type(value) != unicode:
+        if type(value) != str and type(value) != unicode:
             raise argException("(String) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
     
     def getValue(self,value,argNumber=None):
@@ -177,56 +177,107 @@ class stringArgChecker(ArgChecker):
     
     def getUsage(self):
         return "<string>"
-        
+
 class IntegerArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
         ArgChecker.__init__(self)
         self.minimum = minimum
         self.maximum = maximum
+        self.bases = [10, 16, 2]
+        self.completeType  = "Integer"
+        self.shortType     = "int"
     
     def checkValue(self, value,argNumber=None):
         if value == None:
-            raise argException("(Integer) Argument %s: the integer arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
+            raise argException("("+self.completeType+") Argument %s: the "%("" if argNumber == None else str(argNumber)+" ")+self.completeType.lower()+" arg can't be None")
         
-        try:
+        castedValue = None
+        if type(value) == int or type(value) == float or type(value) == bool:
             castedValue = int(value)
-        except ValueError:
-            try:
-                castedValue = int(value,16)
-            except ValueError:
-                raise argException("(Integer) Argument %s: this arg is not a valid integer or hexadecimal"%("" if argNumber == None else str(argNumber))
+        elif type(value) == str or type(value) == unicode:
+            for b in self.bases:
+                try:
+                    castedValue = int(value, b)
+                    break
+                except ValueError:
+                    continue
+                    
+        if castedValue == None:
+            raise argException("("+self.completeType+") Argument %s: this arg is not a valid "%("" if argNumber == None else str(argNumber))+self.completeType.lower()+" or hexadecimal")
 
         if self.minimum != None:
             if castedValue < self.minimum:
-                raise argException("(Integer) Argument %s: the lowest value must be bigger or equal than "%("" if argNumber == None else str(argNumber)+str(self.minimum))
+                raise argException("("+self.completeType+") Argument %s: the lowest value must be bigger or equal than "%("" if argNumber == None else str(argNumber)+str(self.minimum)))
                 
         if self.maximum != None:
             if castedValue > self.maximum:
-                raise argException("(Integer) Argument %s: the biggest value must be lower or equal than "%("" if argNumber == None else str(argNumber)+str(self.maximum))
+                raise argException("("+self.completeType+") Argument %s: the biggest value must be lower or equal than "%("" if argNumber == None else str(argNumber)+str(self.maximum)))
 
 
     def getValue(self,value,argNumber=None):
         self.checkValue(value,argNumber)
         v = super(IntegerArgChecker,self).getValue(value,argNumber)
         
-        try:
-            return int(v)
-        except ValueError:
-            return int(v,16)        
+        if type(value) == int or type(value) == float or type(value) == bool:
+            return int(value)
+        elif type(value) == str or type(value) == unicode:
+            for b in self.bases:
+                try:
+                    return int(value, b)
+                except ValueError:
+                    continue       
         
     def getUsage(self):
         if self.minimum != None:
             if self.maximum != None:
-                return "<int "+str(self.minimum)+"-"+str(self.maximum)+">"
-            return "<int "+str(self.minimum)+"-*>"
+                return "<"+self.shortType+" "+str(self.minimum)+"-"+str(self.maximum)+">"
+            return "<"+self.shortType+" "+str(self.minimum)+"-*>"
         else:
             if self.maximum != None:
-                return "<int *-"+str(self.maximum)+">"
-        return "<int>"
+                return "<"+self.shortType+" *-"+str(self.maximum)+">"
+        return "<"+self.shortType+">"
+
+class Integer8ArgChecker(IntegerArgChecker): #byte
+    def __init__(self, signed = False):
+        if signed:
+            IntegerArgChecker.__init__(self, 0x0, 0xFF)
+        else:
+            IntegerArgChecker.__init__(self, 0x0, 0xFF)
+
+class Integer16ArgChecker(IntegerArgChecker): #word
+    def __init__(self, signed = False):
+        if signed:
+            IntegerArgChecker.__init__(self, -0x8000, 0x7fff)
+        else:
+            IntegerArgChecker.__init__(self, 0x0, 0xFFFF)
+        
+class Integer32ArgChecker(IntegerArgChecker): #integer
+    def __init__(self, signed = False):
+        if signed:
+            IntegerArgChecker.__init__(self, -0x80000000, 0xFFFFFFFF)
+        else:
+            IntegerArgChecker.__init__(self, 0x0, 0x7fffffff)
+
+class Integer32ArgChecker(IntegerArgChecker): #integer64
+    def __init__(self, signed = False):
+        if signed:
+            IntegerArgChecker.__init__(self, 0x8000000000000000, 0x7fffffffffffffff)
+        else:
+            IntegerArgChecker.__init__(self, 0x0, 0xFFFFFFFFFFFFFFFF)
 
 class hexaArgChecker(IntegerArgChecker):
+    def __init__(self, minimum=None, maximum=None):
+        IntegerArgChecker.__init__(self, minimum,maximum)
+        self.bases = [16]
+        self.completeType  = "Hexadecimal"
+        self.shortType     = "hex"
+        
+class binaryArgChecker(IntegerArgChecker):
     def __init__(self, minimum=0x00, maximum=0xFF):
-        super(hexaArgChecker,self).__init__(minimum,maximum)
+        IntegerArgChecker.__init__(self, minimum,maximum)
+        self.bases = [2]
+        self.completeType  = "Binary"
+        self.shortType     = "bin"
 
 class tokenValueArgChecker(stringArgChecker):
     def __init__(self, tokenDict):

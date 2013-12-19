@@ -4,14 +4,20 @@ ArgChecker
 ArgChecherS
 
 Decorator
+    -check this
 
 Command
+    -clean selfArgChecker
     -permettre de transfèrer des informations entre les pre et les post
-        -cas de figure : lecture d'un fichier en plusieurs pass, ou une auth, ... 
+        -exemple, pre2 a besoin d'info provenant de post1
+        -cas de figure : lecture d'un fichier en plusieurs etape, ou une auth, ... 
             -desfire
+        faire une class special qui fourni le même genre de service que la classe MultiCommand
+            histoire d'avoir une abstraction et de ne devoir rien changer d'autre
 
 Executeur
     -faire une liste d'alias
+        description dans le code
     -l'autocomplétion
     -gérer des trucs comme >, >>, ...
     -quand il y a une ambiguité sur une commande, afficher directement les possibilités
@@ -20,6 +26,11 @@ Executeur
         -l'aide doit s'arreter là et afficher un subset des clés
             mettre une empty command avec un message __doc__ personnalisé
         -lors du insertion, mettre a jour tout les noeuds parents vide
+        
+Shell
+    -créer les commandes manquantes
+        voir fichier
+
 RFID
     /System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
         le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
@@ -49,7 +60,52 @@ TEST
         attention au cas ou on a un arg en dernier de liste
         attention au cas ou on a deux (ou plusieurs) param qui se suivent -a -c -d
 
-    -ne devrait rien changer au decorateur et ArgChecker
+        PRBLM on a un risque de perte d'information si on utilise le - comme marqueur de parametre
+            si on melange les argument avec parametre et ceux sans
+            example : cmd toto(<string> ... <string>2) tata:<string>
+                toto -tata d a b c 
+                    -tata is a part of the list or the last argument ?
+            
+            def "nom de param" :
+                - commence par un tiret
+                - est directement suivi (donc pas d'espace) par le prefix du nom d'un argument existant
+                - est suivi par au moins un non "non de param" (ne repondant pas aux deux criteres precedents)
+                    exception pour le boolean, la presence sans valeur implique "True"
+            
+            SOLUTION 1
+                le tiret est un caractere reservé
+                on peut l'escaper en faisant \-
+                    et si on veut recuperer \-, on devra encoder \\-, etc.
+                    
+            SOLUTION 2
+                les arguments parametré le sont uniquement a la fin
+                on commence a parser à partir de la fin jusqu'a ne plus trouver d'arg parametre
+                et on recommence a parser a partir du debut les args manquant
+                
+            SOLUTION 3 <===
+                a) on identifie tous les params existant
+                    faire une liste des indices
+                b) on place les params erronés dans une liste (pour gestion en cas d'erreur)
+                c) on inteprète tous les params identifié
+                d) si pas d'erreur, on interprete tout ce qui reste avec l'ancienne methode
+                    les params erronés sont utilisables dans la liste comme un token normale
+                
+                englobe la solution 1 et 2
+                PROBLEM si on essaye de binder une liste avec liste infinie, ou avec une taille min inferieur a la max, et justement on transfere le min
+                    et qu'il y a encore des arguments après
+                    
+                    SOLUTION 1
+                        on s'arrete au prochain param token identifié
+                            et s'il n'y en a pas ? jusqu'au bout du flux ou de la limite
+
+                    SOLUTION 2 
+                        on defini une taille après le param genre -toto:5
+                            ça demande d'ajouter une info en + alors...
+                                c'est chiant
+
+    !!!! ne devrait rien changer au decorateur et ArgChecker !!!
+        ils fournissent juste un outils de verification de l'argument, des valeurs par defaut et des noms
+        
 
        
 
