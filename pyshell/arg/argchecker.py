@@ -114,11 +114,16 @@ class ArgFeeder2(ArgsChecker):
 
 class ArgChecker(object):
     def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True):
+        #TODO minimumSize and maximumSize can't be None and must be int
+        
         if minimumSize < 0:
             raise argException("(ArgChecker) Minimum size must be a positive value")
         
         if maximumSize < 0:
             raise argException("(ArgChecker) Maximum size must be a positive value") 
+    
+        if maximumSize < minimumSize:
+            pass #TODO
     
         self.minimumSize = minimumSize
         self.maximumSize = maximumSize
@@ -146,6 +151,8 @@ class ArgChecker(object):
         return "<any>"
         
     def getDefaultValue(self):
+        #TODO raise if no default
+    
         return self.default
         
     def hasDefaultValue(self):
@@ -181,6 +188,10 @@ class stringArgChecker(ArgChecker):
 class IntegerArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
         ArgChecker.__init__(self)
+        
+        #TODO minimum and maximum must be None or int
+        #TODO can't have maximum < minimum or the check will not accept any value
+        
         self.minimum = minimum
         self.maximum = maximum
         self.bases = [10, 16, 2]
@@ -240,7 +251,7 @@ class IntegerArgChecker(ArgChecker):
 class Integer8ArgChecker(IntegerArgChecker): #byte
     def __init__(self, signed = False):
         if signed:
-            IntegerArgChecker.__init__(self, 0x0, 0xFF)
+            IntegerArgChecker.__init__(self, 0x0, 0xFF) #TODO
         else:
             IntegerArgChecker.__init__(self, 0x0, 0xFF)
 
@@ -283,11 +294,20 @@ class tokenValueArgChecker(stringArgChecker):
     def __init__(self, tokenDict):
         super(tokenValueArgChecker,self).__init__()
         self.localtries = tries()
+        
+        #TODO tokenDict must be a dictionnary
+        
         for k,v in tokenDict.iteritems():
+            #TODO key must be non empty string, value can be anything, not our business
+        
             self.localtries.insert(k,v)
     
     def checkValue(self, value,argNumber=None):
         super(tokenValueArgChecker,self).checkValue(value,argNumber)
+        
+        #must be a string
+        if type(value) != str and type(value) != unicode:
+            raise argException("(Token) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
         
         try:
             if self.localtries.search(value) == None:
@@ -298,7 +318,7 @@ class tokenValueArgChecker(stringArgChecker):
     def getValue(self,value,argNumber=None):
         self.checkValue(value,argNumber)
         
-        return self.tokenDico[value]
+        return self.localtries.search(value).value
         
     def getUsage(self):
         return "("+ ("|".join(self.localtries.getKeyList())) + ")"
@@ -311,10 +331,14 @@ class booleanValueArgChecker(tokenValueArgChecker):
         if FalseName == None:
             FalseName = "false"
     
+        #the constructor of tokenValueArgChecker will check if every keys are 
         tokenValueArgChecker.__init__(self,{TrueName:True,FalseName:False})
     
 class floatTokenArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
+        #TODO minimum and maximum must be None or float
+        #TODO can't have maximum < minimum or the check will not accept any value
+    
         ArgChecker.__init__(self)
         self.minimum = minimum
         self.maximum = maximum
@@ -353,6 +377,9 @@ class floatTokenArgChecker(ArgChecker):
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
         ArgChecker.__init__(self,minimumSize,maximumSize)
+        
+        #TODO checker must be a checker and not a list
+        
         self.checker = checker
         
     def checkValue(self, values,argNumber=None):
@@ -435,6 +462,8 @@ class listArgChecker(ArgChecker):
 
 class environmentChecker(ArgChecker):
     def __init__(self,keyname,environment):
+        #TODO environment is a dict and keyname is hashable
+    
         ArgChecker.__init__(self,0,0,False)
         self.environment = environment
         self.keyname = keyname
