@@ -2,6 +2,7 @@ from exception import *
 from pyshell.utils.ordereddict import OrderedDict
 from tries import tries
 from tries.exception import ambiguousPathException
+import collections # for collections.Hashable
 
 ###############################################################################################
 ##### ArgsChecker #############################################################################
@@ -112,9 +113,16 @@ class ArgFeeder2(ArgsChecker):
 ##### ArgChecker ##############################################################################
 ###############################################################################################
 
+#TODO
+    #exception raised in __init__ must have a different type of the exception raised in check value
+
 class ArgChecker(object):
     def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True):
-        #TODO minimumSize and maximumSize can't be None and must be int
+        if type(minimumSize) != int:
+            raise argException("(ArgChecker) Minimum size must be an integer")
+            
+        if type(maximumSize) != int:
+            raise argException("(ArgChecker) Maximum size must be an integer") 
         
         if minimumSize < 0:
             raise argException("(ArgChecker) Minimum size must be a positive value")
@@ -123,7 +131,7 @@ class ArgChecker(object):
             raise argException("(ArgChecker) Maximum size must be a positive value") 
     
         if maximumSize < minimumSize:
-            pass #TODO
+            raise argException("(ArgChecker) Maximum size can not be smaller than Minimum size") 
     
         self.minimumSize = minimumSize
         self.maximumSize = maximumSize
@@ -151,7 +159,8 @@ class ArgChecker(object):
         return "<any>"
         
     def getDefaultValue(self):
-        #TODO raise if no default
+        if not self.hasDefaultValue():
+            raise argException("(ArgChecker) there is no default value")
     
         return self.default
         
@@ -189,8 +198,14 @@ class IntegerArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
         ArgChecker.__init__(self)
         
-        #TODO minimum and maximum must be None or int
-        #TODO can't have maximum < minimum or the check will not accept any value
+        if minimum != None and type(minimum) != int and type(minimum) != float:
+            raise argException("("+self.completeType+") Minimum must be an integer or None")
+            
+        if maximum != None and type(maximum) != int and type(maximum) != float:
+            raise argException("("+self.completeType+") Maximum must be an integer or None")
+            
+        if minimum != None and maximum != None and maximum < minimum:
+            raise argException("("+self.completeType+") Maximum can not be smaller than Minimum")
         
         self.minimum = minimum
         self.maximum = maximum
@@ -251,7 +266,7 @@ class IntegerArgChecker(ArgChecker):
 class Integer8ArgChecker(IntegerArgChecker): #byte
     def __init__(self, signed = False):
         if signed:
-            IntegerArgChecker.__init__(self, 0x0, 0xFF) #TODO
+            IntegerArgChecker.__init__(self, 0x80, 0x7F)
         else:
             IntegerArgChecker.__init__(self, 0x0, 0xFF)
 
@@ -293,13 +308,15 @@ class binaryArgChecker(IntegerArgChecker):
 class tokenValueArgChecker(stringArgChecker):
     def __init__(self, tokenDict):
         super(tokenValueArgChecker,self).__init__()
+        if not isinstance(tokenDict, dict):
+            raise argException("(Token) tokenDict must be a dictionary")
+        
         self.localtries = tries()
-        
-        #TODO tokenDict must be a dictionnary
-        
         for k,v in tokenDict.iteritems():
-            #TODO key must be non empty string, value can be anything, not our business
-        
+            #key must be non empty string, value can be anything
+            if type(k) != str and type(k) != unicode:
+                raise argException("(Token) a key in the dictionary is not a string: <"+str(k)+">")
+
             self.localtries.insert(k,v)
     
     def checkValue(self, value,argNumber=None):
@@ -336,8 +353,14 @@ class booleanValueArgChecker(tokenValueArgChecker):
     
 class floatTokenArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
-        #TODO minimum and maximum must be None or float
-        #TODO can't have maximum < minimum or the check will not accept any value
+        if minimum != None and type(minimum) != float and type(minimum) != int:
+            raise argException("(Float) Minimum must be a float or None")
+            
+        if maximum != None and type(maximum) != float and type(maximum) != int:
+            raise argException("(Float) Maximum must be a float or None")
+            
+        if minimum != None and maximum != None and maximum < minimum:
+            raise argException("(Float) Maximum can not be smaller than Minimum")
     
         ArgChecker.__init__(self)
         self.minimum = minimum
@@ -378,8 +401,9 @@ class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
         ArgChecker.__init__(self,minimumSize,maximumSize)
         
-        #TODO checker must be a checker and not a list
-        
+        if not isinstance(checker, ArgChecker) or isinstance(checker, listArgChecker):
+            raise argException("(List) checker must be an instance of ArgChecker but can not be an instance of listArgChecker")
+
         self.checker = checker
         
     def checkValue(self, values,argNumber=None):
@@ -462,7 +486,13 @@ class listArgChecker(ArgChecker):
 
 class environmentChecker(ArgChecker):
     def __init__(self,keyname,environment):
-        #TODO environment is a dict and keyname is hashable
+        if not isinstance(environment, dict):
+            raise argException("(Environment) environment must be a dictionary")
+    
+        if not isinstance(keyname, collections.Hashable):
+            raise argException("(Environment) keyname must be hashable")
+    
+        #the key is not checked at the instanciation because maybe it does not yet exist
     
         ArgChecker.__init__(self,0,0,False)
         self.environment = environment
@@ -470,7 +500,7 @@ class environmentChecker(ArgChecker):
     
     def getValue(self,value,argNumber=None):
         if self.keyname not in self.environment:
-            raise argException("(List) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
+            raise argException("(Environment) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
     
         return self.environment[self.keyname]
         
@@ -488,7 +518,29 @@ class environmentChecker(ArgChecker):
         
     def erraseDefaultValue(self):
         pass
+
+class environmentDynamicChecker(ArgChecker):
+    def __init__():
+        ArgChecker.__init__(self,1,1,False)
+    
+    def getValue(self,value,argNumber=None):
+        if not isinstance(value, collections.Hashable):
+            raise argException("(EnvironmentDynamic) keyname must be hashable")
+    
+        if value not in self.environment:
+            raise argException("(EnvironmentDynamic) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
+    
+        return self.environment[value]
+    
+    def hasDefaultValue(self):
+        return False
         
+    def setDefaultValue(self,value):
+        pass
+        
+    def erraseDefaultValue(self):
+        pass
+
 class defaultValueChecker(ArgChecker):
     def __init__(self,value):
         ArgChecker.__init__(self,0,0,False)

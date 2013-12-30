@@ -153,6 +153,9 @@ class listArgCheckerTest(unittest.TestCase):
 
 class environmentArgCheckerTest(unittest.TestCase):
     pass #TODO
+        #arg in the env
+        #arg not in the env
+        #...
 
 class defaultArgCheckerTest(unittest.TestCase):
     def setUp(self):
