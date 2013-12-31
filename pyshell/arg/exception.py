@@ -22,6 +22,13 @@ class argException(Exception):
 
     def __str__(self):
         return str(self.value)
+
+class argInitializationException(Exception):
+    def __init__(self,value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
         
 class argExecutionException(Exception):
     def __init__(self,value):

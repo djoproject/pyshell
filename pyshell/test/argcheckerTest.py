@@ -4,6 +4,33 @@
 import unittest
 from pyshell.arg.argchecker import *
 
+class ArgCheckerTest(unittest.TestCase):
+    def test_initLimitCase(self):
+        self.assertRaises(argInitializationException, ArgChecker, "plop")
+        self.assertRaises(argInitializationException, ArgChecker, 1, "plop")
+        self.assertRaises(argInitializationException, ArgChecker, -1)
+        self.assertRaises(argInitializationException, ArgChecker, 1, -1)
+        self.assertRaises(argInitializationException, ArgChecker, 5, 1)
+        self.assertTrue(ArgChecker() != None)
+    
+    def test_defaultValue(self):
+        a = ArgChecker()
+        self.assertFalse(a.hasDefaultValue())
+        self.assertRaises(argException, a.getDefaultValue)
+        
+        a.setDefaultValue("plop")
+        self.assertTrue(a.hasDefaultValue())
+        self.assertTrue(a.getDefaultValue() == "plop")
+        
+        a.erraseDefaultValue()
+        self.assertFalse(a.hasDefaultValue())
+        self.assertRaises(argException, a.getDefaultValue)
+        
+    def test_misc(self):
+        a = ArgChecker()
+        self.assertTrue(a.getUsage() == "<any>")
+        self.assertTrue(a.getValue(28000) == 28000)
+    
 class stringArgCheckerTest(unittest.TestCase):
     def setUp(self):
         self.checker = stringArgChecker()
@@ -25,6 +52,17 @@ class stringArgCheckerTest(unittest.TestCase):
 class IntegerArgCheckerTest(unittest.TestCase):
     def setUp(self):
         self.checker = IntegerArgChecker()
+    
+    def test_init(self):
+        self.assertRaises(argInitializationException, IntegerArgChecker, "plop")
+        self.assertRaises(argInitializationException, IntegerArgChecker, 1, "plop")
+        self.assertRaises(argInitializationException, IntegerArgChecker, None, "plop")
+        self.assertRaises(argInitializationException, IntegerArgChecker, 5, 1)
+        self.assertRaises(argInitializationException, IntegerArgChecker, 5.5, 1.0)
+        
+        self.assertTrue(IntegerArgChecker(None) != None)
+        self.assertTrue(IntegerArgChecker(1, None) != None)
+        self.assertTrue(IntegerArgChecker(None, 1) != None)
         
     def test_check(self):
         self.assertRaises(argException, self.checker.checkValue, None, 1)
@@ -41,9 +79,14 @@ class IntegerArgCheckerTest(unittest.TestCase):
         self.assertTrue(52 == self.checker.getValue(52.33, 23))
         self.assertTrue(1 == self.checker.getValue(True, 23))
         self.assertTrue(0 == self.checker.getValue(False, 23))
+        self.assertTrue(0b0101001 == self.checker.getValue(0b0101001, 23))
         
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "<int>")
+        c = IntegerArgChecker(None, 1)
+        self.assertTrue(c.getUsage() == "<int *-1>")
+        c = IntegerArgChecker(1)
+        self.assertTrue(c.getUsage() == "<int 1-*>")
     
     def test_limit(self):
         self.checker = IntegerArgChecker(5)
@@ -61,7 +104,33 @@ class IntegerArgCheckerTest(unittest.TestCase):
         self.assertRaises(argException, self.checker.checkValue, -52)
         self.assertTrue(3 == self.checker.getValue(3, 23))
         self.assertTrue(-5 == self.checker.getValue(-5, 23))
+
+
+class LimitedIntegerTest(unittest.TestCase):
+    def test_init(self):
+        self.assertRaises(argInitializationException, LimitedInteger, 5)
+        self.assertRaises(argInitializationException, LimitedInteger, 23)
         
+        l = LimitedInteger(8, True)
+        self.assertTrue(l.minimum == -0x80)
+        self.assertTrue(l.maximum == 0x7f)
+        l = LimitedInteger(8)
+        self.assertTrue(l.minimum == 0)
+        self.assertTrue(l.maximum == 0xff)
+        
+        l = LimitedInteger(16, True)
+        self.assertTrue(l.minimum == -0x8000)
+        self.assertTrue(l.maximum == 0x7fff)
+        l = LimitedInteger(16)
+        self.assertTrue(l.minimum == 0)
+        self.assertTrue(l.maximum == 0xffff)
+        
+        l = LimitedInteger(32, True)
+        self.assertTrue(l.minimum == -0x80000000)
+        self.assertTrue(l.maximum == 0x7fffffff)
+        l = LimitedInteger(32)
+        self.assertTrue(l.minimum == 0)
+        self.assertTrue(l.maximum == 0xffffffff)
     
 class hexaArgCheckerTest(unittest.TestCase):
     def setUp(self):
@@ -86,11 +155,37 @@ class hexaArgCheckerTest(unittest.TestCase):
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "<hex>")
 
+class binaryArgCheckerTest(unittest.TestCase):
+    def setUp(self):
+        self.checker = binaryArgChecker()
+        
+    def test_check(self):
+        self.assertRaises(argException, self.checker.checkValue, None, 1)
+        self.assertRaises(argException, self.checker.checkValue, "toto")
+        self.assertRaises(argException, self.checker.checkValue, u"toto")
+        #self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
+        #self.assertRaises(argException, self.checker.checkValue, True)
+        #self.assertRaises(argException, self.checker.checkValue, False, 9)
+    
+    def test_get(self):
+        self.assertTrue(0b10 == self.checker.getValue("10"))
+        self.assertTrue(0b10010101 == self.checker.getValue(0b10010101, 23))
+        self.assertTrue(52 == self.checker.getValue(52.33, 23))
+        #self.assertTrue(0x52 == self.checker.getValue(0x52, 23))
+        self.assertTrue(1 == self.checker.getValue(True, 23))
+        self.assertTrue(0 == self.checker.getValue(False, 23))
+        
+    def test_usage(self):
+        self.assertTrue(self.checker.getUsage() == "<bin>")
     
 class tokenArgCheckerTest(unittest.TestCase):
     def setUp(self):
         self.checker = tokenValueArgChecker({"toto":53, u"plip":"kkk"})
     
+    def test_init(self):
+        self.assertRaises(argInitializationException, tokenValueArgChecker, "toto")
+        self.assertRaises(argInitializationException, tokenValueArgChecker, {"toto":53, 23:"kkk"})
+        
     def test_check(self):
         self.assertRaises(argException, self.checker.checkValue, None, 1)
         self.assertRaises(argException, self.checker.checkValue, 42)
@@ -106,7 +201,15 @@ class tokenArgCheckerTest(unittest.TestCase):
         self.assertTrue(53 == self.checker.getValue("tot"))
         self.assertTrue(53 == self.checker.getValue("toto"))
         self.assertTrue("kkk" == self.checker.getValue("plip"))
-    
+        
+    def test_ambiguous(self):
+        checker = tokenValueArgChecker({"toto":53, "tota":"kkk"})
+        self.assertRaises(argException, checker.checkValue, "to", 1)
+        
+    def test_usage(self):
+        self.assertTrue(self.checker.getUsage() == "(plip|toto)")
+
+   
 class booleanArgCheckerTest(unittest.TestCase):
     def setUp(self):
         self.checker = booleanValueArgChecker()
@@ -115,19 +218,33 @@ class booleanArgCheckerTest(unittest.TestCase):
         self.assertRaises(argException, self.checker.checkValue, None, 1)
         self.assertRaises(argException, self.checker.checkValue, 42)
         self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        self.assertRaises(argException, self.checker.checkValue, True)
-        self.assertRaises(argException, self.checker.checkValue, False, 9)
+        #self.assertRaises(argException, self.checker.checkValue, True)
+        #self.assertRaises(argException, self.checker.checkValue, False, 9)
     
     def test_get(self):
         self.assertTrue(True == self.checker.getValue("true"))
         self.assertTrue(False == self.checker.getValue(u"false", 23))
+        self.assertTrue(True == self.checker.getValue(True))
+        self.assertTrue(False == self.checker.getValue(False, 23))
     
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "(false|true)")
-    
+
+
 class floatArgCheckerTest(unittest.TestCase):
     def setUp(self):
         self.checker = floatTokenArgChecker()
+    
+    def test_init(self):
+        self.assertRaises(argInitializationException, floatTokenArgChecker, "plop")
+        self.assertRaises(argInitializationException, floatTokenArgChecker, 1, "plop")
+        self.assertRaises(argInitializationException, floatTokenArgChecker, None, "plop")
+        self.assertRaises(argInitializationException, floatTokenArgChecker, 5, 1)
+        self.assertRaises(argInitializationException, floatTokenArgChecker, 5.5, 1.0)
+        
+        self.assertTrue(floatTokenArgChecker(None) != None)
+        self.assertTrue(floatTokenArgChecker(1.2, None) != None)
+        self.assertTrue(floatTokenArgChecker(None, 1.5) != None)
     
     def test_check(self):
         self.assertRaises(argException, self.checker.checkValue, None, 1)
@@ -147,15 +264,59 @@ class floatArgCheckerTest(unittest.TestCase):
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "<float>")
     
-
-class listArgCheckerTest(unittest.TestCase):
-    pass #TODO
+    def test_limit(self):
+        self.checker = floatTokenArgChecker(5)
+        self.assertRaises(argException, self.checker.checkValue, 3)
+        self.assertRaises(argException, self.checker.checkValue, -5)
+        self.assertTrue(52 == self.checker.getValue(52, 23))
+        
+        self.checker = floatTokenArgChecker(None,5)
+        self.assertRaises(argException, self.checker.checkValue, 52)
+        self.assertTrue(3 == self.checker.getValue(3, 23))
+        self.assertTrue(-5 == self.checker.getValue(-5, 23))
+        
+        self.checker = floatTokenArgChecker(-5,5)
+        self.assertRaises(argException, self.checker.checkValue, 52)
+        self.assertRaises(argException, self.checker.checkValue, -52)
+        self.assertTrue(3 == self.checker.getValue(3, 23))
+        self.assertTrue(-5 == self.checker.getValue(-5, 23))
 
 class environmentArgCheckerTest(unittest.TestCase):
-    pass #TODO
+    def test_init(self):
+        self.assertRaises(argInitializationException,environmentChecker, None, None)
+        self.assertRaises(argInitializationException,environmentChecker, {}, {})
+
+    def test_key(self):
+        checker = environmentChecker("plop", {"toto":53, u"plip":"kkk"})
+        self.assertRaises(argException,checker.getValue, [])
+        
+        checker = environmentChecker("toto", {"toto":53, u"plip":"kkk"})
+        self.assertTrue(checker.getValue([]) == 53)
+        
+        d = {"toto":53, u"plip":"kkk"}
+        checker = environmentChecker("plop", d)
+        d["plop"] = 33
+        self.assertTrue(checker.getValue([]) == 33)
+        
         #arg in the env
         #arg not in the env
         #...
+
+class environmentDynamicCheckerTest(unittest.TestCase):
+    def test_init(self):
+        self.assertRaises(argInitializationException,environmentDynamicChecker, None)
+
+    def test_key(self):
+        checker = environmentDynamicChecker({"toto":53, u"plip":"kkk"})
+        self.assertRaises(argException,checker.getValue, [])
+        
+        checker = environmentDynamicChecker({"toto":53, u"plip":"kkk"})
+        self.assertTrue(checker.getValue("toto") == 53)
+        
+        d = {"toto":53, u"plip":"kkk"}
+        checker = environmentDynamicChecker(d)
+        d["plop"] = 33
+        self.assertTrue(checker.getValue("plop") == 33)
 
 class defaultArgCheckerTest(unittest.TestCase):
     def setUp(self):
@@ -171,6 +332,10 @@ class defaultArgCheckerTest(unittest.TestCase):
         
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "<any>")
+
+#XXX
+class listArgCheckerTest(unittest.TestCase):
+    pass #TODO
     
 class argFeederTest(unittest.TestCase):
     pass #TODO
