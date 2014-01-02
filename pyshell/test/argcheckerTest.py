@@ -36,11 +36,11 @@ class stringArgCheckerTest(unittest.TestCase):
         self.checker = stringArgChecker()
         
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, 42)
-        self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        self.assertRaises(argException, self.checker.checkValue, True)
-        self.assertRaises(argException, self.checker.checkValue, False, 9)
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, 42)
+        self.assertRaises(argException, self.checker.getValue, 43.5, 4)
+        self.assertRaises(argException, self.checker.getValue, True)
+        self.assertRaises(argException, self.checker.getValue, False, 9)
     
     def test_get(self):
         self.assertTrue("toto" == self.checker.getValue("toto"))
@@ -65,12 +65,12 @@ class IntegerArgCheckerTest(unittest.TestCase):
         self.assertTrue(IntegerArgChecker(None, 1) != None)
         
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, "toto")
-        self.assertRaises(argException, self.checker.checkValue, u"toto")
-        #self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        #self.assertRaises(argException, self.checker.checkValue, True)
-        #self.assertRaises(argException, self.checker.checkValue, False, 9)
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, "toto")
+        self.assertRaises(argException, self.checker.getValue, u"toto")
+        #self.assertRaises(argException, self.checker.getValue, 43.5, 4)
+        #self.assertRaises(argException, self.checker.getValue, True)
+        #self.assertRaises(argException, self.checker.getValue, False, 9)
     
     def test_get(self):
         self.assertTrue(43 == self.checker.getValue("43"))
@@ -90,18 +90,18 @@ class IntegerArgCheckerTest(unittest.TestCase):
     
     def test_limit(self):
         self.checker = IntegerArgChecker(5)
-        self.assertRaises(argException, self.checker.checkValue, 3)
-        self.assertRaises(argException, self.checker.checkValue, -5)
+        self.assertRaises(argException, self.checker.getValue, 3)
+        self.assertRaises(argException, self.checker.getValue, -5)
         self.assertTrue(52 == self.checker.getValue(52, 23))
         
         self.checker = IntegerArgChecker(None,5)
-        self.assertRaises(argException, self.checker.checkValue, 52)
+        self.assertRaises(argException, self.checker.getValue, 52)
         self.assertTrue(3 == self.checker.getValue(3, 23))
         self.assertTrue(-5 == self.checker.getValue(-5, 23))
         
         self.checker = IntegerArgChecker(-5,5)
-        self.assertRaises(argException, self.checker.checkValue, 52)
-        self.assertRaises(argException, self.checker.checkValue, -52)
+        self.assertRaises(argException, self.checker.getValue, 52)
+        self.assertRaises(argException, self.checker.getValue, -52)
         self.assertTrue(3 == self.checker.getValue(3, 23))
         self.assertTrue(-5 == self.checker.getValue(-5, 23))
 
@@ -137,12 +137,12 @@ class hexaArgCheckerTest(unittest.TestCase):
         self.checker = hexaArgChecker()
         
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, "toto")
-        self.assertRaises(argException, self.checker.checkValue, u"toto")
-        #self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        #self.assertRaises(argException, self.checker.checkValue, True)
-        #self.assertRaises(argException, self.checker.checkValue, False, 9)
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, "toto")
+        self.assertRaises(argException, self.checker.getValue, u"toto")
+        #self.assertRaises(argException, self.checker.getValue, 43.5, 4)
+        #self.assertRaises(argException, self.checker.getValue, True)
+        #self.assertRaises(argException, self.checker.getValue, False, 9)
     
     def test_get(self):
         self.assertTrue(0x43 == self.checker.getValue("43"))
@@ -160,12 +160,12 @@ class binaryArgCheckerTest(unittest.TestCase):
         self.checker = binaryArgChecker()
         
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, "toto")
-        self.assertRaises(argException, self.checker.checkValue, u"toto")
-        #self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        #self.assertRaises(argException, self.checker.checkValue, True)
-        #self.assertRaises(argException, self.checker.checkValue, False, 9)
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, "toto")
+        self.assertRaises(argException, self.checker.getValue, u"toto")
+        #self.assertRaises(argException, self.checker.getValue, 43.5, 4)
+        #self.assertRaises(argException, self.checker.getValue, True)
+        #self.assertRaises(argException, self.checker.getValue, False, 9)
     
     def test_get(self):
         self.assertTrue(0b10 == self.checker.getValue("10"))
@@ -187,13 +187,13 @@ class tokenArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, tokenValueArgChecker, {"toto":53, 23:"kkk"})
         
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, 42)
-        self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        self.assertRaises(argException, self.checker.checkValue, True)
-        self.assertRaises(argException, self.checker.checkValue, False, 9)
-        self.assertRaises(argException, self.checker.checkValue, "toti", 9)
-        self.assertRaises(argException, self.checker.checkValue, "flofi", 9)
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, 42)
+        self.assertRaises(argException, self.checker.getValue, 43.5, 4)
+        self.assertRaises(argException, self.checker.getValue, True)
+        self.assertRaises(argException, self.checker.getValue, False, 9)
+        self.assertRaises(argException, self.checker.getValue, "toti", 9)
+        self.assertRaises(argException, self.checker.getValue, "flofi", 9)
     
     def test_get(self):
         self.assertTrue(53 == self.checker.getValue("t"))
@@ -204,7 +204,7 @@ class tokenArgCheckerTest(unittest.TestCase):
         
     def test_ambiguous(self):
         checker = tokenValueArgChecker({"toto":53, "tota":"kkk"})
-        self.assertRaises(argException, checker.checkValue, "to", 1)
+        self.assertRaises(argException, checker.getValue, "to", 1)
         
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "(plip|toto)")
@@ -215,11 +215,11 @@ class booleanArgCheckerTest(unittest.TestCase):
         self.checker = booleanValueArgChecker()
     
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, 42)
-        self.assertRaises(argException, self.checker.checkValue, 43.5, 4)
-        #self.assertRaises(argException, self.checker.checkValue, True)
-        #self.assertRaises(argException, self.checker.checkValue, False, 9)
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, 42)
+        self.assertRaises(argException, self.checker.getValue, 43.5, 4)
+        #self.assertRaises(argException, self.checker.getValue, True)
+        #self.assertRaises(argException, self.checker.getValue, False, 9)
     
     def test_get(self):
         self.assertTrue(True == self.checker.getValue("true"))
@@ -247,9 +247,9 @@ class floatArgCheckerTest(unittest.TestCase):
         self.assertTrue(floatTokenArgChecker(None, 1.5) != None)
     
     def test_check(self):
-        self.assertRaises(argException, self.checker.checkValue, None, 1)
-        self.assertRaises(argException, self.checker.checkValue, "toto")
-        self.assertRaises(argException, self.checker.checkValue, u"toto")
+        self.assertRaises(argException, self.checker.getValue, None, 1)
+        self.assertRaises(argException, self.checker.getValue, "toto")
+        self.assertRaises(argException, self.checker.getValue, u"toto")
     
     def test_get(self):
         self.assertTrue(43 == self.checker.getValue("43"))
@@ -266,18 +266,18 @@ class floatArgCheckerTest(unittest.TestCase):
     
     def test_limit(self):
         self.checker = floatTokenArgChecker(5)
-        self.assertRaises(argException, self.checker.checkValue, 3)
-        self.assertRaises(argException, self.checker.checkValue, -5)
+        self.assertRaises(argException, self.checker.getValue, 3)
+        self.assertRaises(argException, self.checker.getValue, -5)
         self.assertTrue(52 == self.checker.getValue(52, 23))
         
         self.checker = floatTokenArgChecker(None,5)
-        self.assertRaises(argException, self.checker.checkValue, 52)
+        self.assertRaises(argException, self.checker.getValue, 52)
         self.assertTrue(3 == self.checker.getValue(3, 23))
         self.assertTrue(-5 == self.checker.getValue(-5, 23))
         
         self.checker = floatTokenArgChecker(-5,5)
-        self.assertRaises(argException, self.checker.checkValue, 52)
-        self.assertRaises(argException, self.checker.checkValue, -52)
+        self.assertRaises(argException, self.checker.getValue, 52)
+        self.assertRaises(argException, self.checker.getValue, -52)
         self.assertTrue(3 == self.checker.getValue(3, 23))
         self.assertTrue(-5 == self.checker.getValue(-5, 23))
 
@@ -335,7 +335,31 @@ class defaultArgCheckerTest(unittest.TestCase):
 
 #XXX
 class listArgCheckerTest(unittest.TestCase):
-    pass #TODO
+    
+    def test_init(self):
+        self.assertRaises(argInitializationException, listArgChecker, None)
+        self.assertRaises(argInitializationException, listArgChecker, listArgChecker(defaultValueChecker(42)))
+        self.assertRaises(argInitializationException, listArgChecker, 23)
+        self.assertRaises(argInitializationException, listArgChecker, "plop")
+        
+        self.assertTrue(listArgChecker(IntegerArgChecker()) != None)
+        self.assertTrue(listArgChecker(stringArgChecker()) != None)
+        
+    def test_get(self):
+        pass #TODO
+        #check/get, test special case with 1 item
+        #check/get, test case without a list
+        #check/get, test normal case
+        
+    def test_default(self)
+        pass #TODO
+        #getDefault, test the 3 valid case and the error case
+        #setDefaultValue, test special case with value, with empty list, with normal list
+        #setDefaultValue, test without special case, without list, with too small list, with bigger list, with list between size
+        
+    def test_usage(self):
+        pass #TODOg
+        #test usage
     
 class argFeederTest(unittest.TestCase):
     pass #TODO

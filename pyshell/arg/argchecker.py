@@ -113,33 +113,29 @@ class ArgFeeder2(ArgsChecker):
 ##### ArgChecker ##############################################################################
 ###############################################################################################
 
-#TODO
-    #-en cas de conversion de la valeur, celle-ci a lieu deux fois
-        #une fois dans le check et une fois dans le get
-        #c'est deux fois la meme operation :/
-        #pas moyen d'eviter ça ?
-
 class ArgChecker(object):
     def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True):
-        if type(minimumSize) != int:
-            raise argInitializationException("(ArgChecker) Minimum size must be an integer")
-            
-        if type(maximumSize) != int:
-            raise argInitializationException("(ArgChecker) Maximum size must be an integer") 
+        if minimumSize != None:
+            if type(minimumSize) != int:
+                raise argInitializationException("(ArgChecker) Minimum size must be an integer")
+                
+            if minimumSize < 0:
+                raise argInitializationException("(ArgChecker) Minimum size must be a positive value")
         
-        if minimumSize < 0:
-            raise argInitializationException("(ArgChecker) Minimum size must be a positive value")
+        if maximumSize != None:
+            if type(maximumSize) != int:
+                raise argInitializationException("(ArgChecker) Maximum size must be an integer") 
         
-        if maximumSize < 0:
-            raise argInitializationException("(ArgChecker) Maximum size must be a positive value") 
+            if maximumSize < 0:
+                raise argInitializationException("(ArgChecker) Maximum size must be a positive value") 
     
-        if maximumSize < minimumSize:
+        if minimumSize != None and maximumSize != None and maximumSize < minimumSize:
             raise argInitializationException("(ArgChecker) Maximum size can not be smaller than Minimum size") 
     
         self.minimumSize = minimumSize
         self.maximumSize = maximumSize
-        self.hasDefault = False
-        self.default = None
+        self.hasDefault  = False
+        self.default     = None
         self.showInUsage = showInUsage
     
     def isVariableSize(self):
@@ -147,16 +143,9 @@ class ArgChecker(object):
     
     def needData(self):
         return not (self.minimumSize == self.maximumSize == 0)
-    
-    #
-    # @exception raise an argException if there is an error
-    #   
-    def checkValue(self,argNumber=None):
-        pass #XXX to override
         
     def getValue(self,value,argNumber=None):
-        self.checkValue(value)
-        return value
+        return value #XXX override it if needed
         
     def getUsage(self):
         return "<any>"
@@ -179,27 +168,26 @@ class ArgChecker(object):
         self.default = None
         
 class stringArgChecker(ArgChecker):
-    def checkValue(self, value,argNumber=None):
+    def __init__(self):
+        ArgChecker.__init__(self,1,1,True)
+
+    def getValue(self, value,argNumber=None):
+        value = ArgChecker.getValue(self, value,argNumber)
+    
         if value == None:
             raise argException("(String) Argument %s: the string arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
 
         if type(value) != str and type(value) != unicode:
             raise argException("(String) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
     
-    """def getValue(self,value,argNumber=None):
-        self.checkValue(value,argNumber)
-        v = super(stringArgChecker,self).getValue(value,argNumber)
-
-        if v != None:
-            return v
-        return None """
+        return value
     
     def getUsage(self):
         return "<string>"
 
 class IntegerArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
-        ArgChecker.__init__(self)
+        ArgChecker.__init__(self,1,1,True)
         
         if not hasattr(self, "completeType"):
             self.completeType  = "Integer"
@@ -222,7 +210,9 @@ class IntegerArgChecker(ArgChecker):
         self.minimum = minimum
         self.maximum = maximum
 
-    def checkValue(self, value,argNumber=None):
+    def getValue(self, value,argNumber=None):
+        value = ArgChecker.getValue(self, value,argNumber)
+    
         if value == None:
             raise argException("("+self.completeType+") Argument %s: the "%("" if argNumber == None else str(argNumber)+" ")+self.completeType.lower()+" arg can't be None")
         
@@ -248,20 +238,8 @@ class IntegerArgChecker(ArgChecker):
             if castedValue > self.maximum:
                 raise argException("("+self.completeType+") Argument %s: the biggest value must be lower or equal than "%("" if argNumber == None else str(argNumber)+str(self.maximum)))
 
-
-    def getValue(self,value,argNumber=None):
-        self.checkValue(value,argNumber)
-        v = super(IntegerArgChecker,self).getValue(value,argNumber)
-        
-        if type(value) == int or type(value) == float or type(value) == bool:
-            return int(value)
-        elif type(value) == str or type(value) == unicode:
-            for b in self.bases:
-                try:
-                    return int(value, b)
-                except ValueError:
-                    continue       
-        
+        return castedValue
+            
     def getUsage(self):
         if self.minimum != None:
             if self.maximum != None:
@@ -313,23 +291,21 @@ class tokenValueArgChecker(stringArgChecker):
 
             self.localtries.insert(k,v)
     
-    def checkValue(self, value,argNumber=None):
-        super(tokenValueArgChecker,self).checkValue(value,argNumber)
+    def getValue(self, value,argNumber=None):
+        value = super(tokenValueArgChecker,self).getValue(value,argNumber)
         
-        #must be a string
-        if type(value) != str and type(value) != unicode:
-            raise argException("(Token) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
+        #must be a string #XXX already check in string parent
+        #if type(value) != str and type(value) != unicode:
+        #    raise argException("(Token) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
         
         try:
-            if self.localtries.search(value) == None:
+            node = self.localtries.search(value)
+            if node == None:
                 raise argException("(Token) Argument %s: this arg is not an existing token"%("" if argNumber == None else str(argNumber)+" ")+", valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")")
+            return node.value
+            
         except ambiguousPathException:
             raise argException("(Token) Argument %s: this arg is ambiguous"%("" if argNumber == None else str(argNumber)+" ")+", valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")")
-           
-    def getValue(self,value,argNumber=None):
-        self.checkValue(value,argNumber)
-        
-        return self.localtries.search(value).value
         
     def getUsage(self):
         return "("+ ("|".join(self.localtries.getKeyList())) + ")"
@@ -347,12 +323,6 @@ class booleanValueArgChecker(tokenValueArgChecker):
         self.TrueName = TrueName
         self.FalseName = FalseName
     
-    def checkValue(self, value,argNumber=None):
-        if type(value) == bool:
-            return
-            
-        tokenValueArgChecker.checkValue(self, value,argNumber)
-        
     def getValue(self,value,argNumber=None):
         if type(value) == bool:
             if value:
@@ -374,11 +344,13 @@ class floatTokenArgChecker(ArgChecker):
         if minimum != None and maximum != None and maximum < minimum:
             raise argInitializationException("(Float) Maximum can not be smaller than Minimum")
     
-        ArgChecker.__init__(self)
+        ArgChecker.__init__(self,1,1,True)
         self.minimum = minimum
         self.maximum = maximum
     
-    def checkValue(self, value,argNumber=None):
+    def getValue(self, value,argNumber=None):
+        value = ArgChecker.getValue(self, value,argNumber)
+    
         if value == None:
             raise argException("(Float) Argument %s: the float arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
         
@@ -395,9 +367,7 @@ class floatTokenArgChecker(ArgChecker):
             if castedValue > self.maximum:
                 raise argException("(Float) Argument %s: the biggest value must be lower or equal than "%("" if argNumber == None else str(argNumber)+" ")+str(self.maximum))
 
-    def getValue(self,value,argNumber=None):
-        self.checkValue(value,argNumber)
-        return float(super(floatTokenArgChecker,self).getValue(value,argNumber))     
+        return castedValue    
         
     def getUsage(self):
         if self.minimum != None:
@@ -480,41 +450,23 @@ class defaultValueChecker(ArgChecker):
 
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
-        ArgChecker.__init__(self,minimumSize,maximumSize)
+        ArgChecker.__init__(self,minimumSize,maximumSize, True)
         
         if not isinstance(checker, ArgChecker) or isinstance(checker, listArgChecker):
-            raise argInitializationException("(List) checker must be an instance of ArgChecker but can not be an instance of listArgChecker")
+            raise argInitializationException("(List) checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got <"+str(checker)+">")
 
         self.checker = checker
-        
-    def checkValue(self, values,argNumber=None):
-    
-        #check if it's a list
-        if not isinstance(values,list):
-            if argNumber != None:
-                raise argException("(List) Argument %s: this arg is not a valid list"%("" if argNumber == None else str(argNumber)+" "))
-    
-        #TODO manage the case with a list of 1 item
-    
-        if argNumber != None:
-            for v in values:
-                ret.append(self.checker.checkValue(v,argNumber))
-                argNumber += 1
-        else:
-            for v in values:
-                ret.append(self.checker.checkValue(v))
     
     def getValue(self,values,argNumber=None):
-        ret = []
+        
+        if self.minimumSize == self.maximumSize == 1:
+            return self.checker.getValue(v,argNumber)
         
         #check if it's a list
         if not isinstance(values,list):
             raise argException("(List) Argument %s: this arg is not a valid list"%("" if argNumber == None else str(argNumber)+" "))
-
-        #TODO manage the case with a list of 1 item
-            #accept non list value
-            #return an item and not a list
-
+        
+        ret = []
         if argNumber != None:
             for v in values:
                 ret.append(self.checker.getValue(v,argNumber))
@@ -525,29 +477,46 @@ class listArgChecker(ArgChecker):
 
         return ret
     
-    #TODO check the following methods
     def getDefaultValue(self):
-        if ArgChecker.hasDefaultValue(self):
-            return ArgChecker.getDefaultValue()
+        if self.hasDefault:
+            return self.default
     
-        if self.minimumSize == self.maximumSize == None:
+        if self.minimumSize == None:
             return []
     
-        return self.default
+        if self.checker.hasDefaultValue(self):
+            return [ArgChecker.getDefaultValue()] * self.minimumSize
+    
+        raise argException("(List) getDefaultValue, there is no default value")
         
     def hasDefaultValue(self):
-        if ArgChecker.hasDefaultValue(self):
-            return True
+        return self.hasDefault or self.minimumSize == None or (self.minimumSize != None and self.checker.hasDefaultValue(self))
     
-        if self.minimumSize == self.maximumSize == None:
-            return True
-            
-        return False
+    def setDefaultValue(self,value):
+        if self.minimumSize == self.maximumSize == 1:
+            #if a list, extract first item
+            if isinstance(values,list):
+                if len(value) > 0:
+                    value = value[0]
+                else:
+                    raise argException("(List) setDefaultValue, need at least 1 element in the list")#empty list not allowed, need at least one item
+        else:
+            if not isinstance(value,list):
+                raise argException("(List) setDefaultValue, the default value must be a list")
+                
+            if self.minimumSize != None and len(value) < self.minimumSize:
+                raise argException("(List) setDefaultValue, need at least "+str(self.minimumSize)+" element(s) in the list")
+                
+            if self.maximumSize != None and len(value) > self.maximumSize:
+                value = value[:self.maximumSize]
         
+        ArgChecker.setDefaultValue(self, value)
+    
     def getUsage(self):
         if self.minimumSize == None :
             if self.maximumSize == None :
                 return "("+self.checker.getUsage()+" .. "+self.checker.getUsage()+")"
+            
             return "("+self.checker.getUsage()+"0 .. "+self.checker.getUsage()+str(self.maximumSize-1)+")"
         else:
             if self.minimumSize == 1:
