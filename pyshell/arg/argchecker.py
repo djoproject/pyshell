@@ -161,7 +161,7 @@ class ArgChecker(object):
         
     def setDefaultValue(self,value):
         self.hasDefault = True
-        self.default = value
+        self.default = self.getValue(value) #will convert the value if needed
         
     def erraseDefaultValue(self):
         self.hasDefault = False
@@ -444,31 +444,68 @@ class defaultValueChecker(ArgChecker):
     def __init__(self,value):
         ArgChecker.__init__(self,0,0,False)
         self.setDefaultValue(value)
-        
+    
+    def setDefaultValue(self,value):
+        self.hasDefault = True
+        self.default = value #no check on the value...
+    
     def getValue(self,value,argNumber=None):
         return self.getDefaultValue()
 
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
-        ArgChecker.__init__(self,minimumSize,maximumSize, True)
-        
         if not isinstance(checker, ArgChecker) or isinstance(checker, listArgChecker):
             raise argInitializationException("(List) checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got <"+str(checker)+">")
 
+        #TODO what about None value in minimumSize and maximumSize ?
+            #must be possible to use it !!!
+
+        if checker.minimumSize != checker.maximumSize or checker.minimumSize == None or checker.minimumSize == 0:
+            pass #TODO raise
+    
+        if (minimumSize % checker.minimumSize)  != 0:
+            pass #TODO raise
+            
+        if (maximumSize % checker.minimumSize)  != 0:
+            pass #TODO raise
+
+        ArgChecker.__init__(self,minimumSize,maximumSize, True)
         self.checker = checker
     
     def getValue(self,values,argNumber=None):
-        
-        if self.minimumSize == self.maximumSize == 1:
-            return self.checker.getValue(v,argNumber)
-        
+        """if self.maximumSize == 1:
+            if self.minimumSize == 1:
+                if not isinstance(values,list):
+                    return self.checker.getValue(values,argNumber)
+                else:
+                    if len(values) == 0:
+                        raise argException("(List) Argument %s: this arg is an empty list, need at least one item"%("" if argNumber == None else str(argNumber)+" ")) 
+                    else:
+                        return self.checker.getValue(values[0],argNumber)
+                
+                return self.checker.getValue(values,argNumber)
+            elif self.minimumSize == 0 or self.minimumSize == None:
+                if isinstance(values,list):
+                    if len(values) == 0:
+                        pass #TODO return what ? an empty list ? a None value ?
+                            #XXX the checker must be allowed to manage no value on the getValue
+                    else:
+                        return self.checker.getValue(values[0],argNumber)
+                else:
+                    return self.checker.getValue(values,argNumber)
+        """
         #check if it's a list
         if not isinstance(values,list):
             raise argException("(List) Argument %s: this arg is not a valid list"%("" if argNumber == None else str(argNumber)+" "))
         
+        #TODO check the minimal size
+            #don't care about the max size, just stop it at the defined limit   
+            
+        #TODO len(values) must be a multiple of self.checker.minimumSize
+        
         ret = []
         if argNumber != None:
-            for v in values:
+            for v in values: #TODO use range if the checker need more than one token
                 ret.append(self.checker.getValue(v,argNumber))
                 argNumber += 1
         else:
@@ -490,52 +527,44 @@ class listArgChecker(ArgChecker):
         raise argException("(List) getDefaultValue, there is no default value")
         
     def hasDefaultValue(self):
-        return self.hasDefault or self.minimumSize == None or (self.minimumSize != None and self.checker.hasDefaultValue(self))
-    
-    def setDefaultValue(self,value):
-        if self.minimumSize == self.maximumSize == 1:
-            #if a list, extract first item
-            if isinstance(values,list):
-                if len(value) > 0:
-                    value = value[0]
-                else:
-                    raise argException("(List) setDefaultValue, need at least 1 element in the list")#empty list not allowed, need at least one item
-        else:
-            if not isinstance(value,list):
-                raise argException("(List) setDefaultValue, the default value must be a list")
-                
-            if self.minimumSize != None and len(value) < self.minimumSize:
-                raise argException("(List) setDefaultValue, need at least "+str(self.minimumSize)+" element(s) in the list")
-                
-            if self.maximumSize != None and len(value) > self.maximumSize:
-                value = value[:self.maximumSize]
-        
-        ArgChecker.setDefaultValue(self, value)
+        return self.hasDefault or self.minimumSize == None or self.checker.hasDefaultValue()
     
     def getUsage(self):
         if self.minimumSize == None :
             if self.maximumSize == None :
-                return "("+self.checker.getUsage()+" .. "+self.checker.getUsage()+")"
-            
-            return "("+self.checker.getUsage()+"0 .. "+self.checker.getUsage()+str(self.maximumSize-1)+")"
+                return "("+self.checker.getUsage()+" ... "+self.checker.getUsage()+")"
+            elif self.maximumSize == 1:
+                return "("+self.checker.getUsage()+")"
+            elif self.maximumSize == 2:
+                return "("+self.checker.getUsage()+"0 "+self.checker.getUsage()+"1)"
+                
+            return "("+self.checker.getUsage()+"0 ... "+self.checker.getUsage()+str(self.maximumSize-1)+")"
         else:
+            if self.minimumSize == 0 and self.maximumSize == 1:
+                return "("+self.checker.getUsage()+")" 
+        
             if self.minimumSize == 1:
+                if self.maximumSize == 1:
+                    return self.checker.getUsage()
+            
                 part1 = self.checker.getUsage()+"0"
             elif self.minimumSize == 2:
                 part1 = self.checker.getUsage() + "0 " + self.checker.getUsage()+"1"
             else:
-                part1 = self.checker.getUsage() + "0 ..." + self.checker.getUsage()+str(self.minimumSize-1)
+                part1 = self.checker.getUsage() + "0 ... " + self.checker.getUsage()+str(self.minimumSize-1)
         
             if self.maximumSize == None :
-                part1 += "(... "+self.checker.getUsage()+")"
+                return part1 + " (... "+self.checker.getUsage()+")"
             else:
                 notMandatorySpace = self.maximumSize - self.minimumSize
+                if notMandatorySpace == 0:
+                    return part1
                 if notMandatorySpace == 1:
-                    return part1 + "("+self.checker.getUsage()+str(self.maximumSize-1)+")"
+                    return part1 + " ("+self.checker.getUsage()+str(self.maximumSize-1)+")"
                 elif notMandatorySpace == 2:
-                    return part1 + "("+self.checker.getUsage()+str(self.maximumSize-2)+""+self.checker.getUsage()+str(self.maximumSize-1)+")"
+                    return part1 + " ("+self.checker.getUsage()+str(self.maximumSize-2)+""+self.checker.getUsage()+str(self.maximumSize-1)+")"
                 else:
-                    return part1 + "("+self.checker.getUsage()+str(self.minimumSize)+" ... "+self.checker.getUsage()+str(self.maximumSize-1)+")"
+                    return part1 + " ("+self.checker.getUsage()+str(self.minimumSize)+" ... "+self.checker.getUsage()+str(self.maximumSize-1)+")"
                     
     def __str__(self):
         return "listArgChecker : "+str(self.checker)

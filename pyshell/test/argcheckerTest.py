@@ -333,9 +333,7 @@ class defaultArgCheckerTest(unittest.TestCase):
     def test_usage(self):
         self.assertTrue(self.checker.getUsage() == "<any>")
 
-#XXX
 class listArgCheckerTest(unittest.TestCase):
-    
     def test_init(self):
         self.assertRaises(argInitializationException, listArgChecker, None)
         self.assertRaises(argInitializationException, listArgChecker, listArgChecker(defaultValueChecker(42)))
@@ -346,21 +344,83 @@ class listArgCheckerTest(unittest.TestCase):
         self.assertTrue(listArgChecker(stringArgChecker()) != None)
         
     def test_get(self):
-        pass #TODO
         #check/get, test special case with 1 item
-        #check/get, test case without a list
-        #check/get, test normal case
+        c = listArgChecker(IntegerArgChecker(), 1,1)
+        self.assertTrue(c.getValue("53") == 53)
         
-    def test_default(self)
-        pass #TODO
+        #check/get, test case without a list
+        c = listArgChecker(IntegerArgChecker())
+        self.assertRaises(argException, c.getValue, "53")
+            
+        #check/get, test normal case
+        self.assertTrue(c.getValue(["1", "2","3"]) == [1,2,3])
+        
+    def test_default(self):
         #getDefault, test the 3 valid case and the error case
+        c = listArgChecker(IntegerArgChecker(),1,23)
+        self.assertFalse(c.hasDefaultValue()) 
+    
+        c = listArgChecker(IntegerArgChecker())
+        self.assertTrue(c.hasDefaultValue())
+    
+        c = listArgChecker(IntegerArgChecker(),1,23)
+        c.setDefaultValue([1,2,3])
+        self.assertTrue(c.hasDefaultValue())
+        
+        c = listArgChecker(defaultValueChecker(42),1,23)
+        self.assertTrue(c.hasDefaultValue())
+    
+    def test_setDefault(self):
         #setDefaultValue, test special case with value, with empty list, with normal list
+        c = listArgChecker(IntegerArgChecker(),1,1)
+        self.assertIsNone(c.setDefaultValue("53"))
+        self.assertIsNone(c.setDefaultValue(["1", "2","3"]))
+        self.assertRaises(argException, c.setDefaultValue, [])
+        
         #setDefaultValue, test without special case, without list, with too small list, with bigger list, with list between size
+        c = listArgChecker(IntegerArgChecker(),5,7)
+        self.assertRaises(argException, c.setDefaultValue, "plop")
+        self.assertRaises(argException, c.setDefaultValue, [1,2,3])
+        self.assertIsNone(c.setDefaultValue([1,2,3,4,5,6,7,8,9,10]))
+        self.assertTrue(len(c.getDefaultValue()) == 7)
+        self.assertIsNone(c.setDefaultValue([1,2,3,4,5,6]))
         
     def test_usage(self):
-        pass #TODOg
-        #test usage
-    
+        c = listArgChecker(IntegerArgChecker())
+        self.assertTrue(c.getUsage() == "(<int> ... <int>)")
+        
+        c = listArgChecker(IntegerArgChecker(), None, 5)
+        self.assertTrue(c.getUsage() == "(<int>0 ... <int>4)")
+        c = listArgChecker(IntegerArgChecker(),None, 1)
+        self.assertTrue(c.getUsage() == "(<int>)")
+        c = listArgChecker(IntegerArgChecker(),None, 2)
+        self.assertTrue(c.getUsage() == "(<int>0 <int>1)")
+        
+        c = listArgChecker(IntegerArgChecker(),1)
+        self.assertTrue(c.getUsage() == "<int>0 (... <int>)")
+        c = listArgChecker(IntegerArgChecker(),2)
+        self.assertTrue(c.getUsage() == "<int>0 <int>1 (... <int>)")
+        c = listArgChecker(IntegerArgChecker(),23)
+        self.assertTrue(c.getUsage() == "<int>0 ... <int>22 (... <int>)")
+        
+        c = listArgChecker(IntegerArgChecker(),1,1)
+        self.assertTrue(c.getUsage() == "<int>")
+
+        c = listArgChecker(IntegerArgChecker(),1,2)
+        self.assertTrue(c.getUsage() == "<int>0 (<int>1)")
+        c = listArgChecker(IntegerArgChecker(),2,2)
+        self.assertTrue(c.getUsage() == "<int>0 <int>1")
+
+        c = listArgChecker(IntegerArgChecker(),1, 23)
+        self.assertTrue(c.getUsage() == "<int>0 (<int>1 ... <int>22)")
+        c = listArgChecker(IntegerArgChecker(),2, 23)
+        self.assertTrue(c.getUsage() == "<int>0 <int>1 (<int>2 ... <int>22)")
+        c = listArgChecker(IntegerArgChecker(),23, 23)
+        self.assertTrue(c.getUsage() == "<int>0 ... <int>22")
+        
+        c = listArgChecker(IntegerArgChecker(),23, 56)
+        self.assertTrue(c.getUsage() == "<int>0 ... <int>22 (<int>23 ... <int>55)")
+
 class argFeederTest(unittest.TestCase):
     pass #TODO
 
