@@ -8,6 +8,7 @@ from tries.exception import ambiguousPathException
 import collections # for collections.Hashable
 from math import log
 
+#TODO move the argschecker to argfeeder
 ###############################################################################################
 ##### ArgsChecker #############################################################################
 ###############################################################################################
