@@ -4,3 +4,4 @@
 export PYTHONPATH=$(pwd)/../../:$PYTHONPATH
 echo $PYTHONPATH
 python argcheckerTest.py
+python argfeederTest.py

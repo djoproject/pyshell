@@ -336,8 +336,9 @@ class defaultArgCheckerTest(unittest.TestCase):
 class listArgCheckerTest(unittest.TestCase):
     def test_init(self):
         self.assertRaises(argInitializationException, listArgChecker, None)
-        self.assertRaises(argInitializationException, listArgChecker, listArgChecker(defaultValueChecker(42)))
+        self.assertRaises(argInitializationException, listArgChecker, listArgChecker(IntegerArgChecker()))
         self.assertRaises(argInitializationException, listArgChecker, 23)
+        self.assertRaises(argInitializationException, listArgChecker, defaultValueChecker(42))
         self.assertRaises(argInitializationException, listArgChecker, "plop")
         
         self.assertTrue(listArgChecker(IntegerArgChecker()) != None)
@@ -345,8 +346,8 @@ class listArgCheckerTest(unittest.TestCase):
         
     def test_get(self):
         #check/get, test special case with 1 item
-        c = listArgChecker(IntegerArgChecker(), 1,1)
-        self.assertTrue(c.getValue("53") == 53)
+        #c = listArgChecker(IntegerArgChecker(), 1,1)
+        #self.assertTrue(c.getValue("53") == 53)
         
         #check/get, test case without a list
         c = listArgChecker(IntegerArgChecker())
@@ -367,15 +368,28 @@ class listArgCheckerTest(unittest.TestCase):
         c.setDefaultValue([1,2,3])
         self.assertTrue(c.hasDefaultValue())
         
-        c = listArgChecker(defaultValueChecker(42),1,23)
+        i = IntegerArgChecker()
+        i.setDefaultValue(42)
+        c = listArgChecker(i,3,23)
         self.assertTrue(c.hasDefaultValue())
+        defv = c.getDefaultValue()
+        self.assertTrue(len(defv) == c.minimumSize)
+        for v in defv:
+            self.assertTrue(v == 42)
+    
+        #test the completion of the list with default value
+        defv = c.getValue(["42"])
+        self.assertTrue(len(defv) == c.minimumSize)
+        for v in defv:
+            self.assertTrue(v == 42)
     
     def test_setDefault(self):
         #setDefaultValue, test special case with value, with empty list, with normal list
         c = listArgChecker(IntegerArgChecker(),1,1)
-        self.assertIsNone(c.setDefaultValue("53"))
+        
         self.assertIsNone(c.setDefaultValue(["1", "2","3"]))
         self.assertRaises(argException, c.setDefaultValue, [])
+        self.assertRaises(argException, c.setDefaultValue,"53")
         
         #setDefaultValue, test without special case, without list, with too small list, with bigger list, with list between size
         c = listArgChecker(IntegerArgChecker(),5,7)

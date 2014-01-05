@@ -2,114 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from exception import *
-from pyshell.utils.ordereddict import OrderedDict
 from tries import tries
 from tries.exception import ambiguousPathException
 import collections # for collections.Hashable
 from math import log
-
-#TODO move the argschecker to argfeeder
-###############################################################################################
-##### ArgsChecker #############################################################################
-###############################################################################################
-class ArgsChecker():
-    "abstract arg checker"
-
-    #
-    # @argsList, une liste de string
-    # @return, un dico trie des arguments et de leur valeur : <name,value>
-    # 
-    def checkArgs(self,argsList):
-        pass #XXX to override
-        
-    def usage(self):
-        pass #XXX to override
-
-class ArgFeeder2(ArgsChecker):
-
-    #
-    # @param argTypeList, une liste de tuple (Argname,ArgChecker) 
-    #
-    def __init__(self,argTypeList=None):
-        if argTypeList == None:
-            self.argTypeList = []
-        else:
-            self.argTypeList = argTypeList
-        
-    #
-    # @argsList, une liste de string
-    # @return, un dico trie des arguments et de leur valeur : <name,value>
-    # 
-    def checkArgs(self,argsList):
-        #print argsList
-        ret = OrderedDict()
-
-        argCheckerIndex = 0
-        dataIndex = 0
-        for (name,checker) in self.argTypeList:
-            
-            #is there a minimum limit
-            if checker.minimumSize != None:
-                #is there at least minimumSize item in the data stream?
-                if len(argsList[dataIndex:]) < checker.minimumSize:
-                    #end of stream ?
-                    if len(argsList[dataIndex:]) == 0:
-                        #we will check if there is some default value
-                        break 
-                    else:
-                        #there are data but not enough
-                        raise argException("(ArgFeeder) not enough data for the argument <"+name+">")
-            
-            #is there a maximum limit?
-            if checker.maximumSize == None:
-                #No max limit, it consume all remaining data
-                ret[name] = checker.getValue(argsList[dataIndex:],dataIndex)
-                dataIndex = len(argsList)
-            else:
-                #checker only need one item?
-                if checker.minimumSize != None and checker.minimumSize == checker.maximumSize == 1:
-                    value = argsList[dataIndex:(dataIndex+checker.maximumSize)][0]
-                else:
-                    value = argsList[dataIndex:(dataIndex+checker.maximumSize)]
-                    
-                ret[name] = checker.getValue(value,dataIndex)
-                dataIndex += checker.maximumSize
-                    
-            argCheckerIndex += 1
-        
-        
-        # MORE THAN THE LAST ARG CHECKER HAVEN'T BEEN CONSUMED YET
-        for i in range(argCheckerIndex,len(self.argTypeList)):
-            (name,checker) = self.argTypeList[i]
-                
-            if checker.hasDefaultValue():
-                ret[name] = checker.getDefaultValue()
-            else:
-                raise argException("(ArgFeeder) some arguments aren't bounded, missing data : <"+name+">")
-
-        return ret
-        
-    def usage(self):
-        if len(self.argTypeList) == 0:
-            return "no args needed"
-    
-        ret = ""
-        firstMandatory = False
-        for (name,checker) in self.argTypeList:
-            if not checker.showInUsage:
-                continue
-        
-            if checker.hasDefaultValue() and not firstMandatory:
-                ret += "["
-                firstMandatory = True
-            
-            ret += name+":"+checker.getUsage()+" "
-            
-        if firstMandatory:
-            ret += "]"
-        
-        return ret
-        
+      
 ###############################################################################################
 ##### ArgChecker ##############################################################################
 ###############################################################################################
@@ -458,62 +355,68 @@ class listArgChecker(ArgChecker):
         if not isinstance(checker, ArgChecker) or isinstance(checker, listArgChecker):
             raise argInitializationException("(List) checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got <"+str(checker)+">")
 
-        #TODO what about None value in minimumSize and maximumSize ?
-            #must be possible to use it !!!
-
+        #checker must have a fixed size
         if checker.minimumSize != checker.maximumSize or checker.minimumSize == None or checker.minimumSize == 0:
-            pass #TODO raise
+            raise argInitializationException("(list) checker must have a fixed size bigger than zero")
     
-        if (minimumSize % checker.minimumSize)  != 0:
-            pass #TODO raise
+        if minimumSize != None and (minimumSize % checker.minimumSize)  != 0:
+            raise argInitializationException("(list) the minimum size of the list is not a multiple of the checker size")
             
-        if (maximumSize % checker.minimumSize)  != 0:
-            pass #TODO raise
+        if maximumSize != None and (maximumSize % checker.minimumSize)  != 0:
+            raise argInitializationException("(list) the maximum size of the list is not a multiple of the checker size")
 
         ArgChecker.__init__(self,minimumSize,maximumSize, True)
         self.checker = checker
     
-    def getValue(self,values,argNumber=None):
-        """if self.maximumSize == 1:
-            if self.minimumSize == 1:
-                if not isinstance(values,list):
-                    return self.checker.getValue(values,argNumber)
-                else:
-                    if len(values) == 0:
-                        raise argException("(List) Argument %s: this arg is an empty list, need at least one item"%("" if argNumber == None else str(argNumber)+" ")) 
-                    else:
-                        return self.checker.getValue(values[0],argNumber)
-                
-                return self.checker.getValue(values,argNumber)
-            elif self.minimumSize == 0 or self.minimumSize == None:
-                if isinstance(values,list):
-                    if len(values) == 0:
-                        pass #TODO return what ? an empty list ? a None value ?
-                            #XXX the checker must be allowed to manage no value on the getValue
-                    else:
-                        return self.checker.getValue(values[0],argNumber)
-                else:
-                    return self.checker.getValue(values,argNumber)
-        """
+    def getValue(self,values,argNumber=None):    
         #check if it's a list
         if not isinstance(values,list):
             raise argException("(List) Argument %s: this arg is not a valid list"%("" if argNumber == None else str(argNumber)+" "))
         
-        #TODO check the minimal size
-            #don't care about the max size, just stop it at the defined limit   
-            
-        #TODO len(values) must be a multiple of self.checker.minimumSize
+        #len(values) must always be a multiple of self.checker.minimumSize
+            #even if there is to much data, it is a sign of anomalies
+        if (len(values) % self.checker.minimumSize)  != 0:
+            raise argException("(list) the size of the value list is not a multiple of the checker size")
         
+        #check the minimal size
+        addAtEnd = []
+        if self.minimumSize != None and len(values) < self.minimumSize:            
+            #checker has default value ?
+            if self.checker.hasDefaultValue():
+                #build the missing part with the default value
+                addAtEnd = ((self.minimumSize - len(values)) / self.checker.minimumSize) * [self.checker.getDefaultValue()]
+            else:
+                raise argException("(List) Argument %s:"%("" if argNumber == None else str(argNumber)+" ")+" need at least "+str(self.minimumSize)+" items, got "+str(len(values)) )
+        
+        #build range limite and manage max size
+        if self.maximumSize != None:
+            if len(values) < self.maximumSize:
+                msize = len(values)
+            else:
+                msize = self.maximumSize
+        else:
+            msize = len(values)
+        
+        #check every args
         ret = []
         if argNumber != None:
-            for v in values: #TODO use range if the checker need more than one token
-                ret.append(self.checker.getValue(v,argNumber))
+            for i in range(0,msize, self.checker.minimumSize):
+                if self.checker.minimumSize == 1:
+                    ret.append(self.checker.getValue(values[i],argNumber))
+                else:
+                    ret.append(self.checker.getValue(values[i:i+self.checker.minimumSize],argNumber))
+                    
                 argNumber += 1
         else:
-            for v in values:
-                ret.append(self.checker.getValue(v))
-
-        return ret
+            for i in range(0,msize, self.checker.minimumSize):
+                if self.checker.minimumSize == 1:
+                    ret.append(self.checker.getValue(values[i]))
+                else:
+                    ret.append(self.checker.getValue(values[i:i+self.checker.minimumSize]))
+        
+        #add the missing part
+        ret.extend(addAtEnd)
+        return ret 
     
     def getDefaultValue(self):
         if self.hasDefault:
@@ -522,8 +425,8 @@ class listArgChecker(ArgChecker):
         if self.minimumSize == None:
             return []
     
-        if self.checker.hasDefaultValue(self):
-            return [ArgChecker.getDefaultValue()] * self.minimumSize
+        if self.checker.hasDefaultValue():
+            return [self.checker.getDefaultValue()] * self.minimumSize
     
         raise argException("(List) getDefaultValue, there is no default value")
         
