@@ -41,13 +41,22 @@ class ArgCheckerTest(unittest.TestCase):
         af = ArgFeeder([("toto1",ArgChecker(None, 2),),])
         self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == ["1", "2"])
         
-        #TODO test a list of 2 arg the first one with a maximum limit size and the second one without
-        #TODO make the two previous test with arg of fixed size 1, and with variable size
-    
-        #TODO test also with too many string token
-            #not possible when there is a checker without limit
-    
-        pass
+        af = ArgFeeder([("toto1",ArgChecker(None, 1),),])
+        self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == ["1"])
+        
+        af = ArgFeeder([("toto1",ArgChecker(),),])
+        self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == "1")
+        
+        #test a list of 2 arg the first one with a maximum limit size and the second one without
+        af = ArgFeeder([("toto1",ArgChecker(None, 2),),("toto2",ArgChecker(None, None),)])
+        r = af.checkArgs(["1", "2", "3"])
+        self.assertTrue(r["toto1"] == ["1", "2"])
+        self.assertTrue(r["toto2"] == ["3"])
+        
+        af = ArgFeeder([("toto1",ArgChecker(),),("toto2",ArgChecker(None, None),)])
+        r = af.checkArgs(["1", "2", "3"])
+        self.assertTrue(r["toto1"] == "1")
+        self.assertTrue(r["toto2"] == ["2","3"])
         
     def test_usage(self):
         f = ArgFeeder([("toto1",ArgChecker(),)])
