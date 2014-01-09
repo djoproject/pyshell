@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #from arg import environment
-from argchecker import ArgChecker
+from argchecker import ArgChecker, defaultValueChecker
 from argfeeder import ArgFeeder
 from exception import decoratorException
 import inspect, types
@@ -89,8 +89,8 @@ def shellMethod(**argList):
                         raise decoratorException("(decorator) the previous argument <"+str(previousName)+"> has an infinite variable size, you can't add a new argment <"+str(argname)+"> at function <"+fun.__name__+">")
             
                 argCheckerList.append( (argname,analyzed_fun.setCheckerDefault(argname,checker)) )
-            elif analyzed_fun.has_default(fun,argname): #check if the arg has a DEFAULT value
-                argCheckerList.append( (argname,defaultValueChecker(analyzed_fun.get_default(fun,argname)))  )
+            elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
+                argCheckerList.append( (argname,defaultValueChecker(analyzed_fun.get_default(argname)))  )
             else:
                 if argname != "self":
                     raise decoratorException("(shellMethod decorator) the arg <"+argname+"> is not used and has no default value")
