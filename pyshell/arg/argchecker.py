@@ -40,7 +40,8 @@ class ArgChecker(object):
         return (self.minimumSize == self.maximumSize == None) or self.minimumSize != self.maximumSize
     
     def needData(self):
-        return not (self.minimumSize == self.maximumSize == 0)
+        return self.minimumSize != None and self.minimumSize > 0
+        #return not (self.minimumSize == self.maximumSize == 0)
         
     def getValue(self,value,argNumber=None):
         return value #XXX override it if needed

@@ -1,10 +1,14 @@
 ArgChecker
-    -dans les argChecker, quand il y a une erreur, afficher systèmatiquement la valeur foireuse
+    -test : OK
+    -dans les argChecker, quand il y a une erreur, insérer systèmatiquement la valeur foireuse dans l'exception : TO CHECK
     
 ArgChecherS
+    -test : OK
 
 Decorator
-    -check this
+    -test : TODO
+    -check this : TODO
+    -clean code : TODO
 
 Command
     -clean selfArgChecker
@@ -49,7 +53,7 @@ TEST
 	    
 ######################################################
 
-??? Executeur ou ArgChecherS
+??? Executeur ou ArgChecherS ? entre les deux ?
     -permettre a l'utilisateur de binder uniquement certains argument
         exemple:
             cmd(a,b,c=None,d=None,e=None)
@@ -103,8 +107,9 @@ TEST
                             ça demande d'ajouter une info en + alors...
                                 c'est chiant
 
-    !!!! ne devrait rien changer au decorateur et ArgChecker !!!
+    !!!! ne devrait rien changer au decorateur, ArgChecker et argFeeder !!!
         ils fournissent juste un outils de verification de l'argument, des valeurs par defaut et des noms
+        le argFeeder se charge juste de faire le binding, les valeurs paramètrées doivent être retirée avant, on fait une surcouche
         
 
        
