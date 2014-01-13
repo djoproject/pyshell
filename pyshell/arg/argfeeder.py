@@ -1,7 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#from pyshell.utils.ordereddict import OrderedDict
+import sys
+if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
+    from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
+else:
+    from collections import OrderedDict 
+    
 from exception import *
 
 ###############################################################################################
@@ -27,18 +32,26 @@ class ArgsChecker():
     
         #mais cela implique que la definition du dico ordonnée soit utilisée en dehors
             #juste dans le decorator en fait
+            #disponible a partir de 2.7...
+                #et on est bloqué en 2.6 avec pyscard sur macos
         #perte en genericite
             #mais ici, c'est un peu degeu, on a une liste qui contient des paires key/value
                 #en soi argfeeder est initialisé dans un decorateur, ça ne passe pas dans le code utilisateur
 
         #XXX soit on laisse comme ça, soit on modifie dans le decorator
-
+            #on peut garder le principe de liste mais alors on verifie qu'on a pas deux fois la meme cle
+        
+    #XXX OK, take an ordered dict, check the type
+        #if will be the responsability of decorator to create the orderedDict    
+    
 class ArgFeeder(ArgsChecker):
 
     #
     # @param argTypeList, une liste de tuple (Argname,ArgChecker) 
     #
     def __init__(self,argTypeList):
+        #TODO take an ordered dict as argTypeList parameter
+    
         if argTypeList == None or not isinstance(argTypeList,list): 
             raise argInitializationException("(ArgFeeder) argTypeList must be a valid list")
 
