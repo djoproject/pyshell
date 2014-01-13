@@ -5,6 +5,8 @@ ArgChecker
 ArgChecherS
     -test : OK
 
+    plus besoin de la class orderdDic normalement
+
 Decorator
     -test : OK
     -check this : OK
@@ -23,16 +25,20 @@ Command
             #ou pouvoir ajouter des methodes dans le listing ?
                 #plus puissant mais impliquerait de calculer la structure des pipes à la vollée
                     #pas un prblm
+                #on peut faire les deux
             #pour les buffer, on peut faire ça par argChecker special
                 #uniquement acces au buffer d'input
                     #risque de boucle infinie du coup si la meth remplie elle meme sont buffer d'input
                         #limiter le nombre d'exec
                 #binder a l'exec
                         
-        #pour l'interruption, on peut mettre un system par exception
+        #XXX pour l'interruption, on peut mettre un system par exception
             raise normalRunningStop()
             raise abnormalRunningStop()
             ...
+            
+        #XXX permettre egalement d'avoir acces au buffer d'input de la commande suivante
+            
 
 Executeur
     -faire une liste d'alias

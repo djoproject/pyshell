@@ -1,30 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from pyshell.utils.ordereddict import OrderedDict
+#from pyshell.utils.ordereddict import OrderedDict
 from exception import *
-
-#TODO manage self argument
-    #in class parsing detect if its a class method
-        """
-        >>> def toto():
-        ...     pass
-        ... 
-        >>> class a():
-        ...     def toto(self):
-        ...         pass
-        ... 
-        >>> type(toto)
-        <type 'function'>
-        >>> b = a()
-        >>> type(b.toto)
-        <type 'instancemethod'>
-        >>> """
-    
-    #need to manage it in the decorator
-    #XXX but need to manage it on call ?
-        #normally no
-
 
 ###############################################################################################
 ##### ArgsChecker #############################################################################
@@ -48,13 +26,12 @@ class ArgsChecker():
         #et les arg arrivent dans un ordre precis pour le parsing
     
         #mais cela implique que la definition du dico ordonnée soit utilisée en dehors
+            #juste dans le decorator en fait
         #perte en genericite
             #mais ici, c'est un peu degeu, on a une liste qui contient des paires key/value
                 #en soi argfeeder est initialisé dans un decorateur, ça ne passe pas dans le code utilisateur
 
-    #si len(self.argTypeList) == 0, on ne renvoit rien
-        #si pas de parametre a binder, pas de parametre a retourner, meme en cas de data, pas notre prblm
-            #semble coherent
+        #XXX soit on laisse comme ça, soit on modifie dans le decorator
 
 class ArgFeeder(ArgsChecker):
 
@@ -64,7 +41,7 @@ class ArgFeeder(ArgsChecker):
     def __init__(self,argTypeList):
         if argTypeList == None or not isinstance(argTypeList,list): 
             raise argInitializationException("(ArgFeeder) argTypeList must be a valid list")
-        
+
         self.argTypeList = argTypeList
         
     #
@@ -72,8 +49,15 @@ class ArgFeeder(ArgsChecker):
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
     def checkArgs(self,argsList):
+        if not isinstance(argsList,list):
+            #TODO argsList must be a string
+        
+            argsList = [argsList]
+            
+            #XXX no need to check the other args, they will be checked into the argcheckers
+    
         #print argsList
-        ret = OrderedDict()
+        ret = {}
 
         argCheckerIndex = 0
         dataIndex = 0

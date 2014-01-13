@@ -125,7 +125,7 @@ class decoratorTest(unittest.TestCase):
                     pass
         except decoratorException:
             exception = True
-        self.assertTrue(not exception)
+        self.assertTrue(exception)
     
         #faire des tests qui aboutissent et verifier les donnees generees
         @shellMethod(a=ArgChecker())

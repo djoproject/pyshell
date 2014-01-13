@@ -14,11 +14,16 @@ import inspect, types
 class funAnalyser(object):
     def __init__(self, fun):
         #is a function ?
-        if type(fun) != types.FunctionType:
+        if type(fun) == types.MethodType:
+            self.classMethod = True
+        elif type(fun) != types.FunctionType:
             raise decoratorException("(funAnalyser) init faile, need a function instance, got <"+str(type(fun))+">")
+        else:
+            self.classMethod = False
         
         self.fun = fun
         self.inspect_result = inspect.getargspec(fun)
+        
 
         #how much default value ?
         if self.inspect_result.defaults == None:
@@ -74,7 +79,14 @@ def shellMethod(**argList):
         analyzed_fun = funAnalyser(fun)
         
         argCheckerList = []
-        for argname in analyzed_fun.inspect_result.args:
+        for i in range(0,len(analyzed_fun.inspect_result.args)):
+        #for argname in analyzed_fun.inspect_result.args:
+            argname = analyzed_fun.inspect_result.args[i]
+            
+            #don't care about the self arg, the python framework will manage it
+            if i == 0 and analyzed_fun.classMethod and argname == "self":
+                continue
+            
             if argname in argList: #check if the argname is in the argList
                 #print argList
                 checker = argList[argname]
@@ -92,8 +104,7 @@ def shellMethod(**argList):
             elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
                 argCheckerList.append( (argname,defaultValueChecker(analyzed_fun.get_default(argname)))  )
             else:
-                if argname != "self":
-                    raise decoratorException("(shellMethod decorator) the arg <"+argname+"> is not used and has no default value")
+                raise decoratorException("(shellMethod decorator) the arg <"+argname+"> is not used and has no default value")
         
         #All the key are used in the function call?
         keys = argList.keys()
@@ -107,34 +118,4 @@ def shellMethod(**argList):
         return fun
     
     return decorator
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
