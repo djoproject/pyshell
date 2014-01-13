@@ -28,12 +28,15 @@ def selfArgChecker(args,meth):
         args = [args]
     
     #check if the method has an argchecker
-    try:
+    try: #TODO use, test attribute
         argsValueDico = meth.checker.checkArgs(args)
+        
     except AttributeError:
         argsValueDico = {}
-        
-    #parse the command to execute
+    
+    return argsValueDico    
+            
+    """#parse the command to execute
     inspect_result = inspect.getargspec(meth)
 
     #print inspect_result
@@ -60,6 +63,7 @@ def selfArgChecker(args,meth):
             argsValueDico[keyList[0]] = args
         
         #bind the args
+        #TODO this part of code must disappear ==>
         index = 0
         for argname in inspect_result.args:
             if argname in argsValueDico:
@@ -96,8 +100,10 @@ def selfArgChecker(args,meth):
         for k in argsValueDico.keys():
             print "WARNING unused argument <"+k+"> in method "+meth.__name__
     
+        #XXX <===
+    
     #print nextArgs
-    return nextArgs
+    return nextArgs"""
 
 class Command(object):
     #def __init__(self,envi,printer,preProcess=None,process=None,argChecker=None,postProcess=None):

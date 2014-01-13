@@ -6,18 +6,33 @@ ArgChecherS
     -test : OK
 
 Decorator
-    -test : TODO
-    -check this : TODO
-    -clean code : TODO
+    -test : OK
+    -check this : OK
+    -clean code : OK
 
 Command
-    -clean selfArgChecker
+    -clean selfArgChecker :IN PROGRESS
     -permettre de transfèrer des informations entre les pre et les post
         -exemple, pre2 a besoin d'info provenant de post1
         -cas de figure : lecture d'un fichier en plusieurs etape, ou une auth, ... 
             -desfire
         faire une class special qui fourni le même genre de service que la classe MultiCommand
             histoire d'avoir une abstraction et de ne devoir rien changer d'autre
+
+        #XXX il faut que les methods(pre/pro/pos) puissent avoir acces à leur input buffer(pre)...
+            #ou pouvoir ajouter des methodes dans le listing ?
+                #plus puissant mais impliquerait de calculer la structure des pipes à la vollée
+                    #pas un prblm
+            #pour les buffer, on peut faire ça par argChecker special
+                #uniquement acces au buffer d'input
+                    #risque de boucle infinie du coup si la meth remplie elle meme sont buffer d'input
+                        #limiter le nombre d'exec
+                #binder a l'exec
+                        
+        #pour l'interruption, on peut mettre un system par exception
+            raise normalRunningStop()
+            raise abnormalRunningStop()
+            ...
 
 Executeur
     -faire une liste d'alias

@@ -4,6 +4,28 @@
 from pyshell.utils.ordereddict import OrderedDict
 from exception import *
 
+#TODO manage self argument
+    #in class parsing detect if its a class method
+        """
+        >>> def toto():
+        ...     pass
+        ... 
+        >>> class a():
+        ...     def toto(self):
+        ...         pass
+        ... 
+        >>> type(toto)
+        <type 'function'>
+        >>> b = a()
+        >>> type(b.toto)
+        <type 'instancemethod'>
+        >>> """
+    
+    #need to manage it in the decorator
+    #XXX but need to manage it on call ?
+        #normally no
+
+
 ###############################################################################################
 ##### ArgsChecker #############################################################################
 ###############################################################################################
@@ -22,6 +44,9 @@ class ArgsChecker():
 
 #TODO
     #self.argTypeList devrait idealement etre un dictionnaire ordonnee
+        #car les arg sont associe a une cle qui doit etre unique
+        #et les arg arrivent dans un ordre precis pour le parsing
+    
         #mais cela implique que la definition du dico ordonnée soit utilisée en dehors
         #perte en genericite
             #mais ici, c'est un peu degeu, on a une liste qui contient des paires key/value
