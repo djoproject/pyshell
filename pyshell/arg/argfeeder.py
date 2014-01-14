@@ -24,25 +24,6 @@ class ArgsChecker():
         
     def usage(self):
         pass #XXX to override
-
-#TODO
-    #self.argTypeList devrait idealement etre un dictionnaire ordonnee
-        #car les arg sont associe a une cle qui doit etre unique
-        #et les arg arrivent dans un ordre precis pour le parsing
-    
-        #mais cela implique que la definition du dico ordonnée soit utilisée en dehors
-            #juste dans le decorator en fait
-            #disponible a partir de 2.7...
-                #et on est bloqué en 2.6 avec pyscard sur macos
-        #perte en genericite
-            #mais ici, c'est un peu degeu, on a une liste qui contient des paires key/value
-                #en soi argfeeder est initialisé dans un decorateur, ça ne passe pas dans le code utilisateur
-
-        #XXX soit on laisse comme ça, soit on modifie dans le decorator
-            #on peut garder le principe de liste mais alors on verifie qu'on a pas deux fois la meme cle
-        
-    #XXX OK, take an ordered dict, check the type
-        #if will be the responsability of decorator to create the orderedDict    
     
 class ArgFeeder(ArgsChecker):
 
@@ -50,11 +31,10 @@ class ArgFeeder(ArgsChecker):
     # @param argTypeList, une liste de tuple (Argname,ArgChecker) 
     #
     def __init__(self,argTypeList):
-        #TODO take an ordered dict as argTypeList parameter
-    
-        if argTypeList == None or not isinstance(argTypeList,list): 
-            raise argInitializationException("(ArgFeeder) argTypeList must be a valid list")
-
+        #take an ordered dict as argTypeList parameter  
+        if not isinstance(argTypeList,OrderedDict) and  ( not isinstance(argTypeList, dict) or len(argTypeList) != 0): 
+            raise argInitializationException("(ArgFeeder) argTypeList must be a valid instance of an ordered dictionnary")
+        
         self.argTypeList = argTypeList
         
     #
@@ -63,18 +43,19 @@ class ArgFeeder(ArgsChecker):
     # 
     def checkArgs(self,argsList):
         if not isinstance(argsList,list):
-            #TODO argsList must be a string
+            # argsList must be a string
+            if type(argsList) != str and type(argsList) != unicode:
+                raise argException("(ArgFeeder) string list was expected, got <"+str(type(argsList))+">")
         
             argsList = [argsList]
             
-            #XXX no need to check the other args, they will be checked into the argcheckers
+            #no need to check the other args, they will be checked into the argcheckers
     
-        #print argsList
-        ret = {}
-
+        ret             = {}
         argCheckerIndex = 0
-        dataIndex = 0
-        for (name,checker) in self.argTypeList:
+        dataIndex       = 0
+        
+        for (name,checker) in self.argTypeList.iteritems():
             #is there a minimum limit
             if checker.minimumSize != None:
                 #is there at least minimumSize item in the data stream?
@@ -105,8 +86,9 @@ class ArgFeeder(ArgsChecker):
             argCheckerIndex += 1
         
         # MORE THAN THE LAST ARG CHECKER HAVEN'T BEEN CONSUMED YET
+        items_list = list(self.argTypeList.items())
         for i in range(argCheckerIndex,len(self.argTypeList)):
-            (name,checker) = self.argTypeList[i]
+            (name,checker) = items_list[i]
                 
             if checker.hasDefaultValue():
                 ret[name] = checker.getDefaultValue()
@@ -123,7 +105,7 @@ class ArgFeeder(ArgsChecker):
     
         ret = ""
         firstMandatory = False
-        for (name,checker) in self.argTypeList:
+        for (name,checker) in self.argTypeList.iteritems():
             if not checker.showInUsage:
                 continue
         

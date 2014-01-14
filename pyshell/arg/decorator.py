@@ -1,7 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#from arg import environment
+import sys
+if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
+    from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
+else:
+    from collections import OrderedDict 
+    
 from argchecker import ArgChecker, defaultValueChecker
 from argfeeder import ArgFeeder
 from exception import decoratorException
@@ -78,7 +83,7 @@ def shellMethod(**argList):
         #inspect the function
         analyzed_fun = funAnalyser(fun)
         
-        argCheckerList = []
+        argCheckerList = OrderedDict()
         for i in range(0,len(analyzed_fun.inspect_result.args)):
         #for argname in analyzed_fun.inspect_result.args:
             argname = analyzed_fun.inspect_result.args[i]
@@ -94,15 +99,15 @@ def shellMethod(**argList):
                 
                 #check the compatibilty with the previous argument checker
                 if checker.needData() and len(argCheckerList) > 0:
-                    (previousName,previousChecker) = argCheckerList[-1]
+                    previousName,previousChecker = list(a.items())[-1]
                     
                     #check if the previous checker remain a few arg to the following or not
                     if previousChecker.isVariableSize() and previousChecker.maximumSize == None:
                         raise decoratorException("(decorator) the previous argument <"+str(previousName)+"> has an infinite variable size, you can't add a new argment <"+str(argname)+"> at function <"+fun.__name__+">")
             
-                argCheckerList.append( (argname,analyzed_fun.setCheckerDefault(argname,checker)) )
+                argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)
             elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
-                argCheckerList.append( (argname,defaultValueChecker(analyzed_fun.get_default(argname)))  )
+                argCheckerList[argname] = defaultValueChecker(analyzed_fun.get_default(argname))
             else:
                 raise decoratorException("(shellMethod decorator) the arg <"+argname+"> is not used and has no default value")
         

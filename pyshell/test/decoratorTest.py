@@ -133,8 +133,10 @@ class decoratorTest(unittest.TestCase):
             pass
             
         self.assertTrue( isinstance(toto.checker, ArgFeeder))
-        self.assertTrue( toto.checker.argTypeList[0][0] == "a" and isinstance(toto.checker.argTypeList[0][1], ArgChecker))
-        self.assertTrue( toto.checker.argTypeList[1][0] == "b" and isinstance(toto.checker.argTypeList[1][1], defaultValueChecker))
+        self.assertTrue( "a" in toto.checker.argTypeList and isinstance(toto.checker.argTypeList["a"], ArgChecker))
+        self.assertTrue( "b" in toto.checker.argTypeList and isinstance(toto.checker.argTypeList["b"], defaultValueChecker))
+        k = list(toto.checker.argTypeList.keys())
+        self.assertTrue(k[0] == "a" and k[1] == "b")
     
 if __name__ == '__main__':
     unittest.main()

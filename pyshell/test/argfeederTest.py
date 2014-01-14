@@ -11,81 +11,137 @@ class ArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, ArgFeeder, "toto")
         self.assertRaises(argInitializationException, ArgFeeder, 52)
         
-        self.assertTrue(ArgFeeder([]) != None)
+        self.assertTrue(ArgFeeder({}) != None)
         
     def test_checkArgs(self):
         #test a list of 1 arg without limit size
-        af = ArgFeeder([("toto1",ArgChecker(None, None),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, None)
+        af = ArgFeeder(d)
         self.assertTrue(af.checkArgs(["1", "2", "3"])["toto1"] == ["1", "2", "3"])
 
         #test a list of 2 arg, the first one without limit size and the second one need at least one token but without default value
-        af = ArgFeeder([("toto1",ArgChecker(None, None),), ("toto2",ArgChecker(),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, None)
+        d["toto2"] = ArgChecker()
+        af = ArgFeeder(d)
         self.assertRaises(argException,af.checkArgs, ["1", "2", "3"])
         
         #test a list of 2 arg, the first one without limit size and the second one need at least one token but has a default value
         ac = ArgChecker()
         ac.setDefaultValue("plop")
-        af = ArgFeeder([("toto1",ArgChecker(None, None),), ("toto2",ac,)])
+        
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, None)
+        d["toto2"] = ac
+        
+        af = ArgFeeder(d)
         r = af.checkArgs(["1", "2", "3"])
         self.assertTrue(r["toto1"] == ["1", "2", "3"])
         self.assertTrue(r["toto2"] == "plop")
         
         #test a list of 3 arg, the first one without limit size and the two last need at least one token
-        af = ArgFeeder([("toto1",ArgChecker(None, None),), ("toto2",ArgChecker(),), ("toto3",ArgChecker(),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, None)
+        d["toto2"] = ArgChecker()
+        d["toto3"] = ArgChecker()
+        af = ArgFeeder(d)
         self.assertRaises(argException,af.checkArgs, ["1", "2", "3"])
 
         #test a list of 1 arg with a maximum limit size
-        af = ArgFeeder([("toto1",ArgChecker(None, 5),),])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, 5)
+        af = ArgFeeder(d)
         self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == ["1", "2", "3"])
         
-        af = ArgFeeder([("toto1",ArgChecker(None, 2),),])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, 2)
+        af = ArgFeeder(d)
         self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == ["1", "2"])
         
-        af = ArgFeeder([("toto1",ArgChecker(None, 1),),])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, 1)
+        af = ArgFeeder(d)
         self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == ["1"])
         
-        af = ArgFeeder([("toto1",ArgChecker(),),])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        af = ArgFeeder(d)
         self.assertTrue(argException,af.checkArgs(["1", "2", "3"]) == "1")
         
         #test a list of 2 arg the first one with a maximum limit size and the second one without
-        af = ArgFeeder([("toto1",ArgChecker(None, 2),),("toto2",ArgChecker(None, None),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker(None, 2)
+        d["toto2"] = ArgChecker(None, None)
+        af = ArgFeeder(d)
         r = af.checkArgs(["1", "2", "3"])
         self.assertTrue(r["toto1"] == ["1", "2"])
         self.assertTrue(r["toto2"] == ["3"])
         
-        af = ArgFeeder([("toto1",ArgChecker(),),("toto2",ArgChecker(None, None),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        d["toto2"] = ArgChecker(None, None)
+        af = ArgFeeder(d)
         r = af.checkArgs(["1", "2", "3"])
         self.assertTrue(r["toto1"] == "1")
         self.assertTrue(r["toto2"] == ["2","3"])
         
     def test_usage(self):
-        f = ArgFeeder([("toto1",ArgChecker(),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "toto1:<any>")
     
         #test with only mandatory arg
-        f = ArgFeeder([("toto1",ArgChecker(),) , ("toto2",ArgChecker(),), ("toto3",ArgChecker(),)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        d["toto2"] = ArgChecker()
+        d["toto3"] = ArgChecker()
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "toto1:<any> toto2:<any> toto3:<any>")
         
         #test with only not mandatory arg
         a = ArgChecker()
         a.setDefaultValue("plop")
-        f = ArgFeeder([("toto1",a,) , ("toto2",a,), ("toto3",a,)])
+        d          = OrderedDict()
+        d["toto1"] = a
+        d["toto2"] = a
+        d["toto3"] = a
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "[toto1:<any> toto2:<any> toto3:<any>]")
         
-        f = ArgFeeder([("toto1",a,)])
+        d          = OrderedDict()
+        d["toto1"] = a
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "[toto1:<any>]")
         
         #test with both mandatory and not mandatory arg
-        f = ArgFeeder([("toto1",ArgChecker(),) , ("toto2",a,), ("toto3",a,)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        d["toto2"] = a
+        d["toto3"] = a
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "toto1:<any> [toto2:<any> toto3:<any>]")
         
-        f = ArgFeeder([("toto1",ArgChecker(),), ("toto1b",ArgChecker(),) , ("toto2",a,), ("toto3",a,)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        d["toto1b"]= ArgChecker()
+        d["toto2"] = a
+        d["toto3"] = a
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "toto1:<any> toto1b:<any> [toto2:<any> toto3:<any>]")
         
-        f = ArgFeeder([("toto1",ArgChecker(),) , ("toto2",a,)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        d["toto2"] = a
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "toto1:<any> [toto2:<any>]")
         
-        f = ArgFeeder([("toto1",ArgChecker(),), ("toto1b",ArgChecker(),) , ("toto2",a,)])
+        d          = OrderedDict()
+        d["toto1"] = ArgChecker()
+        d["toto1b"]= ArgChecker()
+        d["toto2"] = a
+        f = ArgFeeder(d)
         self.assertTrue(f.usage() == "toto1:<any> toto1b:<any> [toto2:<any>]")
                 
 if __name__ == '__main__':
