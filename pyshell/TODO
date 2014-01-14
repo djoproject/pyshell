@@ -5,8 +5,6 @@ ArgChecker
 ArgChecherS
     -test : OK
 
-    plus besoin de la class orderdDic normalement
-
 Decorator
     -test : OK
     -check this : OK
@@ -16,10 +14,12 @@ Command
     -clean selfArgChecker :IN PROGRESS
     -permettre de transfèrer des informations entre les pre et les post
         -exemple, pre2 a besoin d'info provenant de post1
+            C'est a post1 de lui transmettre
         -cas de figure : lecture d'un fichier en plusieurs etape, ou une auth, ... 
             -desfire
         faire une class special qui fourni le même genre de service que la classe MultiCommand
             histoire d'avoir une abstraction et de ne devoir rien changer d'autre
+            ??? qu'est ce que j'ai voulu dire ?
 
         #XXX il faut que les methods(pre/pro/pos) puissent avoir acces à leur input buffer(pre)...
             #ou pouvoir ajouter des methodes dans le listing ?
@@ -38,7 +38,30 @@ Command
             ...
             
         #XXX permettre egalement d'avoir acces au buffer d'input de la commande suivante
+        
+    #XXX donc, triple mecanisme (pas oublier de relire la reflection quand meme) :
+        va permettre de faire les mêmes choses de manière différente si on veut
+    
+        A) on va pouvoir binder un parametre special (en pre/pro/pos) pour avoir acces a un objet special qui offrira les services suivants:
+            -avoir acces au buffer input de la commande courante
+                limiter le nombre déxecution max d'une commande
+            -avoir acces au buffer input de la commande suivante
+                et uniquement, interdiction d'injecter des données a une commande n+2
+            -pouvoir ajouter une commande dans le listing des commandes
+            -accéder aux variables d'état de l'execution 
+            -avoir acces à l'env (get, set, but no creation)
+                un seul argchecker pour tout faire du coup
             
+            sera binder a l'execution
+        
+        B) Pour communiquer entre pre/pro/pos, les methodes doivent juste faire partie du même objet 
+            et communiquer comme elles veulent au travers de celui-ci (via le self)
+            peuvent juste ovverider la class Command
+            
+        C) Un système d'exception permettant d'interrompre une execution à partir de n'importe où
+             raise normalRunningStop()
+             raise abnormalRunningStop()
+             ...
 
 Executeur
     -faire une liste d'alias
@@ -51,7 +74,10 @@ Executeur
         -l'aide doit s'arreter là et afficher un subset des clés
             mettre une empty command avec un message __doc__ personnalisé
         -lors du insertion, mettre a jour tout les noeuds parents vide
-        
+    -l'env doit être un triplet clé, valeur, type
+        permettre de creer des triplets en definissant le type
+    
+    
 Shell
     -créer les commandes manquantes
         voir fichier
@@ -130,8 +156,9 @@ TEST
 
     !!!! ne devrait rien changer au decorateur, ArgChecker et argFeeder !!!
         ils fournissent juste un outils de verification de l'argument, des valeurs par defaut et des noms
-        le argFeeder se charge juste de faire le binding, les valeurs paramètrées doivent être retirée avant, on fait une surcouche
-        
+        le argFeeder se charge juste de faire le binding, les valeurs paramètrées doivent être retirée avant, on fait une couche suplémentaire par dessus
+            devra se trouver juste après la recherche de commande
+            et juste avant le argfeeder
 
        
 
