@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from buffer import InputManager
-
+from heapq import *
 #TODO
     #voir les notes dans le fichier TODO
     #resoudre la gestion des exceptions qui doivent remonter dans le shell et aussi l'affichage sur le shell
@@ -121,3 +121,45 @@ def commandEngine(rawCommandList):
                 return False"""
             
     return True
+    
+    
+def buildTree(commandList):
+    #each time a command as several sub command, split the tree and copy the sub tree on the several node
+        #take care about the id node
+    pass #TODO
+    
+def executeTree(tree):
+    #TODO faire deux queues
+        #une pour le pre
+        #une pour les posts
+        #et toujours executer les posts avant les pre
+    
+    pqueue = []
+    #while breakpoint queue is not empty, do
+    while len(pqueue) > 0:
+        #TODO manage multioutput on post 
+    
+        #take the first breakpoint in the Queue
+        level, currentNode = heappop(pqueue)
+        
+        #execute remaining preprocess if needed
+        while currentNode != None:
+            currentNode.executePreprocess(pqueue)
+            
+            if len(currentNode) > 0: #has a next child ?
+                currentNode = currentNode.childs[0]
+            
+                for i in range(1,len(currentNode.childs)):
+                    heappush(pqueue, (currentNode.id, currentNode.childs[i])) #TODO pas convaincu pas les ID
+            else:
+                break
+        
+        #execute process if needed
+        currentNode.executeProcess(pqueue)
+            
+        #execute remaining postprocess if needed
+        while currentNode != None:
+            currentNode.executePostprocess(pqueue)
+            currentNode = currentNode.parent
+
+    
