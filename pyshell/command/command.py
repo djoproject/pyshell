@@ -101,29 +101,20 @@ class MultiCommand(list):
         if preProcess != None:
             c.preProcess = preProcess
             
-            if self.usageBuilder == None :
-                try:
-                    self.usageBuilder = preProcess.checker
-                except AttributeError:
-                    pass
+            if self.usageBuilder == None and hasattr(preProcess, "checker"):
+                self.usageBuilder = preProcess.checker
         
         if process != None:
             c.process = process
             
-            if self.usageBuilder == None :
-                try:
-                    self.usageBuilder = process.checker
-                except AttributeError:
-                    pass
+            if self.usageBuilder == None and hasattr(process, "checker"):
+                self.usageBuilder = process.checker
             
         if postProcess != None:
             c.postProcess = postProcess
             
-            if self.usageBuilder == None :
-                try:
-                    self.usageBuilder = postProcess.checker
-                except AttributeError:
-                    pass
+            if self.usageBuilder == None and hasattr(postProcess, "checker"):
+                self.usageBuilder = postProcess.checker
         
         self.append(c)
         

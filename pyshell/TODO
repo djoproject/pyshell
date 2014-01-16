@@ -11,7 +11,7 @@ Decorator
     -clean code : OK
 
 Command
-    -clean selfArgChecker :IN PROGRESS
+    -clean selfArgChecker : OK
     -permettre de transfèrer des informations entre les pre et les post
         -exemple, pre2 a besoin d'info provenant de post1
             C'est a post1 de lui transmettre
@@ -58,11 +58,44 @@ Command
             et communiquer comme elles veulent au travers de celui-ci (via le self)
             peuvent juste ovverider la class Command
             
+            probleme de remanence des donnees si on execute plusieurs fois la commande
+                il faut faire un systeme de reinit
+                
+            pas d'interet pour la pre de parler avec la post de la meme commande puisqu'il se transfere des donnees
+            par contre ça devient interessant si la commande se repete plusieurs fois
+            
         C) Un système d'exception permettant d'interrompre une execution à partir de n'importe où
              raise normalRunningStop()
              raise abnormalRunningStop()
              ...
 
+        D) les commandes peuvent renvoyer un résultat de type multiOutput (systeme deja en place)
+            les fonctions suivantes seront appelées autant de fois qu'il y a d'output
+            pratique pour la lecture d'un fichier ou l'execution suivante ne se soucie du résultat precedant
+            pas pratique dans le cas d'une authen ou la seconde pass a besoin du résultat de la premiere pass
+
+        X) au lieu de faire des listes de listes, plutôt faire un arbre pour ne pas réexecuter 
+           plusieurs fois les même pre/post.
+           => sauf si le resultat change a chaque execution avec des parametres similaire
+                faire un decorateur speciale pour ces fonctions là et adapater l'arbre en conséquence
+           parcourir l'arbre avec un traversal permettant d'explorer en fonction de l'ordre d'ajout
+           l'arbre devient le buffer
+           possibilité de retirer les branches au fure et à mesure de l'exploration ?
+                non pas vraiment, car on finit toujours avec le post de la premiere instruction
+                    sauf si on fait 2 arbres, les listes sont plus pratiques dans ce cas ci :/
+                    a reflechir
+           les noeuds feuilles seraient les process a executer
+           plusieurs traversal possible
+                le plus logique est :
+                    on descend jusqu'en bas et on remonte jusqu'en haut a chaque fois
+                    ensuite on repart des points d'arret qu'on aura repéré
+                        on prend quel point d'arrêt en premier? 
+                            d'abord les post les plus haut dans l'arbre, ensuite les pre les plus basses
+                    Qu'est ce qu'un point d'arret ?
+                        a chaque fois qu'il y aura un embranchement il faudra marqué ça comme un point d'arret alors ?
+                            ça va faire une sacré liste
+            On place ça dans une priority Queue (heapq)
+            
 Executeur
     -faire une liste d'alias
         description dans le code
