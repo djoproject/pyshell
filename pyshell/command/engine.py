@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from buffer import InputManager
-from heapq import *
+
+
 #TODO
     #voir les notes dans le fichier TODO
     #resoudre la gestion des exceptions qui doivent remonter dans le shell et aussi l'affichage sur le shell
@@ -122,44 +122,73 @@ def commandEngine(rawCommandList):
             
     return True
     
-    
-def buildTree(commandList):
-    #each time a command as several sub command, split the tree and copy the sub tree on the several node
-        #take care about the id node
-    pass #TODO
-    
-def executeTree(tree):
-    #TODO faire deux queues
-        #une pour le pre
-        #une pour les posts
-        #et toujours executer les posts avant les pre
-    
-    pqueue = []
-    #while breakpoint queue is not empty, do
-    while len(pqueue) > 0:
-        #TODO manage multioutput on post 
-    
-        #take the first breakpoint in the Queue
-        level, currentNode = heappop(pqueue)
+class executionEngine(object): #TODO not sure a class is needed
+
+    def __init__(self, commandList):
+        self.maxLevel = 0
+        self.commandList = commandList
+        self.startingItems = []
+        self.parseArgAndReset()
+        self.buildTree()
+
+    def parseArgAndReset(self):
+        pass 
         
-        #execute remaining preprocess if needed
-        while currentNode != None:
-            currentNode.executePreprocess(pqueue)
+        #TODO parse arg
+            #before to execute anything, every command args in the list will be parsed
+            #we don't want an interrumption in the middle of the process because some arg are invalid
+            #on ne veut pas avoir d'argException lancée depuis le executeTree
+
+        #TODO reset every command, if theyr stored some content from a previous execution
+
+    def buildTree(self):
+        #each time a command as several sub command, split the tree and copy the sub tree on the several node
+            #take care about the id node
             
-            if len(currentNode) > 0: #has a next child ?
-                currentNode = currentNode.childs[0]
+        #TODO fill self.startingItems
             
-                for i in range(1,len(currentNode.childs)):
-                    heappush(pqueue, (currentNode.id, currentNode.childs[i])) #TODO pas convaincu pas les ID
-            else:
-                break
+        pass #TODO
         
-        #execute process if needed
-        currentNode.executeProcess(pqueue)
+    def executeTree(self):
+        #STACK axioms
+            #the element at the top of the stack is always the lowest item on the tree
+                #not really true, the next elements in the stack could be at the same level as the item at the top of the stack
+                #but no element in the stack can be at a lower level than the item at the top of the stack
+            #only the childs of the current node can be insert on the stack
+                #(current node = the item at the top of the stack)
+                #and the child of a node are always at a more bottom level
+    
+        stack = []#the stack of breakpoint
+        
+        #populate the stack
+        for i in range(0, len(self.startingItems)):
+            stack.append( (True,self.startingItems[len(self.startingItems) - i - 1],) )
+        
+        #while breakpoint queue is not empty, do
+        while len(stack) > 0:
+            #take the first breakpoint in the pre Queue
+            pre, currentNode = stack.pop()
             
-        #execute remaining postprocess if needed
-        while currentNode != None:
-            currentNode.executePostprocess(pqueue)
-            currentNode = currentNode.parent
+            if pre: #start the execution at pre process
+                #execute remaining preprocess if needed
+                while currentNode != None:
+                    currentNode.executePreprocess(stack)
+                    
+                    if len(currentNode) > 0: #has a next child ?
+                        currentNode = currentNode.childs[0]
+                    
+                        for i in range(1,len(currentNode.childs)): #append every child in the breakpoint list
+                            stack.append(   (True, currentNode.childs[len(currentNode.childs) - i - 1]), ) 
+                            #start from the end to the beginning to have the first child at the top of the stack
+                    else:
+                        break #we reach a leaf node, it is time to execute process
+                
+                #execute process if needed
+                currentNode.executeProcess(stack)
+                
+            #execute remaining postprocess if needed
+            while currentNode != None:
+                currentNode.executePostprocess(stack)
+                currentNode = currentNode.parent
 
     
