@@ -39,10 +39,6 @@ import atexit
 atexit.register(readline.write_history_file, histfile)
 del os, histfile      
 
-class MultiOutput(list):
-    pass
-
-
 class CommandExecuter():
     def __init__(self):
         self.environment               = {}

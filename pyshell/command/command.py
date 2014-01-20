@@ -5,6 +5,9 @@ from argchecker import ArgFeeder2
 from decorator import shellMethod
 from argchecker import ArgChecker,listArgChecker
 
+class MultiOutput(list):
+    pass
+
 #
 # this method check the args with respect to meth
 #
@@ -22,9 +25,9 @@ class Command(object):
     #def __init__(self,envi,printer,preProcess=None,process=None,argChecker=None,postProcess=None):
     def __init__(self,parentContainer = None):
         self.parentContainer = parentContainer      
-        self.preInputBuffer  = None
-        self.proInputBuffer  = None
-        self.postInputBuffer = None
+        self.preInputBuffer  = None #TODO still usefull ?
+        self.proInputBuffer  = None #TODO
+        self.postInputBuffer = None #TODO
 
     #
     # set the next execution buffer of this command
@@ -54,7 +57,7 @@ class Command(object):
         #print str(args)
         pass
         
-    #
+""" #
     # this method convert a string list to an arguments list, then preprocess the arguments
     #
     # @argument args : a string list, each item is an argument
@@ -83,7 +86,7 @@ class Command(object):
     #
     def postProcessExecution(self,args):
         nextArgs = selfArgChecker(args,self.postProcess)
-        return self.postProcess(**nextArgs)
+        return self.postProcess(**nextArgs)"""
 
 #
 # a multicommand will produce several process with only one call

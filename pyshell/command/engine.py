@@ -160,7 +160,7 @@ class executionEngine(object): #TODO not sure a class is needed
     
         stack = []#the stack of breakpoint
         
-        #populate the stack
+        """#populate the stack
         for i in range(0, len(self.startingItems)):
             stack.append( (True,self.startingItems[len(self.startingItems) - i - 1],) )
         
@@ -180,6 +180,9 @@ class executionEngine(object): #TODO not sure a class is needed
                         for i in range(1,len(currentNode.childs)): #append every child in the breakpoint list
                             stack.append(   (True, currentNode.childs[len(currentNode.childs) - i - 1]), ) 
                             #start from the end to the beginning to have the first child at the top of the stack
+                    
+                        #TODO does not manage case with multi input data into child buffer
+                        
                     else:
                         break #we reach a leaf node, it is time to execute process
                 
@@ -189,6 +192,26 @@ class executionEngine(object): #TODO not sure a class is needed
             #execute remaining postprocess if needed
             while currentNode != None:
                 currentNode.executePostprocess(stack)
-                currentNode = currentNode.parent
-
+                currentNode = currentNode.parent"""
+        
+        #init the stack
+        for i in range(0, len(self.startingItems)):
+            stack.append( (0,self.startingItems[len(self.startingItems) - i - 1],) )
+    
+        #consume the stack
+        while len(stack) > 0:
+            #take the first breakpoint in the pre Queue
+            state, currentNode = stack.pop()
+            
+            if state == 0:
+                currentNode.executePreprocess(stack)
+            elif state == 1:
+                currentNode.executeProcess(stack)
+            elif state == 2:
+                currentNode.executePostprocess(stack)
+            else:
+                pass #TODO raise
+    
+            #TODO check execution count
+    
     
