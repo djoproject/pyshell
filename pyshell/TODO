@@ -45,7 +45,7 @@ Command
         A) on va pouvoir binder un parametre special (en pre/pro/pos) pour avoir acces a un objet special qui offrira les services suivants:
             -avoir acces au buffer input de la commande courante
                 limiter le nombre déxecution max d'une commande
-            -avoir acces au buffer input de la commande suivante
+            -avoir acces au buffer input de la commande suivante du même niveau, elle doivent être dans le même MultipleCommand
                 et uniquement, interdiction d'injecter des données a une commande n+2
             -pouvoir ajouter une commande dans le listing des commandes
             -accéder aux variables d'état de l'execution 
@@ -194,7 +194,176 @@ TEST
             et juste avant le argfeeder
 
        
-
+brainstorming
+    au lieu de garder toute la structure en arbre
+    sur la stack on empile la path sous forme d'une liste d'entier + l'index de celui a executer + le type d'execution (pre/pro/post) + la donnees a executer
+        cette liste d'entier pointe sur une liste de commande
+        
+    deux problèmes se posent dans l'immédiat : 
+        comment structure cette liste, les commandes ont une représentation bidimensionnelle pour l'instant
+            solution:
+                les commandes sont stockées sous forme de triplet (index_parent, cmd, list(index_childs))
+                    pas besoin de l'indice parent si on complete le chemin d'execution a chaque fois, il sera sauvegardé sur la pile
+                    de +, une cmd peut avoir plusieurs parents, on essaye justement de sauvegardé la mémoire
+                    
+                    donc la structure aura plutôt cette tête là : (cmd, list(index_childs),)
+            
+        
+        les données sont dupliquées à chaque fois
+            solution:
+                une liste avec les données
+                la données à executer n'est plus stockée sur la pile
+                seul l'indice de cette liste est stocké sur la pile
+                la donnée est associé à un compteur, celui-ci indique la duree de vie de la donnée
+                lorsqu'il arrive a zero, la donnée est supprimée
+        
+        On pourrait dire qu'on authorise que les multiCmd et on place une partie du mecanisme dedans        
+        
+    optimisation
+        les commandes se suivent dans la liste des commandes
+            on pourrait dés lors juste retenir l'indice d'où commence la commande suivante 
+            et ensuite le nombre d'element la composant
+            
+            prblm, ça complexifie l'ajout de commande dynamiquement
+            
+        On pourrait fonctionner aussi en 2d en utilisant a chaque fois 2 indices (cmd + subcmd)
+            simplifie la structure des commandes 
+            uniquement besoin des indices des subCmd
+                leur position dans la liste indique de quel commande il s'agit
+            
+            prblm, mais ajoute encore des infos sur la pile
+                
+SOLUTION 1 : stack orienté path, chaque path a executer est empilé dans la pile
+    la liste des commandes qui stoque des items de ce type:
+        (cmd=CommandInstance, argList, list(index_childs=int) or None(if no child),)
+        
+    la liste des données qui stoque des items de ce type
+        (data=anything, ttl=int,)
+            le ttl pourrait etre remplacé par un booleen dans la stack genre removeOnGet
+                pour la derniere commande devant utilisé la données
+                bonne idée ou non (?)
+                    quid de l'ajout de commande dynamiquement
+        
+    la stack qui stoque des items de ce type
+        (path=list(cmd_index=int), current_index_in_path=int, execution_type=(pre/pro/post), data_index=int,)
+        
+    On a besoin des methodes suivantes:
+        -buildTree
+            rempli la liste des commandes
+        -initStack
+            avec les commandes composants de la premiere MultipleCommand
+            les datas seront les args
+        -execute
+        -getData
+        -setData
+        
+    Mais PRBLM  
+        on a reduit l'espace mémoire dans la structure de stockage des commandes et dans les buffers
+        Par contre, l'espace occupé par la stack augmente, même s'il n'explose pas...
+            le truc c'est que bcp de commande vont avoir le même prefix
+        
+            Solution (?) : TODO
+                faire une pile orientée data et plus orientée path
+                    on stock une data et un path
+                        le path du prochain noeud a executé avec cette data
+                    une data est toujours lié à un groupe de sibling au parent similaire
+                    s'il reste des sibling au dernier index du path
+                    alors on reempile tout de suite avec l'index du prochain sibling
+                    s'il n'y a plus de sibling, on ne reempile pas
+                    
+                    TODO refaire les scenario
+            
+        
+        la structure permet t'elle de gérer efficacement et facilement:
+            -d'ajouter un element supplementaire dans le buffer de la commande courante
+                scenario:
+                    -on ajoute la donnée dans la liste des données avec un ttl=1
+                    -on empile un etat similaire a celui courant sur la pile mais pointant vers cette donnee
+            -d'ajouter une commande dynamiquement
+                prblm si la commande parente est multiple, l'ajout de la commande risque de se faire plusieurs fois...
+                    solution : on met un boolean a la methode d'ajout de commande pour indiquer si on doit ajouter la commande a chaque execution ou non
+                scenario:
+                    -ajout de la commande dans la liste 
+                        avec les meme childs que la commande qui l'ajoute
+                    -ajout de la commande dans la liste de child du parent
+                    -data + stack
+                        soit une data et fournie et on ajoute juste celle la dans la liste et la stack
+                        soit on parcourt la stack a la recherche de data pour la commande ajoutante
+                            et on duplique les entrees pour la nouvelle commande
+                            pas oublier d'incrementer le ttl des data
+                    
+            -de modifier l'input de la commande suivante
+                possibilité:
+                    -changer les datas juste pour la suivante
+                        scenario:
+                            -ajouter la data dans la liste des donnees avec un ttl de 1
+                                
+                            -identifier l'execution sur la pile (normalement c'est la prochaine)
+                                -changer l'index de la data
+                                -decrementer le ttl de la data qui vient d'etre remplacée
+                    -pour toute les suivantes
+                        -juste mettre la donnée a jour dans la liste des données
     
+SOLUTION 2 : stack orienté data, chaque data a executer est empilée dans la pile
+
+structure
+    cmd = list de MultiCommand(subCmds=list of command, args=list of args)
+    stack = list of (data=MultiOutput, path=list of integer (index des subCmd), action=(pre/pro/pos))
+    
+    
+    la structure permet t'elle de gérer efficacement et facilement:
+        -une execution
+            scenario:
+                -on prend l'element en sommet de pile
+                    on le pop si:
+                        -data et un MultiOutput de taille 1 ET :
+                            -on est face a une post ou une pro
+                            -on est face a une pre avec le dernier sibling existant
+                    sinon
+                        -il faut retirer le premier element du MultiOutput SI:
+                            -on est face a une post ou une pro
+                            -on est face a une pre avec le dernier sibling existant
+                                dans ce cas-ci il faut remettre l'indice au premier sibling
+                        sinon
+                            -il faut juste incrementer l'indice du sibling
+        
+                    -ensuite on execute et on push les donnees suivantes si necessaire
+        
+        -d'ajouter un element supplementaire dans le buffer de la commande courante
+            possibilité:
+                -uniquement la commande courante
+                    scenario:
+                        -tagger la data execute once, on peut utiliser la variable pre/post/post et ajouter un type pre_once
+                            gérer ça directement dans multi input, ça evite d'avoir un etat supplementaire
+                        ajouter un parametre ExecuteNow=bool
+                        
+                -tous les sibling
+                    scenario:
+                        ajouter un parametre ExecuteNow=bool
+                        en fonction de ça on met la data en sommet de pile ou juste en dessous de l'element courant
+        -d'ajouter une commande dynamiquement
+            scenario:
+                -l'ajouter dans la multicommande correspondante
+                    la tagger comme dynamique, elle devra être supprimer en fin d'execution
+                
+        -de modifier l'input de la commande suivante
+            possibilité:
+                -changer les datas juste pour la suivante
+                    scenario:
+                        -retirer l'etat courant de la stack
+                        -ajouter un etat pre_once avec la data de la suivante
+                            ce sera gérer dans multi input, pour eviter un etat en +
+                        -ajouter un etat recommençant a la commande encore suivante
+                    
+                    attention le comportement peut être foireux si on a un multi input plus grand que 1
+                        
+                -pour toute les suivantes
+                    scenario:
+                        -changer la valeur sur l'etat en sommet de stack
+
+
+
+
+
 
 

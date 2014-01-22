@@ -121,33 +121,81 @@ def commandEngine(rawCommandList):
                 return False"""
             
     return True
-    
-class executionEngine(object): #TODO not sure a class is needed
 
+EXECUTION_LIMIT = 255
+
+class executionEngine(object): #TODO not sure a class is needed
     def __init__(self, commandList):
-        self.maxLevel = 0
         self.commandList = commandList
         self.startingItems = []
         self.parseArgAndReset()
         self.buildTree()
 
     def parseArgAndReset(self):
-        pass 
+        for c,arg in self.commandList:
+            #reset the command state
+            c.reset()
+            
+            #
+            
         
         #TODO parse arg
             #before to execute anything, every command args in the list will be parsed
             #we don't want an interrumption in the middle of the process because some arg are invalid
             #on ne veut pas avoir d'argException lancée depuis le executeTree
+            
+            #prblm
+                #sometimes, the args are not checked by the preProcess, or even the process
+                    #identify which checker to call
 
         #TODO reset every command, if theyr stored some content from a previous execution
 
+        #TODO le truc chiant c'est que la methode genericProcess va interpreter a nouveau les args
+            #le meme travail est fait 2 fois...
+            #solution:
+                #soit le taggé comme déja traité
+                #soit le faire passer par un autre circuit qui evite genericProcess
+
     def buildTree(self):
-        #each time a command as several sub command, split the tree and copy the sub tree on the several node
-            #take care about the id node
+        #TODO ça eclate qd meme pas mal la memoire tout ça :/
+            #solution 1: mettre le buffer PRE des childs dans le parent, comme ça on evite de le dupliquer
+                #foire car on ne sais plus quand on doit supprimer la ressource du buffer
+                    #et si on repasse plusieurs fois sur le même child, il y aura tjs la même valeur
+                    #dans le buffer tant que tous les autres childs ne l'auront pas consommé
             
-        #TODO fill self.startingItems
+            #solution 2: mettre le parent ou la valeur d'execution sur la stack
+                #on ne peut pas mettre le parent, on alors il faudrait mettre toute la liste des parents
+                #mettre la valeur a executé revient à occuper le même espace que si chaque child avait
+                #son propre buffer, donc foireux...
+                
+            #comment sauvegarder les path sans eclater la mémoire ? ...
+                #dans tous les cas, il faut connaitre le path
+    
+        currentLevel = None
+        self.startingItems = []
+        starting = True
+        for c,arg in self.commandList:
+            if not isinstance(c, MultiCommand):
+                c = [c]
             
-        pass #TODO
+            #manage root level
+            if starting:
+                for subc in c:
+                    self.startingItems.append(executionNode(subc, arg))
+                
+                currentLevel = self.startingItems
+                starting = False
+                continue
+            
+            #manage normal level
+            newLevel = []
+            for subc in c:
+                for parentc in currentLevel:
+                    enode = executionNode(subc, arg, parentc)
+                    parentc.childs.append(enode)
+                    newLevel.append(enode)
+                    
+            currentLevel = newLevel
         
     def executeTree(self):
         #STACK axioms
@@ -159,40 +207,6 @@ class executionEngine(object): #TODO not sure a class is needed
                 #and the child of a node are always at a more bottom level
     
         stack = []#the stack of breakpoint
-        
-        """#populate the stack
-        for i in range(0, len(self.startingItems)):
-            stack.append( (True,self.startingItems[len(self.startingItems) - i - 1],) )
-        
-        #while breakpoint queue is not empty, do
-        while len(stack) > 0:
-            #take the first breakpoint in the pre Queue
-            pre, currentNode = stack.pop()
-            
-            if pre: #start the execution at pre process
-                #execute remaining preprocess if needed
-                while currentNode != None:
-                    currentNode.executePreprocess(stack)
-                    
-                    if len(currentNode) > 0: #has a next child ?
-                        currentNode = currentNode.childs[0]
-                    
-                        for i in range(1,len(currentNode.childs)): #append every child in the breakpoint list
-                            stack.append(   (True, currentNode.childs[len(currentNode.childs) - i - 1]), ) 
-                            #start from the end to the beginning to have the first child at the top of the stack
-                    
-                        #TODO does not manage case with multi input data into child buffer
-                        
-                    else:
-                        break #we reach a leaf node, it is time to execute process
-                
-                #execute process if needed
-                currentNode.executeProcess(stack)
-                
-            #execute remaining postprocess if needed
-            while currentNode != None:
-                currentNode.executePostprocess(stack)
-                currentNode = currentNode.parent"""
         
         #init the stack
         for i in range(0, len(self.startingItems)):
@@ -212,6 +226,33 @@ class executionEngine(object): #TODO not sure a class is needed
             else:
                 pass #TODO raise
     
-            #TODO check execution count
+            #check execution count
+            if currentNode.executionCount[0] > EXECUTION_LIMIT:
+                pass #TODO raise
+            elif currentNode.executionCount[1] > EXECUTION_LIMIT:
+                pass #TODO raise
+            elif currentNode.executionCount[2] > EXECUTION_LIMIT:
+                pass #TODO raise
+
+
+class engineV3(object):
+    def __init__(self, commandList):
+        self.stack  = []
+        self.cmd    = []
+        self.buffer = []
+        
+        #TODO create self.cmd and init self.stack
     
+    def getData(self, index):
+        #TODO if ttl ==0, remove the data
+    
+        pass #TODO
+        
+    def execute(self):
+        #TODO consume stack
+    
+    
+        pass #TODO
+
+
     

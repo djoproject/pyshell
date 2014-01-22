@@ -23,19 +23,19 @@ def selfArgChecker(args,meth):
 
 class Command(object):
     #def __init__(self,envi,printer,preProcess=None,process=None,argChecker=None,postProcess=None):
-    def __init__(self,parentContainer = None):
+    """def __init__(self,parentContainer = None):
         self.parentContainer = parentContainer      
         self.preInputBuffer  = None #TODO still usefull ?
         self.proInputBuffer  = None #TODO
-        self.postInputBuffer = None #TODO
+        self.postInputBuffer = None #TODO"""
 
-    #
+    """#
     # set the next execution buffer of this command
     #
     def setBuffer(self,preBuffer,proBuffer,postBuffer):
         self.preInputBuffer  = preBuffer
         self.proInputBuffer  = proBuffer
-        self.postInputBuffer = postBuffer
+        self.postInputBuffer = postBuffer"""
 
     #default preProcess
     #@listdecorator("args",ArgChecker())
@@ -55,8 +55,12 @@ class Command(object):
     @shellMethod(args=listArgChecker(ArgChecker()))
     def postProcess(self,args):
         #print str(args)
-        pass
-        
+        pass #TODO or return args ?
+    
+    #this method is called on every processing to reset the internal state
+    def reset(self):
+        pass 
+    
 """ #
     # this method convert a string list to an arguments list, then preprocess the arguments
     #
@@ -127,6 +131,11 @@ class MultiCommand(list):
         else:
             return self.name+" "+self.usageBuilder.usage()
 
+    #TODO add method
+        #reset to reset every local command
+        #addCommand(cmd) to directly add an instance of command
+        #add an arg to addProcess to set if the command need the args from the shell or not
+
 #
 # special command class, with only one command (the starting point)
 #
@@ -141,7 +150,6 @@ class UniCommand(MultiCommand):
 
     def setBuffer(self,preBuffer,proBuffer,postBuffer):
         self[0].setBuffer(preBuffer,proBuffer,postBuffer)
-
 
 
 
