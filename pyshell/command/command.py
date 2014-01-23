@@ -4,6 +4,7 @@ from exception import argPostExecutionException,decoratorException
 from argchecker import ArgFeeder2
 from decorator import shellMethod
 from argchecker import ArgChecker,listArgChecker
+from exception import *
 
 class MultiOutput(list):
     pass
@@ -130,6 +131,12 @@ class MultiCommand(list):
             return "no args needed"
         else:
             return self.name+" "+self.usageBuilder.usage()
+
+    def reset(self):
+        pass #TODO apply on each subcmd
+        
+    def getArgs(self):
+        pass #TODO must return MultiOutput
 
     #TODO add method
         #reset to reset every local command

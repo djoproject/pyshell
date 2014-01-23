@@ -234,25 +234,165 @@ class executionEngine(object): #TODO not sure a class is needed
             elif currentNode.executionCount[2] > EXECUTION_LIMIT:
                 pass #TODO raise
 
+##############################################################################################################################
+
+#TODO
+    #at this moment, multioutput is juste a list... 
+    #the maximum execution counter has disappear.
+        #add it into MultiCommand class
+        #and manage it into the engine process
+    #implement the special method, see TODO file (addcmd, addData, ...)
+
+def executeMethod(cmd,subcmd, stackState):
+    nextData = stackState[0][0]
+
+    #TODO manage None args from command
+
+    #prepare data
+    if nextData != None:
+        args = cmd.getArgs()[:]
+        args.extend(nextData)
+    else:
+        args = cmd.getArgs()
+
+    #execute checker
+    if hasattr(cmd, "checker"):
+        #TODO give the "env" and the "engine" from here to the checker
+    
+        data = cmd.checker.checkArgs(args) 
+    else:
+        data = {}
+
+    #execute Xprocess
+    r = subcmd(**data)
+    
+    #TODO r must be a multi output
+    if not isinstance(r, ):#TODO
+        pass #TODO convert r to multioutput
+
+    return r
 
 class engineV3(object):
-    def __init__(self, commandList):
-        self.stack  = []
-        self.cmd    = []
-        self.buffer = []
+    def __init__(self, cmdList, env=None):
+        #cmd must be a not empty list
+        if cmdList == None or not isinstance(cmdList, list) or len(cmdList) ==0:
+            raise executionInitException("(engine) init, command list is not a valid list")
+
+        #TODO reset the commands
+            #and also check the type
+
+        #TODO manage env
+            #if env is none, create an empty dict
+            #if not none, must be a dict
+        self.env     = env
         
-        #TODO create self.cmd and init self.stack
+        self.stack   = []
+        self.cmdList = cmdList #list of MultiCommand
+
+        #init stack
+        self.stack.append(  ([None], [0], 0,)  )
     
-    def getData(self, index):
-        #TODO if ttl ==0, remove the data
+    def skipNextCommand(self, skipCount=1):
+        pass #TODO skip the n following command on the current data
     
+    def flushArgs(self):
+        pass #TODO allow to remove the arg for the next command
+    
+    def flushData(self):
+        pass #TODO remove every data from the current buffer
+            #need an update of the engine code, to stop if there is no more data
+            #even if every command has not been executed
+    
+    def addData(self, data, forAllCommand = True, offset=0):
         pass #TODO
+    
+    def setData(self, data, forAllCommand = True, offset=0):
+        pass #TODO
+    
+    def getData(self, offset=0):
+        pass #TODO
+        
+    def hasNextData(self):
+        return self.getRemainingDataCount() > 0
+        
+    def getRemainingDataCount(self):
+        if len(self.stack) == 0:
+            return 0
+
+        return len(self.stack[-1][0])
+     
+    def addCommand(self, cmd, onlyAddOnce = True):
+        #TODO 
+            #check the command
+            #check stack and cmdList length
+            #tag the command as dynamic
+                #a solution is to keep the number of dynamic command added
+                #and remove the X last command on the reset function
+            #manage onlyAddOnce to protect the user of massive insertion of the same command
+        
+        self.cmdList[len(self.stack[-1][1]) -1].append(cmd)
         
     def execute(self):
-        #TODO consume stack
-    
-    
-        pass #TODO
-
-
+        #consume stack
+        while len(self.stack) != 0: #while there is some item into the stack
+            
+            ### EXTRACT DATA FROM STACK ###
+            top     = self.stack[-1]#.pop()
+            #top[0] contain the current data of this item
+            #top[1] contain the command path
+            #top[2] contain the process type to execute
+            
+            cmd     = self.cmdList[len(top[1]) -1]
+            subcmd  = cmd[top[1][-1]]
+            
+            ### execute command ###
+            to_stack = None #prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
+            
+            ## PRE PROCESS
+            if top[2] == 0: #pre
+                r = executeMethod(subcmd.preProcess, top)
+                
+                #manage result
+                if len(top[1]) == len(self.cmdList): #no child, next step will be a process
+                    to_stack = (r, top[1], 1, )
+                else: #there are some child, next step will be another preprocess
+                    new_path = top[1][:]
+                    new_path.append(0)
+                    to_stack = (r, new_path, 0, )
+            
+            ## PROCESS ##
+            elif top[2] == 1: #pro
+                r = executeMethod(subcmd.process, top)
+                
+                #manage result
+                to_stack = (r, top[1], 2,)
+            
+            ## POST PROCESS ##
+            elif top[2] == 0: #post
+                r = executeMethod(subcmd.postProcess, top)
+                
+                #manage result
+                if len(top[1]) > 1: #not on the root node
+                     to_stack = (r, top[1][:-1], 2,)
+                
+            else:
+                raise executionException("(engine) execute, unknwon process command <"+str(top[2])+">")
+            
+            ### manage stack, need to repush the current item ? ###
+            self.stack.pop()
+            if top[2] == 1 or top[2] == 2: #process or postprocess ?
+                if len(top[0]) > 1: #still data to execute ?
+                    self.stack.append(  (top[0][1:],top[1],top[2],)  ) #remove the last used data and push on the stack
+            else:# top[2] == 0 #preprocess
+                if top[1][-1] < (len(cmd)-1): #still child to execute ?
+                    top[1][-1] += 1 #select the nex child id
+                    self.stack.append(  (top[0],top[1],top[2],)  ) #push on the stack again
+                else: #every child has been executed with this data
+                    if len(top[0]) > 1: #still data to execute ?
+                        top[1][-1] = 0 #select the first child
+                        self.stack.append(  (top[0][1:],top[1],top[2],)  ) #remove the last used data and push on the stack
+            
+            ### stack the result of the current process if needed ###
+            if to_stack != None:
+                self.stack.append(to_stack)
     
