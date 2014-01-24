@@ -236,81 +236,146 @@ class executionEngine(object): #TODO not sure a class is needed
 
 ##############################################################################################################################
 
+class MultiOutput(list):
+    pass
+
 #TODO
     #at this moment, multioutput is juste a list... 
+        #must stay a list
     #the maximum execution counter has disappear.
         #add it into MultiCommand class
         #and manage it into the engine process
-    #implement the special method, see TODO file (addcmd, addData, ...)
 
-def executeMethod(cmd,subcmd, stackState):
-    nextData = stackState[0][0]
+#XXX
+    #prblm, manage forAllCommand
+        #solution 1: in MultiOutput
+            #direct and powerfull control on the data
+            #loss the principle of tag
+            #need to create a new method and indicate for which method the data are needed
+                #lost the power of the list
+        
+        #solution 2: special process state (execute_once, execute_all_except, ...)
+            #need more data stored in each stack item
 
-    #TODO manage None args from command
+        #solution 3: use the other method to escape the data
+            #with skipMethod and addData
+                #it is possible but more complicated
 
-    #prepare data
-    if nextData != None:
-        args = cmd.getArgs()[:]
-        args.extend(nextData)
-    else:
-        args = cmd.getArgs()
-
-    #execute checker
-    if hasattr(cmd, "checker"):
-        #TODO give the "env" and the "engine" from here to the checker
-    
-        data = cmd.checker.checkArgs(args) 
-    else:
-        data = {}
-
-    #execute Xprocess
-    r = subcmd(**data)
-    
-    #TODO r must be a multi output
-    if not isinstance(r, ):#TODO
-        pass #TODO convert r to multioutput
-
-    return r
-
+        #solution 4: each data list are associated to firstCmdIndex and lastCmdIndex
+            #like the solution 2, add some data on the stack
+            #but more powerfull
+            #and easy to manage
+            #no need to update the MultiOutput tag
+            
 class engineV3(object):
     def __init__(self, cmdList, env=None):
         #cmd must be a not empty list
         if cmdList == None or not isinstance(cmdList, list) or len(cmdList) ==0:
             raise executionInitException("(engine) init, command list is not a valid list")
 
-        #TODO reset the commands
-            #and also check the type
-
-        #TODO manage env
-            #if env is none, create an empty dict
-            #if not none, must be a dict
-        self.env     = env
+        #reset and check the command
+        for c in cmdList:
+            if not isinstance(c, MultiCommand):
+                raise executionInitException("(engine) init, a object in the command list is not a MultiCommand instance, got <"+str(type(c))+">")
+                
+            c.reset()
         
-        self.stack   = []
         self.cmdList = cmdList #list of MultiCommand
+        
+        #check env variable
+        if env == None:
+            self.env = {}
+        elif isinstance(env, dict):
+            self.env  =env
+        else:
+            raise executionInitException("(engine) init, env must be a dictionnary or None, got <"+str(type(env))+">")
 
         #init stack
-        self.stack.append(  ([None], [0], 0,)  )
+        self.stack = [([None], [0], 0,) ]
+    
+    ## command special meth ##
     
     def skipNextCommand(self, skipCount=1):
-        pass #TODO skip the n following command on the current data
+        if len(self.stack) == 0: 
+            raise executionException("(engine) flushArgs, no item on the stack")
+            
+        self.stack[-1][1][-1] += skipCount
     
     def flushArgs(self):
-        pass #TODO allow to remove the arg for the next command
+        if len(self.stack) == 0: 
+            raise executionException("(engine) flushArgs, no item on the stack")
+    
+        cmdID = len(self.stack[-1][1]) -1
+        
+        if cmdID >= len(self.cmdList):
+            raise executionException("(engine) flushArgs, invalid command index")
+            
+        self.cmdList[cmdID].flushArgs()
+    
+    def addCommand(self, cmd, onlyAddOnce = True):    
+        if len(self.stack) == 0: 
+            raise executionException("(engine) flushArgs, no item on the stack")
+    
+        cmdID = len(self.stack[-1][1]) -1
+        
+        if cmdID >= len(self.cmdList):
+            raise executionException("(engine) flushArgs, invalid command index")
+        
+        self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce)
+    
+    ## data special meth ##
     
     def flushData(self):
-        pass #TODO remove every data from the current buffer
-            #need an update of the engine code, to stop if there is no more data
-            #even if every command has not been executed
+        if len(self.stack) == 0: 
+            raise executionException("(engine) flushData, no item on the stack")
     
-    def addData(self, data, forAllCommand = True, offset=0):
-        pass #TODO
+        data = self.stack[-1][0]
+        del data[:]
     
-    def setData(self, data, forAllCommand = True, offset=0):
+    def addData(self, newdata, offset=0, firstCmd = 0, lastCmd = None):
+        #TODO manage the firstCmd, lastCmd
+    
+        if len(self.stack) == 0: 
+            raise executionException("(engine) addData, no item on the stack")
+    
+        data = self.stack[-1][0]
+        data.insert(offset,newdata)
+    
+    def setData(self, newdata, offset=0, firstCmd = 0, lastCmd = None):
+        #TODO manage the firstCmd, lastCmd
+    
+        if len(self.stack) == 0: 
+            raise executionException("(engine) setData, no item on the stack")
+    
+        data = self.stack[-1][0]
+        
+        if offset >= len(data):
+            raise executionException("(engine) setData, offset out of bound, the offset <"+str(offset)+"> can be reach because the data length is <"+str(len(data))+">")
+        
+        data[offset] = newdata
+    
+    def setDataCmdRange(self, offset, firstCmd = 0, lastCmd = None):
+        #TODO
+            #the new bounds must be in the limit of the current bound
+            #need to update the engine core to manage the limits
+            #allow to merge bound ? or when the bound are set, it can not be undone ?
+        
+        #TODO
+            #-data must be an instance of MultipleOutput
+            #add cmdStartIndex and cmdStopIndex
+        
         pass #TODO
     
     def getData(self, offset=0):
-        pass #TODO
+        if len(self.stack) == 0: 
+            raise executionException("(engine) getData, no item on the stack")
+            
+        data = self.stack[-1][0]
+        
+        if offset >= len(data):
+            raise executionException("(engine) getData, offset out of bound, the offset <"+str(offset)+"> can be reach because the data length is <"+str(len(data))+">")
+        
+        return data[offset]
         
     def hasNextData(self):
         return self.getRemainingDataCount() > 0
@@ -320,18 +385,14 @@ class engineV3(object):
             return 0
 
         return len(self.stack[-1][0])
-     
-    def addCommand(self, cmd, onlyAddOnce = True):
-        #TODO 
-            #check the command
-            #check stack and cmdList length
-            #tag the command as dynamic
-                #a solution is to keep the number of dynamic command added
-                #and remove the X last command on the reset function
-            #manage onlyAddOnce to protect the user of massive insertion of the same command
-        
-        self.cmdList[len(self.stack[-1][1]) -1].append(cmd)
-        
+
+    ## various meth ##
+
+    def getEnv(self):
+        return self.env
+    
+    ## engine meth ##
+    
     def execute(self):
         #consume stack
         while len(self.stack) != 0: #while there is some item into the stack
@@ -350,7 +411,7 @@ class engineV3(object):
             
             ## PRE PROCESS
             if top[2] == 0: #pre
-                r = executeMethod(subcmd.preProcess, top)
+                r = self.executeMethod(subcmd.preProcess, top)
                 
                 #manage result
                 if len(top[1]) == len(self.cmdList): #no child, next step will be a process
@@ -362,14 +423,14 @@ class engineV3(object):
             
             ## PROCESS ##
             elif top[2] == 1: #pro
-                r = executeMethod(subcmd.process, top)
+                r = self.executeMethod(subcmd.process, top)
                 
                 #manage result
                 to_stack = (r, top[1], 2,)
             
             ## POST PROCESS ##
             elif top[2] == 0: #post
-                r = executeMethod(subcmd.postProcess, top)
+                r = self.executeMethod(subcmd.postProcess, top)
                 
                 #manage result
                 if len(top[1]) > 1: #not on the root node
@@ -384,15 +445,60 @@ class engineV3(object):
                 if len(top[0]) > 1: #still data to execute ?
                     self.stack.append(  (top[0][1:],top[1],top[2],)  ) #remove the last used data and push on the stack
             else:# top[2] == 0 #preprocess
-                if top[1][-1] < (len(cmd)-1): #still child to execute ?
-                    top[1][-1] += 1 #select the nex child id
-                    self.stack.append(  (top[0],top[1],top[2],)  ) #push on the stack again
+                
+                #compute the limit of command to execute
+                if hasattr(top[0],"cmdStopIndex"):
+                    limit = top[0].cmdStopIndex
+                else:
+                    limit = len(cmd)-1
+            
+                if top[1][-1] < limit: #still child to execute ?
+                    if len(top[0]) > 0: #still data to execute ?
+                        top[1][-1] += 1 #select the nex child id
+                        self.stack.append(  (top[0],top[1],top[2],)  ) #push on the stack again
                 else: #every child has been executed with this data
                     if len(top[0]) > 1: #still data to execute ?
-                        top[1][-1] = 0 #select the first child
+                    
+                        #compute the first command to execute
+                        if hasattr(top[0],"cmdStartIndex"):
+                            starting = top[0].cmdStartIndex
+                        else:
+                            starting = 0
+                    
+                        top[1][-1] = starting #select the first child
                         self.stack.append(  (top[0][1:],top[1],top[2],)  ) #remove the last used data and push on the stack
             
             ### stack the result of the current process if needed ###
             if to_stack != None:
                 self.stack.append(to_stack)
-    
+                
+    def executeMethod(self, cmd,subcmd, stackState):
+        nextData = stackState[0][0]
+
+        #prepare data
+        args = cmd.getArgs()
+        if args != None:
+            if nextData != None:
+                args = args[:]
+                args.extend(nextData)
+        elif nextData != None:
+            args = nextData
+        else:
+            args = []
+
+        #execute checker
+        if hasattr(cmd, "checker"):         
+            data = cmd.checker.checkArgs(args, self) #TODO update checker method to take care about "self" that is the engine
+        else:
+            data = {}
+
+        #execute Xprocess
+        r = subcmd(**data)
+        
+        #r must be a multi output
+        if not isinstance(r, MultiOutput):
+            return [r]
+
+        return r
+
+

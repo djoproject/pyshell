@@ -102,6 +102,7 @@ class MultiCommand(list):
         self.helpMessage = helpMessage
         self.showInHelp = showInHelp
         self.usageBuilder = None
+        self.onlyOnceDict = {}
         
     def addProcess(self,preProcess=None,process=None,postProcess=None):
         c = Command(self)
@@ -133,10 +134,32 @@ class MultiCommand(list):
             return self.name+" "+self.usageBuilder.usage()
 
     def reset(self):
+        #TODO
+            #reset every command
+            #flush args
+            #remove dynamic command
+            #reset self.onlyOnceDict
+    
         pass #TODO apply on each subcmd
         
     def getArgs(self):
         pass #TODO must return MultiOutput
+
+    def flushArgs(self):
+        pass #TODO remove every args
+
+    def addDynamicCommand(self,c,onlyAddOnce):
+        #check if the method already exist in the dynamic
+        h = hash(c)
+        if h in self.onlyOnceDict:
+            return
+        
+        if onlyAddOnce:
+            self.onlyOnceDict[h] = True
+        
+        #add the command
+        self.append(c)
+        self.dymamicCount = 0
 
     #TODO add method
         #reset to reset every local command
