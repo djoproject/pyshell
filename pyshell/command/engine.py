@@ -321,6 +321,9 @@ class engineV3(object):
         if cmdID >= len(self.cmdList):
             raise executionException("(engine) flushArgs, invalid command index")
         
+        #TODO check if there is not a command limit on these data bunch
+            #but if we just add a command for another bunch of data?
+        
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce)
     
     ## data special meth ##
@@ -332,18 +335,14 @@ class engineV3(object):
         data = self.stack[-1][0]
         del data[:]
     
-    def addData(self, newdata, offset=0, firstCmd = 0, lastCmd = None):
-        #TODO manage the firstCmd, lastCmd
-    
+    def addData(self, newdata, offset=0):    
         if len(self.stack) == 0: 
             raise executionException("(engine) addData, no item on the stack")
     
         data = self.stack[-1][0]
         data.insert(offset,newdata)
     
-    def setData(self, newdata, offset=0, firstCmd = 0, lastCmd = None):
-        #TODO manage the firstCmd, lastCmd
-    
+    def setData(self, newdata, offset=0):
         if len(self.stack) == 0: 
             raise executionException("(engine) setData, no item on the stack")
     
@@ -354,7 +353,62 @@ class engineV3(object):
         
         data[offset] = newdata
     
-    def setDataCmdRange(self, offset, firstCmd = 0, lastCmd = None):
+    def setDataCmdRange(self, startData = 0, dataLength=None, firstCmd = 0, cmdLength = None):
+        if len(self.stack) == 0: 
+            raise executionException("(setDataCmdRange) setData, no item on the stack")
+    
+        topData = self.stack[-1][0]
+        
+        ## is data index valid? ##
+        if startData > (len(topData)-1): #start index is valid
+            pass #TODO raise, not enough data available
+            
+        if dataLength != None and dataLength < 1: #data range must be None or bigger than zero
+            return
+        
+        ## is cmd index valid ? ##
+        currentStartCmdIndex = 0
+        if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
+            currentStartCmdIndex = topData.cmdStartIndex
+        
+        currentStopCmdIndex = None
+        if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
+            currentStopDataIndex = topData.cmdStopIndex
+    
+        if firstCmd < currentStartCmdIndex:
+            pass #TODO raise
+        
+        #TODO pas convaincu par la condition
+            #de quelle maniere doit on restreindre les commandes quand il y a deja une restriction ?
+        if (cmdLength == None and currentStopCmdIndex != None) or (cmdLength != None and currentStopCmdIndex != None and (firstCmd+cmdLength-1) )
+            pass
+            
+        #the whole data is used? no need to split ?
+        if startData == 0 and :
+            pass #TODO just update or apply the limit
+        else: #need to split
+            if startData == 0:
+                if (dataLength == None or dataLength >= len(topData)): #no data limite
+                    pass #TODO no split, just update the cmd limits
+                    #0 to None (+ set cmd limit), update on stack
+                else:
+                    pass #TODO split in two
+                    #remove the first on stack
+                    #0 to startData+dataLength-1 (+ set cmd limit), last inserted on stack
+                    #startData+dataLength to None (set parent cmd limit), first inserted on stack
+            else:
+                if (dataLength == None or dataLength >= len(topData)):
+                    pass #TODO plit in two
+                    #remove the first on stack
+                    #0 to startData-1 (set parent cmd limit), last inserted on stack
+                    #startData to None (+ set cmd limit), first inserted on stack
+                else:
+                    pass #TODO split in three
+                    #remove the first on stack
+                    #0 to startData-1 (set parent cmd limit), last inserted on stack
+                    #startData to startData+dataLength-1 (+ set cmd limit), second inserted on stack
+                    #startData+dataLength to None (set parent cmd limit), first inserted on stack
+        
         #TODO
             #the new bounds must be in the limit of the current bound
             #need to update the engine core to manage the limits
@@ -447,7 +501,7 @@ class engineV3(object):
             else:# top[2] == 0 #preprocess
                 
                 #compute the limit of command to execute
-                if hasattr(top[0],"cmdStopIndex"):
+                if hasattr(top[0],"cmdStopIndex") and top[0].cmdStopIndex != None:
                     limit = top[0].cmdStopIndex
                 else:
                     limit = len(cmd)-1
@@ -456,11 +510,11 @@ class engineV3(object):
                     if len(top[0]) > 0: #still data to execute ?
                         top[1][-1] += 1 #select the nex child id
                         self.stack.append(  (top[0],top[1],top[2],)  ) #push on the stack again
-                else: #every child has been executed with this data
+                else: #every child has been executed with this data, the current is the last one
                     if len(top[0]) > 1: #still data to execute ?
                     
                         #compute the first command to execute
-                        if hasattr(top[0],"cmdStartIndex"):
+                        if hasattr(top[0],"cmdStartIndex") and top[0].cmdStartIndex != None:
                             starting = top[0].cmdStartIndex
                         else:
                             starting = 0

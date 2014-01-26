@@ -1,46 +1,142 @@
-def simple_decorator(decorator):
-    '''This decorator can be used to turn simple functions
-    into well-behaved decorators, so long as the decorators
-    are fairly simple. If a decorator expects a function and
-    returns a function (no descriptors), and if it doesn't
-    modify function attributes or docstring, then it is
-    eligible to use this. Simply apply @simple_decorator to
-    your decorator and it will automatically preserve the
-    docstring and function attributes of functions to which
-    it is applied.'''
-    def new_decorator(f):
-        g = decorator(f)
-        g.__name__ = f.__name__
-        g.__doc__ = f.__doc__
-        g.__dict__.update(f.__dict__)
-        return g
-    # Now a few lines needed to make simple_decorator itself
-    # be a well-behaved decorator.
-    new_decorator.__name__ = decorator.__name__
-    new_decorator.__doc__ = decorator.__doc__
-    new_decorator.__dict__.update(decorator.__dict__)
-    return new_decorator
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-#
-# Sample Use:
-#
-#@simple_decorator
-def my_simple_logging_decorator(func):
-    def you_will_never_see_this_name(*args, **kwargs):
-        print 'calling {}'.format(func.__name__)
-        return func(*args, **kwargs)
+import unittest
+from pyshell.arg.decorator import *
+from pyshell.arg.argchecker import *
+from pyshell.arg.argfeeder import *
+
+class decoratorTest(unittest.TestCase):
+    def test_funAnalyzer(self):
+        #init limit case
+        self.assertRaises(decoratorException,funAnalyser,None)
+        self.assertRaises(decoratorException,funAnalyser,52)
+        self.assertRaises(decoratorException,funAnalyser,"plop")
+    
+        #empty fun
+        def toto():
+            pass
         
-    you_will_never_see_this_name.__name__ = func.__name__
-    you_will_never_see_this_name.__doc__ = func.__doc__
-    you_will_never_see_this_name.__dict__.update(func.__dict__)
-    return you_will_never_see_this_name
-    
-    
-@my_simple_logging_decorator
-def double(x):
-    'Doubles a number.'
-    return 2 * x
+        fa = funAnalyser(toto)
+        self.assertTrue(fa != None)
+        self.assertTrue(fa.lendefault == 0)
+        self.assertRaises(decoratorException,fa.has_default,"plop")
+        self.assertRaises(decoratorException,fa.get_default,"plop")
+        self.assertRaises(decoratorException,fa.setCheckerDefault,"plop", "plip")
+        
+        #non empty fun
+        def toto(plop):
+            pass
+        
+        fa = funAnalyser(toto)
+        self.assertTrue(fa != None)
+        self.assertTrue(fa.lendefault == 0)
+        self.assertTrue(not fa.has_default("plop"))
+        self.assertRaises(decoratorException,fa.get_default,"plop")
+        self.assertTrue(fa.setCheckerDefault("plop", "plip") == "plip")
 
-assert double.__name__ == 'double'
-assert double.__doc__ == 'Doubles a number.'
-print double(155)
+        #non empty fun
+        def toto(plop = "plap"):
+            pass
+        
+        fa = funAnalyser(toto)
+        self.assertTrue(fa != None)
+        self.assertTrue(fa.lendefault == 1)
+        self.assertTrue(fa.has_default("plop"))
+        self.assertTrue(fa.get_default("plop") == "plap")
+        self.assertTrue(fa.setCheckerDefault("plop", ArgChecker()).getDefaultValue() == "plap")
+
+        def toto(a, plop = "plap"):
+            pass
+        
+        fa = funAnalyser(toto)
+        self.assertTrue(fa != None)
+        self.assertTrue(fa.lendefault == 1)
+        self.assertTrue(fa.has_default("plop"))
+        self.assertTrue(fa.get_default("plop") == "plap")
+        self.assertTrue(fa.setCheckerDefault("plop", ArgChecker()).getDefaultValue() == "plap")
+
+    
+    def test_decorator(self):
+        #try to send no argchecker in the list
+        exception = False
+        try:
+            shellMethod(ghaaa = "toto")
+        except decoratorException:
+            exception = True
+        self.assertTrue(exception)
+        
+        exception = False
+        try:
+            shellMethod(ghaaa = ArgChecker())
+        except decoratorException:
+            exception = True
+        self.assertTrue(not exception)
+        
+        #try to set two decorator on the same function
+        exception = False
+        try:
+            @shellMethod(plop=ArgChecker())
+            @shellMethod(plop=ArgChecker())
+            def toto(plop = "a"):
+                pass
+        except decoratorException:
+            exception = True
+        self.assertTrue(exception)
+        
+        #try to set two key with the same name
+            #will be a python syntax error, no need to check
+            
+        #set arg checker on unexistant param
+        exception = False
+        try:
+            @shellMethod(b=ArgChecker(), a=ArgChecker())
+            def toto(a):
+                pass
+        except decoratorException:
+            exception = True
+        self.assertTrue(exception)
+        
+        #try to not bind param without default value
+        exception = False
+        try:
+            @shellMethod()
+            def toto(plop):
+                pass
+        except decoratorException:
+            exception = True
+        self.assertTrue(exception)
+        
+        exception = False
+        try:
+            @shellMethod()
+            def toto(plop=5):
+                pass
+        except decoratorException:
+            exception = True
+        self.assertTrue(not exception)
+        
+        #make a test with class and self
+        exception = False
+        try:
+            class plop(object):
+                @shellMethod()
+                def toto(self):
+                    pass
+        except decoratorException:
+            exception = True
+        self.assertTrue(exception)
+    
+        #faire des tests qui aboutissent et verifier les donnees generees
+        @shellMethod(a=ArgChecker())
+        def toto(a,b=5):
+            pass
+            
+        self.assertTrue( isinstance(toto.checker, ArgFeeder))
+        self.assertTrue( "a" in toto.checker.argTypeList and isinstance(toto.checker.argTypeList["a"], ArgChecker))
+        self.assertTrue( "b" in toto.checker.argTypeList and isinstance(toto.checker.argTypeList["b"], defaultValueChecker))
+        k = list(toto.checker.argTypeList.keys())
+        self.assertTrue(k[0] == "a" and k[1] == "b")
+    
+if __name__ == '__main__':
+    unittest.main()
