@@ -242,6 +242,8 @@ class MultiOutput(list):
 #TODO
     #at this moment, multioutput is juste a list... 
         #must stay a list
+        #TODO check if the multioutput is not converted into a simple list in the process
+            #because there is a risk to lose the cmd limit
     #the maximum execution counter has disappear.
         #add it into MultiCommand class
         #and manage it into the engine process
@@ -313,17 +315,34 @@ class engineV3(object):
         self.cmdList[cmdID].flushArgs()
     
     def addCommand(self, cmd, onlyAddOnce = True):    
+        #is there still some items on the stack ?
         if len(self.stack) == 0: 
-            raise executionException("(engine) flushArgs, no item on the stack")
+            raise executionException("(engine) addCommand, no item on the stack")
     
+        #compute command index
         cmdID = len(self.stack[-1][1]) -1
         
         if cmdID >= len(self.cmdList):
-            raise executionException("(engine) flushArgs, invalid command index")
+            raise executionException("(engine) addCommand, invalid command index")
         
-        #TODO check if there is not a command limit on these data bunch
-            #but if we just add a command for another bunch of data?
+        #check if there is not a command limit on these data bunch
+        topData = self.stack[-1][0]
         
+        currentStartCmdIndex = 0
+        if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
+            currentStartCmdIndex = topData.cmdStartIndex
+        
+        currentStopCmdIndex = None
+        if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
+            currentStopDataIndex = topData.cmdStopIndex
+        
+        newCmdIndex = len(self.cmdList[cmdID])
+        
+        if newCmdIndex < currentStartCmdIndex or (currentStopCmdIndex != None and currentStopCmdIndex < newCmdIndex):
+            raise executionException("(engine) addCommand, the command bounds on this data do not enclose the new command") 
+        
+        
+        #add the sub command
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce)
     
     ## data special meth ##
@@ -353,20 +372,49 @@ class engineV3(object):
         
         data[offset] = newdata
     
+    def mergeDataOnStack(count = 2, firstCmd = 0, cmdLength = None):
+        pass #TODO
+            #the path must be the same for each item on stack
+            #what about the starting data index ?
+                #don't care ? or set the current. of the top? what about the current of the second top ?
+                    #so the current must be in the bounds
+    
     def setDataCmdRange(self, startData = 0, dataLength=None, firstCmd = 0, cmdLength = None):
         if len(self.stack) == 0: 
-            raise executionException("(setDataCmdRange) setData, no item on the stack")
+            raise executionException("(engine) setDataCmdRange, no item on the stack")
     
+        #get the data list at the top of the stack
         topData = self.stack[-1][0]
         
         ## is data index valid? ##
-        if startData > (len(topData)-1): #start index is valid
-            pass #TODO raise, not enough data available
+        if startData > (len(topData)-1): #start index must be in the current data range
+            raise executionException("(engine) setDataCmdRange, startData index is not in the data bounds")
             
         if dataLength != None and dataLength < 1: #data range must be None or bigger than zero
             return
         
         ## is cmd index valid ? ##
+        currentCmdLength = len(self.cmdList[self.stack[-1][1]])
+    
+        #the new index must be in the cmd range
+        if firstCmd >= currentCmdLength:
+            raise executionException("(engine) setDataCmdRange, firstCmd index is not in the command bound") 
+        
+        newStopIndex = None
+        if cmdLength != None
+            if (firstCmd+cmdLength) > currentCmdLength:
+                raise executionException("(engine) setDataCmdRange, cmdLength is bigger than the command list size")
+                    #we can not set cmdLength to None because if the user set a limit then add new command
+                    #is different of set a None limit then add command
+            
+            newStopIndex = firstCmd+cmdLength-1
+        
+        #the current data index must be in the cmd range
+        currentCmdIndex = top[-1][1][-1]
+        if currentCmdIndex < firstCmd or (cmdLength != None and (firstCmd+cmdLength-1) < currentCmdIndex):
+            raise executionException("(engine) setDataCmdRange, the bounds must enclose the current cmd index") 
+        
+        ## get current limit ##
         currentStartCmdIndex = 0
         if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
             currentStartCmdIndex = topData.cmdStartIndex
@@ -374,51 +422,88 @@ class engineV3(object):
         currentStopCmdIndex = None
         if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
             currentStopDataIndex = topData.cmdStopIndex
-    
-        if firstCmd < currentStartCmdIndex:
-            pass #TODO raise
         
-        #TODO pas convaincu par la condition
-            #de quelle maniere doit on restreindre les commandes quand il y a deja une restriction ?
-        if (cmdLength == None and currentStopCmdIndex != None) or (cmdLength != None and currentStopCmdIndex != None and (firstCmd+cmdLength-1) )
-            pass
-            
+        if currentStartCmdIndex == firstCmd and currentStopCmdIndex == newStopIndex:
+            return #nothing to do, the limit are already set
+        
         #the whole data is used? no need to split ?
-        if startData == 0 and :
-            pass #TODO just update or apply the limit
-        else: #need to split
-            if startData == 0:
-                if (dataLength == None or dataLength >= len(topData)): #no data limite
-                    pass #TODO no split, just update the cmd limits
-                    #0 to None (+ set cmd limit), update on stack
-                else:
-                    pass #TODO split in two
-                    #remove the first on stack
-                    #0 to startData+dataLength-1 (+ set cmd limit), last inserted on stack
-                    #startData+dataLength to None (set parent cmd limit), first inserted on stack
+        top = self.stack.pop()
+        
+        #TODO compressible dans un truc comme ça
+            #TODO doivent etre empile dans l'autre sens...
+        """#0 to startData-1 (set parent cmd limit), last inserted on stack
+        dataBunch = MultiOutput(top[0][0:startData])
+        if len(dataBunch) > 0:
+            dataBunch.cmdStartIndex = currentStartCmdIndex
+            dataBunch.cmdStopIndex  = currentStopDataIndex
+            self.stack.append( (dataBunch, top[1], top[2], ) )
+        
+        #startData to startData+dataLength-1 (+ set cmd limit), second inserted on stack
+        if dataLength != None:
+            dataBunch = MultiOutput(top[0][startData:(startData+dataLength)])
+        else:
+            dataBunch = MultiOutput(top[0][startData:])
+        dataBunch.cmdStartIndex = firstCmd
+        dataBunch.cmdStopIndex  = newStopIndex
+        self.stack.append( (dataBunch, top[1], top[2], ) )
+        
+        if dataLength != None:
+            #startData+dataLength to None (set parent cmd limit), first inserted on stack
+            dataBunch = MultiOutput(top[0][(startData+dataLength):])
+            dataBunch.cmdStartIndex = currentStartCmdIndex
+            dataBunch.cmdStopIndex  = currentStopDataIndex
+            self.stack.append( (dataBunch, top[1], top[2], ) )"""
+        
+        if startData == 0:
+            if (dataLength == None or dataLength >= len(topData)): #no data limite
+                #0 to None (+ set cmd limit), update on stack
+                dataBunch = MultiOutput(top[0])
+                dataBunch.cmdStartIndex = firstCmd
+                dataBunch.cmdStopIndex  = newStopIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
             else:
-                if (dataLength == None or dataLength >= len(topData)):
-                    pass #TODO plit in two
-                    #remove the first on stack
-                    #0 to startData-1 (set parent cmd limit), last inserted on stack
-                    #startData to None (+ set cmd limit), first inserted on stack
-                else:
-                    pass #TODO split in three
-                    #remove the first on stack
-                    #0 to startData-1 (set parent cmd limit), last inserted on stack
-                    #startData to startData+dataLength-1 (+ set cmd limit), second inserted on stack
-                    #startData+dataLength to None (set parent cmd limit), first inserted on stack
-        
-        #TODO
-            #the new bounds must be in the limit of the current bound
-            #need to update the engine core to manage the limits
-            #allow to merge bound ? or when the bound are set, it can not be undone ?
-        
-        #TODO
-            #-data must be an instance of MultipleOutput
-            #add cmdStartIndex and cmdStopIndex
-        
-        pass #TODO
+                #0 to startData+dataLength-1 (+ set cmd limit), last inserted on stack
+                dataBunch = MultiOutput(top[0][0:(startData+dataLength)])
+                dataBunch.cmdStartIndex = firstCmd
+                dataBunch.cmdStopIndex  = newStopIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
+                
+                #startData+dataLength to None (set parent cmd limit), first inserted on stack
+                dataBunch = MultiOutput(top[(startData+dataLength):])
+                dataBunch.cmdStartIndex = currentStartCmdIndex
+                dataBunch.cmdStopIndex  = currentStopDataIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
+        else:
+            if (dataLength == None or dataLength >= len(topData)):
+                #0 to startData-1 (set parent cmd limit), last inserted on stack
+                dataBunch = MultiOutput(top[0][0:startData])
+                dataBunch.cmdStartIndex = currentStartCmdIndex
+                dataBunch.cmdStopIndex  = currentStopDataIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
+                
+                #startData to None (+ set cmd limit), first inserted on stack
+                dataBunch = MultiOutput(top[0][startData:])
+                dataBunch.cmdStartIndex = firstCmd
+                dataBunch.cmdStopIndex  = newStopIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
+            else:
+                #0 to startData-1 (set parent cmd limit), last inserted on stack
+                dataBunch = MultiOutput(top[0][0:startData])
+                dataBunch.cmdStartIndex = currentStartCmdIndex
+                dataBunch.cmdStopIndex  = currentStopDataIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
+                
+                #startData to startData+dataLength-1 (+ set cmd limit), second inserted on stack
+                dataBunch = MultiOutput(top[0][startData:(startData+dataLength)])
+                dataBunch.cmdStartIndex = firstCmd
+                dataBunch.cmdStopIndex  = newStopIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
+                
+                #startData+dataLength to None (set parent cmd limit), first inserted on stack
+                dataBunch = MultiOutput(top[0][(startData+dataLength):])
+                dataBunch.cmdStartIndex = currentStartCmdIndex
+                dataBunch.cmdStopIndex  = currentStopDataIndex
+                self.stack.append( (dataBunch, top[1], top[2], ) )
     
     def getData(self, offset=0):
         if len(self.stack) == 0: 
