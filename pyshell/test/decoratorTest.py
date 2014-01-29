@@ -125,7 +125,7 @@ class decoratorTest(unittest.TestCase):
                     pass
         except decoratorException:
             exception = True
-        self.assertTrue(exception)
+        self.assertTrue(not exception)
     
         #faire des tests qui aboutissent et verifier les donnees generees
         @shellMethod(a=ArgChecker())
@@ -137,6 +137,10 @@ class decoratorTest(unittest.TestCase):
         self.assertTrue( "b" in toto.checker.argTypeList and isinstance(toto.checker.argTypeList["b"], defaultValueChecker))
         k = list(toto.checker.argTypeList.keys())
         self.assertTrue(k[0] == "a" and k[1] == "b")
+    
+    
+        #TODO test with a class meth static
+    
     
 if __name__ == '__main__':
     unittest.main()

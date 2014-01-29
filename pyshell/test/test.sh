@@ -3,6 +3,8 @@
 #export PYTHONPATH=/home/jdv/development/tries_shell/pytries:$PYTHONPATH
 export PYTHONPATH=$(pwd)/../../:$PYTHONPATH
 echo $PYTHONPATH
-python argcheckerTest.py
-python argfeederTest.py
-python decoratorTest.py
+python engineTest.py || exit
+python argcheckerTest.py || exit
+python argfeederTest.py || exit
+python decoratorTest.py || exit
+

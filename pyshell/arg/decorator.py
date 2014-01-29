@@ -12,6 +12,11 @@ from argfeeder import ArgFeeder
 from exception import decoratorException
 import inspect, types
 
+class _C:
+    @staticmethod
+    def _m(self): pass
+staticMethType = type(_C._m)
+
 ###############################################################################################
 ##### UTIL FUNCTION ###########################################################################
 ###############################################################################################
@@ -19,13 +24,10 @@ import inspect, types
 class funAnalyser(object):
     def __init__(self, fun):
         #is a function ?
-        if type(fun) == types.MethodType:
-            self.classMethod = True
-        elif type(fun) != types.FunctionType:
+        #TODO manage every function case ?
+        if type(fun) != staticMethType and type(fun) != types.MethodType and type(fun) != types.InstanceType and type(fun) != types.ClassType and type(fun) != types.FunctionType:
             raise decoratorException("(funAnalyser) init faile, need a function instance, got <"+str(type(fun))+">")
-        else:
-            self.classMethod = False
-        
+
         self.fun = fun
         self.inspect_result = inspect.getargspec(fun)
         
@@ -82,15 +84,18 @@ def shellMethod(**argList):
     
         #inspect the function
         analyzed_fun = funAnalyser(fun)
-        
+
         argCheckerList = OrderedDict()
         for i in range(0,len(analyzed_fun.inspect_result.args)):
         #for argname in analyzed_fun.inspect_result.args:
             argname = analyzed_fun.inspect_result.args[i]
             
             #don't care about the self arg, the python framework will manage it
-            if i == 0 and analyzed_fun.classMethod and argname == "self":
-                continue
+            if i == 0 and argname == "self" and type(fun) != staticMethType:
+                #http://stackoverflow.com/questions/8793233/python-can-a-decorator-determine-if-a-function-is-being-defined-inside-a-class
+                frames = inspect.stack()
+                if (len(frames) > 2 and frames[2][4][0].strip().startswith('class ')):
+                    continue
             
             if argname in argList: #check if the argname is in the argList
                 #print argList

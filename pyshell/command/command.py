@@ -1,12 +1,9 @@
-#!/usr/bin/python2.6
-import inspect
-from exception import argPostExecutionException,decoratorException
-from argchecker import ArgFeeder2
-from decorator import shellMethod
-from argchecker import ArgChecker,listArgChecker
-from exception import *
+#!/usr/bin/python
+from pyshell.arg.decorator import shellMethod
+from pyshell.arg.argchecker import ArgChecker,listArgChecker
+from exception import commandException
 
-class MultiOutput(list):
+class MultiOutput(list): #just a marker class to differentiate an standard list from a multiple output 
     pass
 
 #
@@ -23,88 +20,45 @@ def selfArgChecker(args,meth):
         return {} #no available binding
 
 class Command(object):
-    #def __init__(self,envi,printer,preProcess=None,process=None,argChecker=None,postProcess=None):
-    """def __init__(self,parentContainer = None):
-        self.parentContainer = parentContainer      
-        self.preInputBuffer  = None #TODO still usefull ?
-        self.proInputBuffer  = None #TODO
-        self.postInputBuffer = None #TODO"""
-
-    """#
-    # set the next execution buffer of this command
-    #
-    def setBuffer(self,preBuffer,proBuffer,postBuffer):
-        self.preInputBuffer  = preBuffer
-        self.proInputBuffer  = proBuffer
-        self.postInputBuffer = postBuffer"""
-
     #default preProcess
-    #@listdecorator("args",ArgChecker())
     @shellMethod(args=listArgChecker(ArgChecker()))
     def preProcess(self,args):
         return args
 
     #default process
-    
-    #@listdecorator("args",ArgChecker())
     @shellMethod(args=listArgChecker(ArgChecker()))
     def process(self,args):
         return args
     
     #default postProcess
-    #@listdecorator("args",ArgChecker())
     @shellMethod(args=listArgChecker(ArgChecker()))
     def postProcess(self,args):
-        #print str(args)
-        pass #TODO or return args ?
+        return args
     
     #this method is called on every processing to reset the internal state
     def reset(self):
         pass 
-    
-""" #
-    # this method convert a string list to an arguments list, then preprocess the arguments
-    #
-    # @argument args : a string list, each item is an argument
-    # @return : a preprocess result
-    #
-    def preProcessExecution(self,args):
-        nextArgs = selfArgChecker(args,self.preProcess)
-        return self.preProcess(**nextArgs) #may raise
-        
-    
-    #
-    # this method execute the process on the preprocess result
-    # 
-    # @argument args : the preprocess result
-    # @return : the command result
-    #    
-    def ProcessExecution(self,args):
-        nextArgs = selfArgChecker(args,self.process)
-        return self.process(**nextArgs)
-    
-    #
-    # this method parse the result from the processExecution
-    #
-    # @argument args : the process result
-    # @return : the unconsumed result
-    #
-    def postProcessExecution(self,args):
-        nextArgs = selfArgChecker(args,self.postProcess)
-        return self.postProcess(**nextArgs)"""
 
 #
 # a multicommand will produce several process with only one call
 #
 class MultiCommand(list):
     def __init__(self,name,helpMessage,showInHelp=True):
-        self.name = name
-        self.helpMessage = helpMessage
-        self.showInHelp = showInHelp
-        self.usageBuilder = None
-        self.onlyOnceDict = {}
+        self.name         = name        #the name of the command
+        self.helpMessage  = helpMessage #message to show in the help context
+        self.showInHelp   = showInHelp  #is this command must appear in the help context ?
+        self.usageBuilder = None        #which (pre/pro/post) process of the first command must be used to create the usage.
         
-    def addProcess(self,preProcess=None,process=None,postProcess=None):
+        self.onlyOnceDict = {}          #this dict is used to prevent the insertion of the an existing dynamic sub command
+        self.dymamicCount = 0
+        
+        self.preCount     = 0           #this counter is used to prevent an infinite execution of the pre process
+        self.proCount     = 0           #this counter is used to prevent an infinite execution of the process
+        self.postCount    = 0           #this counter is used to prevent an infinite execution of the post process
+        
+        self.args         = None        #
+        
+    def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
         c = Command(self)
              
         if preProcess != None:
@@ -125,8 +79,24 @@ class MultiCommand(list):
             if self.usageBuilder == None and hasattr(postProcess, "checker"):
                 self.usageBuilder = postProcess.checker
         
-        self.append(c)
-        
+        self.append( (c,useArgs,) )
+    
+    def addStaticCommand(self, cmd, useArgs = True):
+        #cmd must be an instance of Command
+        if not isinstance(cmd, Command):
+            raise commandException("(MultiCommand) addStaticCommand, try to insert a non command object")
+            
+        #can't add static if dynamic in the list
+        if self.dymamicCount > 0:
+            raise commandException("(MultiCommand) addStaticCommand, can't insert static command while dynamic command are present, reset the MultiCommand then insert static command")
+    
+        #if usageBuilder is not set, take the preprocess builder of the cmd 
+        if self.usageBuilder == None:
+            self.usageBuilder = cmd.preProcess.checker
+    
+        #add the command
+        self.append( (cmd,useArgs,) )
+    
     def usage(self):
         if self.usageBuilder == None :
             return "no args needed"
@@ -134,21 +104,40 @@ class MultiCommand(list):
             return self.name+" "+self.usageBuilder.usage()
 
     def reset(self):
-        #TODO
-            #reset every command
-            #flush args
-            #remove dynamic command
-            #reset self.onlyOnceDict
-    
-        pass #TODO apply on each subcmd
+        #flush args
+        self.args = None
         
+        #remove dynamic command
+        del self[len(a)-self.dymamicCount:]
+        self.dymamicCount = 0
+        
+        #reset self.onlyOnceDict
+        self.onlyOnceDict = {}
+        
+        #reset counter
+        self.preCount = self.proCount = self.postCount = 0
+        
+        #reset every sub command
+        for c in self:
+            c.reset()    
+
+    def setArgs(self, args):
+        if isinstance(args, MultiOutput):
+            self.args = args
+        else:
+            self.args = MultiOutput([args])
+    
     def getArgs(self):
-        pass #TODO must return MultiOutput
+        return self.args 
 
     def flushArgs(self):
-        pass #TODO remove every args
+        self.args = None
 
-    def addDynamicCommand(self,c,onlyAddOnce):
+    def addDynamicCommand(self,c,onlyAddOnce, useArgs = True):
+        #cmd must be an instance of Command
+        if not isinstance(cmd, Command):
+            raise commandException("(MultiCommand) addDynamicCommand, try to insert a non command object")
+            
         #check if the method already exist in the dynamic
         h = hash(c)
         if h in self.onlyOnceDict:
@@ -158,13 +147,8 @@ class MultiCommand(list):
             self.onlyOnceDict[h] = True
         
         #add the command
-        self.append(c)
-        self.dymamicCount = 0
-
-    #TODO add method
-        #reset to reset every local command
-        #addCommand(cmd) to directly add an instance of command
-        #add an arg to addProcess to set if the command need the args from the shell or not
+        self.append( (c,useArgs,) )
+        self.dymamicCount += 1
 
 #
 # special command class, with only one command (the starting point)
