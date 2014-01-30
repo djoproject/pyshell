@@ -19,7 +19,7 @@ class ArgsChecker():
     # @argsList, une liste de string
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
-    def checkArgs(self,argsList):
+    def checkArgs(self,argsList, engine=None):
         pass #XXX to override
         
     def usage(self):
@@ -41,7 +41,7 @@ class ArgFeeder(ArgsChecker):
     # @argsList, une liste de string
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
-    def checkArgs(self,argsList):
+    def checkArgs(self,argsList, engine=None):
         if not isinstance(argsList,list):
             # argsList must be a string
             if type(argsList) != str and type(argsList) != unicode:
@@ -56,6 +56,9 @@ class ArgFeeder(ArgsChecker):
         dataIndex       = 0
         
         for (name,checker) in self.argTypeList.iteritems():
+            #set the engine
+            checker.setEngine(engine)
+        
             #is there a minimum limit
             if checker.minimumSize != None:
                 #is there at least minimumSize item in the data stream?
@@ -82,7 +85,7 @@ class ArgFeeder(ArgsChecker):
                     
                 ret[name] = checker.getValue(value,dataIndex)
                 dataIndex += checker.maximumSize
-                    
+
             argCheckerIndex += 1
         
         # MORE THAN THE LAST ARG CHECKER HAVEN'T BEEN CONSUMED YET

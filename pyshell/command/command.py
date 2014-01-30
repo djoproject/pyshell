@@ -37,7 +37,7 @@ class Command(object):
     
     #this method is called on every processing to reset the internal state
     def reset(self):
-        pass 
+        pass  #TO OVERRIDE if needed
 
 #
 # a multicommand will produce several process with only one call
@@ -51,10 +51,6 @@ class MultiCommand(list):
         
         self.onlyOnceDict = {}          #this dict is used to prevent the insertion of the an existing dynamic sub command
         self.dymamicCount = 0
-        
-        self.preCount     = 0           #this counter is used to prevent an infinite execution of the pre process
-        self.proCount     = 0           #this counter is used to prevent an infinite execution of the process
-        self.postCount    = 0           #this counter is used to prevent an infinite execution of the post process
         
         self.args         = None        #
         
@@ -99,7 +95,7 @@ class MultiCommand(list):
     
     def usage(self):
         if self.usageBuilder == None :
-            return "no args needed"
+            return self.name+": no args needed"
         else:
             return self.name+" "+self.usageBuilder.usage()
 
@@ -118,7 +114,11 @@ class MultiCommand(list):
         self.preCount = self.proCount = self.postCount = 0
         
         #reset every sub command
-        for c in self:
+        for c,a in self:
+            c.preCount  = 0 #this counter is used to prevent an infinite execution of the pre process
+            c.proCount  = 0 #this counter is used to prevent an infinite execution of the process
+            c.postCount = 0 #this counter is used to prevent an infinite execution of the post process
+        
             c.reset()    
 
     def setArgs(self, args):
@@ -140,11 +140,10 @@ class MultiCommand(list):
             
         #check if the method already exist in the dynamic
         h = hash(c)
-        if h in self.onlyOnceDict:
+        if onlyAddOnce and h in self.onlyOnceDict:
             return
-        
-        if onlyAddOnce:
-            self.onlyOnceDict[h] = True
+            
+        self.onlyOnceDict[h] = True
         
         #add the command
         self.append( (c,useArgs,) )
@@ -161,9 +160,6 @@ class UniCommand(MultiCommand):
 
     def addProcess(self,preProcess=None,process=None,postProcess=None):
         pass # blocked the procedure to add more commands
-
-    def setBuffer(self,preBuffer,proBuffer,postBuffer):
-        self[0].setBuffer(preBuffer,proBuffer,postBuffer)
 
 
 

@@ -12,10 +12,14 @@ from argfeeder import ArgFeeder
 from exception import decoratorException
 import inspect, types
 
-class _C:
+class _C(object):
+
     @staticmethod
-    def _m(self): pass
-staticMethType = type(_C._m)
+    def _m(self): 
+        pass
+        
+    staticMethType = type(_m)
+staticMethType = _C.staticMethType
 
 ###############################################################################################
 ##### UTIL FUNCTION ###########################################################################

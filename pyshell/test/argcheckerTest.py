@@ -281,20 +281,32 @@ class floatArgCheckerTest(unittest.TestCase):
         self.assertTrue(3 == self.checker.getValue(3, 23))
         self.assertTrue(-5 == self.checker.getValue(-5, 23))
 
+class littleEngine(object):
+    def __init__(self, d):
+        self.d = d
+        
+    def getEnv(self):
+        return self.d
+
 class environmentArgCheckerTest(unittest.TestCase):
     def test_init(self):
-        self.assertRaises(argInitializationException,environmentChecker, None, None)
-        self.assertRaises(argInitializationException,environmentChecker, {}, {})
+        #self.assertRaises(argInitializationException,environmentChecker, None)
+        self.assertRaises(argInitializationException,environmentChecker, {})
+
+    #TODO test les conditions qui testent la validité du dictionnaire dans getDefault, getValue, ...
 
     def test_key(self):
-        checker = environmentChecker("plop", {"toto":53, u"plip":"kkk"})
+        checker = environmentChecker("plop")
+        checker.setEngine(littleEngine({"toto":53, u"plip":"kkk"}))
         self.assertRaises(argException,checker.getValue, [])
         
-        checker = environmentChecker("toto", {"toto":53, u"plip":"kkk"})
+        checker = environmentChecker("toto")
+        checker.setEngine(littleEngine({"toto":53, u"plip":"kkk"}))
         self.assertTrue(checker.getValue([]) == 53)
         
         d = {"toto":53, u"plip":"kkk"}
-        checker = environmentChecker("plop", d)
+        checker = environmentChecker("plop")
+        checker.setEngine(littleEngine(d))
         d["plop"] = 33
         self.assertTrue(checker.getValue([]) == 33)
         
@@ -303,18 +315,23 @@ class environmentArgCheckerTest(unittest.TestCase):
         #...
 
 class environmentDynamicCheckerTest(unittest.TestCase):
-    def test_init(self):
-        self.assertRaises(argInitializationException,environmentDynamicChecker, None)
+    #def test_init(self):
+    #    self.assertRaises(argInitializationException,environmentDynamicChecker)
+
+    #TODO test les conditions qui testent la validité du dictionnaire dans getDefault, getValue, ...
 
     def test_key(self):
-        checker = environmentDynamicChecker({"toto":53, u"plip":"kkk"})
+        checker = environmentDynamicChecker()
+        checker.setEngine(littleEngine({"toto":53, u"plip":"kkk"}))
         self.assertRaises(argException,checker.getValue, [])
         
-        checker = environmentDynamicChecker({"toto":53, u"plip":"kkk"})
+        checker = environmentDynamicChecker()
+        checker.setEngine(littleEngine({"toto":53, u"plip":"kkk"}))
         self.assertTrue(checker.getValue("toto") == 53)
         
         d = {"toto":53, u"plip":"kkk"}
-        checker = environmentDynamicChecker(d)
+        checker = environmentDynamicChecker()
+        checker.setEngine(littleEngine(d))
         d["plop"] = 33
         self.assertTrue(checker.getValue("plop") == 33)
 

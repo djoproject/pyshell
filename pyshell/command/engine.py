@@ -10,13 +10,9 @@ from command import MultiOutput
         #must stay a list
         #TODO check if the multioutput is not converted into a simple list in the process
             #because there is a risk to lose the cmd limit
-    
-    #the maximum execution counter has disappear.
-        #add it into MultiCommand class
-        #and manage it into the engine process
             
 
-DEFAULT_EXECUTION_LIMIT = 255 #TODO use it
+DEFAULT_EXECUTION_LIMIT = 255
     
 class engineV3(object):
 ### INIT ###
@@ -301,6 +297,7 @@ class engineV3(object):
                 ## PRE PROCESS
                 if top[2] == 0: #pre
                     r = self.executeMethod(subcmd.preProcess, top, useArgs)
+                    subcmd.preCount += 1
                     
                     #manage result
                     if len(top[1]) == len(self.cmdList): #no child, next step will be a process
@@ -313,6 +310,7 @@ class engineV3(object):
                 ## PROCESS ##
                 elif top[2] == 1: #pro
                     r = self.executeMethod(subcmd.process, top, useArgs)
+                    subcmd.proCount += 1
                     
                     #manage result
                     to_stack = (r, top[1], 2,)
@@ -320,6 +318,7 @@ class engineV3(object):
                 ## POST PROCESS ##
                 elif top[2] == 0: #post
                     r = self.executeMethod(subcmd.postProcess, top, useArgs)
+                    subcmd.postCount += 1
                     
                     #manage result
                     if len(top[1]) > 1: #not on the root node
@@ -327,6 +326,10 @@ class engineV3(object):
                     
                 else:
                     raise executionException("(engine) execute, unknwon process command <"+str(top[2])+">")
+            
+                if subcmd.preCount > DEFAULT_EXECUTION_LIMIT or subcmd.proCount > DEFAULT_EXECUTION_LIMIT or subcmd.postCount > DEFAULT_EXECUTION_LIMIT :
+                    raise executionException("(engine) execute, this subcommand reach the execution limit count")
+            
             except BaseException as e: #catch any execution exception, add more information then raise again
                 e.cmd         = cmd
                 e.subCmdIndex = top[1][-1]
@@ -383,7 +386,7 @@ class engineV3(object):
 
         #execute checker
         if hasattr(cmd, "checker"):         
-            data = cmd.checker.checkArgs(args, self) #TODO update checker method to take care about "self" that is the engine
+            data = cmd.checker.checkArgs(args, self)
         else:
             data = {}
 
