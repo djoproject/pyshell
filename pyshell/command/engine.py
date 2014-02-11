@@ -59,23 +59,26 @@ class engineV3(object):
         
         self.stack[-1][1][-1] += skipCount
     
-    def flushArgs(self):
-        if self.isEmptyStack(): 
-            raise executionException("(engine) flushArgs, no item on the stack")
-    
-        cmdID = len(self.stack[-1][1]) -1
+    def flushArgs(self, index=None): #None index means current command
+        if index == None:
+            if self.isEmptyStack(): 
+                raise executionException("(engine) flushArgs, no item on the stack")
         
-        if cmdID >= len(self.cmdList):
+            cmdID = len(self.stack[-1][1]) -1
+        else:
+            cmdID = index
+        
+        if cmdID >= len(self.cmdList) or cmdID < 0:
             raise executionException("(engine) flushArgs, invalid command index")
             
         self.cmdList[cmdID].flushArgs()
     
-    def addCommand(self, cmd, onlyAddOnce = True, useArgs = True):    
+    def addSubCommand(self, cmd, onlyAddOnce = True, useArgs = True):    
         #is there still some items on the stack ?
         if self.isEmptyStack(): 
             raise executionException("(engine) addCommand, no item on the stack")
     
-        #compute command index, check the cmd path on the stack
+        #compute the current command index where the sub command will be insert, check the cmd path on the stack
         cmdID = len(self.stack[-1][1]) -1
         
         if cmdID >= len(self.cmdList):
@@ -100,6 +103,9 @@ class engineV3(object):
         #add the sub command
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce, useArgs)
     
+    def addCommand(self, cmd):
+        pass #TODO
+    
 ### DATA special meth (data of the top item on the stack) ###
     
     def flushData(self):
@@ -116,6 +122,9 @@ class engineV3(object):
         data = self.stack[-1][0]
         data.insert(offset,newdata)
     
+    def removeData(self, offset=0):
+        pass #TODO
+    
     def setData(self, newdata, offset=0):
         if self.isEmptyStack(): 
             raise executionException("(engine) setData, no item on the stack")
@@ -127,6 +136,7 @@ class engineV3(object):
         
         data[offset] = newdata
     
+    #TODO try to reduce the problem as for the following cmd
     def mergeDataOnStack(count = 2, firstCmd = 0, cmdLength = None):
         #TODO can't merge pro/post with anything, even a stack item of the same type
             #because they can't be splitted, so they can't be merged
@@ -169,12 +179,112 @@ class engineV3(object):
         #dataBunch.cmdStopIndex  = currentStopDataIndex
         #self.stack.append( (dataBunch, top[1], top[2], ) 
     
+    def setCmdRange(self, firstCmd = 0, cmdLength = None, dataDepth = 0):
+        #is empty stack ?
+        if self.isEmptyStack(): 
+            raise executionException("(engine) setCmdRange, no item on the stack")
+        
+        #is the dataDepth reachable
+        if dataDepth < 0 or dataDepth > (len(self.stack)-1):
+            raise executionException("(engine) setCmdRange, invalid depth value")
+        
+        stackItem = self.stack[(len(self.stack)-1)-dataDepth]
+        #is it a pre ? (?)
+        if stackItem[2] != PREPROCESS_INSTRUCTION:
+            raise executionException("(engine) setCmdRange, no need to put a cmd range on a pro/post process, there is only one command to execute")
+            #the cmd range is always of length 1, no need to set cmd range
+        
+        #check the cmd limit
+        currentCmdLength = len(self.cmdList[len(stackItem[1]) - 1])
+    
+        #the new index must be in the cmd range
+        if firstCmd >= currentCmdLength:
+            raise executionException("(engine) setCmdRange, firstCmd index is not in the command bound") 
+        
+        newStopIndex = None
+        if cmdLength != None:
+            if (firstCmd+cmdLength) > currentCmdLength:
+                raise executionException("(engine) setCmdRange, cmdLength is bigger than the command list size")
+                #we can not set cmdLength to None because if the user set a limit then add new command
+                #is different of set a None limit then add command
+            
+            newStopIndex = firstCmd+cmdLength-1
+        
+        #the current cmd index must be in the cmd range
+        currentCmdIndex = top[-1][1][-1]
+        if currentCmdIndex < firstCmd or (cmdLength != None and (firstCmd+cmdLength-1) < currentCmdIndex):
+            raise executionException("(engine) setDataCmdRange, the bounds must enclose the current cmd index") 
+        
+        ## get current limit ##
+        currentStartCmdIndex = 0
+        if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
+            currentStartCmdIndex = topData.cmdStartIndex
+        
+        currentStopCmdIndex = None
+        if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
+            currentStopDataIndex = topData.cmdStopIndex
+        
+        if currentStartCmdIndex == firstCmd and currentStopCmdIndex == newStopIndex:
+            return #nothing to do, the limit are already set
+        
+        #set the cmd limit
+        dataBunch = MultiOutput(stackItem[0])
+        dataBunch.cmdStartIndex = firstCmd
+        dataBunch.cmdStopIndex  = newStopIndex
+        self.stack[(len(self.stack)-1)-dataDepth] = (dataBunch,stackItem[1],stackItem[2],)
+        
+    def splitData(self,splitAtDataIndex=0): #split the data into two separate stack item at the index, but will not change anything in the process order
+        #is empty stack ?
+        if self.isEmptyStack(): 
+            raise executionException("(engine) splitData, no item on the stack")
+
+        #is it a pre ? (?)
+        if self.stack[-1][2] != PREPROCESS_INSTRUCTION:
+            raise executionException("(engine) splitData, can't split the data of a PRO/POST process because it will not change anything on the execution")
+
+        topdata = self.stack[-1][0]
+        #split point exist ?
+        if splitAtDataIndex < 0 or splitAtDataIndex > (len(topdata)-1):
+            raise executionException("(engine) splitData, split index out of bound")
+
+        #has enought data to split ?
+        if len(topdata) < 2 or splitAtDataIndex = 0:
+            return
+
+        # get current cmd limit #
+        currentStartCmdIndex = 0
+        if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
+            currentStartCmdIndex = topData.cmdStartIndex
+        
+        currentStopCmdIndex = None
+        if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
+            currentStopDataIndex = topData.cmdStopIndex
+
+        top = self.stack.pop()
+        
+        #from 0 to splitAtDataIndex
+        dataBunch = MultiOutput(top[0][splitAtDataIndex:])
+        dataBunch.cmdStartIndex = currentStartCmdIndex
+        dataBunch.cmdStopIndex  = currentStopDataIndex
+        path = top[1][:]
+        path[-1] = 0 
+        self.stack.append( (dataBunch, path, top[2], ) )
+            
+        #from splitAtDataIndex to the end
+        dataBunch = MultiOutput(top[0][0:splitAtDataIndex])
+        dataBunch.cmdStartIndex = currentStartCmdIndex
+        dataBunch.cmdStopIndex  = currentStopDataIndex
+        self.stack.append( (dataBunch, top[1], top[2], ) )
+    
+    #TODO split the next command into the two previous ones
+        #TODO and reuse these command to complete setDataCmdRange
     def setDataCmdRange(self, startData = 0, dataLength=None, firstCmd = 0, cmdLength = None):
         if self.isEmptyStack(): 
             raise executionException("(engine) setDataCmdRange, no item on the stack")
     
         if self.stack[-1][2] != PREPROCESS_INSTRUCTION:
-            raise executionException("(engine) setDataCmdRange, can't set a range on PRO/POST process because there is only one cmd associate with this data")
+            raise executionException("(engine) setDataCmdRange, can't set a range on PRO/POST process because there is only one cmd associate with this data, use removeData")
+            #if we want to create some restriction on the data range with pro/post, it simplier to remove these data from the list
         
         #get the data list at the top of the stack
         topData = self.stack[-1][0]
@@ -197,12 +307,12 @@ class engineV3(object):
         if cmdLength != None:
             if (firstCmd+cmdLength) > currentCmdLength:
                 raise executionException("(engine) setDataCmdRange, cmdLength is bigger than the command list size")
-                    #we can not set cmdLength to None because if the user set a limit then add new command
-                    #is different of set a None limit then add command
+                #we can not set cmdLength to None because if the user set a limit then add new command
+                #is different of set a None limit then add command
             
             newStopIndex = firstCmd+cmdLength-1
         
-        #the current data index must be in the cmd range
+        #the current cmd index must be in the cmd range
         currentCmdIndex = top[-1][1][-1]
         if currentCmdIndex < firstCmd or (cmdLength != None and (firstCmd+cmdLength-1) < currentCmdIndex):
             raise executionException("(engine) setDataCmdRange, the bounds must enclose the current cmd index") 
@@ -219,7 +329,10 @@ class engineV3(object):
         if currentStartCmdIndex == firstCmd and currentStopCmdIndex == newStopIndex:
             return #nothing to do, the limit are already set
         
-        #the whole data is used? no need to split ?
+        #does not need to compare the old and new cmd limit, because the data are splitted indenpendantly
+            #and so, we can reactivate some cmd on limited data range without affect the other part of a previous split
+        
+        #extract the stack item to split
         top = self.stack.pop()
         
         ## Append the new states on the stack ##
