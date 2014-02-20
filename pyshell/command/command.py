@@ -42,6 +42,9 @@ class Command(object):
 #
 # a multicommand will produce several process with only one call
 #
+# TODO helpMessage pourrait etre pris de la premiere command ajoute
+#     XXX quid dans le cas ou on ajoute qu'avec addProcess ? (obsolete ?)
+#
 class MultiCommand(list):
     def __init__(self,name,helpMessage,showInHelp=True):
         self.name         = name        #the name of the command
@@ -55,21 +58,41 @@ class MultiCommand(list):
         self.args         = None        #
         
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
-        c = Command(self)
-             
+        c = Command()
+        
+        if preProcess == process == postProcess == None:
+            raise commandException("(MultiCommand) addProcess, at least one of the three callable pre/pro/post object must be different of None")
+        
         if preProcess != None:
+            #preProcess must be callable
+            if not hasattr(preProcess, "__call__"):
+                raise commandException("(MultiCommand) addProcess, the given preProcess is not a callable object")
+            
+            #set preProcess
             c.preProcess = preProcess
             
+            #check if this callable object has an usage builder
             if self.usageBuilder == None and hasattr(preProcess, "checker"):
                 self.usageBuilder = preProcess.checker
         
         if process != None:
+            #process must be callable
+            if not hasattr(process, "__call__"):
+                raise commandException("(MultiCommand) addProcess, the given process is not a callable object")
+        
+            #set process
             c.process = process
             
+            #check if this callable object has an usage builder
             if self.usageBuilder == None and hasattr(process, "checker"):
                 self.usageBuilder = process.checker
             
         if postProcess != None:
+            #postProcess must be callable
+            if not hasattr(postProcess, "__call__"):
+                raise commandException("(MultiCommand) addProcess, the given postProcess is not a callable object")
+        
+            #set postProcess
             c.postProcess = postProcess
             
             if self.usageBuilder == None and hasattr(postProcess, "checker"):
@@ -104,7 +127,7 @@ class MultiCommand(list):
         self.args = None
         
         #remove dynamic command
-        del self[len(a)-self.dymamicCount:]
+        del self[len(self)-self.dymamicCount:]
         self.dymamicCount = 0
         
         #reset self.onlyOnceDict
@@ -135,7 +158,7 @@ class MultiCommand(list):
 
     def addDynamicCommand(self,c,onlyAddOnce, useArgs = True):
         #cmd must be an instance of Command
-        if not isinstance(cmd, Command):
+        if not isinstance(c, Command):
             raise commandException("(MultiCommand) addDynamicCommand, try to insert a non command object")
             
         #check if the method already exist in the dynamic

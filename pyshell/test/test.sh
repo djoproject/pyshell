@@ -4,6 +4,7 @@
 export PYTHONPATH=$(pwd)/../../:$PYTHONPATH
 echo $PYTHONPATH
 python engineTest.py || exit
+python testCommand.py || exit
 python argcheckerTest.py || exit
 python argfeederTest.py || exit
 python decoratorTest.py || exit

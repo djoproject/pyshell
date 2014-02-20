@@ -25,13 +25,14 @@ class engineV3(object):
     def __init__(self, cmdList, env=None):
         #cmd must be a not empty list
         if cmdList == None or not isinstance(cmdList, list) or len(cmdList) == 0:
-            raise executionInitException("(engine) init, command list is not a valid list")
+            raise executionInitException("(engine) init, command list is not a valid populated list")
 
         #reset every commands
         for c in cmdList:
             if not isinstance(c, MultiCommand):#only the MultiCommand are allowed in the list
                 raise executionInitException("(engine) init, a object in the command list is not a MultiCommand instance, got <"+str(type(c))+">")
             
+            #reset the information stored in the command from a previous execution
             c.reset()
         
         self.cmdList = cmdList #list of MultiCommand
@@ -44,7 +45,7 @@ class engineV3(object):
         else:
             raise executionInitException("(engine) init, env must be a dictionnary or None, got <"+str(type(env))+">")
 
-        #init stack
+        #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
         self.stack = [([None], [0], PREPROCESS_INSTRUCTION,) ]
     
 ### COMMAND special meth ###
@@ -58,6 +59,20 @@ class engineV3(object):
             raise executionException("(engine) skipNextCommand, can only skip method on PREPROCESS item")
         
         self.stack[-1][1][-1] += skipCount
+    
+    def skipNextCommandForTheEntireDataBunch(self, skipCount=1):
+        #TODO set a command limit on this data bunch
+        
+        #TODO no cmd limit must be already set
+    
+        pass #TODO
+        
+    def skipNextCommandForTheEntireExecution(self, skipCount=1):
+        #TODO remove temporarly the command from the multiCommand parent object
+    
+        #XXX what are the implication of this ?
+    
+        pass #TODO
     
     def flushArgs(self, index=None): #None index means current command
         if index == None:
@@ -74,6 +89,8 @@ class engineV3(object):
         self.cmdList[cmdID].flushArgs()
     
     def addSubCommand(self, cmd, onlyAddOnce = True, useArgs = True):    
+        #TODO can't we directly add the command in an indexed multiCommand ?
+    
         #is there still some items on the stack ?
         if self.isEmptyStack(): 
             raise executionException("(engine) addCommand, no item on the stack")
@@ -98,7 +115,6 @@ class engineV3(object):
         
         if newCmdIndex < currentStartCmdIndex or (currentStopCmdIndex != None and currentStopCmdIndex < newCmdIndex):
             raise executionException("(engine) addCommand, the command bounds on this data do not enclose the new command") 
-        
         
         #add the sub command
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce, useArgs)
@@ -126,6 +142,9 @@ class engineV3(object):
         data = self.stack[-1][0]
         data.insert(offset,newdata)
     
+        #TODO what append if we add data at the offset 0, the next subcommand will have a different data
+            #then this data will be reuse again with the same subcommand
+    
     def removeData(self, offset=0):
         if self.isEmptyStack(): 
             raise executionException("(engine) removeData, no item on the stack")
@@ -138,6 +157,9 @@ class engineV3(object):
         
         #remove the data
         del data[offset]
+        
+        #TODO what append if we remove the data at the offset 0 ? the next subcommand will execute the next data
+            #and the current subcommand will never execute the next data
     
     def setData(self, newdata, offset=0):
         if self.isEmptyStack(): 
@@ -212,7 +234,7 @@ class engineV3(object):
         
         dataBunch.cmdStartIndex = firstStartCmdIndex
         dataBunch.cmdStopIndex  = firstStopDataIndex
-        self.stack.append( (dataBunch, pathOnTop, actionToExecute, ) 
+        self.stack.append( (dataBunch, pathOnTop, actionToExecute, ) )
     
     def setCmdRange(self, firstCmd = 0, cmdLength = None, dataDepth = 0):
         #is empty stack ?
@@ -283,7 +305,7 @@ class engineV3(object):
             raise executionException("(engine) splitData, split index out of bound")
 
         #has enought data to split ?
-        if len(topdata) < 2 or splitAtDataIndex = 0:
+        if len(topdata) < 2 or splitAtDataIndex == 0:
             return
 
         # get current cmd limit #
