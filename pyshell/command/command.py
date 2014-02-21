@@ -156,7 +156,7 @@ class MultiCommand(list):
     def flushArgs(self):
         self.args = None
 
-    def addDynamicCommand(self,c,onlyAddOnce, useArgs = True):
+    def addDynamicCommand(self,c,onlyAddOnce=True, useArgs = True):
         #cmd must be an instance of Command
         if not isinstance(c, Command):
             raise commandException("(MultiCommand) addDynamicCommand, try to insert a non command object")
@@ -181,9 +181,10 @@ class UniCommand(MultiCommand):
         MultiCommand.__init__(self,name,helpMessage,showInHelp)
         MultiCommand.addProcess(self,preProcess,process,postProcess)
 
-    def addProcess(self,preProcess=None,process=None,postProcess=None):
+    def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
         pass # blocked the procedure to add more commands
 
-
+    def addStaticCommand(self, cmd, useArgs = True):
+        pass # blocked the procedure to add more commands
 
 

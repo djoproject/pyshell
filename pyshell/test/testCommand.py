@@ -149,20 +149,48 @@ class ArgCheckerTest(unittest.TestCase):
         #it must always be None
         self.assertTrue(mc.args == None)
     
-    #TODO addDynamicCommand
+    #addDynamicCommand
     def testAddDynamicCommand(self):
-        #try to insert anything but command
-        #try to insert the same command twice with onlyAddOnce=True
-            #do the same with onlyAddOnce=False
-            #try to redeclare the same command prototype
-        #check dynamic count
-        #check useArgs in the list
-        pass
+        mc = MultiCommand("plop", "rtfm", False)
+        c = Command()
     
-    #TODO test unicommand class
+        #try to insert anything but command
+        self.assertRaises(commandException, mc.addDynamicCommand, 42)
+        
+        #try to insert the same command twice with onlyAddOnce=True
+        mc.addDynamicCommand(c)
+        self.assertTrue(len(mc) == 1)
+        mc.addDynamicCommand(c)
+        self.assertTrue(len(mc) == 1)
+        mc.addDynamicCommand(c, False)#do the same with onlyAddOnce=False
+        self.assertTrue(len(mc) == 2)
+        
+        #check useArgs in the list
+        for (u,c,) in mc:
+            self.assertTrue(u)
+    
+    #test unicommand class
+    def testUniCommand(self):
         #test to create a basic empty one
+        self.assertRaises(commandException, UniCommand, "plop", "rtfm")
+        
+        def toto():
+            pass
+        
         #then with different kind of args
+        self.assertTrue(UniCommand("plop", "rtfm", toto) != None )
+        self.assertTrue(UniCommand("plop", "rtfm", None, toto) != None )
+        self.assertTrue(UniCommand("plop", "rtfm", None,None,toto) != None )
+
         #try to add another command
+        uc = UniCommand("plop", "rtfm", toto)
+        self.assertTrue(len(uc) == 1)
+        
+        uc.addProcess()
+        self.assertTrue(len(uc) == 1)
+        
+        uc.addStaticCommand(42)
+        self.assertTrue(len(uc) == 1)
 
 if __name__ == '__main__':
     unittest.main()
