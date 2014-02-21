@@ -38,14 +38,14 @@ class ArgFeeder(ArgsChecker):
         self.argTypeList = argTypeList
         
     #
-    # @argsList, une liste de string
+    # @argsList, une liste de n'importe quoi
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
     def checkArgs(self,argsList, engine=None):
         if not isinstance(argsList,list):
             # argsList must be a string
-            if type(argsList) != str and type(argsList) != unicode:
-                raise argException("(ArgFeeder) string list was expected, got <"+str(type(argsList))+">")
+            #if type(argsList) != str and type(argsList) != unicode:
+            #    raise argException("(ArgFeeder) string list was expected, got "+str(type(argsList)))
         
             argsList = [argsList]
             

@@ -42,7 +42,7 @@ class Command(object):
 #
 # a multicommand will produce several process with only one call
 #
-# TODO helpMessage pourrait etre pris de la premiere command ajoute
+# TODO helpMessage pourrait etre pris de la premiere command ajoute (__name__)
 #     XXX quid dans le cas ou on ajoute qu'avec addProcess ? (obsolete ?)
 #
 class MultiCommand(list):

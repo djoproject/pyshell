@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from command import MultiOutput
+from command import MultiOutput, MultiCommand
 
 #TODO
     #voir les notes dans le fichier TODO
@@ -32,6 +32,9 @@ class engineV3(object):
             if not isinstance(c, MultiCommand):#only the MultiCommand are allowed in the list
                 raise executionInitException("(engine) init, a object in the command list is not a MultiCommand instance, got <"+str(type(c))+">")
             
+            if len(c) == 0: #empty multi command are not allowed
+                raise executionInitException("(engine) init, a command is empty")
+            
             #reset the information stored in the command from a previous execution
             c.reset()
         
@@ -47,9 +50,28 @@ class engineV3(object):
 
         #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
         self.stack = [([None], [0], PREPROCESS_INSTRUCTION,) ]
-    
+
+### TODO Command Special Meth With Abstraction TODO ###
+    #okay so the problem is, we want to be able to 
+        #add more subcommand
+        #add more data
+        #skip a sub command
+        #...
+        
+    #BUT we don't care about the data abstration, the stack and others things...
+        #so its very difficult to execute these operation on the whole stack for a precise command
+            #currently the command limit are stored on the stack, they could be stored in the command itself
+        #a command can occur at several level of the stack, or even later and it't quite difficult to manage these command with this structure
+        
+    #IDEA
+        #only allow theses actions on the first command of the list ?
+            #because its initial state is always stack[0]
+                #and even splitted, they will be next to each other, from stack[0] to stack[n]
+        
+        #reuse the existing command on the data bunch
+
 ### COMMAND special meth ###
-    
+
     def skipNextCommandOnTheCurrentData(self, skipCount=1):
         if self.isEmptyStack(): 
             raise executionException("(engine) skipNextCommand, no item on the stack")
@@ -453,60 +475,64 @@ class engineV3(object):
     def execute(self):
         #consume stack
         while len(self.stack) != 0: #while there is some item into the stack
-            
             ### EXTRACT DATA FROM STACK ###
             top     = self.stack[-1]#.pop()
             #top[0] contain the current data of this item
             #top[1] contain the command path
             #top[2] contain the process type to execute
+
+            #print
+            #print "stack : "
+            #for i in range(0,len(self.stack)):
+            #    print "["+str(i)+"]", self.stack[i][0], self.stack[i][1], self.stack[i][2]
             
             cmd             = self.cmdList[len(top[1]) -1]
             subcmd, useArgs = cmd[top[1][-1]]
             
             ### EXECUTE command ###
             to_stack = None #prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
-            try:
-                ## PRE PROCESS
-                if top[2] == PREPROCESS_INSTRUCTION: #pre
-                    r = self.executeMethod(subcmd.preProcess, top, useArgs)
-                    subcmd.preCount += 1
-                    
-                    #manage result
-                    if len(top[1]) == len(self.cmdList): #no child, next step will be a process
-                        to_stack = (r, top[1], PROCESS_INSTRUCTION, )
-                    else: #there are some child, next step will be another preprocess
-                        new_path = top[1][:] #copy the path
-                        new_path.append(0) #then add the first index of the next command
-                        to_stack = (r, new_path, PREPROCESS_INSTRUCTION, )
+            #TODO try:
+            ## PRE PROCESS
+            if top[2] == PREPROCESS_INSTRUCTION: #pre
+                r = self.executeMethod(cmd, subcmd.preProcess, top, useArgs)
+                subcmd.preCount += 1
                 
-                ## PROCESS ##
-                elif top[2] == PROCESS_INSTRUCTION: #pro
-                    r = self.executeMethod(subcmd.process, top, useArgs)
-                    subcmd.proCount += 1
-                    
-                    #manage result
-                    to_stack = (r, top[1], POSTPROCESS_INSTRUCTION,)
+                #manage result
+                if len(top[1]) == len(self.cmdList): #no child, next step will be a process
+                    to_stack = (r, top[1][:], PROCESS_INSTRUCTION, )
+                else: #there are some child, next step will be another preprocess
+                    new_path = top[1][:] #copy the path
+                    new_path.append(0) #then add the first index of the next command
+                    to_stack = (r, new_path, PREPROCESS_INSTRUCTION, )
+            
+            ## PROCESS ##
+            elif top[2] == PROCESS_INSTRUCTION: #pro
+                r = self.executeMethod(cmd, subcmd.process, top, useArgs)
+                subcmd.proCount += 1
                 
-                ## POST PROCESS ##
-                elif top[2] == POSTPROCESS_INSTRUCTION: #post
-                    r = self.executeMethod(subcmd.postProcess, top, useArgs)
-                    subcmd.postCount += 1
-                    
-                    #manage result
-                    if len(top[1]) > 1: #not on the root node
-                         to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,) #just remove one item in the path to get the next postprocess to execute
-                    
-                else:
-                    raise executionException("(engine) execute, unknwon process command <"+str(top[2])+">")
+                #manage result
+                to_stack = (r, top[1], POSTPROCESS_INSTRUCTION,)
             
-                if subcmd.preCount > DEFAULT_EXECUTION_LIMIT or subcmd.proCount > DEFAULT_EXECUTION_LIMIT or subcmd.postCount > DEFAULT_EXECUTION_LIMIT :
-                    raise executionException("(engine) execute, this subcommand reach the execution limit count")
-            
-            except BaseException as e: #catch any execution exception, add more information then raise again
-                e.EngineCmd          = cmd
-                e.EngineSubCmdIndex  = top[1][-1]
-                e.EngineData         = self.stack[-1][0][0]
-                e.EngineProcess_type = top[2]
+            ## POST PROCESS ##
+            elif top[2] == POSTPROCESS_INSTRUCTION: #post
+                r = self.executeMethod(cmd, subcmd.postProcess, top, useArgs)
+                subcmd.postCount += 1
+                
+                #manage result
+                if len(top[1]) > 1: #not on the root node
+                     to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,) #just remove one item in the path to get the next postprocess to execute
+                
+            else:
+                raise executionException("(engine) execute, unknwon process command <"+str(top[2])+">")
+        
+            if subcmd.preCount > DEFAULT_EXECUTION_LIMIT or subcmd.proCount > DEFAULT_EXECUTION_LIMIT or subcmd.postCount > DEFAULT_EXECUTION_LIMIT :
+                raise executionException("(engine) execute, this subcommand reach the execution limit count")
+        
+            #TODO except BaseException as e: #catch any execution exception, add more information then raise again
+            #    e.EngineCmd          = cmd
+            #    e.EngineSubCmdIndex  = top[1][-1]
+            #    e.EngineData         = self.stack[-1][0][0]
+            #    e.EngineProcess_type = top[2]
                 
                 raise e
             
@@ -558,8 +584,8 @@ class engineV3(object):
             args = []
 
         #execute checker
-        if hasattr(cmd, "checker"):         
-            data = cmd.checker.checkArgs(args, self)
+        if hasattr(subcmd, "checker"):         
+            data = subcmd.checker.checkArgs(args, self)
         else:
             data = {}
 
