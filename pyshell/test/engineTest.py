@@ -120,7 +120,7 @@ class ArgCheckerTest(unittest.TestCase):
         #...
     
     #test du mutlicommand
-    def testMultiCommand(self):
+    def _testMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
@@ -230,13 +230,190 @@ class ArgCheckerTest(unittest.TestCase):
             self.assertTrue(c == 27)
             
 
-    #TODO test du mutliOutput avec multicommand
-    def testMultiOuputAndMultiCommand(self):
-        pass
+    #test du mutliOutput avec multicommand
+    def _testMultiOuputAndMultiCommand(self):
+        mc = MultiCommand("Multiple test", "help me")
+        self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        self.valueToTest1 = [[1, 2, 3], [1, 2, 3]]
+        self.valueToTest2 = [[6,7,8,4,5], [8,9,10,2,3,4]]
+        self.valueToTest3 = [[36,49,64,16,25,81,100,4,9, 1296, 2401, 4096, 256, 625], [8,9,10,2,3,4, 512, 729, 1000, 8,27,64]]
+    
+        @shellMethod(arg1=IntegerArgChecker())
+        def pre1(arg1=0):
+            self.assertIn(arg1,self.valueToTest1[0])
+            self.preCount[0] += 1
+            return MultiOutput([5+arg1, 3+arg1])
+        
+        @shellMethod(arg2=IntegerArgChecker())
+        def pro1(arg2):
+            self.assertIn(arg2,self.valueToTest2[0])
+            self.proCount[0] += 1
+            return MultiOutput([arg2*arg2, arg2**4])
+        
+        @shellMethod(arg3=ArgChecker()) 
+        def post1(arg3):
+            self.assertIn(arg3,self.valueToTest3[0])
+            self.postCount[0] += 1
+            return MultiOutput([arg3,arg3])
+        
+        
+        @shellMethod(arg1=IntegerArgChecker())
+        def pre2(arg1=0):
+            self.assertIn(arg1,self.valueToTest1[1])
+            self.preCount[1] += 1
+            return MultiOutput([7+arg1, 1+arg1])
+        
+        @shellMethod(arg2=IntegerArgChecker())
+        def pro2(arg2):
+            self.assertIn(arg2,self.valueToTest2[1])
+            self.proCount[1] += 1
+            return MultiOutput([arg2**3, arg2])
+        
+        @shellMethod(arg3=ArgChecker()) 
+        def post2(arg3):
+            self.assertIn(arg3,self.valueToTest3[1])
+            self.postCount[1] += 1
+            return MultiOutput([arg3, arg3])
+
+            
+        mc.addProcess(pre1,pro1,post1)
+        mc.addProcess(pre2,pro2,post2)
+        
+        engine = engineV3([mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        
+        engine.execute()
+        
+        for c in self.preCount:
+            self.assertTrue(c == 3)
+
+        for c in self.proCount:
+            self.assertTrue(c == 6)
+        
+        for c in self.postCount:
+            self.assertTrue(c == 12)
+        
+        
+        self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        
+        self.valueToTest1 = [[1, 2, 3, 6, 7, 8, 4, 5, 9, 10], [1, 2, 3, 6, 7, 8, 4, 5, 9, 10]] 
+        self.valueToTest2 = [[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]] #6, 7, 8, 4, 5, 9, 10 #+5 3 7 1
+        self.valueToTest3 = [[256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125], [256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125]]
+        
+        engine = engineV3([mc, mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        engine.execute()
+        
+        for c in self.preCount:
+            self.assertIs(c,15)
+
+        for c in self.proCount:
+            self.assertTrue(c == 24)
+        
+        for c in self.postCount:
+            self.assertTrue(c == 144)
+        
+        #it's too big with three command...
     
     #TODO test du multiOutput avec multicommand et limite de commande
     def testMultiOuputAndMultiCommandAmdCommandLimit(self):
-        pass
+        @shellMethod(arg1=IntegerArgChecker())
+        def pre1(arg1=0):
+            self.assertIn(arg1,self.valueToTest1[0])
+            self.preCount[0] += 1
+            return MultiOutput([5+arg1, 3+arg1])
+        
+        @shellMethod(arg2=IntegerArgChecker())
+        def pro1(arg2):
+            self.assertIn(arg2,self.valueToTest2[0])
+            self.proCount[0] += 1
+            return MultiOutput([arg2*arg2, arg2**4])
+        
+        @shellMethod(arg3=ArgChecker()) 
+        def post1(arg3):
+            self.assertIn(arg3,self.valueToTest3[0])
+            self.postCount[0] += 1
+            return MultiOutput([arg3,arg3])
+        
+        
+        @shellMethod(arg1=IntegerArgChecker())
+        def pre2(arg1=0):
+            self.assertIn(arg1,self.valueToTest1[1])
+            self.preCount[1] += 1
+            return MultiOutput([7+arg1, 1+arg1])
+        
+        @shellMethod(arg2=IntegerArgChecker())
+        def pro2(arg2):
+            self.assertIn(arg2,self.valueToTest2[1])
+            self.proCount[1] += 1
+            return MultiOutput([arg2**3, arg2])
+        
+        @shellMethod(arg3=ArgChecker()) 
+        def post2(arg3):
+            self.assertIn(arg3,self.valueToTest3[1])
+            self.postCount[1] += 1
+            return MultiOutput([arg3, arg3])
+
+        mc = MultiCommand("Multiple test", "help me")
+        mc.addProcess(pre1,pro1,post1)
+        mc.addProcess(pre2,pro2,post2)
+        
+        self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        self.valueToTest1 = [[1, 2, 3], []]
+        self.valueToTest2 = [[6,7,8,4,5], []]
+        self.valueToTest3 = [[36,49,64,16,25, 1296, 2401, 4096, 256, 625], []]
+        engine = engineV3([mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        engine.setCmdRange(0,1)
+        engine.execute()
+        
+        self.assertIs(self.preCount[0],3)
+        self.assertIs(self.proCount[0],6)
+        self.assertIs(self.postCount[0],12)
+        self.assertIs(self.preCount[1],0)
+        self.assertIs(self.proCount[1],0)
+        self.assertIs(self.postCount[1],0)
+        
+        #TODO limit the second command
+        
+        #TODO no limit
+        
+        #TODO test with two command in the pipe
+        """self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        
+        self.valueToTest1 = [[1, 2, 3, 6, 7, 8, 4, 5, 9, 10], [1, 2, 3, 6, 7, 8, 4, 5, 9, 10]] 
+        self.valueToTest2 = [[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]] #6, 7, 8, 4, 5, 9, 10 #+5 3 7 1
+        self.valueToTest3 = [[256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125], [256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125]]
+        
+        engine = engineV3([mc, mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        engine.execute()
+        
+        for c in self.preCount:
+            self.assertIs(c,15)
+
+        for c in self.proCount:
+            self.assertTrue(c == 24)
+        
+        for c in self.postCount:
+            self.assertTrue(c == 144)"""
+
     
     #TODO yeaah et maintenant plus que 400 lignes de code restantes sur les 575...
         #oui mais avec le execute complétement testé, il sera moins necessaire de faire des vérifications avancées

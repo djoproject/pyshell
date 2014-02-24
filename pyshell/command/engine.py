@@ -131,7 +131,7 @@ class engineV3(object):
         
         currentStopCmdIndex = None
         if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
-            currentStopDataIndex = topData.cmdStopIndex
+            currentStopCmdIndex = topData.cmdStopIndex
         
         newCmdIndex = len(self.cmdList[cmdID])
         
@@ -166,6 +166,7 @@ class engineV3(object):
     
         #TODO what append if we add data at the offset 0, the next subcommand will have a different data
             #then this data will be reuse again with the same subcommand
+            #forbide the insertion at offset 0 ?
     
     def removeData(self, offset=0):
         if self.isEmptyStack(): 
@@ -227,9 +228,9 @@ class engineV3(object):
             
             currentStopCmdIndex = None
             if hasattr(currentStackItem[0],"cmdStopIndex"): #is there already a cmd stop index ?
-                currentStopDataIndex = currentStackItem[0].cmdStopIndex
+                currentStopCmdIndex = currentStackItem[0].cmdStopIndex
             
-            if firstStartCmdIndex != currentStartCmdIndex and firstStopDataIndex != currentStopDataIndex:
+            if firstStartCmdIndex != currentStartCmdIndex and firstStopDataIndex != currentStopCmdIndex:
                 raise executionException("(engine) mergeDataOnStack, the command limit of item "+str(i)+"are different of the limit of the top item 0")
             
             #the path must be the same for each item to merge
@@ -259,6 +260,8 @@ class engineV3(object):
         self.stack.append( (dataBunch, pathOnTop, actionToExecute, ) )
     
     def setCmdRange(self, firstCmd = 0, cmdLength = None, dataDepth = 0):
+        #TODO manage range before to start
+    
         #is empty stack ?
         if self.isEmptyStack(): 
             raise executionException("(engine) setCmdRange, no item on the stack")
@@ -290,18 +293,19 @@ class engineV3(object):
             newStopIndex = firstCmd+cmdLength-1
         
         #the current cmd index must be in the cmd range
-        currentCmdIndex = top[-1][1][-1]
+        currentCmdIndex = self.stack[-1][1][-1]
         if currentCmdIndex < firstCmd or (cmdLength != None and (firstCmd+cmdLength-1) < currentCmdIndex):
             raise executionException("(engine) setDataCmdRange, the bounds must enclose the current cmd index") 
         
         ## get current limit ##
+        topData = stackItem[0]
         currentStartCmdIndex = 0
         if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
             currentStartCmdIndex = topData.cmdStartIndex
         
         currentStopCmdIndex = None
         if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
-            currentStopDataIndex = topData.cmdStopIndex
+            currentStopCmdIndex = topData.cmdStopIndex
         
         if currentStartCmdIndex == firstCmd and currentStopCmdIndex == newStopIndex:
             return #nothing to do, the limit are already set
@@ -337,14 +341,14 @@ class engineV3(object):
         
         currentStopCmdIndex = None
         if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
-            currentStopDataIndex = topData.cmdStopIndex
+            currentStopCmdIndex = topData.cmdStopIndex
 
         top = self.stack.pop()
         
         #from 0 to splitAtDataIndex
         dataBunch = MultiOutput(top[0][splitAtDataIndex:])
         dataBunch.cmdStartIndex = currentStartCmdIndex
-        dataBunch.cmdStopIndex  = currentStopDataIndex
+        dataBunch.cmdStopIndex  = currentStopCmdIndex
         path = top[1][:]
         path[-1] = 0 
         self.stack.append( (dataBunch, path, top[2], ) )
@@ -352,7 +356,7 @@ class engineV3(object):
         #from splitAtDataIndex to the end
         dataBunch = MultiOutput(top[0][0:splitAtDataIndex])
         dataBunch.cmdStartIndex = currentStartCmdIndex
-        dataBunch.cmdStopIndex  = currentStopDataIndex
+        dataBunch.cmdStopIndex  = currentStopCmdIndex
         self.stack.append( (dataBunch, top[1], top[2], ) )
      
     def setDataCmdRange(self, startData = 0, dataLength=None, firstCmd = 0, cmdLength = None):
@@ -480,11 +484,6 @@ class engineV3(object):
             #top[0] contain the current data of this item
             #top[1] contain the command path
             #top[2] contain the process type to execute
-
-            #print
-            #print "stack : "
-            #for i in range(0,len(self.stack)):
-            #    print "["+str(i)+"]", self.stack[i][0], self.stack[i][1], self.stack[i][2]
             
             cmd             = self.cmdList[len(top[1]) -1]
             subcmd, useArgs = cmd[top[1][-1]]
@@ -561,9 +560,12 @@ class engineV3(object):
                             starting = top[0].cmdStartIndex
                         else:
                             starting = 0
-                    
+                        
+                        #remove the data without doing any update on the cmd limit
+                        del top[0][0]
+                        
                         top[1][-1] = starting #select the first child
-                        self.stack.append(  (top[0][1:],top[1],top[2],)  ) #remove the last used data, because every cmd already used id, and push on the stack
+                        self.stack.append(  (top[0],top[1],top[2],)  ) #remove the last used data, because every cmd already used id, and push on the stack
             
             ### STACK THE RESULT of the current process if needed ###
             if to_stack != None:
@@ -597,5 +599,18 @@ class engineV3(object):
             return [r]
 
         return r
+
+    def printStack(self):
+        for i in range(0,len(self.stack)):
+            topData = self.stack[i][0]
+            currentStartCmdIndex = "Not defined"
+            if hasattr(topData,"cmdStartIndex"): #is there already a cmd start index ?
+                currentStartCmdIndex = topData.cmdStartIndex
+            
+            currentStopCmdIndex = "Not defined"
+            if hasattr(topData,"cmdStopIndex"): #is there already a cmd stop index ?
+                currentStopCmdIndex = topData.cmdStopIndex
+        
+            print "#["+str(i)+"] data=", self.stack[i][0], ", path=", self.stack[i][1], ", action=",self.stack[i][2], ", cmd range=",(currentStartCmdIndex, currentStopCmdIndex)
 
 
