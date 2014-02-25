@@ -533,6 +533,7 @@ class engineV3(object):
             #    e.EngineSubCmdIndex  = top[1][-1]
             #    e.EngineData         = self.stack[-1][0][0]
             #    e.EngineProcess_type = top[2]
+            #    #TODO the catch and re-raise removes the stack trace of the exception, try to keep it
                 
                 raise e
             
