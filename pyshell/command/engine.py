@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from command import MultiOutput, MultiCommand
+from exception import *
 
 #TODO
     #voir les notes dans le fichier TODO

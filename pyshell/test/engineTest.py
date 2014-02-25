@@ -16,8 +16,8 @@ class ArgCheckerTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def _testExecuteSimpleOne(self):
-        #TODO choses qui ne vont pas dans ce test :
+    def testExecuteSimpleOne(self):
+        #TODO choses qui ne vont pas dans ces tests :
             #-s'il n'y a qu'un argument l'ensemble des args ne lui est pas lié automatiquement
                 #ok le comportement correcte a avoir
                     #s'il n'y a qu'un args, on bind to sur lui
@@ -72,7 +72,7 @@ class ArgCheckerTest(unittest.TestCase):
         #...
     
     #test du mutliOutput
-    def _testSimpleOneWithMultiOutput(self):
+    def testSimpleOneWithMultiOutput(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre(arg1=0):
             self.preCount +=1
@@ -120,7 +120,7 @@ class ArgCheckerTest(unittest.TestCase):
         #...
     
     #test du mutlicommand
-    def _testMultiCommand(self):
+    def testMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
@@ -231,7 +231,7 @@ class ArgCheckerTest(unittest.TestCase):
             
 
     #test du mutliOutput avec multicommand
-    def _testMultiOuputAndMultiCommand(self):
+    def testMultiOuputAndMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0]
         self.proCount = [0,0]
@@ -323,7 +323,7 @@ class ArgCheckerTest(unittest.TestCase):
         
         #it's too big with three command...
     
-    #TODO test du multiOutput avec multicommand et limite de commande
+    #test du multiOutput avec multicommand et limite de commande
     def testMultiOuputAndMultiCommandAmdCommandLimit(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre1(arg1=0):
@@ -386,37 +386,99 @@ class ArgCheckerTest(unittest.TestCase):
         self.assertIs(self.proCount[1],0)
         self.assertIs(self.postCount[1],0)
         
-        #TODO limit the second command
+        #limit the second command
+        self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        self.valueToTest1 = [[], [1, 2, 3]]
+        self.valueToTest2 = [[], [2,3,4,8,9,10]]
+        self.valueToTest3 = [[], [2,3,4,8,9,10,  8,27,64,512,729,1000]]
+        engine = engineV3([mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        engine.skipNextCommandOnTheCurrentData() #the next command will raise an exception otherwise
+        engine.setCmdRange(1,1)
+        engine.execute()
         
-        #TODO no limit
+        self.assertIs(self.preCount[0],0)
+        self.assertIs(self.proCount[0],0)
+        self.assertIs(self.postCount[0],0)
+        self.assertIs(self.preCount[1],3)
+        self.assertIs(self.proCount[1],6)
+        self.assertIs(self.postCount[1],12)
         
-        #TODO test with two command in the pipe
-        """self.preCount = [0,0]
+        #no limit 1
+        self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        self.valueToTest1 = [[1, 2, 3], [1, 2, 3]]
+        self.valueToTest2 = [[6,7,8,4,5], [2,3,4,8,9,10]]
+        self.valueToTest3 = [[36,49,64,16,25, 1296, 2401, 4096, 256, 625], [2,3,4,8,9,10,  8,27,64,512,729,1000]]
+        engine = engineV3([mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        engine.setCmdRange(0,None)
+        engine.execute()
+        
+        self.assertIs(self.preCount[0],3)
+        self.assertIs(self.proCount[0],6)
+        self.assertIs(self.postCount[0],12)
+        self.assertIs(self.preCount[1],3)
+        self.assertIs(self.proCount[1],6)
+        self.assertIs(self.postCount[1],12)
+        
+        #no limit 2
+        self.preCount = [0,0]
+        self.proCount = [0,0]
+        self.postCount = [0,0]
+        engine = engineV3([mc])
+        engine.setData(1)
+        engine.addData(2,1)
+        engine.addData(3,2)
+        engine.setCmdRange(0,2)
+        engine.execute()
+        
+        self.assertIs(self.preCount[0],3)
+        self.assertIs(self.proCount[0],6)
+        self.assertIs(self.postCount[0],12)
+        self.assertIs(self.preCount[1],3)
+        self.assertIs(self.proCount[1],6)
+        self.assertIs(self.postCount[1],12)
+        
+        #test with two command in the pipe
+        self.preCount = [0,0]
         self.proCount = [0,0]
         self.postCount = [0,0]
         
-        self.valueToTest1 = [[1, 2, 3, 6, 7, 8, 4, 5, 9, 10], [1, 2, 3, 6, 7, 8, 4, 5, 9, 10]] 
-        self.valueToTest2 = [[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]] #6, 7, 8, 4, 5, 9, 10 #+5 3 7 1
-        self.valueToTest3 = [[256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125], [256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125]]
+        self.valueToTest1 = [[1, 2, 3, 6, 7, 8, 4, 5], [6, 7, 8, 4, 5]] 
+        self.valueToTest2 = [[9,10,11,7,8,12,13], [7,8,9,5,6,13, 14, 15, 11, 12]]
+        self.valueToTest3 = [[81,6561,100,10000,121,14641,49,2401,64,4096,144,20736,169,28561, 343,512,729,125,216,2197,2744,3375,1331,1728, 7,8,9,5,6,13, 14, 15, 11, 12],[343,512,729,125,216,2197,2744,3375,1331,1728, 7,8,9,5,6,13, 14, 15, 11, 12]]
         
         engine = engineV3([mc, mc])
         engine.setData(1)
         engine.addData(2,1)
         engine.addData(3,2)
+        engine.setCmdRange(0,1)
         engine.execute()
         
-        for c in self.preCount:
-            self.assertIs(c,15)
-
-        for c in self.proCount:
-            self.assertTrue(c == 24)
+        self.assertIs(self.preCount[0],9)
+        self.assertIs(self.proCount[0],12)
+        self.assertIs(self.postCount[0],120)
         
-        for c in self.postCount:
-            self.assertTrue(c == 144)"""
+        self.assertIs(self.preCount[1],6)
+        self.assertIs(self.proCount[1],12)
+        self.assertIs(self.postCount[1],24)
 
     
     #TODO yeaah et maintenant plus que 400 lignes de code restantes sur les 575...
-        #oui mais avec le execute complétement testé, il sera moins necessaire de faire des vérifications avancées
+        #faire des tests plus classique
+            #on essaye tous les cas de figure géré par la fonction
+            #et on vérifie le résultat sur les données
+            #pas besoin d'executer un engine complet a chaque fois
+    
+    
     
 if __name__ == '__main__':
     unittest.main()
