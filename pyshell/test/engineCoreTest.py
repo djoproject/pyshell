@@ -471,13 +471,7 @@ class EngineCoreTest(unittest.TestCase):
         self.assertIs(self.proCount[1],12)
         self.assertIs(self.postCount[1],24)
 
-    
-    #TODO yeaah et maintenant plus que 400 lignes de code restantes sur les 575...
-        #faire des tests plus classique
-            #on essaye tous les cas de figure géré par la fonction
-            #et on vérifie le résultat sur les données
-            #pas besoin d'executer un engine complet a chaque fois
-    
+    #TODO test getExecutionSnapshot
     
     
 if __name__ == '__main__':
