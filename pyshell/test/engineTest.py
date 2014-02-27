@@ -14,6 +14,7 @@ class EngineTest(unittest.TestCase):
     def setUp(self):
         self.mc = MultiCommand("Multiple test", "help me")
         self.mc.addProcess(noneFun,noneFun,noneFun)
+        self.e = engineV3([self.mc])
         
     #__init__
     def testInit(self):
@@ -59,15 +60,80 @@ class EngineTest(unittest.TestCase):
     #TODO addSubCommand
     #TODO addCommand
     
-    #TODO mergeDataOnStack
-    #TODO setCmdRange
-    #TODO splitData
     #TODO setDataCmdRange
     #TODO setDataCmdRangeAndMerge
     
-    #TODO flushData
-    #TODO addData
-    #TODO removeData
+    #TODO mergeDataOnStack
+    #TODO setCmdRange
+    #TODO splitData
+    
+    #flushData
+    def test_flushData(self):
+        e = engineV3([self.mc])
+        e.flushData()
+        self.assertIs(len(e.stack[0][0]),0)
+        
+        e.addData(11)
+        e.addData(12)
+        e.addData(13)
+        self.assertIs(len(e.stack[0][0]),3)
+        e.flushData()
+        self.assertIs(len(e.stack[0][0]),0)
+        
+        e.stack = []
+        self.assertRaises(executionException,e.flushData)
+        
+    #addData
+    def test_addData(self):
+        self.assertRaises(executionException,self.e.addData, 33, 0)
+        
+        #regular addData
+        self.e.addData(33,0,False)
+        self.assertIs(len(self.e.stack[0][0]),2)
+        self.assertIs(self.e.stack[0][0][0],33)
+        self.assertIs(self.e.stack[0][0][1],None)
+        
+        self.e.addData(44)
+        self.assertIs(len(self.e.stack[0][0]),3)
+        self.assertIs(self.e.stack[0][0][0],33)
+        self.assertIs(self.e.stack[0][0][1],44)
+        self.assertIs(self.e.stack[0][0][2],None)
+        
+        self.e.stack = []
+        self.assertRaises(executionException,self.e.addData, 33)
+        
+    #removeData
+    def test_removeData(self):
+        self.assertRaises(executionException,self.e.removeData, -2)
+        self.assertRaises(executionException,self.e.removeData, 1)
+        
+        self.e.removeData()
+        self.assertIs(len(self.e.stack[0][0]),0)
+        self.assertIs(self.e.stack[0][1][-1],-1)
+        
+        self.e.addData(None)
+        self.e.addData(44)
+        self.e.addData(55)
+        
+        self.e.removeData(1)
+        self.assertIs(len(self.e.stack[0][0]),2)
+        self.assertIs(self.e.stack[0][1][-1],-1)
+        self.assertIs(self.e.stack[0][0][0],None)
+        self.assertIs(self.e.stack[0][0][1],44)
+        
+        self.e.flushData()
+        self.e.addData(None)
+        self.e.addData(44)
+        self.e.addData(55)
+        
+        self.e.removeData(-2)
+        self.assertIs(len(self.e.stack[0][0]),2)
+        self.assertIs(self.e.stack[0][1][-1],-1)
+        self.assertIs(self.e.stack[0][0][0],None)
+        self.assertIs(self.e.stack[0][0][1],44)
+        
+        self.e.stack = []
+        self.assertRaises(executionException,self.e.removeData)
     
     #getData and setData
     def test_getData(self):

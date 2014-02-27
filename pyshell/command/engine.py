@@ -3,7 +3,6 @@
 
 from command import MultiOutput, MultiCommand
 from exception import *
-import sys
 
 #TODO
     #voir les notes dans le fichier TODO
@@ -152,8 +151,52 @@ class engineV3(object):
         cmd.reset()
         self.cmdList.append(cmd)
     
-### COMMAND ultra special meth ###
+### COMMAND ultra ultra special meth ###
     
+    def setDataCmdRange(self, startData = 0, dataLength=None, firstCmd = 0, cmdLength = None):
+        if self.isEmptyStack(): 
+            raise executionException("(engine) setDataCmdRange, no item on the stack")
+        
+        topData = self.stack[-1][0]
+        
+        if startData < 0:
+            raise executionException("(engine) setDataCmdRange, startData must be bigger than zero")
+        
+        if startData > (len(topData)-1): #start index must be in the current data range
+            raise executionException("(engine) setDataCmdRange, startData index is not in the data bounds")
+        
+        if dataLength < 1 and dataLength != None:
+            raise executionException("(engine) setDataCmdRange, dataLength must be bigger than 1 or None")
+    
+        if dataLength != None and len(topData) < dataLength:
+            raise executionException("(engine) setDataCmdRange, dataLength is too big in front of the size of the current data")
+
+        #compute split points and dept level
+        if dataLength == None:
+            dept = 0
+            if startData == 0:
+                pass #no need to split
+            else:
+                self.splitData(startData)
+        else:
+            dept = 1
+            if startData == 0:
+                self.splitData(startData+dataLength)
+            else:
+                self.splitData(startData+dataLength)
+                self.splitData(startData)
+        
+            splitPoints.append(startData)
+
+        #set cmd range
+        self.setCmdRange(firstCmd, cmdLength, dept)
+        
+    def setDataCmdRangeAndMerge(self, firstCmd = 0, cmdLength = None, count = 2):
+        pass #TODO same of previous but merge in place of split
+            #the whole data merged will have the same cmd range
+
+### COMMAND ultra special meth ###
+
     def mergeDataOnStack(self, count = 2):
         #need at least two item to merge
         if count < 1:
@@ -319,48 +362,6 @@ class engineV3(object):
         dataBunch.cmdStartIndex = currentStartCmdIndex
         dataBunch.cmdStopIndex  = currentStopCmdIndex
         self.stack.append( (dataBunch, top[1], top[2], ) )
-     
-    def setDataCmdRange(self, startData = 0, dataLength=None, firstCmd = 0, cmdLength = None):
-        if self.isEmptyStack(): 
-            raise executionException("(engine) setDataCmdRange, no item on the stack")
-        
-        topData = self.stack[-1][0]
-        
-        if startData < 0:
-            raise executionException("(engine) setDataCmdRange, startData must be bigger than zero")
-        
-        if startData > (len(topData)-1): #start index must be in the current data range
-            raise executionException("(engine) setDataCmdRange, startData index is not in the data bounds")
-        
-        if dataLength < 1 and dataLength != None:
-            raise executionException("(engine) setDataCmdRange, dataLength must be bigger than 1 or None")
-    
-        if dataLength != None and len(topData) < dataLength:
-            raise executionException("(engine) setDataCmdRange, dataLength is too big in front of the size of the current data")
-
-        #compute split points and dept level
-        if dataLength == None:
-            dept = 0
-            if startData == 0:
-                pass #no need to split
-            else:
-                self.splitData(startData)
-        else:
-            dept = 1
-            if startData == 0:
-                self.splitData(startData+dataLength)
-            else:
-                self.splitData(startData+dataLength)
-                self.splitData(startData)
-        
-            splitPoints.append(startData)
-
-        #set cmd range
-        self.setCmdRange(firstCmd, cmdLength, dept)
-        
-    def setDataCmdRangeAndMerge(self, firstCmd = 0, cmdLength = None, count = 2):
-        pass #TODO same of previous but merge in place of split
-            #the whole data merged will have the same cmd range
 
 ### DATA special meth (data of the top item on the stack) ###
     
@@ -389,14 +390,14 @@ class engineV3(object):
         data = self.stack[-1][0]
         
         #valid offset ?
-        if offset >= len(data) or offset < 0:
+        if offset >= len(data) or offset < (-1)*len(data): #allow offset with minus
             raise executionException("(engine) removeData, offset out of bound, the offset <"+str(offset)+"> can be reach because the data length is <"+str(len(data))+">")
         
         #remove the data
         del data[offset]
         
         #set the current cmd index to startIndex -1 (the minus 1 is because the engine will make a plus 1 to execute the next command)
-        if resetSubCmdIndexIfOffsetZero:
+        if resetSubCmdIndexIfOffsetZero and (offset == 0 or (len(data) == 0 and offset == -1)):
             start, end = self.getCurrentItemSubCmdLimit()
             self.stack[-1][1][-1] = start - 1
     
