@@ -150,6 +150,12 @@ class engineV3(object):
             
         cmd.reset()
         self.cmdList.append(cmd)
+        
+    def isCurrentRootCommand(self)
+        if self.isEmptyStack(): 
+            raise executionException("(engine) isCurrentRootCommand, no item on the stack")
+            
+        return len(self.stack[-1][1]) == 1
     
 ### COMMAND ultra ultra special meth ###
     
@@ -191,7 +197,7 @@ class engineV3(object):
         #set cmd range
         self.setCmdRange(firstCmd, cmdLength, dept)
         
-    def setDataCmdRangeAndMerge(self, firstCmd = 0, cmdLength = None, count = 2):
+    def setDataCmdRangeAndMerge(self, firstCmd = 0, cmdLength = None, MergeCount = 2):
         pass #TODO same of previous but merge in place of split
             #the whole data merged will have the same cmd range
 
