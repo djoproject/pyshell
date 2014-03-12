@@ -255,9 +255,9 @@ class EngineTest(unittest.TestCase):
         e = engineV3([self.mc])
         
         #default limit
-        (low,hight) = e.getCurrentItemSubCmdLimit()
+        (low,hight) = e.getEffectiveCurrentItemSubCmdLimit()
         self.assertEqual(low,0)
-        self.assertEqual(hight,0)
+        self.assertEqual(hight,None)
     
         #test fixed limit
         self.mc.addProcess(noneFun,noneFun,noneFun)
@@ -271,13 +271,15 @@ class EngineTest(unittest.TestCase):
         e.stack[-1][1][-1] = 2
         e.setCmdRange(2,3)
         
-        (low,hight) = e.getCurrentItemSubCmdLimit()
+        (low,hight) = e.getEffectiveCurrentItemSubCmdLimit()
         self.assertEqual(low,2)
-        self.assertEqual(hight,4)
+        self.assertEqual(hight,2)
     
         #empty stack test
         e.stack = []
-        self.assertRaises(executionException,e.getCurrentItemSubCmdLimit)
+        self.assertRaises(executionException,e.getEffectiveCurrentItemSubCmdLimit)
+    
+		#TODO make more test about the new raised exceptions
     
     #getEnv
     def test_GetEnv(self):

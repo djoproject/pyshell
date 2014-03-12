@@ -398,7 +398,7 @@ class EngineCoreTest(unittest.TestCase):
         engine.addData(2,1)
         engine.addData(3,2)
         engine.skipNextCommandOnTheCurrentData() #the next command will raise an exception otherwise
-        engine.setCmdRange(1,1)
+        engine.setCmdRange(1,2)
         engine.execute()
         
         self.assertIs(self.preCount[0],0)
