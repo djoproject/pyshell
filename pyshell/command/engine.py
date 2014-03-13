@@ -1,6 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+### STACK PROPERTIES ###
+	#
+
+
 from command import MultiOutput, MultiCommand
 from exception import *
 
@@ -26,6 +30,25 @@ DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
+
+def _equalPath(path1,path2):
+	sameLength    = True
+	equals        = True
+	 = None
+	if len(path1) != len(path2):
+		sameLength = False
+		equals     = False
+	
+	equalsCount = 0
+	for i in range(0, min(len(path1), len(path2))):
+		if path1[i] != path2[i]:
+			equals = False
+			path1IsHigher = path1[i] > path2[i]
+			break
+			
+		equalsCount += 1 
+	
+	return equals, sameLength, equalsCount, path1IsHigher
 
 class engineStack(List):		
 	def push(self, data, cmdPath, instructionType):
@@ -111,14 +134,62 @@ class engineV3(object):
             #currently the command limit are stored on the stack, they could be stored in the command itself
         #a command can occur at several level of the stack, or even later and it't quite difficult to manage these command with this structure
         
-    #IDEA
-        #only allow theses actions on the first command of the list ?
-            #because its initial state is always stack[0]
-                #and even splitted, they will be next to each other, from stack[0] to stack[n]
-        
-        #reuse the existing command on the data bunch
 
-	def injectData(self, data, cmdPath, startIndex = 0, endIndex = None):			
+	def findIndexToInject(self, cmdPath, processType, startIndex = 0, endIndex = None):
+		#check processType, must be pre/pro/post
+		if processType != PREPROCESS_INSTRUCTION and processType != PROCESS_INSTRUCTION and processType != POSTPROCESS_INSTRUCTION:
+			raise executionException("(engine) findIndexToInject, unknown process type : "+str(processType)) 
+		
+		#if PROCESS_INSTRUCTION, only some path is allowed
+		if processType == PROCESS_INSTRUCTION and if len(cmdPath) != len(self.cmdList)-1:
+			raise executionException("(engine) findIndexToInject, can only insert data to the process of the last command") 
+
+		#check command path
+		if len(cmdPath) > len(self.cmdList) or len(cmdPath) == 0:
+			raise executionException("(engine) findIndexToInject, ") #TODO
+
+		
+		for i in range(0,len(cmdPath)):
+			if cmdPath[i] < 0 or cmdPath[i] >= len(self.cmdList[i]):
+				raise executionException("(engine) findIndexToInject,") #TODO
+			
+		#check stack size
+		stackLength = self.stack.size()
+		if stackLength == 0:
+			return None, 0
+		
+		#find the place to start the lookup
+		if processType != POSTPROCESS_INSTRUCTION:
+			#index will store the higher element of asked type, or the last of one of the previous type
+			index = stackLength - 1
+			for i in range(0, stackLength):
+				index = stackLength - i - 1
+			
+				if self.stack[index][2] == POSTPROCESS_INSTRUCTION or (self.stack[index][2] == PROCESS_INSTRUCTION and processType == PREPROCESS_INSTRUCTION):
+					continue
+					
+				break
+				
+		else: #POSTPROCESS_INSTRUCTION
+			if self.stack[-1][2] != POSTPROCESS_INSTRUCTION:
+				return None, stackLength
+		
+		#lookup
+		while index >= 0 and self.stack[index][2] == processType:
+			equals, sameLength, equalsCount, path1IsHigher = _equalPath(self.stack[index][1], cmdPath)
+			if equals:
+				return self.stack[index], index
+				
+			if path1IsHigher:
+				return None, index+1
+			
+			#TODO manage cmd bound for pre
+			
+			index -= 1 
+			
+		return None, index+1
+		 
+	def injectData(self, data, cmdPath, processType, startIndex = 0, endIndex = None):			
 		#Don't care if the stack is empty or not
 		#find THE place to insert these data, there is always only one place to insert data
 			#or find an existing data bunch that corresponds to the args
@@ -130,6 +201,15 @@ class engineV3(object):
             currentStackItem = self.stack[length - 1 - i]
 		
 			#TODO
+			
+		#TODO
+			#create a set of method to:
+				#insert from post to pre
+				#insert from pro to pre
+				#...
+			#create a method to append data only
+			#manage stack insertion by the core after an injectData
+				#maybe the place of the last data is not at the top of the stack 
 	
 ### COMMAND special meth ###
 
@@ -143,14 +223,24 @@ class engineV3(object):
     
     def skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
         #TODO set a command limit on this data bunch
+			#store a disable map on the databunch
+			#that implies do replace the limit system...
+				#because this system will be powerfull as the limit system
+				#but also slower
+					#not if we use an array stored in the stack
         
         #TODO no cmd limit must be already set
+			#obsolete
     
         pass #TODO
         
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         #TODO remove temporarly the command from the multiCommand parent object
-    
+			#manage a map inside of the MultiCommand
+				#with the enabled/disabled command
+				#enable each command on reset
+				#check in the engine if the command is enabled
+			
         #XXX what are the implication of this ?
     
         pass #TODO
@@ -190,7 +280,9 @@ class engineV3(object):
     def addCommand(self, cmd):
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
             raise executionInitException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
-            
+		
+		#TODO what about the process that are waiting in the stack, they are not root anymore...
+		
         cmd.reset()
         self.cmdList.append(cmd)
         
