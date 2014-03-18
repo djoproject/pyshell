@@ -98,7 +98,7 @@ class MultiCommand(list):
             if self.usageBuilder == None and hasattr(postProcess, "checker"):
                 self.usageBuilder = postProcess.checker
         
-        self.append( (c,useArgs,) )
+        self.append( (c,useArgs,True,) )
     
     def addStaticCommand(self, cmd, useArgs = True):
         #cmd must be an instance of Command
@@ -114,7 +114,7 @@ class MultiCommand(list):
             self.usageBuilder = cmd.preProcess.checker
     
         #add the command
-        self.append( (cmd,useArgs,) )
+        self.append( (cmd,useArgs,True,) )
     
     def usage(self):
         if self.usageBuilder == None :
@@ -137,12 +137,13 @@ class MultiCommand(list):
         self.preCount = self.proCount = self.postCount = 0
         
         #reset every sub command
-        for c,a in self:
+        for i in range(0,len(self)):
+			c,a,e = self[i]
             c.preCount  = 0 #this counter is used to prevent an infinite execution of the pre process
             c.proCount  = 0 #this counter is used to prevent an infinite execution of the process
             c.postCount = 0 #this counter is used to prevent an infinite execution of the post process
-        
-            c.reset()    
+            c.reset()
+            self[i] = (c,a,True,)  
 
     def setArgs(self, args):
         if isinstance(args, MultiOutput):
@@ -156,7 +157,7 @@ class MultiCommand(list):
     def flushArgs(self):
         self.args = None
 
-    def addDynamicCommand(self,c,onlyAddOnce=True, useArgs = True):
+    def addDynamicCommand(self,c,onlyAddOnce=True, useArgs = True, enabled = True):
         #cmd must be an instance of Command
         if not isinstance(c, Command):
             raise commandException("(MultiCommand) addDynamicCommand, try to insert a non command object")
@@ -169,9 +170,23 @@ class MultiCommand(list):
         self.onlyOnceDict[h] = True
         
         #add the command
-        self.append( (c,useArgs,) )
+        self.append( (c,useArgs,enabled,) )
         self.dymamicCount += 1
-
+        
+	def disableCmd(self, index):
+		if index < 0 or index >= len(self):
+			raise commandException("(MultiCommand) disableCmd, invalid index")
+        
+        c,a,e = self[index]
+        self[index] = (c, a, False,)
+        
+	def enableCmd(self, index):
+		if index < 0 or index >= len(self):
+			raise commandException("(MultiCommand) disableCmd, invalid index")
+        
+        c,a,e = self[index]
+        self[index] = (c, a, True,)
+        
 #
 # special command class, with only one command (the starting point)
 #
