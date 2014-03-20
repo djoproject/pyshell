@@ -473,7 +473,7 @@ class engineV3(object):
     def mergeDataOnStack(self, count = 2, depthOfTheMapToKeep = None):
         #need at least two item to merge
         if count < 1:
-            return #no need to merge
+            return False#no need to merge
         
         #the stack need to hold at least count
         if self.stack.size() < count:
@@ -487,10 +487,10 @@ class engineV3(object):
         if actionToExecute != PREPROCESS_INSTRUCTION:
 			raise executionException("(engine) mergeDataOnStack, try to merge a not preprocess action")
         
-        #TODO check dept and get map
+        #check dept and get map
         if depthOfTheMapToKeep != None:
-			#TODO is a valid depth ?
-			if depthOfTheMapToKeep < 0 or depthOfTheMapToKeep > count-1
+			if depthOfTheMapToKeep < 0 or depthOfTheMapToKeep > count-1:
+			    raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
 			
 			#set the valid map
 			enablingMap = self.stack.enablingMapOnDepth(depthOfTheMapToKeep)
@@ -520,7 +520,7 @@ class engineV3(object):
             dataBunch.extend(data)
         
 		self.stack.push(dataBunch, pathOnTop, actionToExecute, enablingMap)
-
+        return True
 		"""def _checkCmdRange(self, currentCmdLength, startIndex = 0, endIndex = None):
 		#Check endIndex
         if endIndex != None:
@@ -585,16 +585,16 @@ class engineV3(object):
         #is it a pre ? (?)
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) splitData, can't split the data of a PRO/POST process because it will not change anything on the execution")
-
+        
         topdata = self.stack.dataOnTop()
         #split point exist ?
         if splitAtDataIndex < 0 or splitAtDataIndex > (len(topdata)-1):
             raise executionException("(engine) splitData, split index out of bound")
-
+        
         #has enought data to split ?
         if len(topdata) < 2 or splitAtDataIndex == 0:
             return False
-
+        
         #split, pop, then push the two new items
         top = self.stack.pop()
         path = top[1][:]
@@ -865,5 +865,5 @@ class engineV3(object):
 			for j in range(0, len(self.cmdList[i])):
 				c,a,e = self.cmdList[i][j]
 				print "    SubCommand <"+str(j)+"> (useArgs="+str(a)+", enabled="+str(e)+")"
-	
-	
+        
+
