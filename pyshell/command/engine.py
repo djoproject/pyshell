@@ -102,7 +102,7 @@ class engineStack(List):
 	### TOP meth ###
 	def top(self):
 		return self[-1]
-
+	
 	def dataOnTop(self):
 		return self[-1][0]
 		
@@ -120,6 +120,53 @@ class engineStack(List):
 		
 	def getCmdOnTop(self):
 		return self.engine.cmdList[len(self[-1][1])-1]
+	
+	### INDEX meth ###
+	def dataOnIndex(self, index):
+		return self[index][0]
+		
+	def pathOnIndex(self, index):
+		return self[index][1]
+		
+	def typeOnIndex(self, index):
+		return self[index][2]
+		
+	def enablingMapOnIndex(self, index):
+		return self[index][3]
+		
+	def cmdIndexOnIndex(self, index):
+		return len(self[index][0]) - 1
+		
+	def getCmdOnIndex(self, index):
+		return self.engine.cmdList[len(self[index][1])-1]
+	
+	def getIndexBasedXRange(self):
+		return xrange(0,len(self),1)
+	
+	### DEPTh meth ###
+	def itemOnDepth(self, depth)
+		return self[len(self)-1-depth]
+	
+	def dataOnDepth(self, depth):
+		return self[len(self)-1-depth][0]
+		
+	def pathOnDepth(self, depth):
+		return self[len(self)-1-depth][1]
+		
+	def typeOnDepth(self, depth):
+		return self[len(self)-1-depth][2]
+		
+	def enablingMapOnDepth(self, depth):
+		return self[len(self)-1-depth][3]
+		
+	def cmdIndexOnDepth(self, depth):
+		return len(self[len(self)-1-depth][0]) - 1
+		
+	def getCmdOnDepth(self, depth):
+		return self.engine.cmdList[len(self[len(self)-1-depth][1])-1]
+	
+	#TODO make these data access method for
+		#make some generator
 	
 	### MISC meth ###
 	def getCmdLength(indexOnStack):
@@ -242,9 +289,14 @@ class engineV3(object):
 		
 		#TODO
 			#create a set of method to:
+				#insert from post to pro
 				#insert from post to pre
 				#insert from pro to pre
 				#...
+				
+				#be able to choose the path where insert
+				#be able to insert in the next 
+				
 			#create a method to append data only
 			#manage stack insertion by the core after an injectData
 				#maybe the place of the last data is not at the top of the stack 
@@ -418,7 +470,7 @@ class engineV3(object):
 		#merge and use a given map
 		#...
 
-    def mergeDataOnStack(self, count = 2, resetEnablingMap = True, keepFirstMap = False):
+    def mergeDataOnStack(self, count = 2, depthOfTheMapToKeep = None):
         #need at least two item to merge
         if count < 1:
             return #no need to merge
@@ -431,23 +483,35 @@ class engineV3(object):
         pathOnTop = self.stack.pathOnTop()
         actionToExecute = self.stack.typeOnTop()
         
-        #TODO can only merge on PREPROCESS
+        #can only merge on PREPROCESS
+        if actionToExecute != PREPROCESS_INSTRUCTION:
+			raise executionException("(engine) mergeDataOnStack, try to merge a not preprocess action")
         
-        for i in range(1,count):
-            currentStackItem = self.stack[len(self.stack) - 1 - i]
+        #TODO check dept and get map
+        if depthOfTheMapToKeep != None:
+			#TODO is a valid depth ?
+			if depthOfTheMapToKeep < 0 or depthOfTheMapToKeep > count-1
+			
+			#set the valid map
+			enablingMap = self.stack.enablingMapOnDepth(depthOfTheMapToKeep)
+        else:
+			enablingMap = None
+
+        for depth in range(1,count):
+            currentStackItem = self.stack.itemOnDepth(i)
 
             #the path must be the same for each item to merge
                 #execpt for the last command, the items not at the top of the stack must have 0 or the cmdStartLimit
             if len(currentStackItem[1]) != len(pathOnTop):
-                raise executionException("(engine) mergeDataOnStack, the command path is different for the item "+str(i))
+                raise executionException("(engine) mergeDataOnStack, the command path is different for the item at depth <"+str(depth)+">")
             
             for j in range(0,len(pathOnTop)-1):
-                if currentStackItem[1][i] != pathOnTop[i]:
-                    raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item "+str(i))
+                if currentStackItem[1][j] != pathOnTop[j]:
+                    raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at index <"+str(j)+">")
             
             #the action must be the same type
             if currentStackItem[2] != actionToExecute:
-                raise executionException("(engine) mergeDataOnStack, the action of the item "+str(i)+"is different of the action ot the top item 0")
+                raise executionException("(engine) mergeDataOnStack, the action of the item at depth <"+str(depth)+"> is different of the action ot the top item 0")
 
         #merge data and keep start/end command
         dataBunch = MultiOutput()
@@ -455,9 +519,7 @@ class engineV3(object):
             data = self.stack.pop()
             dataBunch.extend(data)
         
-        #TODO map managing
-        
-		self.stack.push(dataBunch, pathOnTop, actionToExecute)
+		self.stack.push(dataBunch, pathOnTop, actionToExecute, enablingMap)
 
 		"""def _checkCmdRange(self, currentCmdLength, startIndex = 0, endIndex = None):
 		#Check endIndex
@@ -785,7 +847,7 @@ class engineV3(object):
         return info
 
     def printStack(self):
-        for i in range(0,self.stack.size()):
+        for i in range(self.stack.size()-1, -1, -1):
             cmdEnabled = self.stack[i][3]
             if cmdEnabled == None:
 				cmdEnabled = "(disabled)"
