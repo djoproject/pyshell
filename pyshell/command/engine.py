@@ -11,24 +11,9 @@ from exception import *
 #TODO
     #voir les notes dans le fichier TODO
     #be able to split/merge anywhere on the stack, not only on the top
-
-### TODO Command Special Meth With Abstraction TODO ###
-    #okay so the problem is, we want to be able to 
-        #add more subcommand
-            #can occur everywhere, the command will execute the remaining data in the bound of the existing limit
-        
-        #add more data
-            #to what ? next command ? next subcommand ?
-            #how to insert data to a specific command that does not have any data on stack
-                #explore the stack and insert a a right place
-                #be able to insert to a specific command
-                #be able to insert to a range of specific command
-                    #include : be able to insert to a specific subcommand
-                    
-        #skip a sub command
-            #define the scope of the skipping
-            
-        #...
+    #eviter de redefinir directement des items sur la stack ou dans les command
+        #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
+    #la pile ne devrait pas avoir une reference vers engine
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -54,7 +39,6 @@ def _equalPath(path1,path2):
     
     return equals, sameLength, equalsCount, path1IsHigher
 
-#TODO use it everywhere !!!!!!!!!!!!!!!
 def _isAValidIndex(li, index, listSize, cmdName = None, listName = None):
     try:
         noop = li[index]
@@ -67,7 +51,10 @@ def _isAValidIndex(li, index, listSize, cmdName = None, listName = None):
         
         raise executionException("(engine) "+cmdName+"list index out of range"+listName)
 
-class engineStack(List):        
+class engineStack(List):
+    def __init__(self, engine):
+        self.engine = engine
+
     def push(self, data, cmdPath, instructionType, cmdMap = None):
         self.append([(data, cmdPath, instructionType,cmdMap) ])
         
@@ -77,12 +64,6 @@ class engineStack(List):
                 raise executionException("(engine) engineStack, no item on the stack")
             else:
                 raise executionException("(engine) "+cmdName+", no item on the stack")
-    
-    def raiseIfInvalidIndex(self, index, methName = None):
-        pass #TODO
-        
-    def raiseIfInvalidDepth(self, depth, methName = None):
-        pass #TODO
     
     ### SIZE meth ###
     def size(self):
@@ -111,7 +92,7 @@ class engineStack(List):
         return self[-1][3]
         
     def cmdIndexOnTop(self):
-        return len(self[-1][0]) - 1
+        return len(self[-1][1]) - 1
         
     def getCmdOnTop(self):
         return self.engine.cmdList[len(self[-1][1])-1]
@@ -133,13 +114,16 @@ class engineStack(List):
         return self[index][3]
         
     def cmdIndexOnIndex(self, index):
-        return len(self[index][0]) - 1
+        return len(self[index][1]) - 1
         
     def getCmdOnIndex(self, index):
         return self.engine.cmdList[len(self[index][1])-1]
     
     def getIndexBasedXRange(self):
         return xrange(0,len(self),1)
+
+    def subCmdLengthOnIndex(self, index):
+        return len(self.engine.cmdList[len(self[index][1])-1])
     
     ### DEPTh meth ###
     def itemOnDepth(self, depth)
@@ -158,7 +142,7 @@ class engineStack(List):
         return self[len(self)-1-depth][3]
         
     def cmdIndexOnDepth(self, depth):
-        return len(self[len(self)-1-depth][0]) - 1
+        return len(self[len(self)-1-depth][1]) - 1
         
     def getCmdOnDepth(self, depth):
         return self.engine.cmdList[len(self[len(self)-1-depth][1])-1]
@@ -198,14 +182,12 @@ class engineV3(object):
         else:
             raise executionInitException("(engine) init, env must be a dictionnary or None, got <"+str(type(env))+">")
 
-        #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
-        self.stack        = engineStack()
-        self.stack.engine = self #TODO move to the constructor of stack
-        self.stack.push([None], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
-        self._isInProcess = False
+        self.stack          = engineStack(self)
+        self._isInProcess   = False
+        self.selfkillreason = None 
 
-    def disableEnablingMap(self,dept=0):
-        pass #TODO
+        #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
+        self.stack.push([None], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
 
     def findIndexToInject(self, cmdPath, processType, startIndex = 0, endIndex = None):
         #check processType, must be pre/pro/post
@@ -217,10 +199,10 @@ class engineV3(object):
             raise executionException("(engine) findIndexToInject, can only insert data to the process of the last command") 
 
         #check command path
-        self._checkCmdListIndex(len(cmdPath)-1, "findIndexToInject")
+        _isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
         
         for i in range(0,len(cmdPath)):
-            self._checkSubCmdListIndex(i, cmdPath[i], "findIndexToInject")
+            _isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
             
         #check stack size
         stackLength = self.stack.size()
@@ -286,7 +268,6 @@ class engineV3(object):
                 #maybe the place of the last data is not at the top of the stack 
     
 ### COMMAND special meth ###
-
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
@@ -294,58 +275,78 @@ class engineV3(object):
             raise executionException("(engine) skipNextCommandOnTheCurrentData, can only skip method on PREPROCESS item")
         
         self.stack[-1][1][-1] += skipCount
-        
-        #TODO must skip only the enabled cmd ?
-    
+
     def skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
-        #TODO set a command limit on this data bunch
-            #store a disable map on the databunch
-            #that implies do replace the limit system...
-                #because this system will be powerfull as the limit system
-                #but also slower
-                    #not if we use an array stored in the stack
-        
-        #TODO no cmd limit must be already set
-            #obsolete
+        self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
+        currentCmdID = self.stack.pathOnTop()[-1]
     
-        pass #TODO
+        enablingMap = self.stack.enablingMapOnTop()
+
+        if enablingMap = None:
+            enablingMap = [True] * self.stack.subCmdLengthOnTop()
+
+        for i in xrange(currentCmdID+1, min(currentCmdID+1+skipCount, len(enablingMap)))
+            if not enablingMap[i]:
+                continue
+
+            enablingMap[i] = False
+
+        item = self.stack[-1]
+        self.stack[-1] = (item[0], item[1], item[2], enablingMap,)
         
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
-        #TODO remove temporarly the command from the multiCommand parent object
-            #manage a map inside of the MultiCommand
-                #with the enabled/disabled command
-                #enable each command on reset
-                #check in the engine if the command is enabled
-            
-        #XXX what are the implication of this ?
+        self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
+        cmdID        = self.stack.cmdIndexOnTop()
+        _isAValidIndex(self.cmdList, cmdID,"skipNextSubCommandForTheEntireExecution", "command list")
+        currentCmdID = self.stack.pathOnTop()[-1]
+
+        for i in xrange(currentCmdID+1, min(len(self.cmdList[cmdID]),  currentCmdID+1+skipCount)):
+            c,u,e = self.cmdList[cmdID][i]
+
+            #already disabled ?
+            if not e:
+                continue
+
+            self.cmdList[cmdID][i] = (c,u,False,)
     
-        pass #TODO
-    
-        
+    def disableEnablingMapOnDataBunch(self,dept=0):
+        index = self.stack.size() - 1 - dept
+        _isAValidIndex(self.stack, index,"disableEnablingMapOnDataBunch", "stack")
+        mapping = self.stack.enablingMapOnDepth(dept)
+
+        if mapping != None:
+            self.stack[index] = (self.stack[index][0],self.stack[index][1],self.stack[index][2],None,)
+
     def enableSubCommandInCurrentDataBunchMap(self, indexSubCmd):
         self.stack.raiseIfEmpty("enableSubCommandInCurrentDataBunchMap")
         self._setStateSubCmdInDataBunch(-1,indexSubCmd, True)
-        
+    
     def enableSubCommandInCommandMap(self, indexCmd, indexSubCmd):
         self._setStateSubCmdInCmd(indexCmd, indexSubCmd, True)
-    
         
     def disableSubCommandInCurrentDataBunchMap(self, indexSubCmd):
         self.stack.raiseIfEmpty("enableSubCommandInCurrentDataBunchMap")
         self._setStateSubCmdInDataBunch(-1,indexSubCmd, False)
-        
+    
     def disableSubCommandInCommandMap(self, indexCmd, indexSubCmd):
         self._setStateSubCmdInCmd(indexCmd, indexSubCmd, False)
         
-        
     def _setStateSubCmdInCmd(self,cmdIndex, subCmdIndex, value):
-        self._checkCmdListIndex(cmdIndex, "_setStateSubCmdInCmd")
-        self._checkSubCmdListIndex(cmdIndex, subCmdIndex, "_setStateSubCmdInCmd")
+        _isAValidIndex(self.cmdList, cmdIndex,"_setStateSubCmdInCmd", "command list")
+        _isAValidIndex(self.cmdList[cmdIndex], subCmdIndex,"_setStateSubCmdInCmd", "sub command list")
         current = self.cmdList[cmdIndex]
         self.cmdList[cmdIndex] = (current[0], current[1], value)
         
-    def _setStateSubCmdInDataBunch(self, dataBunchIndex, subCmdIndex, value)
-        pass #TODO
+    def _setStateSubCmdInDataBunch(self, dataBunchIndex, subCmdIndex, value):
+        _isAValidIndex(self.stack, dataBunchIndex,"_setStateSubCmdInDataBunch", "stack")
+        enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
+
+        if enablingMap == None:
+            enablingMap = [True] * self.stack.subCmdLengthOnIndex(dataBunchIndex)
+            self.stack[dataBunchIndex] = (self.stack[dataBunchIndex][0], self.stack[dataBunchIndex][1],self.stack[dataBunchIndex][2],enablingMap,)
+
+        _isAValidIndex(enablingMap, subCmdIndex,"_setStateSubCmdInDataBunch", "enabling mapping on data bunch")
+        enablingMap[subCmdIndex] = value
     
     def flushArgs(self, index=None): #None index means current command
         if index == None:
@@ -354,10 +355,10 @@ class engineV3(object):
         else:
             cmdID = index
         
-        self._checkCmdListIndex(cmdID, "flushArgs")
+        _isAValidIndex(self.cmdList, cmdID,"flushArgs", "command list")
         self.cmdList[cmdID].flushArgs()
     
-    def addSubCommand(self, cmdID = None, onlyAddOnce = True, useArgs = True):        
+    def addSubCommand(self, cmdID = None, onlyAddOnce = True, useArgs = True):
         #compute the current command index where the sub command will be insert, check the cmd path on the stack
         if cmdID == None:
             self.stack.raiseIfEmpty("addSubCommand")
@@ -390,6 +391,9 @@ class engineV3(object):
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
             raise executionInitException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
         
+        #The process (!= pre and != post), must always be the process of the last command in the list
+        #if we add a new command, the existing process on the stack became invalid
+
         #if there are not top item with process type
         if convertProcessToPreProcess:
             #convert the existing process on the stack into preprocess of the new command
@@ -409,7 +413,6 @@ class engineV3(object):
             #if the top item is a process type with more than one data
             if self.stack.typeOnTop() == PROCESS_INSTRUCTION and len(self.stack.dataOnTop()) > 1:
                 raise executionInitException("(engine) addCommand, the current process type is pro and has at least 1 execution remaining, can not add a new command")
-                
             
             for i in range(1,count):
                 currentStackItem = self.stack[len(self.stack) - 1 - i]
@@ -605,25 +608,12 @@ class engineV3(object):
         return len(self.stack.dataOnTop())
 
 ### VARIOUS meth ###
-
-    def _checkCmdListIndex(self, index, methName = None):
-        if cmdID >= len(self.cmdList) or cmdID < 0:
-            if methName != None:
-                methName += ", "
-            
-            raise executionException("(engine) "+methName+"invalid command index")
     
-    def _checkSubCmdListIndex(self, cmdIndex, subCmdIndex, methName = None):
-        if subCmdIndex < 0 or subCmdIndex >= len(self.cmdList[cmdIndex]):
-            if methName != None:
-                methName += ", "
-                
-            raise executionException("(engine) "+methName+"invalid sub command index on command <"+str(cmdIndex)+">")
-
     def getEnv(self):
         return self.env
     
 ### ENGINE meth ###
+    
     def execute(self):
         #consume stack
         while self.stack.size() != 0: #while there is some item into the stack
@@ -668,6 +658,10 @@ class engineV3(object):
             else:
                 raise executionException("(engine) execute, unknwon process command <"+str(insType)+">")
         
+            if self.selfkillreason != None:
+                reason,abnormal = self.selfkillreason
+                raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
+
             if subcmd.preCount > DEFAULT_EXECUTION_LIMIT or subcmd.proCount > DEFAULT_EXECUTION_LIMIT or subcmd.postCount > DEFAULT_EXECUTION_LIMIT :
                 raise executionException("(engine) execute, this subcommand reach the execution limit count")
             
@@ -750,8 +744,17 @@ class engineV3(object):
 
         return r
     
-    def stopExecution(self,afterThisProcess = True, abnormal = False):
-        pass #TODO
+    def stopExecution(self, reason = None,afterThisProcess = True, abnormal = False):
+        if not self._isInProcess:
+            raise executionException("(engine) stopExecution, can not execute this method outside of a process")
+
+        if reason == None:
+            reason = "unknown"
+
+        if not afterThisProcess:
+            raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
+        else:
+            self.selfkillreason = (reason,abnormal,)
         
 ### DEBUG meth ###
     
@@ -785,16 +788,47 @@ class engineV3(object):
             
             print "#["+str(i)+"] data=", self.stack[i][0], ", path=", self.stack[i][1], ", action=",self.stack[i][2], ", cmd enabled=",cmdEnabled
     
-    
     def printCmdList(self):
         if len(self.cmdList) == 0:
             print "no command in the engine"
             return
         
         for i in range(0, len(self.cmdList)):
-            print "Command <"+str(i)+">"
+            print "Command <"+str(i)+"> "+self.cmdList[i].name
             for j in range(0, len(self.cmdList[i])):
                 c,a,e = self.cmdList[i][j]
                 print "    SubCommand <"+str(j)+"> (useArgs="+str(a)+", enabled="+str(e)+")"
-        
+    
+    def printCmdPath(self, path = None):
+        if len(self.cmdList) == 0:
+            print "no command in the engine"
+            return
+
+        if path == None:
+            if self.stack.isEmpty():
+                print "no item on the stack, and so no path available"
+
+            path = self.stack.pathOnTop()
+
+        for i in range(0, len(topPath)):
+            if i >= len(self.cmdList):
+                print "#["+str(i)+"] out of bound index"
+                continue
+
+            if topPath[i] < 0 or topPath[i] >= len(self.cmdList[i]):
+                print "#["+str(i)+"] out of bound index in the command"
+                continue
+
+            if len(self.cmdList[i]) == 1:
+                print "#["+str(i)+"]"+self.cmdList[i].name
+                continue
+
+            print "#["+str(i)+"]"+self.cmdList[i].name+" (sub="+str(topPath[i])+")"
+
+
+
+
+            
+
+
 
