@@ -189,30 +189,23 @@ class engineV3(object):
         #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
         self.stack.push([None], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
 
-    def findIndexToInject(self, cmdPath, processType, startIndex = 0, endIndex = None):
+    def _getTheIndexWhereToStartTheSearch(self,processType):
         #check processType, must be pre/pro/post
         if processType != PREPROCESS_INSTRUCTION and processType != PROCESS_INSTRUCTION and processType != POSTPROCESS_INSTRUCTION:
-            raise executionException("(engine) findIndexToInject, unknown process type : "+str(processType)) 
-        
-        #if PROCESS_INSTRUCTION, only root path are allowed
-        if processType == PROCESS_INSTRUCTION and if len(cmdPath) != len(self.cmdList)-1:
-            raise executionException("(engine) findIndexToInject, can only insert data to the process of the last command") 
-
-        #check command path
-        _isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
-        
-        for i in range(0,len(cmdPath)):
-            _isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
-            
+            raise executionException("(engine) _getTheIndexWhereToStartTheSearch, unknown process type : "+str(processType)) 
+                    
         #check stack size
         stackLength = self.stack.size()
+
+        #if stack is empty, the new data can be directly inserted
         if stackLength == 0:
-            return None, 0
+            return 0
+        
+        #index will store the higher element of asked type, or the last of one of the previous type
+        index = stackLength - 1
         
         #find the place to start the lookup
         if processType != POSTPROCESS_INSTRUCTION:
-            #index will store the higher element of asked type, or the last of one of the previous type
-            index = stackLength - 1
             for i in range(0, stackLength):
                 index = stackLength - i - 1
             
@@ -223,49 +216,110 @@ class engineV3(object):
                 
         else: #POSTPROCESS_INSTRUCTION
             if self.stack[-1][2] != POSTPROCESS_INSTRUCTION:
-                return None, stackLength
+                return stackLength
+
+    def _findIndexToInjectPre(self, cmdPath):
+        #check command path
+        _isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
+        
+        for i in range(0,len(cmdPath)):
+            _isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
+
+        index = self._getTheIndexWhereToStartTheSearch(PREPROCESS_INSTRUCTION)
         
         #lookup
-        while index >= 0 and self.stack[index][2] == processType:
+        while index >= 0:
             equals, sameLength, equalsCount, path1IsHigher = _equalPath(self.stack[index][1], cmdPath)
-            if equals:
+            if equals or (sameLength and equalsCount == len(cmdPath)-1):
+                #TODO build a list of potential candidate
+
                 return self.stack[index], index
-                
+            
             if path1IsHigher:
                 return None, index+1
             
-            #TODO manage cmd bound for pre
+            index -= 1 
+            
+        return None, index+1
+
+    def _findIndexToInjectProOrPost(self, cmdPath, processType):
+        if processType == PREPROCESS_INSTRUCTION:
+            raise executionException("(engine) _findIndexToInjectProOrPost, can't use preprocess with this function, use _findIndexToInjectPre instead")
+
+        #if PROCESS_INSTRUCTION, only root path are allowed
+        if processType == PROCESS_INSTRUCTION and if len(cmdPath) != len(self.cmdList):
+            raise executionException("(engine) _findIndexToInjectProOrPost, can only insert data to the process of the last command") 
+
+        #check command path
+        _isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
+        
+        for i in range(0,len(cmdPath)):
+            _isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
+
+        index = self._getTheIndexWhereToStartTheSearch(processType)
+       
+        #lookup
+        while index >= 0 and self.stack[index][2] == processType:
+            equals, sameLength, equalsCount, path1IsHigher = _equalPath(self.stack[index][1], cmdPath)
+
+            if equals:
+                return self.stack[index], index
+            
+            if path1IsHigher:
+                return None, index+1
             
             index -= 1 
             
         return None, index+1
     
-    def injectData(self, data, cmdPath, processType, startIndex = 0, endIndex = None):          
+
+    #TODO prblm
+        #il y a une difference entre l'insertion dans une post/pro par rapport a l'insertion dans une pre
+            #pour une pre, on peut viser une sous commande particuliere, ou un ensemble de sous commande particulire
+            #tandis que pour le pro/pos, on peut uniquement cibler une sous commande particulière
+
+        #Donc on doit bien faire la difference entre 
+            #l'insertion en pre pour toutes les sous commandes d'une commande (ce qui est trivial à faire)
+            #l'insertion en pre pour une sous commande precise
+
+    def injectData(self, data, cmdPath, processType, onlyAppend = False):          
         #Don't care if the stack is empty or not
         #find THE place to insert these data, there is always only one place to insert data
             #or find an existing data bunch that corresponds to the args
         #then inject the data
         
-        #TODO this method must be used in the stack append, or the stack will be unordered
-        length = len(self.stack)
-        for i in xrange(0,length):
-            currentStackItem = self.stack[length - 1 - i]
-        
-        #TODO
-        
-        #TODO
-            #create a set of method to:
-                #insert from post to pro
-                #insert from post to pre
-                #insert from pro to pre
-                #...
-                
-                #be able to choose the path where insert
-                #be able to insert in the next 
-                
-            #create a method to append data only
-            #manage stack insertion by the core after an injectData
+        #find the best place
+        itemOnStack, indexOnStack = self.findIndexToInject(cmdPath, processType)
+
+        #TODO how to manage enablingMap ?
+
+        #TODO insert or append
+
+        #TODO manage stack insertion by the core after an injectData
                 #maybe the place of the last data is not at the top of the stack 
+    
+    def insertDataToPreProcess(self, data):
+        #TODO avant de pouvoir faire cette question il faut bien résoudre le prblm decrit ci dessus.
+
+        #TODO the current process must be pro or pos
+
+        self.injectData(data, self.stack.pathOnTop(),PREPROCESS_INSTRUCTION)
+
+    def insertDataToProcess(self, data):
+        #TODO the current process must be pos
+        #TODO the current process must be on a root path
+
+        self.injectData(data, self.stack.pathOnTop(),PROCESS_INSTRUCTION)
+
+    def insertDataToNextSubCommandPreProcess(self,data):
+        #TODO avant de pouvoir faire cette question il faut bien résoudre le prblm decrit ci dessus.
+
+        #XXX okay, so this data will only be available to the next sibling
+            #need to create a databunch with only this data and the next pre process enabled
+            #but there is another problem, what about the execution order ?
+
+        pass #TODO
+            
     
 ### COMMAND special meth ###
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
@@ -613,7 +667,7 @@ class engineV3(object):
         return self.env
     
 ### ENGINE meth ###
-    
+
     def execute(self):
         #consume stack
         while self.stack.size() != 0: #while there is some item into the stack
