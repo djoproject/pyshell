@@ -282,6 +282,25 @@ class engineV3(object):
             #l'insertion en pre pour toutes les sous commandes d'une commande (ce qui est trivial à faire)
             #l'insertion en pre pour une sous commande precise
 
+        #give a map for the preprocess Insertion and the politics to insert
+            #insert to execute as soon as possible
+            #insert to execute as late as possible
+            #insert to exact place (or raise)(exact mean same path, same map, same...)
+            #...
+
+    def _injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
+        obj, index = self._findIndexToInjectProOrPost(cmdPath, processType)
+        
+        if obj == None:
+            if onlyAppend:
+                #TODO raise
+                
+            
+        
+        
+    def _injectDataProOrPos(self, data, cmdPath, processType, enablingMap = None, onlyAppend = False, state = None):
+        pass #TODO
+
     def injectData(self, data, cmdPath, processType, onlyAppend = False):          
         #Don't care if the stack is empty or not
         #find THE place to insert these data, there is always only one place to insert data
@@ -298,9 +317,11 @@ class engineV3(object):
         #TODO manage stack insertion by the core after an injectData
                 #maybe the place of the last data is not at the top of the stack 
     
+    ###############
+    
     def insertDataToPreProcess(self, data):
         #TODO avant de pouvoir faire cette question il faut bien résoudre le prblm decrit ci dessus.
-
+        #TODO on a besoin de la map d'origine ?
         #TODO the current process must be pro or pos
 
         self.injectData(data, self.stack.pathOnTop(),PREPROCESS_INSTRUCTION)
