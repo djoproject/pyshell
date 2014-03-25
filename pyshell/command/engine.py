@@ -292,13 +292,21 @@ class engineV3(object):
         obj, index = self._findIndexToInjectProOrPost(cmdPath, processType)
         
         if obj == None:
+            #can only append ?
             if onlyAppend:
-                #TODO raise
-                
+                raise executionException("(engine) _injectDataProOrPos, there is no similar item on the stack and the system can only append, not create") 
             
+            #insert a new object
+            self.stack.insert(index, ([data], cmdPath[:], processType, None, ))
+        
+        else:
+            obj[0].append(data)        
+        
+    def _injectDataProOrPos(self, data, cmdPath, processType, enablingMap = None, onlyAppend = False, ExecuteAsSoonAsPossible = False, OnlyInsertInPerfectMatch = False):
+        itemCandidateList = self._findIndexToInjectProOrPost(cmdPath, processType)
         
         
-    def _injectDataProOrPos(self, data, cmdPath, processType, enablingMap = None, onlyAppend = False, state = None):
+        
         pass #TODO
 
     def injectData(self, data, cmdPath, processType, onlyAppend = False):          
@@ -322,6 +330,8 @@ class engineV3(object):
     def insertDataToPreProcess(self, data):
         #TODO avant de pouvoir faire cette question il faut bien résoudre le prblm decrit ci dessus.
         #TODO on a besoin de la map d'origine ?
+            #NON, on vise juste un preprocess precis d'une sous commande precise
+            #TODO doit être inséré en executeAsSoonAsPossible
         #TODO the current process must be pro or pos
 
         self.injectData(data, self.stack.pathOnTop(),PREPROCESS_INSTRUCTION)
