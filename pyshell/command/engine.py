@@ -13,7 +13,11 @@ from exception import *
     #be able to split/merge anywhere on the stack, not only on the top
     #eviter de redefinir directement des items sur la stack ou dans les command
         #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
+        #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
     #la pile ne devrait pas avoir une reference vers engine
+    #check map and path if not done
+        #build a method to check path
+    #need to create stack iterator/generator/... ?
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -23,7 +27,7 @@ POSTPROCESS_INSTRUCTION = 2
 def _equalPath(path1,path2):
     sameLength    = True
     equals        = True
-     = None
+
     if len(path1) != len(path2):
         sameLength = False
         equals     = False
@@ -50,6 +54,38 @@ def _isAValidIndex(li, index, listSize, cmdName = None, listName = None):
             listName = " on list <"+listName+">"
         
         raise executionException("(engine) "+cmdName+"list index out of range"+listName)
+
+def _equalMap(map1,map2):
+    if map1 == None or map2 == None:
+        return True
+
+    if map1 != None and map2 != None:
+        if len(map1) != len(map2):
+            return False
+
+        for i in range(0,len(map2)):
+            if map1[i] != map2[i]:
+                return False
+
+        return True
+    
+    return False
+
+def _isValidMap(emap, expectedLength):
+    if emap == None:
+        return True
+
+    if not isinstance(emap,list):
+        return False
+
+    if len(emap) != expectedLength:
+        return False
+
+    for b in emap:
+        if type(b) != bool:
+            return False
+
+    return True
 
 class engineStack(List):
     def __init__(self, engine):
@@ -153,9 +189,6 @@ class engineStack(List):
     def getCmdOnDepth(self, depth):
         return self.engine.cmdList[len(self[len(self)-1-depth][1])-1]
     
-    #TODO make these data access method for
-        #make some generator
-    
     ### MISC meth ###
     def getCmdLength(indexOnStack):
         return len(self.engine.cmdList[len(self[indexOnStack][1])-1])
@@ -234,13 +267,18 @@ class engineV3(object):
         index = self._getTheIndexWhereToStartTheSearch(PREPROCESS_INSTRUCTION)
         
         #lookup
+        to_ret = None
         while index >= 0:
             equals, sameLength, equalsCount, path1IsHigher = _equalPath(self.stack[index][1], cmdPath)
             if equals or (sameLength and equalsCount == len(cmdPath)-1):
-                #TODO build a list of potential candidate
+                if to_ret == None:
+                    to_ret = []
 
-                return self.stack[index], index
+                to_ret.append( (self.stack[index], index,))
             
+            if to_ret != None:
+                return to_ret
+
             if path1IsHigher:
                 return ( (None, index+1,),)
             
@@ -278,22 +316,6 @@ class engineV3(object):
             
         return None, index+1
     
-
-    #TODO prblm
-        #il y a une difference entre l'insertion dans une post/pro par rapport a l'insertion dans une pre
-            #pour une pre, on peut viser une sous commande particuliere, ou un ensemble de sous commande particulire
-            #tandis que pour le pro/pos, on peut uniquement cibler une sous commande particulière
-
-        #Donc on doit bien faire la difference entre 
-            #l'insertion en pre pour toutes les sous commandes d'une commande (ce qui est trivial à faire)
-            #l'insertion en pre pour une sous commande precise
-
-        #give a map for the preprocess Insertion and the politics to insert
-            #insert to execute as soon as possible
-            #insert to execute as late as possible
-            #insert to exact place (or raise)(exact mean same path, same map, same...)
-            #...
-
     def injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
         obj, index = self._findIndexToInjectProOrPost(cmdPath, processType)
         
@@ -311,32 +333,24 @@ class engineV3(object):
     def _injectDataPreToExecute(self, data, cmdPath, index, enablingMap = None, onlyAppend = False):
         itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
 
-        #TODO check map
+        #check map (is a list, valid length, only boolean value)
+        if not _isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1]))
 
         if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
             if onlyAppend:
-                pass #TODO raise
+                raise executionException("(engine) _injectDataPreToExecute, no corresponding item on the stack")
                 
             #insert at index
             self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+
         else: #there ara already data with the same path
             #compare the map of the element at the top and the current map
-            if itemCandidateList[index][0][3] != None and enablingMap != None:
-                sameMap = True
-                for i in range(0,len(enablingMap)):
-                    if itemCandidateList[index][0][3][i] != enablingMap[i]:
-                        sameMap = False
-                        break
-            elif itemCandidateList[index][0][3] == None or enablingMap == None:
-                sameMap = True
-            else:
-                sameMap = False
                 
-            if sameMap:
+            if self._equalMap(itemCandidateList[index][0][3], enablingMap):
                 itemCandidateList[index][0][1].append(data)
             else:
                 if onlyAppend:
-                    pass #TODO raise
+                    raise executionException("(engine) _injectDataPreToExecute, no corresponding item found on the stack")
                 
                 #insert at index + 1
                 self.stack.insert(itemCandidateList[index][1] + 1 + index, ([data], cmdPath[:], processType, enablingMap, ))
@@ -347,17 +361,27 @@ class engineV3(object):
     def injectDataPreToExecuteAsLateAsPossible(self, data, cmdPath, enablingMap = None, onlyAppend = False):
         self._injectDataPreToExecute(data, cmdPath, -1, enablingMap, onlyAppend)
         
-    def injectDataPre(self, data, cmdPath, enablingMap = None, onlyAppend = False): 
-        #TODO try to identify a pefect match
-            #if similar item on stack but no match, raise exception
-            #if no similar item on stack, insert
-        
-        #TODO prblm...
-            #where can we insert if there are items on stack with similar path and type but not same map ?
-                #raise exception ? insert at the end ? at the beginning ? in the middle ?
-        
-        pass #TODO
-    
+    def injectDataPre(self, data, cmdPath, enablingMap = None): 
+        #only append on perfect match(path, type, map)
+        #or insert on empty stack match
+        #otherwise raise
+
+        itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
+        if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
+            #insert at index
+            self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+        else:
+            for item, index in itemCandidateList:
+                if not self._equalMap(enablingMap, item[3]):
+                    continue
+
+                #append
+                item[0].append(data)
+                return
+
+            #not found
+            raise executionException("(engine) injectDataPre, no match foundwhere insert")
+
     ###############
     
     def insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True):
@@ -578,7 +602,7 @@ class engineV3(object):
         self.stack.raiseIfEmpty("isCurrentRootCommand")
         return self.stack.cmdIndexOnTop() == 0
     
-    ### COMMAND ultra special meth ###
+### COMMAND ultra special meth ###
     
     def mergeDataAndSetEnablingMap(self, newMap = None, count = 2):
         self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
@@ -972,11 +996,4 @@ class engineV3(object):
                 continue
 
             print "#["+str(i)+"]"+self.cmdList[i].name+" (sub="+str(topPath[i])+")"
-
-
-
-
-            
-
-
 
