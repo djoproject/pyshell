@@ -37,9 +37,9 @@ class commandException(Exception):
         return str(self.value)
 
 class engineInterruptionException(Exception):
-	def __init__(self, value, abnormal = False):
-		self.abnormal = abnormal
-		self.value = value
+    def __init__(self, value, abnormal = False):
+        self.abnormal = abnormal
+        self.value = value
 
     def __str__(self):
         return str(self.value)

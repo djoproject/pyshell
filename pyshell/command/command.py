@@ -138,7 +138,7 @@ class MultiCommand(list):
         
         #reset every sub command
         for i in range(0,len(self)):
-			c,a,e = self[i]
+            c,a,e = self[i]
             c.preCount  = 0 #this counter is used to prevent an infinite execution of the pre process
             c.proCount  = 0 #this counter is used to prevent an infinite execution of the process
             c.postCount = 0 #this counter is used to prevent an infinite execution of the post process
@@ -173,16 +173,16 @@ class MultiCommand(list):
         self.append( (c,useArgs,enabled,) )
         self.dymamicCount += 1
         
-	def disableCmd(self, index):
-		if index < 0 or index >= len(self):
-			raise commandException("(MultiCommand) disableCmd, invalid index")
+    def disableCmd(self, index):
+        if index < 0 or index >= len(self):
+            raise commandException("(MultiCommand) disableCmd, invalid index")
         
         c,a,e = self[index]
         self[index] = (c, a, False,)
         
-	def enableCmd(self, index):
-		if index < 0 or index >= len(self):
-			raise commandException("(MultiCommand) disableCmd, invalid index")
+    def enableCmd(self, index):
+        if index < 0 or index >= len(self):
+            raise commandException("(MultiCommand) disableCmd, invalid index")
         
         c,a,e = self[index]
         self[index] = (c, a, True,)

@@ -87,7 +87,7 @@ def _isValidMap(emap, expectedLength):
 
     return True
 
-class engineStack(List):
+class engineStack(list):
     def __init__(self, engine):
         self.engine = engine
 
@@ -168,7 +168,7 @@ class engineStack(List):
         return len(self.engine.cmdList[len(self[index][1])-1])
     
     ### DEPTh meth ###
-    def itemOnDepth(self, depth)
+    def itemOnDepth(self, depth):
         return self[len(self)-1-depth]
     
     def dataOnDepth(self, depth):
@@ -291,7 +291,7 @@ class engineV3(object):
             raise executionException("(engine) _findIndexToInjectProOrPost, can't use preprocess with this function, use _findIndexToInjectPre instead")
 
         #if PROCESS_INSTRUCTION, only root path are allowed
-        if processType == PROCESS_INSTRUCTION and if len(cmdPath) != len(self.cmdList):
+        if processType == PROCESS_INSTRUCTION and len(cmdPath) != len(self.cmdList):
             raise executionException("(engine) _findIndexToInjectProOrPost, can only insert data to the process of the last command") 
 
         #check command path
@@ -334,7 +334,8 @@ class engineV3(object):
         itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
 
         #check map (is a list, valid length, only boolean value)
-        if not _isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1]))
+        if not _isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1])):
+            raise executionException("(engine) _injectDataPreToExecute, invalid map")
 
         if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
             if onlyAppend:
@@ -450,10 +451,10 @@ class engineV3(object):
     
         enablingMap = self.stack.enablingMapOnTop()
 
-        if enablingMap = None:
+        if enablingMap == None:
             enablingMap = [True] * self.stack.subCmdLengthOnTop()
 
-        for i in xrange(currentCmdID+1, min(currentCmdID+1+skipCount, len(enablingMap)))
+        for i in xrange(currentCmdID+1, min(currentCmdID+1+skipCount, len(enablingMap))):
             if not enablingMap[i]:
                 continue
 
@@ -720,7 +721,7 @@ class engineV3(object):
     
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
-        del data = self.stack.dataOnTop()[:] #remove everything, the engine is able to manage an empty data bunch
+        del self.stack.dataOnTop()[:] #remove everything, the engine is able to manage an empty data bunch
     
     def appendData(self, newdata):
         self.stack.raiseIfEmpty("addData")
