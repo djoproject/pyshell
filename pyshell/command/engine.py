@@ -94,11 +94,17 @@ class engineStack(List):
     def cmdIndexOnTop(self):
         return len(self[-1][1]) - 1
         
+    def cmdLengthOnTop(self):
+        return len(self[-1][1])
+        
     def getCmdOnTop(self):
         return self.engine.cmdList[len(self[-1][1])-1]
     
     def subCmdLengthOnTop(self):
         return len(self.engine.cmdList[len(self[-1][1])-1])
+        
+    def subCmdIndexOnTop(self):
+        return self[-1][1][-1]
     
     ### INDEX meth ###
     def dataOnIndex(self, index):
@@ -236,11 +242,11 @@ class engineV3(object):
                 return self.stack[index], index
             
             if path1IsHigher:
-                return None, index+1
+                return ( (None, index+1,),)
             
             index -= 1 
             
-        return None, index+1
+        return ( (None, index+1,),)
 
     def _findIndexToInjectProOrPost(self, cmdPath, processType):
         if processType == PREPROCESS_INSTRUCTION:
@@ -288,68 +294,121 @@ class engineV3(object):
             #insert to exact place (or raise)(exact mean same path, same map, same...)
             #...
 
-    def _injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
+    def injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
         obj, index = self._findIndexToInjectProOrPost(cmdPath, processType)
         
         if obj == None:
             #can only append ?
             if onlyAppend:
-                raise executionException("(engine) _injectDataProOrPos, there is no similar item on the stack and the system can only append, not create") 
+                raise executionException("(engine) injectDataProOrPos, there is no similar item on the stack and the system can only append, not create") 
             
             #insert a new object
             self.stack.insert(index, ([data], cmdPath[:], processType, None, ))
         
         else:
             obj[0].append(data)        
+    
+    def _injectDataPreToExecute(self, data, cmdPath, index, enablingMap = None, onlyAppend = False):
+        itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
+
+        #TODO check map
+
+        if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
+            if onlyAppend:
+                pass #TODO raise
+                
+            #insert at index
+            self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+        else: #there ara already data with the same path
+            #compare the map of the element at the top and the current map
+            if itemCandidateList[index][0][3] != None and enablingMap != None:
+                sameMap = True
+                for i in range(0,len(enablingMap)):
+                    if itemCandidateList[index][0][3][i] != enablingMap[i]:
+                        sameMap = False
+                        break
+            elif itemCandidateList[index][0][3] == None or enablingMap == None:
+                sameMap = True
+            else:
+                sameMap = False
+                
+            if sameMap:
+                itemCandidateList[index][0][1].append(data)
+            else:
+                if onlyAppend:
+                    pass #TODO raise
+                
+                #insert at index + 1
+                self.stack.insert(itemCandidateList[index][1] + 1 + index, ([data], cmdPath[:], processType, enablingMap, ))
+    
+    def injectDataPreToExecuteAsSoonAsPossible(self, data, cmdPath, enablingMap = None, onlyAppend = False):
+        self._injectDataPreToExecute(data, cmdPath, 0, enablingMap, onlyAppend)
         
-    def _injectDataProOrPos(self, data, cmdPath, processType, enablingMap = None, onlyAppend = False, ExecuteAsSoonAsPossible = False, OnlyInsertInPerfectMatch = False):
-        itemCandidateList = self._findIndexToInjectProOrPost(cmdPath, processType)
+    def injectDataPreToExecuteAsLateAsPossible(self, data, cmdPath, enablingMap = None, onlyAppend = False):
+        self._injectDataPreToExecute(data, cmdPath, -1, enablingMap, onlyAppend)
         
+    def injectDataPre(self, data, cmdPath, enablingMap = None, onlyAppend = False): 
+        #TODO try to identify a pefect match
+            #if similar item on stack but no match, raise exception
+            #if no similar item on stack, insert
         
+        #TODO prblm...
+            #where can we insert if there are items on stack with similar path and type but not same map ?
+                #raise exception ? insert at the end ? at the beginning ? in the middle ?
         
         pass #TODO
-
-    def injectData(self, data, cmdPath, processType, onlyAppend = False):          
-        #Don't care if the stack is empty or not
-        #find THE place to insert these data, there is always only one place to insert data
-            #or find an existing data bunch that corresponds to the args
-        #then inject the data
-        
-        #find the best place
-        itemOnStack, indexOnStack = self.findIndexToInject(cmdPath, processType)
-
-        #TODO how to manage enablingMap ?
-
-        #TODO insert or append
-
-        #TODO manage stack insertion by the core after an injectData
-                #maybe the place of the last data is not at the top of the stack 
     
     ###############
     
-    def insertDataToPreProcess(self, data):
-        #TODO avant de pouvoir faire cette question il faut bien résoudre le prblm decrit ci dessus.
-        #TODO on a besoin de la map d'origine ?
-            #NON, on vise juste un preprocess precis d'une sous commande precise
-            #TODO doit être inséré en executeAsSoonAsPossible
-        #TODO the current process must be pro or pos
-
-        self.injectData(data, self.stack.pathOnTop(),PREPROCESS_INSTRUCTION)
+    def insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True):
+        self.stack.raiseIfEmpty("insertDataToPreProcess")
+        
+        #the current process must be pro or pos
+        if self.stack.typeOnTop() == PREPROCESS_INSTRUCTION:
+            self.appendData(data)
+            return
+            
+        #computer map
+        enablingMap = None
+        if onlyForTheLinkedSubCmd:
+            enablingMap = [False] * self.stack.cmdLengthOnTop()
+            enablingMap[self.subCmdIndexOnTop()] = True
+        
+        #inject data
+        self.injectDataPreToExecuteAsSoonAsPossible(data,self.stack.pathOnTop(),enablingMap,False)
 
     def insertDataToProcess(self, data):
-        #TODO the current process must be pos
-        #TODO the current process must be on a root path
+        self.stack.raiseIfEmpty("insertDataToProcess")
+        
+        #the current process must be pos
+        if self.stack.typeOnTop() != POSTPROCESS_INSTRUCTION:
+            raise executionException("(engine) insertDataToProcess, only a process in postprocess state can execute this function")
+            
+        #the current process must be on a root path
+        if not self.isCurrentRootCommand():
+            raise executionException("(engine) insertDataToProcess, only the root command can insert data to the process")
 
+        #inject data
         self.injectData(data, self.stack.pathOnTop(),PROCESS_INSTRUCTION)
 
+    ###############
+
     def insertDataToNextSubCommandPreProcess(self,data):
-        #TODO avant de pouvoir faire cette question il faut bien résoudre le prblm decrit ci dessus.
-
-        #XXX okay, so this data will only be available to the next sibling
-            #need to create a databunch with only this data and the next pre process enabled
-            #but there is another problem, what about the execution order ?
-
-        pass #TODO
+        self.stack.raiseIfEmpty("insertDataToNextSubCommandPreProcess")
+                
+        #is there a next pre process sub command ?
+        if self.stack.subCmdIndexOnTop() == self.stack.subCmdLengthOnTop()-1:
+            raise executionException("(engine) insertDataToNextSubCommandPreProcess, there is no next pre process available to insert new data")
+        
+        cmdPath = self.stack.pathOnTop()[:]
+        cmdPath[-1] += 1
+        
+        #create enabling map 
+        enablingMap = [False] * self.stack.subCmdLengthOnTop()
+        enablingMap[cmdPath[-1]] = True
+        
+        #inject in asLateAsPossible
+        self.injectDataPreToExecuteAsLateAsPossible(data, cmdPath, enablingMap,False)
             
     
 ### COMMAND special meth ###
@@ -638,6 +697,10 @@ class engineV3(object):
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
         del data = self.stack.dataOnTop()[:] #remove everything, the engine is able to manage an empty data bunch
+    
+    def appendData(self, newdata):
+        self.stack.raiseIfEmpty("addData")
+        self.stack.dataOnTop().append(newdata)
     
     def addData(self, newdata, offset=1, forbideInsertionAtZero = True):    
         self.stack.raiseIfEmpty("addData")
