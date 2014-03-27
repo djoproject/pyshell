@@ -4,9 +4,10 @@
 ### STACK PROPERTIES ###
     #TODO
 
-
 from command import MultiOutput, MultiCommand
 from exception import *
+from stackEngine import engineStack
+from utils import equalPath
 
 #TODO
     #voir les notes dans le fichier TODO
@@ -14,184 +15,15 @@ from exception import *
     #eviter de redefinir directement des items sur la stack ou dans les command
         #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
         #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
-    #la pile ne devrait pas avoir une reference vers engine
-    #check map and path if not done
+    #check map and path arguments if not done
         #build a method to check path
-    #need to create stack iterator/generator/... ?
+    #be carefull for an insertion on the stack(with engine for example) after an inject
+        #if some data are insert later than the next item to stack in the engine
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
-
-def _equalPath(path1,path2):
-    sameLength    = True
-    equals        = True
-
-    if len(path1) != len(path2):
-        sameLength = False
-        equals     = False
-    
-    equalsCount = 0
-    for i in range(0, min(len(path1), len(path2))):
-        if path1[i] != path2[i]:
-            equals = False
-            path1IsHigher = path1[i] > path2[i]
-            break
-            
-        equalsCount += 1 
-    
-    return equals, sameLength, equalsCount, path1IsHigher
-
-def _isAValidIndex(li, index, listSize, cmdName = None, listName = None):
-    try:
-        noop = li[index]
-    except IndexError:
-        if cmdName != None:
-            cmdName += ", "
-        
-        if listName != None:
-            listName = " on list <"+listName+">"
-        
-        raise executionException("(engine) "+cmdName+"list index out of range"+listName)
-
-def _equalMap(map1,map2):
-    if map1 == None or map2 == None:
-        return True
-
-    if map1 != None and map2 != None:
-        if len(map1) != len(map2):
-            return False
-
-        for i in range(0,len(map2)):
-            if map1[i] != map2[i]:
-                return False
-
-        return True
-    
-    return False
-
-def _isValidMap(emap, expectedLength):
-    if emap == None:
-        return True
-
-    if not isinstance(emap,list):
-        return False
-
-    if len(emap) != expectedLength:
-        return False
-
-    for b in emap:
-        if type(b) != bool:
-            return False
-
-    return True
-
-class engineStack(list):
-    def __init__(self, engine):
-        self.engine = engine
-
-    def push(self, data, cmdPath, instructionType, cmdMap = None):
-        self.append([(data, cmdPath, instructionType,cmdMap) ])
-        
-    def raiseIfEmpty(self, methName = None):
-        if len(self) == 0:
-            if methName == None:
-                raise executionException("(engine) engineStack, no item on the stack")
-            else:
-                raise executionException("(engine) "+cmdName+", no item on the stack")
-    
-    ### SIZE meth ###
-    def size(self):
-        return len(self)
-
-    def isEmpty(self):
-        return len(self) == 0
-
-    def isLastStackItem(self):
-        return len(self.stack) == 1
-
-    ### TOP meth ###
-    def top(self):
-        return self[-1]
-    
-    def dataOnTop(self):
-        return self[-1][0]
-        
-    def pathOnTop(self):
-        return self[-1][1]
-        
-    def typeOnTop(self):
-        return self[-1][2]
-        
-    def enablingMapOnTop(self):
-        return self[-1][3]
-        
-    def cmdIndexOnTop(self):
-        return len(self[-1][1]) - 1
-        
-    def cmdLengthOnTop(self):
-        return len(self[-1][1])
-        
-    def getCmdOnTop(self):
-        return self.engine.cmdList[len(self[-1][1])-1]
-    
-    def subCmdLengthOnTop(self):
-        return len(self.engine.cmdList[len(self[-1][1])-1])
-        
-    def subCmdIndexOnTop(self):
-        return self[-1][1][-1]
-    
-    ### INDEX meth ###
-    def dataOnIndex(self, index):
-        return self[index][0]
-        
-    def pathOnIndex(self, index):
-        return self[index][1]
-        
-    def typeOnIndex(self, index):
-        return self[index][2]
-        
-    def enablingMapOnIndex(self, index):
-        return self[index][3]
-        
-    def cmdIndexOnIndex(self, index):
-        return len(self[index][1]) - 1
-        
-    def getCmdOnIndex(self, index):
-        return self.engine.cmdList[len(self[index][1])-1]
-    
-    def getIndexBasedXRange(self):
-        return xrange(0,len(self),1)
-
-    def subCmdLengthOnIndex(self, index):
-        return len(self.engine.cmdList[len(self[index][1])-1])
-    
-    ### DEPTh meth ###
-    def itemOnDepth(self, depth):
-        return self[len(self)-1-depth]
-    
-    def dataOnDepth(self, depth):
-        return self[len(self)-1-depth][0]
-        
-    def pathOnDepth(self, depth):
-        return self[len(self)-1-depth][1]
-        
-    def typeOnDepth(self, depth):
-        return self[len(self)-1-depth][2]
-        
-    def enablingMapOnDepth(self, depth):
-        return self[len(self)-1-depth][3]
-        
-    def cmdIndexOnDepth(self, depth):
-        return len(self[len(self)-1-depth][1]) - 1
-        
-    def getCmdOnDepth(self, depth):
-        return self.engine.cmdList[len(self[len(self)-1-depth][1])-1]
-    
-    ### MISC meth ###
-    def getCmdLength(indexOnStack):
-        return len(self.engine.cmdList[len(self[indexOnStack][1])-1])
 
 class engineV3(object):
     ### INIT ###
@@ -259,17 +91,17 @@ class engineV3(object):
 
     def _findIndexToInjectPre(self, cmdPath):
         #check command path
-        _isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
+        isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
         
         for i in range(0,len(cmdPath)):
-            _isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
+            isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
 
         index = self._getTheIndexWhereToStartTheSearch(PREPROCESS_INSTRUCTION)
         
         #lookup
         to_ret = None
         while index >= 0:
-            equals, sameLength, equalsCount, path1IsHigher = _equalPath(self.stack[index][1], cmdPath)
+            equals, sameLength, equalsCount, path1IsHigher = equalPath(self.stack[index][1], cmdPath)
             if equals or (sameLength and equalsCount == len(cmdPath)-1):
                 if to_ret == None:
                     to_ret = []
@@ -295,16 +127,16 @@ class engineV3(object):
             raise executionException("(engine) _findIndexToInjectProOrPost, can only insert data to the process of the last command") 
 
         #check command path
-        _isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
+        isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
         
         for i in range(0,len(cmdPath)):
-            _isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
+            isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
 
         index = self._getTheIndexWhereToStartTheSearch(processType)
        
         #lookup
         while index >= 0 and self.stack[index][2] == processType:
-            equals, sameLength, equalsCount, path1IsHigher = _equalPath(self.stack[index][1], cmdPath)
+            equals, sameLength, equalsCount, path1IsHigher = equalPath(self.stack[index][1], cmdPath)
 
             if equals:
                 return self.stack[index], index
@@ -334,7 +166,7 @@ class engineV3(object):
         itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
 
         #check map (is a list, valid length, only boolean value)
-        if not _isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1])):
+        if not isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1])):
             raise executionException("(engine) _injectDataPreToExecute, invalid map")
 
         if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
@@ -347,7 +179,7 @@ class engineV3(object):
         else: #there ara already data with the same path
             #compare the map of the element at the top and the current map
                 
-            if self._equalMap(itemCandidateList[index][0][3], enablingMap):
+            if equalMap(itemCandidateList[index][0][3], enablingMap):
                 itemCandidateList[index][0][1].append(data)
             else:
                 if onlyAppend:
@@ -373,7 +205,7 @@ class engineV3(object):
             self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
         else:
             for item, index in itemCandidateList:
-                if not self._equalMap(enablingMap, item[3]):
+                if not equalMap(enablingMap, item[3]):
                     continue
 
                 #append
@@ -382,8 +214,6 @@ class engineV3(object):
 
             #not found
             raise executionException("(engine) injectDataPre, no match foundwhere insert")
-
-    ###############
     
     def insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True):
         self.stack.raiseIfEmpty("insertDataToPreProcess")
@@ -416,27 +246,25 @@ class engineV3(object):
         #inject data
         self.injectData(data, self.stack.pathOnTop(),PROCESS_INSTRUCTION)
 
-    ###############
-
     def insertDataToNextSubCommandPreProcess(self,data):
         self.stack.raiseIfEmpty("insertDataToNextSubCommandPreProcess")
                 
         #is there a next pre process sub command ?
-        if self.stack.subCmdIndexOnTop() == self.stack.subCmdLengthOnTop()-1:
+        if self.stack.subCmdIndexOnTop() == self.stack.subCmdLengthOnTop(self.cmdList)-1:
             raise executionException("(engine) insertDataToNextSubCommandPreProcess, there is no next pre process available to insert new data")
         
         cmdPath = self.stack.pathOnTop()[:]
         cmdPath[-1] += 1
         
         #create enabling map 
-        enablingMap = [False] * self.stack.subCmdLengthOnTop()
+        enablingMap = [False] * self.stack.subCmdLengthOnTop(self.cmdList)
         enablingMap[cmdPath[-1]] = True
         
         #inject in asLateAsPossible
         self.injectDataPreToExecuteAsLateAsPossible(data, cmdPath, enablingMap,False)
             
-    
-### COMMAND special meth ###
+### COMMAND meth ###
+
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
@@ -452,7 +280,7 @@ class engineV3(object):
         enablingMap = self.stack.enablingMapOnTop()
 
         if enablingMap == None:
-            enablingMap = [True] * self.stack.subCmdLengthOnTop()
+            enablingMap = [True] * self.stack.subCmdLengthOnTop(self.cmdList)
 
         for i in xrange(currentCmdID+1, min(currentCmdID+1+skipCount, len(enablingMap))):
             if not enablingMap[i]:
@@ -466,7 +294,7 @@ class engineV3(object):
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
         cmdID        = self.stack.cmdIndexOnTop()
-        _isAValidIndex(self.cmdList, cmdID,"skipNextSubCommandForTheEntireExecution", "command list")
+        isAValidIndex(self.cmdList, cmdID,"skipNextSubCommandForTheEntireExecution", "command list")
         currentCmdID = self.stack.pathOnTop()[-1]
 
         for i in xrange(currentCmdID+1, min(len(self.cmdList[cmdID]),  currentCmdID+1+skipCount)):
@@ -480,7 +308,7 @@ class engineV3(object):
     
     def disableEnablingMapOnDataBunch(self,dept=0):
         index = self.stack.size() - 1 - dept
-        _isAValidIndex(self.stack, index,"disableEnablingMapOnDataBunch", "stack")
+        isAValidIndex(self.stack, index,"disableEnablingMapOnDataBunch", "stack")
         mapping = self.stack.enablingMapOnDepth(dept)
 
         if mapping != None:
@@ -501,20 +329,20 @@ class engineV3(object):
         self._setStateSubCmdInCmd(indexCmd, indexSubCmd, False)
         
     def _setStateSubCmdInCmd(self,cmdIndex, subCmdIndex, value):
-        _isAValidIndex(self.cmdList, cmdIndex,"_setStateSubCmdInCmd", "command list")
-        _isAValidIndex(self.cmdList[cmdIndex], subCmdIndex,"_setStateSubCmdInCmd", "sub command list")
+        isAValidIndex(self.cmdList, cmdIndex,"_setStateSubCmdInCmd", "command list")
+        isAValidIndex(self.cmdList[cmdIndex], subCmdIndex,"_setStateSubCmdInCmd", "sub command list")
         current = self.cmdList[cmdIndex]
         self.cmdList[cmdIndex] = (current[0], current[1], value)
         
     def _setStateSubCmdInDataBunch(self, dataBunchIndex, subCmdIndex, value):
-        _isAValidIndex(self.stack, dataBunchIndex,"_setStateSubCmdInDataBunch", "stack")
+        isAValidIndex(self.stack, dataBunchIndex,"_setStateSubCmdInDataBunch", "stack")
         enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
 
         if enablingMap == None:
-            enablingMap = [True] * self.stack.subCmdLengthOnIndex(dataBunchIndex)
+            enablingMap = [True] * self.stack.subCmdLengthOnIndex(dataBunchIndex, self.cmdList)
             self.stack[dataBunchIndex] = (self.stack[dataBunchIndex][0], self.stack[dataBunchIndex][1],self.stack[dataBunchIndex][2],enablingMap,)
 
-        _isAValidIndex(enablingMap, subCmdIndex,"_setStateSubCmdInDataBunch", "enabling mapping on data bunch")
+        isAValidIndex(enablingMap, subCmdIndex,"_setStateSubCmdInDataBunch", "enabling mapping on data bunch")
         enablingMap[subCmdIndex] = value
     
     def flushArgs(self, index=None): #None index means current command
@@ -524,7 +352,7 @@ class engineV3(object):
         else:
             cmdID = index
         
-        _isAValidIndex(self.cmdList, cmdID,"flushArgs", "command list")
+        isAValidIndex(self.cmdList, cmdID,"flushArgs", "command list")
         self.cmdList[cmdID].flushArgs()
     
     def addSubCommand(self, cmdID = None, onlyAddOnce = True, useArgs = True):
@@ -603,13 +431,13 @@ class engineV3(object):
         self.stack.raiseIfEmpty("isCurrentRootCommand")
         return self.stack.cmdIndexOnTop() == 0
     
-### COMMAND ultra special meth ###
+### SPLIT/MERGE meth ###
     
     def mergeDataAndSetEnablingMap(self, newMap = None, count = 2):
         self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
         
         #check new map
-        if newMap != None and len(newMap) != self.stack.subCmdLengthOnTop():
+        if newMap != None and len(newMap) != self.stack.subCmdLengthOnTop(self.cmdList):
             raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map size, must be equal to the sub command list size")
         
         self.mergeData(count, None)
@@ -671,10 +499,10 @@ class engineV3(object):
     def splitDataAndSetEnablingMap(self, splitAtDataIndex=0, map1 = None, map2=None):
         self.stack.raiseIfEmpty("splitDataAndSetEnablingMap")
         
-        if map1 != None and len(map1) != self.stack.subCmdLengthOnTop():
+        if map1 != None and len(map1) != self.stack.subCmdLengthOnTop(self.cmdList):
             raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map1 size, must be equal to the sub command list size")
             
-        if map2 != None and len(map2) != self.stack.subCmdLengthOnTop():
+        if map2 != None and len(map2) != self.stack.subCmdLengthOnTop(self.cmdList):
             raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map2 size, must be equal to the sub command list size")
         
         state = self.splitData(splitAtDataIndex, True)
@@ -717,7 +545,7 @@ class engineV3(object):
         
         return True
 
-### DATA special meth (data of the top item on the stack) ###
+### DATA meth (data of the top item on the stack) ###
     
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
@@ -792,7 +620,7 @@ class engineV3(object):
         while self.stack.size() != 0: #while there is some item into the stack
             ### EXTRACT DATA FROM STACK ###
             top                      = self.stack.top()
-            cmd                      = self.stack.getCmdOnTop()
+            cmd                      = self.stack.getCmdOnTop(self.cmdList)
             subcmd, useArgs, enabled = cmd[top[1][-1]]
             insType = self.stack.typeOnTop()
             
@@ -945,7 +773,7 @@ class engineV3(object):
             top = self.stack.top()
 
             info["cmdIndex"]    = self.stack.cmdIndexOnTop()               #the index of the current command in execution
-            info["cmd"]         = self.stack.getCmdOnTop()                 #the object instance of the current command in execution
+            info["cmd"]         = self.stack.getCmdOnTop(self.cmdList)                 #the object instance of the current command in execution
             info["subCmdIndex"] = top[1][-1]                               #the index of the current sub command in execution
             info["subCmd"]      = self.cmdList[len(top[1]) -1][top[1][-1]] #the object instance of the current sub command in execution
             info["data"]        = top[0][0]                                #the data of the current execution
