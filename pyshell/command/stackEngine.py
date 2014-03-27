@@ -25,84 +25,82 @@ class engineStack(list):
     def isLastStackItem(self):
         return len(self.stack) == 1
 
-    ### TOP meth ###
+    ### 
+    def data(self, index):
+        return self[index][0]
+
+    def path(self, index):
+        return self[index][1]
+
+    def type(self, index):
+        return self[index][2]
+
+    def enablingMap(self, index):
+        return self[index][3]
+
+    def cmdIndex(self, index):
+        return len(self[index][1]) - 1
+
+    def cmdLength(self, index):
+        return len(self[index][1])
+
+    def item(self, index):
+        return self[index]
+
+    def getCmd(self, index, cmdList):
+        return engine.cmdList[len(self[index][1])-1]
+
+    def subCmdLength(self, index, cmdList):
+        return len(engine.cmdList[len(self[index][1])-1])
+
+    def subCmdIndex(self, index):
+        return self[index][1][-1]
+
+    ### MISC meth ###
+
     def top(self):
         return self[-1]
-    
-    def dataOnTop(self):
-        return self[-1][0]
-        
-    def pathOnTop(self):
-        return self[-1][1]
-        
-    def typeOnTop(self):
-        return self[-1][2]
-        
-    def enablingMapOnTop(self):
-        return self[-1][3]
-        
-    def cmdIndexOnTop(self):
-        return len(self[-1][1]) - 1
-        
-    def cmdLengthOnTop(self):
-        return len(self[-1][1])
-        
-    def getCmdOnTop(self, cmdList):
-        return engine.cmdList[len(self[-1][1])-1]
-    
-    def subCmdLengthOnTop(self, cmdList):
-        return len(engine.cmdList[len(self[-1][1])-1])
-        
-    def subCmdIndexOnTop(self):
-        return self[-1][1][-1]
-    
-    ### INDEX meth ###
-    def dataOnIndex(self, index):
-        return self[index][0]
-        
-    def pathOnIndex(self, index):
-        return self[index][1]
-        
-    def typeOnIndex(self, index):
-        return self[index][2]
-        
-    def enablingMapOnIndex(self, index):
-        return self[index][3]
-        
-    def cmdIndexOnIndex(self, index):
-        return len(self[index][1]) - 1
-        
-    def getCmdOnIndex(self, index, cmdList):
-        return engine.cmdList[len(self[index][1])-1]
-    
+
     def getIndexBasedXRange(self):
         return xrange(0,len(self),1)
 
-    def subCmdLengthOnIndex(self, index, cmdList):
-        return len(engine.cmdList[len(self[index][1])-1])
-    
-    ### DEPTh meth ###
-    def itemOnDepth(self, depth):
-        return self[len(self)-1-depth]
-    
-    def dataOnDepth(self, depth):
-        return self[len(self)-1-depth][0]
-        
-    def pathOnDepth(self, depth):
-        return self[len(self)-1-depth][1]
-        
-    def typeOnDepth(self, depth):
-        return self[len(self)-1-depth][2]
-        
-    def enablingMapOnDepth(self, depth):
-        return self[len(self)-1-depth][3]
-        
-    def cmdIndexOnDepth(self, depth):
-        return len(self[len(self)-1-depth][1]) - 1
-        
-    def getCmdOnDepth(self, depth, cmdList):
-        return cmdList[len(self[len(self)-1-depth][1])-1]
-    
-    ### MISC meth ###
-    def getCmdLength(indexOnStack, cmdList):
-        return len(cmdList[len(self[indexOnStack][1])-1])
+    ##########
+    def __getattr__(self, name):
+        if name.endswith("OnTop"):
+            index = -1
+            sub   = None
+            name = name[:-5]
+        elif name.endswith("OnIndex"):
+            index = None
+            sub   = None
+            name = name[:-7]
+        elif name.endswith("OnDepth"):
+            index = None
+            sub = len(self)-1
+            name = name[:-7]
+        else:
+            return self.name
+
+        if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex"]:
+            pass #TODO raise
+
+        methToCall  = getattr(self,name)
+
+        def meth(*args):
+            if index == None:
+                if len(args) == 0:
+                    pass #TODO raise
+
+                lindex = int(args[0])
+            else:
+                lindex = index
+
+            if sub != None:
+                lindex = sub - lindex
+            
+            args.insert(0,lindex)
+            methToCall(*args)
+
+        return meth
+
+
