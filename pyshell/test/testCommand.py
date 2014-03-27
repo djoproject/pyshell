@@ -70,7 +70,7 @@ class ArgCheckerTest(unittest.TestCase):
         self.assertTrue(len(mc) == 3)
         
         #check if the useArgs is set in the list
-        for (u,c,) in mc:
+        for (c,u,e,) in mc:
             self.assertTrue(u)
         
     #addStaticCommand
@@ -166,7 +166,7 @@ class ArgCheckerTest(unittest.TestCase):
         self.assertTrue(len(mc) == 2)
         
         #check useArgs in the list
-        for (u,c,) in mc:
+        for (c,u,e,) in mc:
             self.assertTrue(u)
     
     #test unicommand class

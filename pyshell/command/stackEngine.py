@@ -48,10 +48,10 @@ class engineStack(list):
         return len(self[-1][1])
         
     def getCmdOnTop(self, cmdList):
-        return self.engine.cmdList[len(self[-1][1])-1]
+        return engine.cmdList[len(self[-1][1])-1]
     
     def subCmdLengthOnTop(self, cmdList):
-        return len(self.engine.cmdList[len(self[-1][1])-1])
+        return len(engine.cmdList[len(self[-1][1])-1])
         
     def subCmdIndexOnTop(self):
         return self[-1][1][-1]
@@ -73,13 +73,13 @@ class engineStack(list):
         return len(self[index][1]) - 1
         
     def getCmdOnIndex(self, index, cmdList):
-        return self.engine.cmdList[len(self[index][1])-1]
+        return engine.cmdList[len(self[index][1])-1]
     
     def getIndexBasedXRange(self):
         return xrange(0,len(self),1)
 
     def subCmdLengthOnIndex(self, index, cmdList):
-        return len(self.engine.cmdList[len(self[index][1])-1])
+        return len(engine.cmdList[len(self[index][1])-1])
     
     ### DEPTh meth ###
     def itemOnDepth(self, depth):
@@ -101,7 +101,7 @@ class engineStack(list):
         return len(self[len(self)-1-depth][1]) - 1
         
     def getCmdOnDepth(self, depth, cmdList):
-        return self.engine.cmdList[len(self[len(self)-1-depth][1])-1]
+        return cmdList[len(self[len(self)-1-depth][1])-1]
     
     ### MISC meth ###
     def getCmdLength(indexOnStack, cmdList):

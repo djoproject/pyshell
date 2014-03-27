@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from exception import executionException
+
 def equalPath(path1,path2):
     sameLength    = True
     equals        = True
@@ -10,6 +12,7 @@ def equalPath(path1,path2):
         equals     = False
     
     equalsCount = 0
+    path1IsHigher = None
     for i in range(0, min(len(path1), len(path2))):
         if path1[i] != path2[i]:
             equals = False
@@ -20,20 +23,24 @@ def equalPath(path1,path2):
     
     return equals, sameLength, equalsCount, path1IsHigher
 
-def isAValidIndex(li, index, listSize, cmdName = None, listName = None):
+def isAValidIndex(li, index, cmdName = None, listName = None):
     try:
         noop = li[index]
     except IndexError:
         if cmdName != None:
             cmdName += ", "
+        else:
+            cmdName = ""
         
         if listName != None:
             listName = " on list <"+listName+">"
+        else:
+            listName = ""
         
         raise executionException("(engine) "+cmdName+"list index out of range"+listName)
 
 def equalMap(map1,map2):
-    if map1 == None or map2 == None:
+    if map1 == None and map2 == None:
         return True
 
     if map1 != None and map2 != None:
