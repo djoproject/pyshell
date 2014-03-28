@@ -4,6 +4,8 @@
 #TODO
 	#need to create stack iterator/generator/... ?
 
+from exception import *
+
 class engineStack(list):
     def push(self, data, cmdPath, instructionType, cmdMap = None):
         self.append([(data, cmdPath, instructionType,cmdMap) ])
@@ -48,10 +50,10 @@ class engineStack(list):
         return self[index]
 
     def getCmd(self, index, cmdList):
-        return engine.cmdList[len(self[index][1])-1]
+        return cmdList[len(self[index][1])-1]
 
     def subCmdLength(self, index, cmdList):
-        return len(engine.cmdList[len(self[index][1])-1])
+        return len(cmdList[len(self[index][1])-1])
 
     def subCmdIndex(self, index):
         return self[index][1][-1]
@@ -78,8 +80,8 @@ class engineStack(list):
             index = None
             sub = len(self)-1
             name = name[:-7]
-        else:
-            return self.name
+        #else: #TODO cause recurisvity...
+        #    return self.name
 
         if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex"]:
             pass #TODO raise
