@@ -53,7 +53,7 @@ class engineV3(object):
         else:
             raise executionInitException("(engine) init, env must be a dictionnary or None, got <"+str(type(env))+">")
 
-        self.stack          = engineStack(self)
+        self.stack          = engineStack()
         self._isInProcess   = False
         self.selfkillreason = None 
 
