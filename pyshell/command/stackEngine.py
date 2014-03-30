@@ -8,14 +8,14 @@ from exception import *
 
 class engineStack(list):
     def push(self, data, cmdPath, instructionType, cmdMap = None):
-        self.append([(data, cmdPath, instructionType,cmdMap) ])
+        self.append((data, cmdPath, instructionType,cmdMap,))
         
     def raiseIfEmpty(self, methName = None):
         if len(self) == 0:
             if methName == None:
                 raise executionException("(engine) engineStack, no item on the stack")
             else:
-                raise executionException("(engine) "+cmdName+", no item on the stack")
+                raise executionException("(engine) "+methName+", no item on the stack")
     
     ### SIZE meth ###
     def size(self):
@@ -25,7 +25,7 @@ class engineStack(list):
         return len(self) == 0
 
     def isLastStackItem(self):
-        return len(self.stack) == 1
+        return len(self) == 1
 
     ### 
     def data(self, index):
@@ -80,28 +80,32 @@ class engineStack(list):
             index = None
             sub = len(self)-1
             name = name[:-7]
-        #else: #TODO cause recurisvity...
-        #    return self.name
+        else:
+            return object.__getattribute__(self, name)
 
         if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex"]:
-            pass #TODO raise
+            raise executionException("(engineStack) __getattr__, try to get an unallowed meth")
 
         methToCall  = getattr(self,name)
 
         def meth(*args):
             if index == None:
-                if len(args) == 0:
-                    pass #TODO raise
-
-                lindex = int(args[0])
+                if len(args) > 0:
+                    lindex = int(args[0])
+                    startIndex = 1
+                else:
+                    #if index is not define, no need to do compute anything else
+                    return methToCall(*args)
             else:
+                startIndex = 0
                 lindex = index
 
             if sub != None:
                 lindex = sub - lindex
-            
-            args.insert(0,lindex)
-            methToCall(*args)
+
+            nargs = [lindex]
+            nargs.extend(args[startIndex:])
+            return methToCall(*nargs)
 
         return meth
 
