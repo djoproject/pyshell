@@ -616,7 +616,16 @@ class engineV3(object):
 ### ENGINE meth ###
 
     def execute(self):
-        #TODO compute the first index to execute
+        #compute the first index to execute
+        if self.stack.size() != 0: 
+            nextData, newIndex = self._computeTheNextChildToExecute(self.stack.getCmdOnTop(self.cmdList), -1, self.stack.pathOnTop())
+
+            #compute stop condition
+            if nextData or newIndex< 0:
+                raise executionException("(engine) execute, no enabled subcmd on first execution")
+
+            #TODO set newIndex
+            
 
         #consume stack
         while self.stack.size() != 0: #while there is some item into the stack
