@@ -48,31 +48,31 @@ class EngineCoreTest(unittest.TestCase):
         uc = UniCommand("simple test", "help me", pre, pro, post)
         engine = engineV3([uc])
         engine.execute()
-        self.assertTrue(self.preCount == 1)
-        self.assertTrue(self.proCount == 1)
-        self.assertTrue(self.postCount == 1)
+        self.assertEqual(self.preCount,1)
+        self.assertEqual(self.proCount,1)
+        self.assertEqual(self.postCount,1)
         
         self.valueToTest = 100
         self.preCount = self.proCount = self.postCount = 0
         #uni command encapsulation test, the most used case
         engine = engineV3([uc, uc])
         engine.execute()
-        self.assertTrue(self.preCount == 2)
-        self.assertTrue(self.proCount == 1)
-        self.assertTrue(self.postCount == 2)
+        self.assertEqual(self.preCount ,2)
+        self.assertEqual(self.proCount,1)
+        self.assertEqual(self.postCount,2)
         
         self.valueToTest = 225
         self.preCount = self.proCount = self.postCount = 0
         engine = engineV3([uc, uc, uc])
         engine.execute()
-        self.assertTrue(self.preCount == 3)
-        self.assertTrue(self.proCount == 1)
-        self.assertTrue(self.postCount == 3)
+        self.assertEqual(self.preCount,3)
+        self.assertEqual(self.proCount,1)
+        self.assertEqual(self.postCount,3)
         
         #...
     
     #test du mutliOutput
-    def testSimpleOneWithMultiOutput(self):
+    def _testSimpleOneWithMultiOutput(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre(arg1=0):
             self.preCount +=1
@@ -96,31 +96,31 @@ class EngineCoreTest(unittest.TestCase):
         uc = UniCommand("simple test", "help me", pre, pro, post)
         engine = engineV3([uc])
         engine.execute()
-        self.assertTrue(self.preCount == 1)
-        self.assertTrue(self.proCount == 2)
-        self.assertTrue(self.postCount == 4)
+        self.assertEqual(self.preCount,1)
+        self.assertEqual(self.proCount,2)
+        self.assertEqual(self.postCount,4)
 
         self.valueToTest = [100, 1000, 225, 3375, 400, 8000]
         self.preCount = self.proCount = self.postCount = 0
         #uni command encapsulation test, the most used case
         engine = engineV3([uc, uc])
         engine.execute()
-        self.assertTrue(self.preCount == 3)
-        self.assertTrue(self.proCount == 4)
-        self.assertTrue(self.postCount == 24)
+        self.assertEqual(self.preCount,3)
+        self.assertEqual(self.proCount,4)
+        self.assertEqual(self.postCount,24)
         
         self.valueToTest = [225, 3375, 400, 8000, 625, 15625, 900, 27000]
         self.preCount = self.proCount = self.postCount = 0
         engine = engineV3([uc, uc, uc])
         engine.execute()
-        self.assertTrue(self.preCount == 7)
-        self.assertTrue(self.proCount == 8)
-        self.assertTrue(self.postCount == 112)
+        self.assertEqual(self.preCount,7)
+        self.assertEqual(self.proCount,8)
+        self.assertEqual(self.postCount,112)
         
         #...
     
     #test du mutlicommand
-    def testMultiCommand(self):
+    def _testMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
@@ -231,7 +231,7 @@ class EngineCoreTest(unittest.TestCase):
             
 
     #test du mutliOutput avec multicommand
-    def testMultiOuputAndMultiCommand(self):
+    def _testMultiOuputAndMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0]
         self.proCount = [0,0]
@@ -324,7 +324,7 @@ class EngineCoreTest(unittest.TestCase):
         #it's too big with three command...
     
     #test du multiOutput avec multicommand et limite de commande
-    def testMultiOuputAndMultiCommandAmdCommandLimit(self):
+    def _testMultiOuputAndMultiCommandAmdCommandLimit(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre1(arg1=0):
             self.assertIn(arg1,self.valueToTest1[0])

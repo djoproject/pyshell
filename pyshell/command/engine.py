@@ -673,9 +673,13 @@ class engineV3(object):
                     self.stack.push( top[0][1:],top[1],top[2]) #remove the last used data and push on the stack
             else:# insType == 0 #preprocess, can't be anything else, a test has already occured sooner in the engine function
                 nextData, newIndex = self._computeTheNextChildToExecute(cmd,top[1][-1], top[3])
-
-                #something to do ? (if newIndex > 0, there is no more enabled cmd for this data bunch)
+                #something to do ? (if newIndex == -1, there is no more enabled cmd for this data bunch)
+                print "data length",len(top[0]), nextData
+                
+                #TODO la condition suivante est foireuse
+                
                 if ((not nextData or len(top[0]) > 1) or len(top[0]) > 0) and newIndex >= 0:
+                    print "execute"
                     #if we need to use the next data, we need to remove the old one
                     if nextData:
                         del top[0][0] #remove the used data
@@ -695,6 +699,11 @@ class engineV3(object):
         else:
             startingIndex = currentSubCmdIndex+1
             executeOnNextData = False
+        
+        if len(cmd) == 1:
+            if cmd[0][2] and (enablingMap == None or enablingMap[0]):
+                return executeOnNextData,startingIndex
+            return executeOnNextData, -1
         
         #check which is the next available sub cmd 
         while startingIndex != currentSubCmdIndex:
