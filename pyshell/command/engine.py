@@ -7,7 +7,7 @@
 from command import MultiOutput, MultiCommand
 from exception import *
 from stackEngine import engineStack
-from utils import equalPath
+from utils import *
 
 #TODO
     #voir les notes dans le fichier TODO
@@ -266,7 +266,7 @@ class engineV3(object):
 ### COMMAND meth ###
 
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
-        self.stack.raiseIfEmpty("skipNextCommandOnTheCurrentData")
+        self.stack.raiseIfEmpty("skipNextSubCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) skipNextCommandOnTheCurrentData, can only skip method on PREPROCESS item")
@@ -616,6 +616,8 @@ class engineV3(object):
 ### ENGINE meth ###
 
     def execute(self):
+        #TODO compute the first index to execute
+
         #consume stack
         while self.stack.size() != 0: #while there is some item into the stack
             ### EXTRACT DATA FROM STACK ###
@@ -673,13 +675,8 @@ class engineV3(object):
                     self.stack.push( top[0][1:],top[1],top[2]) #remove the last used data and push on the stack
             else:# insType == 0 #preprocess, can't be anything else, a test has already occured sooner in the engine function
                 nextData, newIndex = self._computeTheNextChildToExecute(cmd,top[1][-1], top[3])
-                #something to do ? (if newIndex == -1, there is no more enabled cmd for this data bunch)
-                print "data length",len(top[0]), nextData
-                
-                #TODO la condition suivante est foireuse
-                
-                if ((not nextData or len(top[0]) > 1) or len(top[0]) > 0) and newIndex >= 0:
-                    print "execute"
+                #something to do ? (if newIndex == -1, there is no more enabled cmd for this data bunch)                
+                if ((not nextData and len(top[0]) > 0) or len(top[0]) > 1) and newIndex >= 0:
                     #if we need to use the next data, we need to remove the old one
                     if nextData:
                         del top[0][0] #remove the used data
@@ -700,11 +697,6 @@ class engineV3(object):
             startingIndex = currentSubCmdIndex+1
             executeOnNextData = False
         
-        if len(cmd) == 1:
-            if cmd[0][2] and (enablingMap == None or enablingMap[0]):
-                return executeOnNextData,startingIndex
-            return executeOnNextData, -1
-        
         #check which is the next available sub cmd 
         while startingIndex != currentSubCmdIndex:
             #check the local data bunch mapping and the cmd mapping
@@ -715,9 +707,12 @@ class engineV3(object):
             startingIndex = (startingIndex+1) % len(cmd)
             
             #did it reach the next data ?
-            if starting == 0:
+            if startingIndex == 0:
                 executeOnNextData = True
         
+        if cmd[currentSubCmdIndex][2] and (enablingMap == None or enablingMap[currentSubCmdIndex]):
+            return executeOnNextData,currentSubCmdIndex
+
         #special case, every cmd are disabled
         return executeOnNextData, -1
     

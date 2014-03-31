@@ -72,7 +72,7 @@ class EngineCoreTest(unittest.TestCase):
         #...
     
     #test du mutliOutput
-    def _testSimpleOneWithMultiOutput(self):
+    def testSimpleOneWithMultiOutput(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre(arg1=0):
             self.preCount +=1
@@ -120,7 +120,7 @@ class EngineCoreTest(unittest.TestCase):
         #...
     
     #test du mutlicommand
-    def _testMultiCommand(self):
+    def testMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
@@ -199,7 +199,6 @@ class EngineCoreTest(unittest.TestCase):
         self.postCount = [0,0,0]
         self.valueToTest = [[100, 1728, 1296, 144, 36], [1728, 144, 2744, 4096, 512], [1296, 4096, 36, 512, 16]]
         engine = engineV3([mc, mc])
-        print
         engine.execute()
         
         for c in self.preCount:
@@ -217,7 +216,6 @@ class EngineCoreTest(unittest.TestCase):
         self.postCount = [0,0,0]
         self.valueToTest = [[225, 4913, 14641, 289, 6859, 28561, 121, 2197, 2401, 361, 169, 49], [4913, 289, 6859, 28561, 2197, 361, 9261, 50625, 169, 3375, 6561, 729], [14641, 28561, 121, 2197, 2401, 28561, 50625, 169, 3375, 6561, 49, 729, 81]]
         engine = engineV3([mc, mc, mc])
-        print
         engine.execute()
         
         for c in self.preCount:
@@ -231,7 +229,7 @@ class EngineCoreTest(unittest.TestCase):
             
 
     #test du mutliOutput avec multicommand
-    def _testMultiOuputAndMultiCommand(self):
+    def testMultiOuputAndMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0]
         self.proCount = [0,0]
@@ -324,7 +322,7 @@ class EngineCoreTest(unittest.TestCase):
         #it's too big with three command...
     
     #test du multiOutput avec multicommand et limite de commande
-    def _testMultiOuputAndMultiCommandAmdCommandLimit(self):
+    def testMultiOuputAndMultiCommandAmdCommandLimit(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre1(arg1=0):
             self.assertIn(arg1,self.valueToTest1[0])
@@ -376,7 +374,8 @@ class EngineCoreTest(unittest.TestCase):
         engine.setData(1)
         engine.addData(2,1)
         engine.addData(3,2)
-        engine.setCmdRange(0,1)
+        #engine.setCmdRange(0,1)
+        engine.disableSubCommandInCurrentDataBunchMap(1)  
         engine.execute()
         
         self.assertIs(self.preCount[0],3)
@@ -397,13 +396,15 @@ class EngineCoreTest(unittest.TestCase):
         engine.setData(1)
         engine.addData(2,1)
         engine.addData(3,2)
-        engine.skipNextCommandOnTheCurrentData() #the next command will raise an exception otherwise
-        engine.setCmdRange(1,2)
+        #engine.skipNextCommandOnTheCurrentData() #the next command will raise an exception otherwise
+        #engine.setCmdRange(1,2)
+        engine.disableSubCommandInCurrentDataBunchMap(0)
+        engine.stack[-1][1][-1] += 1 #TODO bof bof, essayer d'eviter de devoir faire ce hack
         engine.execute()
         
         self.assertIs(self.preCount[0],0)
         self.assertIs(self.proCount[0],0)
-        self.assertIs(self.postCount[0],0)
+        self.assertIs(self.postCount[0],0)  
         self.assertIs(self.preCount[1],3)
         self.assertIs(self.proCount[1],6)
         self.assertIs(self.postCount[1],12)
@@ -419,7 +420,8 @@ class EngineCoreTest(unittest.TestCase):
         engine.setData(1)
         engine.addData(2,1)
         engine.addData(3,2)
-        engine.setCmdRange(0,None)
+        #engine.setCmdRange(0,None)
+        engine.disableEnablingMapOnDataBunch()
         engine.execute()
         
         self.assertIs(self.preCount[0],3)
@@ -437,7 +439,9 @@ class EngineCoreTest(unittest.TestCase):
         engine.setData(1)
         engine.addData(2,1)
         engine.addData(3,2)
-        engine.setCmdRange(0,2)
+        #engine.setCmdRange(0,2)
+        engine.enableSubCommandInCurrentDataBunchMap(0)
+        engine.enableSubCommandInCurrentDataBunchMap(1)
         engine.execute()
         
         self.assertIs(self.preCount[0],3)
@@ -460,7 +464,8 @@ class EngineCoreTest(unittest.TestCase):
         engine.setData(1)
         engine.addData(2,1)
         engine.addData(3,2)
-        engine.setCmdRange(0,1)
+        #engine.setCmdRange(0,1)
+        engine.disableSubCommandInCurrentDataBunchMap(1)
         engine.execute()
         
         self.assertIs(self.preCount[0],9)
@@ -470,6 +475,9 @@ class EngineCoreTest(unittest.TestCase):
         self.assertIs(self.preCount[1],6)
         self.assertIs(self.proCount[1],12)
         self.assertIs(self.postCount[1],24)
+
+        #TODO faire le cas limite où tout est disable
+            #ça va merder, car le calcul d'index a lieu apres execution
 
     #TODO test getExecutionSnapshot
     
