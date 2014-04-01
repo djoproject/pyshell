@@ -19,6 +19,9 @@ from utils import *
         #build a method to check path
     #be carefull for an insertion on the stack(with engine for example) after an inject
         #if some data are insert later than the next item to stack in the engine
+    #update the index in disable method for every needed item on the stack
+    #compute the first index in the inject method, if a map is given
+        #same for split/merge
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -616,15 +619,18 @@ class engineV3(object):
 ### ENGINE meth ###
 
     def execute(self):
-        #compute the first index to execute
+        #compute the first index to execute on the first cmd to execute (this index will be executed immediately)
         if self.stack.size() != 0: 
-            nextData, newIndex = self._computeTheNextChildToExecute(self.stack.getCmdOnTop(self.cmdList), -1, self.stack.pathOnTop())
+            cmd = self.stack.getCmdOnTop(self.cmdList)
+            nextData, newIndex = self._computeTheNextChildToExecute(cmd, len(cmd)-1, self.stack.enablingMapOnTop())
 
-            #compute stop condition
-            if nextData or newIndex< 0:
+            #the first cmd has no subcmd enabled, impossible to start the engine
+            if newIndex == -1:
                 raise executionException("(engine) execute, no enabled subcmd on first execution")
 
-            #TODO set newIndex
+            #set newIndex
+            path = self.stack.pathOnTop()
+            path[-1] = newIndex
             
 
         #consume stack
@@ -639,7 +645,7 @@ class engineV3(object):
             to_stack = None #prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
 
             ## PRE PROCESS
-            if insType == PREPROCESS_INSTRUCTION: #pre
+            if insType == PREPROCESS_INSTRUCTION: #pre           
                 r = self._executeMethod(cmd, subcmd.preProcess, top, useArgs)
                 subcmd.preCount += 1
                 
@@ -647,8 +653,16 @@ class engineV3(object):
                 if len(top[1]) == len(self.cmdList): #no child, next step will be a process
                     to_stack = (r, top[1][:], PROCESS_INSTRUCTION, )
                 else: #there are some child, next step will be another preprocess
+                    #build first index to execute, it's not always 0
+                    new_cmd = self.cmdList[len(top[1])] #the -1 is not missing, we want the next cmd, not the current
+                    nextData, newIndex = self._computeTheNextChildToExecute(new_cmd, len(new_cmd)-1, None)
+
+                    #the first cmd has no subcmd enabled, impossible to start the engine
+                    if newIndex == -1:
+                        raise executionException("(engine) execute, no enabled subcmd on the cmd "+str(len(top[1])))
+                
                     new_path = top[1][:] #copy the path
-                    new_path.append(0) #then add the first index of the next command
+                    new_path.append(newIndex) #then add the first index of the next command
                     to_stack = (r, new_path, PREPROCESS_INSTRUCTION, )
             
             ## PROCESS ##
@@ -698,32 +712,24 @@ class engineV3(object):
                 self.stack.push(*to_stack)
     
     def _computeTheNextChildToExecute(self,cmd, currentSubCmdIndex, enablingMap):
-        #increment the current index with 1
-        if currentSubCmdIndex == len(cmd)-1:
-            startingIndex = 0
-            executeOnNextData = True
-        else:
-            startingIndex = currentSubCmdIndex+1
-            executeOnNextData = False
-        
-        #check which is the next available sub cmd 
-        while startingIndex != currentSubCmdIndex:
-            #check the local data bunch mapping and the cmd mapping
-            if cmd[startingIndex][2] and (enablingMap == None or enablingMap[startingIndex]):
-                return executeOnNextData,startingIndex
-
+        startingIndex = currentSubCmdIndex
+        executeOnNextData = False
+        while True:
             #increment
             startingIndex = (startingIndex+1) % len(cmd)
             
             #did it reach the next data ?
             if startingIndex == 0:
                 executeOnNextData = True
-        
-        if cmd[currentSubCmdIndex][2] and (enablingMap == None or enablingMap[currentSubCmdIndex]):
-            return executeOnNextData,currentSubCmdIndex
-
-        #special case, every cmd are disabled
-        return executeOnNextData, -1
+            
+            #is it a valid command to execute ?
+            if cmd[startingIndex][2] and (enablingMap == None or enablingMap[startingIndex]):
+                return executeOnNextData,startingIndex
+            
+            #stop condition
+            if startingIndex == currentSubCmdIndex:
+                return executeOnNextData, -1
+            
     
     def _executeMethod(self, cmd,subcmd, stackState, useArgs):
         nextData = stackState[0][0]

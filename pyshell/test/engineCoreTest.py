@@ -476,10 +476,40 @@ class EngineCoreTest(unittest.TestCase):
         self.assertIs(self.proCount[1],12)
         self.assertIs(self.postCount[1],24)
 
-        #TODO faire le cas limite où tout est disable
-            #ça va merder, car le calcul d'index a lieu apres execution
+        #cas limite où tout est disable
+        engine = engineV3([mc, mc])
+        engine.disableSubCommandInCurrentDataBunchMap(0)
+        engine.disableSubCommandInCurrentDataBunchMap(1)
+        self.assertRaises(executionException, engine.execute)
 
     #TODO test getExecutionSnapshot
+    
+    #TODO fait un jeu de test qui verifie la consistence de la pile a chaque iteration
+        #cmt acceder a l'etat de la pile lors de chaque iteration ?
+    def checkStack(self,stack,cmdList):
+		for data,path,typ,enablingMap in stack:
+			#TODO check data
+			
+			#check path
+			self.assertTrue(len(path) >0 and len(path) <= len(cmdList))
+			for i in range(0,len(path)):
+				self.assertTrue(path[i] >= 0 and path[i] < len(cmdList[i]))
+				
+				#TODO an index can not be set if it is disabled in map or in cmd
+				
+			cmd = cmdList[len(path)-1]
+			
+			#check typ
+			self.assertTrue(typ == PREPROCESS_INSTRUCTION or typ == PROCESS_INSTRUCTION or typ == POSTPROCESS_INSTRUCTION)
+			
+			#check enablingMap
+			if enablingMap != None:
+				self.assertEqual(enablingMap, len(cmd))
+				self.assertEqual(type(enablingMap), list)
+				for b in enablingMap:
+					self.assertTrue(b or not b)
+			
+			
     
     
 if __name__ == '__main__':
