@@ -687,7 +687,8 @@ class engineV3(object):
             if self.selfkillreason != None:
                 reason,abnormal = self.selfkillreason
                 raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
-
+            
+            print DEFAULT_EXECUTION_LIMIT, subcmd.preCount, subcmd.proCount, subcmd.postCount
             if subcmd.preCount > DEFAULT_EXECUTION_LIMIT or subcmd.proCount > DEFAULT_EXECUTION_LIMIT or subcmd.postCount > DEFAULT_EXECUTION_LIMIT :
                 raise executionException("(engine) execute, this subcommand reach the execution limit count")
             

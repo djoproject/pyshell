@@ -16,7 +16,7 @@ class EngineCoreTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def testExecuteSimpleOne(self):
+    def _testExecuteSimpleOne(self):
         #TODO choses qui ne vont pas dans ces tests :
             #-s'il n'y a qu'un argument l'ensemble des args ne lui est pas lié automatiquement
                 #ok le comportement correcte a avoir
@@ -72,7 +72,7 @@ class EngineCoreTest(unittest.TestCase):
         #...
     
     #test du mutliOutput
-    def testSimpleOneWithMultiOutput(self):
+    def _testSimpleOneWithMultiOutput(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre(arg1=0):
             self.preCount +=1
@@ -120,7 +120,7 @@ class EngineCoreTest(unittest.TestCase):
         #...
     
     #test du mutlicommand
-    def testMultiCommand(self):
+    def _testMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
@@ -229,7 +229,7 @@ class EngineCoreTest(unittest.TestCase):
             
 
     #test du mutliOutput avec multicommand
-    def testMultiOuputAndMultiCommand(self):
+    def _testMultiOuputAndMultiCommand(self):
         mc = MultiCommand("Multiple test", "help me")
         self.preCount = [0,0]
         self.proCount = [0,0]
@@ -322,7 +322,7 @@ class EngineCoreTest(unittest.TestCase):
         #it's too big with three command...
     
     #test du multiOutput avec multicommand et limite de commande
-    def testMultiOuputAndMultiCommandAmdCommandLimit(self):
+    def _testMultiOuputAndMultiCommandAmdCommandLimit(self):
         @shellMethod(arg1=IntegerArgChecker())
         def pre1(arg1=0):
             self.assertIn(arg1,self.valueToTest1[0])
@@ -510,7 +510,46 @@ class EngineCoreTest(unittest.TestCase):
 					self.assertTrue(b or not b)
 			
 			
-    
-    
+    def test_limitReaching(self):
+        @shellMethod(arg1=IntegerArgChecker())
+        def pre(arg1=0):
+            self.preCount +=1
+            return 5+arg1
+
+        @shellMethod(arg2=IntegerArgChecker())
+        def pro(arg2):
+            self.proCount += 1
+            return arg2*arg2
+
+        @shellMethod(arg3=ArgChecker())
+        def post(arg3):
+            self.postCount += 1
+            return arg3 #needed to the next post method in case of encapsulation
+
+        #simple test
+        self.valueToTest = 25
+        self.preCount = self.proCount = self.postCount = 0
+        uc = UniCommand("simple test", "help me", pre, pro, post)
+        engine = engineV3([uc])
+        
+        #set a large amount of data for the pre, then the pro, then the post
+        engine.stack[0] = ([5]*(DEFAULT_EXECUTION_LIMIT+1),[0],0,None )
+        #engine.execute()
+        self.assertRaises(executionException, engine.execute)
+        
+        engine.stack[0] = ([5]*(DEFAULT_EXECUTION_LIMIT+1),[0],1,None )
+        self.assertRaises(executionException, engine.execute)
+        
+        engine.stack[0] = ([5]*(DEFAULT_EXECUTION_LIMIT+1),[0],2,None )
+        self.assertRaises(executionException, engine.execute)
+
+        
+        #self.assertEqual(self.preCount,1)
+        #self.assertEqual(self.proCount,1)
+        #self.assertEqual(self.postCount,1)
+
+        
+        
+            
 if __name__ == '__main__':
     unittest.main()
