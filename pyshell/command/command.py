@@ -56,6 +56,7 @@ class MultiCommand(list):
         self.dymamicCount = 0
         
         self.args         = None        #
+        self.preCount = self.proCount = self.postCount = 0
         
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
         c = Command()

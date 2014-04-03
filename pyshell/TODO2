@@ -1,0 +1,14 @@
+-alias
+	alias pointant sur 1..n commande(s)
+-parameter
+-workflow	
+-application
+-service installer
+-print service
+	an interface with a few meth
+		info
+		error
+		warn
+		...
+-code generator
+-context
