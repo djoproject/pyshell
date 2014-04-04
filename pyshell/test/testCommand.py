@@ -1,13 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#TODO test
-    #disableCmd
-    #enableCmd
-    #enableArgUsage
-    #disableArgUsage
-
-
 import unittest
 from pyshell.command.command import *
 from pyshell.command.exception import *
@@ -30,13 +23,13 @@ class commandTest(unittest.TestCase):
         
         #test meth insertion and usagebuilder set
         def toto():
-            "plop"
+            "tata"
             pass
         
         toto.checker = 52
         self.assertTrue(mc.addProcess(toto) == None)
         self.assertTrue(mc.usageBuilder == 52) 
-        self.assertEqual(mc.helpMessage,"plop")
+        self.assertEqual(mc.helpMessage,"tata")
         
         toto.checker = 53
         self.assertTrue(mc.addProcess(None,toto) == None)
@@ -200,6 +193,52 @@ class commandTest(unittest.TestCase):
         
         uc.addStaticCommand(42)
         self.assertTrue(len(uc) == 1)
-        
+    
+    def test_EnableDisableCmd(self):
+        def plop():
+            pass
+
+        mc = MultiCommand("plop", False)
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop)
+        mc.addProcess(plop)
+        mc.addProcess(plop,plop)
+
+        index = 0
+        for c,a,e in mc:
+            self.assertTrue(e)
+            self.assertTrue(a)
+
+            if (index % 2) == 0:
+                mc.disableCmd(index)
+            else:
+                mc.disableArgUsage(index)
+
+            index += 1
+
+        index = 0
+        for c,a,e in mc:
+            if (index % 2) == 0:
+                self.assertTrue(a)
+                self.assertFalse(e)
+                mc.disableArgUsage(index)
+                mc.enableCmd(index)
+            else:
+                self.assertTrue(e)
+                self.assertFalse(a)
+                mc.disableCmd(index)
+                mc.enableArgUsage(index)
+            index += 1
+
+        index = 0
+        for c,a,e in mc:
+            if (index % 2) == 0:
+                self.assertTrue(e)
+                self.assertFalse(a)
+            else:
+                self.assertTrue(a)
+                self.assertFalse(e)
+            index += 1
+
 if __name__ == '__main__':
     unittest.main()
