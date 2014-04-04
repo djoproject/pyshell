@@ -1,11 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+#TODO test
+	#disableCmd
+	#enableCmd
+	#enableArgUsage
+	#disableArgUsage
+
+
 import unittest
 from pyshell.command.command import *
 from pyshell.command.exception import *
 
-class ArgCheckerTest(unittest.TestCase):
+class commandTest(unittest.TestCase):
     def setUp(self):
         pass
         
@@ -191,6 +198,6 @@ class ArgCheckerTest(unittest.TestCase):
         
         uc.addStaticCommand(42)
         self.assertTrue(len(uc) == 1)
-
+        
 if __name__ == '__main__':
     unittest.main()

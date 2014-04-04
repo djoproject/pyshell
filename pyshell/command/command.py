@@ -2,6 +2,7 @@
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import ArgChecker,listArgChecker
 from exception import commandException
+from utils import isAValidIndex
 
 class MultiOutput(list): #just a marker class to differentiate an standard list from a multiple output 
     pass
@@ -174,20 +175,26 @@ class MultiCommand(list):
         self.append( (c,useArgs,enabled,) )
         self.dymamicCount += 1
         
-    def disableCmd(self, index):
-        if index < 0 or index >= len(self):
-            raise commandException("(MultiCommand) disableCmd, invalid index")
-        
-        c,a,e = self[index]
-        self[index] = (c, a, False,)
-        
-    def enableCmd(self, index):
-        if index < 0 or index >= len(self):
-            raise commandException("(MultiCommand) disableCmd, invalid index")
-        
+    def enableCmd(self, index = 0):
+        isAValidIndex(self, index, "enableCmd", "Command list", "MultiCommand", commandException)
         c,a,e = self[index]
         self[index] = (c, a, True,)
         
+    def disableCmd(self, index = 0):
+        isAValidIndex(self, index, "disableCmd", "Command list", "MultiCommand", commandException)
+        c,a,e = self[index]
+        self[index] = (c, a, False,)
+        
+    def enableArgUsage(self,index=0):
+        isAValidIndex(self, index, "enableArgUsage", "Command list", "MultiCommand", commandException)
+        c,a,e = self[index]
+        self[index] = (c, True, e,)
+        
+    def disableArgUsage(self,index=0):
+        isAValidIndex(self, index, "enableArgUsage", "Command list", "MultiCommand", commandException)
+        c,a,e = self[index]
+        self[index] = (c, False, e,)
+
 #
 # special command class, with only one command (the starting point)
 #

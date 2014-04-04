@@ -616,7 +616,7 @@ class engineV3(object):
     def getEnv(self):
         return self.env
     
-### ENGINE meth ###
+### ENGINE core meth ###
 
     def execute(self):
         #compute the first index to execute on the first cmd to execute (this index will be executed immediately)

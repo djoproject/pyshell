@@ -23,7 +23,7 @@ def equalPath(path1,path2):
     
     return equals, sameLength, equalsCount, path1IsHigher
 
-def isAValidIndex(li, index, cmdName = None, listName = None):
+def isAValidIndex(li, index, cmdName = None, listName = None, context="engine", ex = executionException):
     try:
         noop = li[index]
     except IndexError:
@@ -37,7 +37,7 @@ def isAValidIndex(li, index, cmdName = None, listName = None):
         else:
             listName = ""
         
-        raise executionException("(engine) "+cmdName+"list index out of range"+listName)
+        raise ex("("+context+") "+cmdName+"list index out of range"+listName)
 
 def equalMap(map1,map2):
     if map1 == None and map2 == None:
