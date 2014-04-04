@@ -22,14 +22,52 @@ from pyshell.arg.argchecker import ArgChecker, IntegerArgChecker
 		#-car arg3 n'a pas de valeur par défaut
 
 #TODO TO TEST
-	#constructor
 	#_computeTheNextChildToExecute
 	#_executeMethod
 	#stopExecution
 
+def noneFun():
+    pass
+
 class EngineCoreTest(unittest.TestCase):
     def setUp(self):
         pass
+
+    #__init__
+    def testInit(self):
+        #check list
+        self.assertRaises(executionInitException,engineV3,None)
+        self.assertRaises(executionInitException,engineV3,[])
+        self.assertRaises(executionInitException,engineV3,42)
+        
+        #check command
+        mc = MultiCommand("Multiple test", "help me")
+        self.assertRaises(executionInitException,engineV3,[mc])
+        
+        mc.addProcess(noneFun,noneFun,noneFun)
+        self.assertRaises(executionInitException,engineV3,[mc, 42])
+        
+        mc.dymamicCount = 42
+        e = engineV3([mc])
+        self.assertIs(e.cmdList[0],mc)
+        self.assertEqual(mc.dymamicCount, 0) #check the call on reset
+        
+        mc.addProcess(noneFun,noneFun,noneFun) #because the reset with the dynamic at 42 will remove every command...
+        
+        #empty dict
+        self.assertIsInstance(e.env,dict)
+        self.assertEqual(len(e.env), 0)
+        
+        #nawak dico
+        self.assertRaises(executionInitException,engineV3,[mc], 42)
+        
+        #non empty dico
+        a = {}
+        a["ddd"] = 53
+        a[88] = "plop"
+        e = engineV3([mc],a)
+        self.assertIsInstance(e.env,dict)
+        self.assertEqual(len(e.env), 2)
 
     def testExecuteSimpleOne(self):
         @shellMethod(arg1=IntegerArgChecker())
@@ -54,7 +92,7 @@ class EngineCoreTest(unittest.TestCase):
         #simple test
         self.valueToTest = 25
         self.preCount = self.proCount = self.postCount = 0
-        uc = UniCommand("simple test", "help me", pre, pro, post)
+        uc = UniCommand("simple test", pre, pro, post)
         self.engine = engineV3([uc])
         self.engine.execute()
         self.assertEqual(self.preCount,1)
@@ -105,7 +143,7 @@ class EngineCoreTest(unittest.TestCase):
         #simple test
         self.valueToTest = [25,125, 100, 1000]
         self.preCount = self.proCount = self.postCount = 0
-        uc = UniCommand("simple test", "help me", pre, pro, post)
+        uc = UniCommand("simple test", pre, pro, post)
         self.engine = engineV3([uc])
         self.engine.execute()
         self.assertEqual(self.preCount,1)
@@ -133,7 +171,7 @@ class EngineCoreTest(unittest.TestCase):
     
     #test du mutlicommand
     def testMultiCommand(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand("Multiple test")
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
         self.postCount = [0,0,0]
@@ -251,7 +289,7 @@ class EngineCoreTest(unittest.TestCase):
 
     #test du mutliOutput avec multicommand
     def testMultiOuputAndMultiCommand(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand("Multiple test")
         self.preCount = [0,0]
         self.proCount = [0,0]
         self.postCount = [0,0]
@@ -393,7 +431,7 @@ class EngineCoreTest(unittest.TestCase):
             self.checkStack(self.engine.stack, self.engine.cmdList)
             return MultiOutput([arg3, arg3])
 
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand("Multiple test")
         mc.addProcess(pre1,pro1,post1)
         mc.addProcess(pre2,pro2,post2)
         
@@ -432,7 +470,7 @@ class EngineCoreTest(unittest.TestCase):
         #engine.skipNextCommandOnTheCurrentData() #the next command will raise an exception otherwise
         #engine.setCmdRange(1,2)
         self.engine.disableSubCommandInCurrentDataBunchMap(0)
-        self.engine.stack[-1][1][-1] += 1 #TODO bof bof, essayer d'eviter de devoir faire ce hack
+        #self.engine.stack[-1][1][-1] += 1 #TODO bof bof, essayer d'eviter de devoir faire ce hack
         self.engine.execute()
         
         self.assertIs(self.preCount[0],0)
@@ -563,7 +601,7 @@ class EngineCoreTest(unittest.TestCase):
         #simple test
         self.valueToTest = 25
         self.preCount = self.proCount = self.postCount = 0
-        uc = UniCommand("simple test", "help me", pre, pro, post)
+        uc = UniCommand("simple test", pre, pro, post)
         
         #set a large amount of data for the pre, then the pro, then the post
         engine = engineV3([uc])

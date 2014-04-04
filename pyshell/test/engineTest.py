@@ -16,42 +16,6 @@ class EngineTest(unittest.TestCase):
         self.mc.addProcess(noneFun,noneFun,noneFun)
         self.e = engineV3([self.mc])
         
-    #__init__
-    def testInit(self):
-        #check list
-        self.assertRaises(executionInitException,engineV3,None)
-        self.assertRaises(executionInitException,engineV3,[])
-        self.assertRaises(executionInitException,engineV3,42)
-        
-        #check command
-        mc = MultiCommand("Multiple test", "help me")
-        self.assertRaises(executionInitException,engineV3,[mc])
-        
-        mc.addProcess(noneFun,noneFun,noneFun)
-        self.assertRaises(executionInitException,engineV3,[mc, 42])
-        
-        mc.dymamicCount = 42
-        e = engineV3([mc])
-        self.assertIs(e.cmdList[0],mc)
-        self.assertEqual(mc.dymamicCount, 0) #check the call on reset
-        
-        mc.addProcess(noneFun,noneFun,noneFun) #because the reset with the dynamic at 42 will remove every command...
-        
-        #empty dict
-        self.assertIsInstance(e.env,dict)
-        self.assertEqual(len(e.env), 0)
-        
-        #nawak dico
-        self.assertRaises(executionInitException,engineV3,[mc], 42)
-        
-        #non empty dico
-        a = {}
-        a["ddd"] = 53
-        a[88] = "plop"
-        e = engineV3([mc],a)
-        self.assertIsInstance(e.env,dict)
-        self.assertEqual(len(e.env), 2)
-        
     #TODO other cmd meth ...
     #TODO skipNextCommandOnTheCurrentData
     #TODO skipNextCommandForTheEntireDataBunch

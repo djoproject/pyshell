@@ -43,13 +43,11 @@ class Command(object):
 #
 # a multicommand will produce several process with only one call
 #
-# TODO helpMessage pourrait etre pris de la premiere command ajoute (__name__)
-#     XXX quid dans le cas ou on ajoute qu'avec addProcess ? (obsolete ?)
-#
 class MultiCommand(list):
-    def __init__(self,name,helpMessage,showInHelp=True):
+    #def __init__(self,name,helpMessage,showInHelp=True):
+    def __init__(self,name,showInHelp=True):
         self.name         = name        #the name of the command
-        self.helpMessage  = helpMessage #message to show in the help context
+        self.helpMessage  = None #helpMessage #message to show in the help context
         self.showInHelp   = showInHelp  #is this command must appear in the help context ?
         self.usageBuilder = None        #which (pre/pro/post) process of the first command must be used to create the usage.
         
@@ -76,6 +74,9 @@ class MultiCommand(list):
             #check if this callable object has an usage builder
             if self.usageBuilder == None and hasattr(preProcess, "checker"):
                 self.usageBuilder = preProcess.checker
+                
+            if self.helpMessage == None and hasattr(preProcess,"__doc__") and preProcess.__doc__ != None and len(preProcess.__doc__) > 0:
+                self.helpMessage = preProcess.__doc__
         
         if process != None:
             #process must be callable
@@ -88,6 +89,9 @@ class MultiCommand(list):
             #check if this callable object has an usage builder
             if self.usageBuilder == None and hasattr(process, "checker"):
                 self.usageBuilder = process.checker
+                
+            if self.helpMessage == None and hasattr(process,"__doc__") and process.__doc__ != None and len(process.__doc__) > 0:
+                self.helpMessage = process.__doc__
             
         if postProcess != None:
             #postProcess must be callable
@@ -99,6 +103,9 @@ class MultiCommand(list):
             
             if self.usageBuilder == None and hasattr(postProcess, "checker"):
                 self.usageBuilder = postProcess.checker
+                
+            if self.helpMessage == None and hasattr(postProcess,"__doc__") and postProcess.__doc__ != None and len(postProcess.__doc__) > 0:
+                self.helpMessage = postProcess.__doc__
         
         self.append( (c,useArgs,True,) )
     
@@ -114,6 +121,10 @@ class MultiCommand(list):
         #if usageBuilder is not set, take the preprocess builder of the cmd 
         if self.usageBuilder == None:
             self.usageBuilder = cmd.preProcess.checker
+    
+        #build help message
+        if self.helpMessage == None and hasattr(cmd.preProcess,"__doc__") and cmd.preProcess.__doc__ != None and len(cmd.preProcess.__doc__) > 0:
+            self.helpMessage = cmd.preProcess.__doc__
     
         #add the command
         self.append( (cmd,useArgs,True,) )
@@ -200,8 +211,8 @@ class MultiCommand(list):
 #
 class UniCommand(MultiCommand):
     #def __init__(self,name,helpMessage,showInHelp=True):
-    def __init__(self,name,helpMessage,preProcess=None,process=None,postProcess=None,showInHelp=True):
-        MultiCommand.__init__(self,name,helpMessage,showInHelp)
+    def __init__(self,name,preProcess=None,process=None,postProcess=None,showInHelp=True):
+        MultiCommand.__init__(self,name,showInHelp)
         MultiCommand.addProcess(self,preProcess,process,postProcess)
 
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):

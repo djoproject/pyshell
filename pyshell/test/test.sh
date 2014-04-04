@@ -3,7 +3,11 @@
 #export PYTHONPATH=/home/jdv/development/tries_shell/pytries:$PYTHONPATH
 export PYTHONPATH=$(pwd)/../../:$PYTHONPATH
 echo $PYTHONPATH
-#python engineTest.py || exit
+
+#python engineInjectTest.py || exit
+#python engineCommandTest.py || exit
+#python engineSplitMergeTest.py || exit
+#python engineDataTest.py || exit
 python engineCoreTest.py || exit
 python engineStackTest.py || exit
 python engineUtilsTest.py || exit
