@@ -558,7 +558,7 @@ class engineV3(object):
         self.stack.raiseIfEmpty("addData")
         self.stack.dataOnTop().append(newdata)
     
-    def addData(self, newdata, offset=1, forbideInsertionAtZero = True):    
+    def addData(self, newdata, offset=-1, forbideInsertionAtZero = True):    
         self.stack.raiseIfEmpty("addData")
         if forbideInsertionAtZero and offset == 0:
             raise executionException("(engine) addData, can't insert a data at offset 0, it could create infinite loop. it is possible to override this check with the boolean forbideInsertionAtZero, set it to False")
@@ -579,6 +579,10 @@ class engineV3(object):
         #set the current cmd index to startIndex -1 (the minus 1 is because the engine will make a plus 1 to execute the next command)
         if resetSubCmdIndexIfOffsetZero and (offset == 0 or len(data) == 0): #len(data) == 0 is to manage the removal of the last item with -1 index on a data bunch of size 1
             #the engine will compute the first enabled cmd, if there is no more data, let the engine compute the cmd index too
+            
+            #TODO the behaviour will be different if this is executed inside an execution or outside
+                #in inside, the engine will compute the new index after the execution of the current process
+                #in the outside of an execution, the engine will only compute the index at the top
             self.stack[-1][1][-1] = -1
             
     def setData(self, newdata, offset=0):

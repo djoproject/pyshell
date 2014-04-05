@@ -81,6 +81,7 @@ class engineStack(list):
             sub = len(self)-1
             name = name[:-7]
         else:
+            #return getattr(self,name)
             return object.__getattribute__(self, name)
 
         if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex"]:

@@ -32,129 +32,22 @@ class EngineTest(unittest.TestCase):
     #TODO splitData
     
     #flushData
-    def test_flushData(self):
-        e = engineV3([self.mc])
-        e.flushData()
-        self.assertIs(len(e.stack[0][0]),0)
-        
-        e.addData(11)
-        e.addData(12)
-        e.addData(13)
-        self.assertIs(len(e.stack[0][0]),3)
-        e.flushData()
-        self.assertIs(len(e.stack[0][0]),0)
-        
-        e.stack = []
-        self.assertRaises(executionException,e.flushData)
+    
         
     #addData
-    def test_addData(self):
-        self.assertRaises(executionException,self.e.addData, 33, 0)
-        
-        #regular addData
-        self.e.addData(33,0,False)
-        self.assertIs(len(self.e.stack[0][0]),2)
-        self.assertIs(self.e.stack[0][0][0],33)
-        self.assertIs(self.e.stack[0][0][1],None)
-        
-        self.e.addData(44)
-        self.assertIs(len(self.e.stack[0][0]),3)
-        self.assertIs(self.e.stack[0][0][0],33)
-        self.assertIs(self.e.stack[0][0][1],44)
-        self.assertIs(self.e.stack[0][0][2],None)
-        
-        self.e.stack = []
-        self.assertRaises(executionException,self.e.addData, 33)
+
         
     #removeData
-    def test_removeData(self):
-        self.assertRaises(executionException,self.e.removeData, -2)
-        self.assertRaises(executionException,self.e.removeData, 1)
-        
-        self.e.removeData()
-        self.assertIs(len(self.e.stack[0][0]),0)
-        self.assertIs(self.e.stack[0][1][-1],-1)
-        
-        self.e.addData(None)
-        self.e.addData(44)
-        self.e.addData(55)
-        
-        self.e.removeData(1)
-        self.assertIs(len(self.e.stack[0][0]),2)
-        self.assertIs(self.e.stack[0][1][-1],-1)
-        self.assertIs(self.e.stack[0][0][0],None)
-        self.assertIs(self.e.stack[0][0][1],44)
-        
-        self.e.flushData()
-        self.e.addData(None)
-        self.e.addData(44)
-        self.e.addData(55)
-        
-        self.e.removeData(-2)
-        self.assertIs(len(self.e.stack[0][0]),2)
-        self.assertIs(self.e.stack[0][1][-1],-1)
-        self.assertIs(self.e.stack[0][0][0],None)
-        self.assertIs(self.e.stack[0][0][1],44)
-        
-        self.e.stack = []
-        self.assertRaises(executionException,self.e.removeData)
+
     
     #getData and setData
-    def test_getData(self):
-        e = engineV3([self.mc])
-        
-        self.assertEqual(e.getData(), None) 
-        e.setData(32)
-        self.assertEqual(e.getData(), 32) 
-        e.setData(None)
-        self.assertEqual(e.getData(), None) 
-        
-        e.stack = []
-        self.assertRaises(executionException,e.getData)
-        self.assertRaises(executionException,e.setData, 33)
+
     
     #hasNextData
-    def test_hasNextData(self):
-        e = engineV3([self.mc])
-        
-        self.assertFalse(e.hasNextData())
-        e.addData(11)
-        self.assertTrue(e.hasNextData())
-        
-        e.stack = []
-        self.assertRaises(executionException,e.hasNextData)
     
     #getRemainingDataCount
-    def test_getRemainingDataCount(self):
-        e = engineV3([self.mc])
-        
-        self.assertEqual(e.getRemainingDataCount(), 0)
-        e.addData(11)
-        self.assertEqual(e.getRemainingDataCount(), 1)
-        e.addData(12)
-        e.addData(13)
-        e.addData(14)
-        e.addData(15)
-        self.assertEqual(e.getRemainingDataCount(), 5)
-        
-        e.stack = []
-        self.assertRaises(executionException,e.getRemainingDataCount)
     
     #getDataCount
-    def test_getDataCount(self):
-        e = engineV3([self.mc])
-        
-        self.assertEqual(e.getDataCount(), 1)
-        e.addData(11)
-        self.assertEqual(e.getDataCount(), 2)
-        e.addData(12)
-        e.addData(13)
-        e.addData(14)
-        e.addData(15)
-        self.assertEqual(e.getDataCount(), 6)
-        
-        e.stack = []
-        self.assertRaises(executionException,e.getDataCount)
     
     #isEmptyStack
     def test_isEmptyStack(self):
