@@ -624,7 +624,24 @@ class EngineCoreTest(unittest.TestCase):
         self.assertEqual(uc[0][0].preCount,0)
         self.assertEqual(uc[0][0].proCount,0)
         self.assertEqual(uc[0][0].postCount,256)        
+    
         
+    #getEnv
+    def test_GetEnv(self):
+        mc = MultiCommand("Multiple test", "help me")
+        mc.addProcess(noneFun,noneFun,noneFun)  
+    
+        e = engineV3([mc])
+        
+        self.assertIs(e.env, e.getEnv())
+        
+        a = {}
+        a["ddd"] = 53
+        a[88] = "plop"
+        e = engineV3([mc],a)
+        
+        self.assertIs(e.env, e.getEnv())
+        self.assertIs(a, e.getEnv())
             
 if __name__ == '__main__':
     unittest.main()

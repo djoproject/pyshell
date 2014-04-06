@@ -436,29 +436,37 @@ class engineV3(object):
     
 ### SPLIT/MERGE meth ###
     
-    def mergeDataAndSetEnablingMap(self, newMap = None, count = 2):
+    def mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
         self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
         
         #check new map
-        if newMap != None and len(newMap) != self.stack.subCmdLengthOnTop(self.cmdList):
-            raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map size, must be equal to the sub command list size")
+        if newMap != None:
+            if len(newMap) != self.stack.subCmdLengthOnIndex(toppestItemToMerge,self.cmdList):
+                raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map size, must be equal to the sub command list size")
         
-        self.mergeData(count, None)
+            #TODO the current index must be enabled in the new map
+
+        self.mergeData(itemToSplit, count, None)
         top = self.stack.pop()
         self.stack.push(top[0], top[1], top[2], newMap)
 
-    def mergeData(self, count = 2, depthOfTheMapToKeep = None):
+    def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None): #TODO convert in index in place of dept
         #need at least two item to merge
         if count < 1:
             return False#no need to merge
         
+        #check and manage index
+        isAValidIndex(self.stack, toppestItemToMerge,"mergeData", "stack")
+        if toppestItemToMerge < 0:
+            toppestItemToMerge = len(self.stack) - toppestItemToMerge
+
         #the stack need to hold at least count
-        if self.stack.size() < count:
-            raise executionException("(engine) mergeDataOnStack, no enough of data on stack to merge")
+        if toppestItemToMerge+1 < count:
+            raise executionException("(engine) mergeDataOnStack, no enough of data on stack to merge from this index")
 
         #extract information from first item
-        pathOnTop = self.stack.pathOnTop()
-        actionToExecute = self.stack.typeOnTop()
+        path = self.stack.pathOnIndex(toppestItemToMerge)
+        actionToExecute = self.stack.typeOnIndex(toppestItemToMerge)
         
         #can only merge on PREPROCESS
         if actionToExecute != PREPROCESS_INSTRUCTION:
@@ -466,7 +474,7 @@ class engineV3(object):
         
         #check dept and get map
         if depthOfTheMapToKeep != None:
-            if depthOfTheMapToKeep < 0 or depthOfTheMapToKeep > count-1:
+            if depthOfTheMapToKeep < (toppestItemToMerge-count) or depthOfTheMapToKeep > toppestItemToMerge: #TODO update the indexes to check with toppestItemToMerge
                 raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
             
             #set the valid map
@@ -474,16 +482,16 @@ class engineV3(object):
         else:
             enablingMap = None
 
-        for depth in range(1,count):
+        for depth in range(1,count): #TODO update the indexes to check with toppestItemToMerge
             currentStackItem = self.stack.itemOnDepth(i)
 
             #the path must be the same for each item to merge
                 #execpt for the last command, the items not at the top of the stack must have 0 or the cmdStartLimit
-            if len(currentStackItem[1]) != len(pathOnTop):
+            if len(currentStackItem[1]) != len(path):
                 raise executionException("(engine) mergeDataOnStack, the command path is different for the item at depth <"+str(depth)+">")
             
-            for j in range(0,len(pathOnTop)-1):
-                if currentStackItem[1][j] != pathOnTop[j]:
+            for j in range(0,len(path)-1):
+                if currentStackItem[1][j] != path[j]:
                     raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at index <"+str(j)+">")
             
             #the action must be the same type
@@ -492,31 +500,55 @@ class engineV3(object):
 
         #merge data and keep start/end command
         dataBunch = []
-        for i in range(0,count):
+        for i in range(0,count): #TODO update the indexes to check with toppestItemToMerge
             data = self.stack.pop()
             dataBunch.extend(data)
         
-        self.stack.push(dataBunch, pathOnTop, actionToExecute, enablingMap)
+        self.stack.push(dataBunch, path, actionToExecute, enablingMap) #TODO update the indexes to check with toppestItemToMerge
         return True
         
-    def splitDataAndSetEnablingMap(self, splitAtDataIndex=0, map1 = None, map2=None):
+    def splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None):
         self.stack.raiseIfEmpty("splitDataAndSetEnablingMap")
         
-        if map1 != None and len(map1) != self.stack.subCmdLengthOnTop(self.cmdList):
-            raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map1 size, must be equal to the sub command list size")
+        if map1 != None:
+            if len(map1) != self.stack.subCmdLengthOnIndex(itemToSplit,self.cmdList):
+                raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map1 size, must be equal to the sub command list size")
             
-        if map2 != None and len(map2) != self.stack.subCmdLengthOnTop(self.cmdList):
-            raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map2 size, must be equal to the sub command list size")
+            #current index must be enabled in new map1 (really ?)
+            if not map1[self.stack.subCmdIndexOnIndex(itemToSplit)]:
+                raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command can not be disabled in the map1")
+
+        newMap2Index = 0
+        if map2 != None:
+            if len(map2) != self.stack.subCmdLengthOnIndex(itemToSplit,self.cmdList):
+                raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map2 size, must be equal to the sub command list size")
         
-        state = self.splitData(splitAtDataIndex, True)
-        self.stack[-1] = (self.stack[-1][0],self.stack[-1][1],self.stack[-1][2],map1)
+            #compute the first index of the second data bunch
+            cmd = self.stack.getCmd(itemToSplit, self.cmdList)
+            nextData, newMap2Index = self._computeTheNextChildToExecute(cmd, len(cmd)-1, enableMap)
+
+            #this cmd has no subcmd enabled, can not push it again on the stack
+            if newIndex == -1:
+                raise executionException("(engine) splitData, no enabled subcmd in this dataBunch")
         
-        if state: #if state is false, no split has occurred, so no need to set the second map
-            self.stack[-2] = (self.stack[-2][0],self.stack[-2][1],self.stack[-2][2],map1)
+        #get a positive index
+        if itemToSplit < 0:
+            itemToSplit = len(self.stack) - itemToSplit
+
+        #split
+        state = self.splitData(itemToSplit, splitAtDataIndex, True) 
+        
+        #set new map
+        if state: #is a split occured ?
+            self.stack.setEnableMapOnIndex(itemToSplit, map2)
+            self.stack.pathOnIndex(itemToSplit)[-1] = newMap2Index
+            self.stack.setEnableMapOnIndex(itemToSplit+1, map1)
+        else:
+            self.stack.setEnableMapOnIndex(itemToSplit, map1)
 
         return state
     
-    def splitData(self,splitAtDataIndex=0, resetEnablingMap = False): #split the data into two separate stack item at the index, but will not change anything in the process order
+    def splitData(self, itemToSplit = -1,splitAtDataIndex=0, resetEnablingMap = False): #split the data into two separate stack item at the index, but will not change anything in the process order
         #is empty stack ?
         self.stack.raiseIfEmpty("splitData")
         
@@ -524,27 +556,41 @@ class engineV3(object):
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) splitData, can't split the data of a PRO/POST process because it will not change anything on the execution")
         
-        topdata = self.stack.dataOnTop()
         #split point exist ?
-        if splitAtDataIndex < 0 or splitAtDataIndex > (len(topdata)-1):
-            raise executionException("(engine) splitData, split index out of bound")
+        isAValidIndex(self.stack, itemToSplit,"splitData", "stack")
+        topdata = self.stack.dataOnIndex(itemToSplit)
+        isAValidIndex(topdata, splitAtDataIndex,"splitData", "data to split")
         
         #has enought data to split ?
         if len(topdata) < 2 or splitAtDataIndex == 0:
             return False
         
-        #split, pop, then push the two new items
-        top = self.stack.pop()
+        #pop
+        top = self.stack[itemToSplit]#self.stack.pop()
+        del self.stack[itemToSplit]
+
         path = top[1][:]
-        path[-1] = 0 
-        
         if resetEnablingMap:
             enableMap = None
+            path[-1] = 0
         else:
             enableMap = top[3]
-        
-        self.stack.append( (top[0][splitAtDataIndex:], path, top[2], enableMap) )
-        self.stack.append( (top[0][0:splitAtDataIndex], top[1], top[2], enableMap) )
+            cmd = self.cmdList[len(top[1])-1]
+            nextData, newIndex = self._computeTheNextChildToExecute(cmd, len(cmd)-1, enableMap)
+
+            #this cmd has no subcmd enabled, can not push it again on the stack
+            if newIndex == -1:
+                raise executionException("(engine) splitData, no enabled subcmd in this dataBunch")
+
+            path[-1] = newIndex
+
+        #recompute itemToSplit if needed
+        if itemToSplit < 0:
+            itemToSplit = len(self.stack) - itemToSplit
+
+        #push the two new items
+        self.stack.insert(itemToSplit, (top[0][0:splitAtDataIndex], top[1], top[2], enableMap,) )
+        self.stack.insert(itemToSplit, (top[0][splitAtDataIndex:], path, top[2], enableMap,) )
         
         return True
 
