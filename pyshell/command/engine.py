@@ -565,8 +565,12 @@ class engineV3(object):
         if len(topdata) < 2 or splitAtDataIndex == 0:
             return False
         
+        #recompute itemToSplit if needed FIXME
+        if itemToSplit < 0:
+            itemToSplit = len(self.stack) + itemToSplit
+        
         #pop
-        top = self.stack[itemToSplit]#self.stack.pop()
+        top = self.stack[itemToSplit]
         del self.stack[itemToSplit]
 
         path = top[1][:]
@@ -583,10 +587,6 @@ class engineV3(object):
                 raise executionException("(engine) splitData, no enabled subcmd in this dataBunch")
 
             path[-1] = newIndex
-
-        #recompute itemToSplit if needed
-        if itemToSplit < 0:
-            itemToSplit = len(self.stack) - itemToSplit
 
         #push the two new items
         self.stack.insert(itemToSplit, (top[0][0:splitAtDataIndex], top[1], top[2], enableMap,) )
@@ -854,7 +854,7 @@ class engineV3(object):
         for i in range(self.stack.size()-1, -1, -1):
             cmdEnabled = self.stack[i][3]
             if cmdEnabled == None:
-                cmdEnabled = "(disabled)"
+                cmdEnabled = "(no mapping)"
             
             print "#["+str(i)+"] data=", self.stack[i][0], ", path=", self.stack[i][1], ", action=",self.stack[i][2], ", cmd enabled=",cmdEnabled
     
