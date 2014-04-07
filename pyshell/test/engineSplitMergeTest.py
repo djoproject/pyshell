@@ -62,15 +62,36 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertEqual(engine.stack[1][3], None)
         self.assertEqual(engine.stack[0][3], None)
         
-        #TODO test to do
-            #pile avec plus de 1 element
-            #split avec un index au debut, a la fin, et un au millieu de pile
-            #tester le recalcul d'index avecun bitmap
-        
         #empty stack
         del engine.stack[:]
         self.assertRaises(executionException, engine.splitData,-1, 1, False)
         
+        def test_multiLevel(self):
+            mc = MultiCommand("Multiple test")
+            mc.addProcess(plop,plop,plop)
+            mc.addProcess(plop,plop,plop)
+            mc.addProcess(plop,plop,plop)
+
+            engine = engineV3([mc,mc,mc])
+            engin.stack.append( ([None],[0],0,None,)  )
+            engin.stack.append( ([None],[0],0,None,)  )
+            engin.stack.append( ([None],[0],0,None,)  )
+            engin.stack.append( ([None],[0],0,None,)  )
+
+            for i in range(0,len(engine.stack)):
+                for j in range(1,6):
+                    engine.stack[i][0].append(str(i+1)+str(j))
+
+            
+        
+            
+        #TODO test to do
+            #pile avec plus de 1 element
+            #split avec un index au debut, a la fin, et un au millieu de pile
+            #tester le recalcul d'index avecun bitmap
+
+
+                
     
 if __name__ == '__main__':
     unittest.main()
