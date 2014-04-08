@@ -444,7 +444,10 @@ class engineV3(object):
             if len(newMap) != self.stack.subCmdLengthOnIndex(toppestItemToMerge,self.cmdList):
                 raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map size, must be equal to the sub command list size")
         
-            #TODO the current index must be enabled in the new map
+            isAValidIndex(self.stack, toppestItemToMerge,"mergeDataAndSetEnablingMap", "stack")
+            subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
+            if not newMap[subindex]:
+                raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the new map")
 
         self.mergeData(toppestItemToMerge, count, None)
         self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
@@ -463,25 +466,29 @@ class engineV3(object):
         if toppestItemToMerge+1 < count:
             raise executionException("(engine) mergeDataOnStack, no enough of data on stack to merge from this index")
 
-        #extract information from first item
-        path = self.stack.pathOnIndex(toppestItemToMerge)
-        actionToExecute = self.stack.typeOnIndex(toppestItemToMerge)
-        
         #can only merge on PREPROCESS
-        if actionToExecute != PREPROCESS_INSTRUCTION:
+        if self.stack.typeOnIndex(toppestItemToMerge) != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) mergeDataOnStack, try to merge a not preprocess action")
         
         #check dept and get map
         if indexOfTheMapToKeep != None:
-			if indexOfTheMapToKeep < 0 or indexOfTheMapToKeep > toppestItemToMerge:
-				raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
+            if indexOfTheMapToKeep < 0 or indexOfTheMapToKeep > toppestItemToMerge:
+                raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
             
             #get the valid map
             enablingMap = self.stack.enablingMapOnIndex(indexOfTheMapToKeep)
+            
+            if enablingMap != None
+				#the current index must be enabled in the new map
+				subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
+				if not enablingMap[subindex]:
+					raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the selected map")
+          
         else:
             enablingMap = None
 
-		#TODO the current index must be enabled in the new map
+		#extract information from first item
+        path = self.stack.pathOnIndex(toppestItemToMerge)
 
         for i in range(1,count):
             currentStackItem = self.stack.itemOnIndex(toppestItemToMerge-i)
@@ -491,12 +498,12 @@ class engineV3(object):
             if len(currentStackItem[1]) != len(path):
                 raise executionException("(engine) mergeDataOnStack, the command path is different for the item at index <"+str(i)+">")
             
-            for j in range(0,len(path)-1):
+            for j in range(0,len(path)-1): #don't care about the last index on the path
                 if currentStackItem[1][j] != path[j]:
                     raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at sub index <"+str(j)+">")
             
             #the action must be the same type
-            if currentStackItem[2] != actionToExecute:
+            if currentStackItem[2] != PREPROCESS_INSTRUCTION:
                 raise executionException("(engine) mergeDataOnStack, the action of the item at index <"+str(i)+"> is different of the action ot the first item")
 
         #merge data and keep start/end command

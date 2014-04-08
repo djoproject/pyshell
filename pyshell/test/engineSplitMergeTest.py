@@ -14,9 +14,50 @@ def plop(arg):
 
 class splitAndMergeTest(unittest.TestCase):
  
-    #TODO mergeDataAndSetEnablingMap
-    #TODO def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None)
+    #TODO mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
+	def test_mergeWithCustomeMap(self):
+		#FAIL
+		#empty stack
+		
+		#set a map of invalid length
+		
+		#set a map of valid length but with the current subcmd disabled
+		
+		#SUCCESS
+		#set a None map on a not None map merged
+		
+		#set a instanciated map
+		
+		pass
     
+    #TODO def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None)
+    def test_basicMerge(self):
+		#FAIL
+		#count < 2
+		
+		#toppestItemToMerge invalid
+		
+		#count with more to merge than available
+		
+		#merge pro/post process
+			#at the top or in the middle
+		
+		#select a map outside of the scope
+		
+		#select a map without the current process included
+		
+		#try to merge some preprocess with different path
+			#path of same length but different
+			#path with a different length
+		
+		#empty stack
+		
+		#SUCCESS
+		#try normal merge
+			#with or without selected map
+			#with 2 or more count
+			#at the top or not of the stack
+		pass
     
     #splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None)
     def test_splitWithSet(self):
