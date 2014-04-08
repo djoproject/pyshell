@@ -446,19 +446,18 @@ class engineV3(object):
         
             #TODO the current index must be enabled in the new map
 
-        self.mergeData(itemToSplit, count, None)
-        top = self.stack.pop()
-        self.stack.push(top[0], top[1], top[2], newMap)
+        self.mergeData(toppestItemToMerge, count, None)
+        self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
 
-    def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None): #TODO convert in index in place of dept
+    def mergeData(self,toppestItemToMerge = -1, count = 2, indexOfTheMapToKeep = None): 
         #need at least two item to merge
-        if count < 1:
+        if count < 2:
             return False#no need to merge
         
         #check and manage index
         isAValidIndex(self.stack, toppestItemToMerge,"mergeData", "stack")
         if toppestItemToMerge < 0:
-            toppestItemToMerge = len(self.stack) - toppestItemToMerge
+            toppestItemToMerge = len(self.stack) + toppestItemToMerge
 
         #the stack need to hold at least count
         if toppestItemToMerge+1 < count:
@@ -473,38 +472,40 @@ class engineV3(object):
             raise executionException("(engine) mergeDataOnStack, try to merge a not preprocess action")
         
         #check dept and get map
-        if depthOfTheMapToKeep != None:
-            if depthOfTheMapToKeep < (toppestItemToMerge-count) or depthOfTheMapToKeep > toppestItemToMerge: #TODO update the indexes to check with toppestItemToMerge
-                raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
+        if indexOfTheMapToKeep != None:
+			if indexOfTheMapToKeep < 0 or indexOfTheMapToKeep > toppestItemToMerge:
+				raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
             
-            #set the valid map
-            enablingMap = self.stack.enablingMapOnDepth(depthOfTheMapToKeep)
+            #get the valid map
+            enablingMap = self.stack.enablingMapOnIndex(indexOfTheMapToKeep)
         else:
             enablingMap = None
 
-        for depth in range(1,count): #TODO update the indexes to check with toppestItemToMerge
-            currentStackItem = self.stack.itemOnDepth(i)
+		#TODO the current index must be enabled in the new map
+
+        for i in range(1,count):
+            currentStackItem = self.stack.itemOnIndex(toppestItemToMerge-i)
 
             #the path must be the same for each item to merge
                 #execpt for the last command, the items not at the top of the stack must have 0 or the cmdStartLimit
             if len(currentStackItem[1]) != len(path):
-                raise executionException("(engine) mergeDataOnStack, the command path is different for the item at depth <"+str(depth)+">")
+                raise executionException("(engine) mergeDataOnStack, the command path is different for the item at index <"+str(i)+">")
             
             for j in range(0,len(path)-1):
                 if currentStackItem[1][j] != path[j]:
-                    raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at index <"+str(j)+">")
+                    raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at sub index <"+str(j)+">")
             
             #the action must be the same type
             if currentStackItem[2] != actionToExecute:
-                raise executionException("(engine) mergeDataOnStack, the action of the item at depth <"+str(depth)+"> is different of the action ot the top item 0")
+                raise executionException("(engine) mergeDataOnStack, the action of the item at index <"+str(i)+"> is different of the action ot the first item")
 
         #merge data and keep start/end command
         dataBunch = []
-        for i in range(0,count): #TODO update the indexes to check with toppestItemToMerge
-            data = self.stack.pop()
-            dataBunch.extend(data)
+        for i in range(0,count):
+            dataBunch.extend(self.stack.dataAtIndex(toppestItemToMerge - i))
+            del self.stack[i]
         
-        self.stack.push(dataBunch, path, actionToExecute, enablingMap) #TODO update the indexes to check with toppestItemToMerge
+        self.stack.insert(toppestItemToMerge - count + 1, (dataBunch, path, actionToExecute, enablingMap,) )
         return True
         
     def splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None):

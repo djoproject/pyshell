@@ -15,7 +15,8 @@ def plop(arg):
 class splitAndMergeTest(unittest.TestCase):
  
     #TODO mergeDataAndSetEnablingMap
-    #TODO mergeData
+    #TODO def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None)
+    
     
     #splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None)
     def test_splitWithSet(self):
