@@ -13,11 +13,78 @@ def plop(arg):
     return arg
 
 class splitAndMergeTest(unittest.TestCase):
-    pass
-    
+ 
     #TODO mergeDataAndSetEnablingMap
     #TODO mergeData
-    #TODO splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None)
+    
+    #splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None)
+    def test_splitWithSet(self):
+        mc = MultiCommand("Multiple test")
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop,plop)
+        
+        engine = engineV3([mc,mc,mc])
+        engine.appendData("11")
+        engine.appendData("22")
+        engine.appendData("33")
+        engine.appendData("44")
+        engine.appendData("55")
+        
+        #map1 != None with wrong size
+        self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, [True, False], None)
+        
+        #map1 != None with current index disabled
+        self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, [False, True, True], None)
+        
+        #map1 != None with wrong size
+        self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, None, [True, False])
+        
+        #map1 != None and fully disabled
+        self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, None, [False, False, False])
+        
+        #split at 0 index
+        self.assertEqual(engine.stack.size(),1)
+        engine.splitDataAndSetEnablingMap( 0, 0, None, None)
+        self.assertEqual(engine.stack.size(),1)
+        self.assertEqual(engine.stack[0][3], None)
+        self.assertEqual(engine.stack[0][1],[0])
+        
+        
+        #split at >0 index
+        self.assertEqual(engine.stack.size(),1)
+        engine.splitDataAndSetEnablingMap( 0, 2, None, None)
+        self.assertEqual(engine.stack.size(),2)
+        
+        self.assertEqual(engine.stack[0][3], None)
+        self.assertEqual(engine.stack[1][3], None)
+        
+        self.assertEqual(engine.stack[1][1],[0])
+        self.assertEqual(engine.stack[0][1],[0])
+        
+        engine = engineV3([mc,mc,mc])
+        engine.appendData("11")
+        engine.appendData("22")
+        engine.appendData("33")
+        engine.appendData("44")
+        engine.appendData("55")
+        
+        #split at 0 index with new map
+        self.assertEqual(engine.stack.size(),1)
+        engine.splitDataAndSetEnablingMap( 0, 0, [True, False, False], [False, False,True])
+        self.assertEqual(engine.stack.size(),1)
+        self.assertEqual(engine.stack[0][3], [True, False, False])
+        self.assertEqual(engine.stack[0][1],[0])
+        
+        #split at >0 index with new map
+        self.assertEqual(engine.stack.size(),1)
+        engine.splitDataAndSetEnablingMap( 0, 2, [True, False, True], [False, False,True])
+        self.assertEqual(engine.stack.size(),2)
+        self.assertEqual(engine.stack[1][3], [True, False, True])
+        self.assertEqual(engine.stack[0][3], [False, False, True])
+        self.assertEqual(engine.stack[1][1],[0])
+        self.assertEqual(engine.stack[0][1],[2])
+        
     
     #splitData(self, itemToSplit = -1,splitAtDataIndex=0, resetEnablingMap = False):
     def test_split(self):

@@ -525,15 +525,15 @@ class engineV3(object):
         
             #compute the first index of the second data bunch
             cmd = self.stack.getCmd(itemToSplit, self.cmdList)
-            nextData, newMap2Index = self._computeTheNextChildToExecute(cmd, len(cmd)-1, enableMap)
+            nextData, newMap2Index = self._computeTheNextChildToExecute(cmd, len(cmd)-1, map2)
 
             #this cmd has no subcmd enabled, can not push it again on the stack
-            if newIndex == -1:
+            if newMap2Index == -1:
                 raise executionException("(engine) splitData, no enabled subcmd in this dataBunch")
         
         #get a positive index
         if itemToSplit < 0:
-            itemToSplit = len(self.stack) - itemToSplit
+            itemToSplit = len(self.stack) + itemToSplit
 
         #split
         state = self.splitData(itemToSplit, splitAtDataIndex, True) 
