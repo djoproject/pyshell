@@ -14,51 +14,157 @@ def plop(arg):
 
 class splitAndMergeTest(unittest.TestCase):
  
-    #TODO mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
-	def test_mergeWithCustomeMap(self):
-		#FAIL
-		#empty stack
-		
-		#set a map of invalid length
-		
-		#set a map of valid length but with the current subcmd disabled
-		
-		#SUCCESS
-		#set a None map on a not None map merged
-		
-		#set a instanciated map
-		
-		pass
-    
-    #TODO def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None)
+    #mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
+    def test_mergeWithCustomeMap(self):
+        mc = MultiCommand("Multiple test")
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop,plop)
+
+        engine = engineV3([mc,mc,mc])
+
+        #FAIL
+        #empty stack
+        del engine.stack[:]
+        self.assertRaises(executionException,engine.mergeDataAndSetEnablingMap,-1,None,2)
+        
+        for i in range(0,5):
+            engine.stack.append( ([None],[0],0,None,)  )
+        for i in range(0,len(engine.stack)):
+            for j in range(1,6):
+                engine.stack[i][0].append(str(i+1)+str(j))
+
+        #set a map of invalid length
+        self.assertRaises(executionException,engine.mergeDataAndSetEnablingMap,-1,[True, True, True, True],2)
+        
+        #set a map of valid length but with the current subcmd disabled
+        self.assertRaises(executionException,engine.mergeDataAndSetEnablingMap,-1,[False, True, True],2)
+        
+        #SUCCESS
+        #set a None map on a not None map merged
+        del engine.stack[:]
+
+        for i in range(0,5):
+            engine.stack.append( ([None],[0],0,[True, False, True],)  )
+        for i in range(0,len(engine.stack)):
+            for j in range(1,6):
+                engine.stack[i][0].append(str(i+1)+str(j))
+
+        engine.mergeDataAndSetEnablingMap(-1,None,2)
+        self.assertEqual(engine.stack[-1][3], None)
+        
+        #set a instanciated map
+        del engine.stack[:]
+        for i in range(0,5):
+            engine.stack.append( ([None],[0],0,None,)  )
+        for i in range(0,len(engine.stack)):
+            for j in range(1,6):
+                engine.stack[i][0].append(str(i+1)+str(j))
+
+        engine.mergeDataAndSetEnablingMap(-1,[True, False, True],2)
+        self.assertEqual(engine.stack[-1][3], [True, False, True])
+            
+    #def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None)
     def test_basicMerge(self):
-		#FAIL
-		#count < 2
-		
-		#toppestItemToMerge invalid
-		
-		#count with more to merge than available
-		
-		#merge pro/post process
-			#at the top or in the middle
-		
-		#select a map outside of the scope
-		
-		#select a map without the current process included
-		
-		#try to merge some preprocess with different path
-			#path of same length but different
-			#path with a different length
-		
-		#empty stack
-		
-		#SUCCESS
-		#try normal merge
-			#with or without selected map
-			#with 2 or more count
-			#at the top or not of the stack
-		pass
-    
+        mc = MultiCommand("Multiple test")
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop,plop)
+        mc.addProcess(plop,plop,plop)
+
+        engine = engineV3([mc,mc,mc])
+        for i in range(0,4):
+            engine.stack.append( ([None],[0],0,None,)  )
+
+        for i in range(0,len(engine.stack)):
+            for j in range(1,6):
+                engine.stack[i][0].append(str(i+1)+str(j))
+
+        #FAIL
+        #count < 2
+        self.assertFalse(engine.mergeData(-1,1,None))
+        self.assertFalse(engine.mergeData(0,0,None))
+        
+        #toppestItemToMerge invalid
+        self.assertRaises(executionException, engine.mergeData,-100,4,None)
+        
+        #count with more to merge than available
+        self.assertRaises(executionException, engine.mergeData,-1,400,None)
+        
+        #merge pro/post process
+            #at the top or in the middle
+        del engine.stack[:]
+        for i in range(0,5):
+            engine.stack.append( ([None],[0],i%3,None,)  )
+        self.assertRaises(executionException, engine.mergeData,-1,3,None)
+        del engine.stack[:]
+        for i in range(0,5):
+            engine.stack.append( ([None],[0],0,None,)  )
+        
+        #select a map outside of the scope
+        self.assertRaises(executionException, engine.mergeData,-1,2,[True,False,True,False])
+        
+        #select a map without the current process included
+        self.assertRaises(executionException, engine.mergeData,-1,2,[False,False,True])
+        
+        #try to merge some preprocess with different path
+        del engine.stack[:]
+        for i in range(0,5):
+            engine.stack.append( ([None],[0]*(i+1),i%3,None,)  )
+            #path of same length but different
+        self.assertRaises(executionException, engine.mergeData,-1,2,None)
+        
+        del engine.stack[:]
+        for i in range(0,5):
+            engine.stack.append( ([None],[i%2, i%3, i*2],i%3,None,)  )
+            #path with a different length
+        self.assertRaises(executionException, engine.mergeData,-1,2,None)
+        
+        #empty stack
+        del engine.stack[:]
+        self.assertRaises(executionException, engine.mergeData,-1,2,None)
+
+        
+
+        #SUCCESS
+        #try normal merge
+            #with or without selected map
+        for k in range(1,5):
+            #reinit
+            del engine.stack[:]
+            for i in range(0,5):
+                engine.stack.append( ([None],[0],0,None,)  )
+            for i in range(0,len(engine.stack)):
+                for j in range(1,6):
+                    engine.stack[i][0].append(str(i+1)+str(j))
+
+            engine.mergeData(k,2,None)
+            for i in range(0,k-1):
+                self.assertEqual(len(engine.stack[i][0]),6)
+
+            self.assertEqual(len(engine.stack[k-1][0]),12)
+
+            for i in range(k,4):
+                self.assertEqual(len(engine.stack[i][0]),6)
+
+
+        for k in range(2,5):
+            #reinit
+            del engine.stack[:]
+            for i in range(0,5):
+                engine.stack.append( ([None],[0],0,None,)  )
+            for i in range(0,len(engine.stack)):
+                for j in range(1,6):
+                    engine.stack[i][0].append(str(i+1)+str(j))
+
+            engine.mergeData(k,3,None)
+            for i in range(0,k-2):
+                self.assertEqual(len(engine.stack[i][0]),6)
+
+            self.assertEqual(len(engine.stack[k-2][0]),18)
+
+            for i in range(k-1,3):
+                self.assertEqual(len(engine.stack[i][0]),6)
+
     #splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None)
     def test_splitWithSet(self):
         mc = MultiCommand("Multiple test")
@@ -127,7 +233,6 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertEqual(engine.stack[1][1],[0])
         self.assertEqual(engine.stack[0][1],[2])
         
-    
     #splitData(self, itemToSplit = -1,splitAtDataIndex=0, resetEnablingMap = False):
     def test_split(self):
         mc = MultiCommand("Multiple test")

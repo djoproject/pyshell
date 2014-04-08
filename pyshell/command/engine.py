@@ -449,6 +449,11 @@ class engineV3(object):
             if not newMap[subindex]:
                 raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the new map")
 
+        
+
+        if toppestItemToMerge < 0:
+            toppestItemToMerge = len(self.stack) + toppestItemToMerge
+        
         self.mergeData(toppestItemToMerge, count, None)
         self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
 
@@ -478,7 +483,7 @@ class engineV3(object):
             #get the valid map
             enablingMap = self.stack.enablingMapOnIndex(indexOfTheMapToKeep)
             
-            if enablingMap != None
+            if enablingMap != None:
 				#the current index must be enabled in the new map
 				subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
 				if not enablingMap[subindex]:
@@ -509,10 +514,10 @@ class engineV3(object):
         #merge data and keep start/end command
         dataBunch = []
         for i in range(0,count):
-            dataBunch.extend(self.stack.dataAtIndex(toppestItemToMerge - i))
-            del self.stack[i]
+            dataBunch.extend(self.stack.dataOnIndex(toppestItemToMerge - i))
+            del self.stack[toppestItemToMerge - i]
         
-        self.stack.insert(toppestItemToMerge - count + 1, (dataBunch, path, actionToExecute, enablingMap,) )
+        self.stack.insert(toppestItemToMerge - count + 1, (dataBunch, path, PREPROCESS_INSTRUCTION, enablingMap,) )
         return True
         
     def splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None):
