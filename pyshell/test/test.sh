@@ -5,9 +5,9 @@ export PYTHONPATH=$(pwd)/../../:$PYTHONPATH
 echo $PYTHONPATH
 
 #python engineInjectTest.py || exit
-#python engineCommandTest.py || exit
-python engineSplitMergeTest.py || exit
+python engineCommandTest.py || exit
 exit
+python engineSplitMergeTest.py || exit
 python engineDataTest.py || exit
 python engineCoreTest.py || exit
 python engineStackTest.py || exit
