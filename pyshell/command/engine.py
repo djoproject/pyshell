@@ -22,6 +22,7 @@ from utils import *
     #update the index in disable method for every needed item on the stack
     #compute the first index in the inject method, if a map is given
         #same for split/merge
+	#behaviour of such function inside or outside the engine execution
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -364,13 +365,15 @@ class engineV3(object):
             self.stack.raiseIfEmpty("addSubCommand")
             cmdID = self.stack.cmdIndexOnTop()
         
-        if cmdID > 0 or cmdID >= len(self.cmdList):
-            raise executionException("(engine) addSubCommand, invalid command index")
+        isAValidIndex(self.cmdList, cmdID,"addSubCommand", "command list")
         
         #add the sub command
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce, useArgs)
         
         #extend the enablingMapping existed on the stack
+			#TODO what if the current cmd is used several time in the cmd list ???
+				#must update each level of the use of this cmd
+        
         for i in range(0, self.stack.size()):
             currentStackItem = self.stack[i]
             if currentStackItem[2] != PREPROCESS_INSTRUCTION:
@@ -385,7 +388,7 @@ class engineV3(object):
                 continue
             
             currentStackItem[3].extend(True)
-            self.stack[i] = (currentStackItem[0],currentStackItem[1],currentStackItem[2],currentStackItem[3],)     
+            self.stack.setEnableMapOnIndex(i, currentStackItem[3])
     
     def addCommand(self, cmd, convertProcessToPreProcess = False):
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
@@ -394,38 +397,25 @@ class engineV3(object):
         #The process (!= pre and != post), must always be the process of the last command in the list
         #if we add a new command, the existing process on the stack became invalid
 
-        #if there are not top item with process type
-        if convertProcessToPreProcess:
-            #convert the existing process on the stack into preprocess of the new command
-            for i in range(1,count):
-                currentStackItem = self.stack[self.stack.size() - 1 - i]
-                
-                if currentStackItem[2] == PREPROCESS_INSTRUCTION:
-                    break
-                    
-                if currentStackItem[2] == POSTPROCESS_INSTRUCTION:
-                    continue
-                
-                new_path = currentStackItem[1][:]
-                new_path.append(0)
-                self.stack[len(self.stack) - 1 - i] = (currentStackItem[0], new_path, PREPROCESS_INSTRUCTION, currentStackItem[3])
-        else:
-            #if the top item is a process type with more than one data
-            if self.stack.typeOnTop() == PROCESS_INSTRUCTION and len(self.stack.dataOnTop()) > 1:
-                raise executionInitException("(engine) addCommand, the current process type is pro and has at least 1 execution remaining, can not add a new command")
-            
-            for i in range(1,count):
-                currentStackItem = self.stack[len(self.stack) - 1 - i]
-                
-                #if we reach a preprocess, we never reach again a process
-                if currentStackItem[2] == PREPROCESS_INSTRUCTION:
-                    break
-                
-                if currentStackItem[2] == POSTPROCESS_INSTRUCTION:
-                    continue
-                    
-                raise executionInitException("(engine) addCommand, some process are waiting on the stack, can not add a command")
-            
+		for i in range(0,len(self.stack)):
+			currentStackItem = self.stack[len(self.stack) - 1 - i]
+			
+			#if we reach a preprocess, we never reach again a process
+			if currentStackItem[2] == PREPROCESS_INSTRUCTION:
+				break
+			
+			if currentStackItem[2] == POSTPROCESS_INSTRUCTION:
+				continue
+			
+			#so, here we have PROCESS_INSTRUCTION
+			
+			if not convertProcessToPreProcess and (i > 0 or len(self.stack.dataOnTop()) > 1): #if it is the process at the top, it must have its current data and the next
+				raise executionInitException("(engine) addCommand, some process are waiting on the stack, can not add a command")
+		
+			#convert the existing process on the stack into preprocess of the new command
+			new_path = currentStackItem[1][:]
+			new_path.append(0)
+			self.stack[len(self.stack) - 1 - i] = (currentStackItem[0], new_path, PREPROCESS_INSTRUCTION, currentStackItem[3])
         
         cmd.reset()
         self.cmdList.append(cmd)
@@ -612,6 +602,8 @@ class engineV3(object):
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
         del self.stack.dataOnTop()[:] #remove everything, the engine is able to manage an empty data bunch
+        
+        #TODO what about an execution outside the execution engine
     
     def appendData(self, newdata):
         self.stack.raiseIfEmpty("addData")
