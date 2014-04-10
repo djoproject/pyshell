@@ -14,19 +14,61 @@ def plop(arg):
 
 class splitAndMergeTest(unittest.TestCase): 
     #TODO skipNextSubCommandOnTheCurrentData(self, skipCount=1):
-    
+        #FAILED
+            #empty stack
+            #not pre at top
+
+        #SUCCESS
+            #add random skip count and check
+
     #TODO skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
-    
+        #FAILED
+            #empty stack
+            #not pre at top
+            #disable such as the current data bunch is totaly disabled
+            #disable every sub cmd
+
+        #SUCCESS
+            #set where no map exists
+            #skip one or more 
+            #skip already skipped
+
     #TODO skipNextSubCommandForTheEntireExecution(self, skipCount=1):
-    
-    #TODO disableEnablingMapOnDataBunch(self,dept=0):
+        #FAILED
+            #empty stack
+            #disable such as the current data bunch is totaly disabled
+            #disable everything in the cmd
+
+        #SUCCESS
+            #disable 0 or negativ
+            #disable 1 or more
+            #disable more than available
+            #disable to recompute path on other bunch
+
+    #TODO disableEnablingMapOnDataBunch(self,index=0):
+        #FAILED
+            #invalid index stack
+
+        #SUCCESS
+            #valid disabling
     
     #TODO _setStateSubCmdInCmd(self,cmdIndex, subCmdIndex, value):
+        #FAILED
+        #invalid cmdIndex
+        #invalid subCmdIndex
+        #disable such as the current data bunch is totaly disabled
+        #disable everything in the cmd
+
+        #SUCCESS
+        #update false/true in a command
+        #disable to recompute path on other bunch
     
     #TODO _setStateSubCmdInDataBunch(self, dataBunchIndex, subCmdIndex, value)
 		#FAILED
 		#invalid stack index
 		#invalid sub cmd index
+        #disable such as the current data bunch is totaly disabled
+        #disable every sub cmd
 		
 		#SUCCESS
 		#test on data without map
