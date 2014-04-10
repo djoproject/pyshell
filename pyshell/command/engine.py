@@ -767,6 +767,9 @@ class engineV3(object):
                 self.stack.push(*to_stack)
     
     def _computeTheNextChildToExecute(self,cmd, currentSubCmdIndex, enablingMap):
+		
+		#TODO currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1) #for the case where currentSubCmdIndex is bigger than the cmd list
+		
         startingIndex = currentSubCmdIndex
         executeOnNextData = False
         while True:
