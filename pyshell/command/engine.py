@@ -271,6 +271,20 @@ class engineV3(object):
             
 ### COMMAND meth ###
 
+    def _isCompletlyDisabled(self, index):
+        self.stack.raiseIfEmpty("_isCompletlyDisabled")
+        isAValidIndex(self.stack, index,"_isCompletlyDisabled", "stack")
+
+        enablingMap = self.stack.enablingMapOnIndex(index)
+        cmd = self.stack.getCmdOnIndex(index, self.cmdList)
+
+        for i in range(0,self.stack.subCmdLengthOnIndex(index)):
+            if cmd.isdisabledCmd(i) or (enablingMap != None and enablingMap[i]):
+                return False
+
+        return True
+
+
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
@@ -417,11 +431,14 @@ class engineV3(object):
 			#TODO what if the current cmd is used several time in the cmd list ???
 				#must update each level of the use of this cmd
         
+        #TODO build a list with the index in cmdList with the equivalent cmd as the cmd at cmdID
+
         for i in range(0, self.stack.size()):
             currentStackItem = self.stack[i]
             if currentStackItem[2] != PREPROCESS_INSTRUCTION:
                 break
             
+            #TODO replace this with a check in built list in the previous TODO
             #is it a wrong path ?
             if len(currentStackItem[1]) != cmdID+1:
                 continue
@@ -831,7 +848,6 @@ class engineV3(object):
             if startingIndex == currentSubCmdIndex:
                 return executeOnNextData, -1
             
-    
     def _executeMethod(self, cmd,subcmd, stackState, useArgs):
         nextData = stackState[0][0]
 
