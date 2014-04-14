@@ -340,6 +340,7 @@ class engineV3(object):
 		#TODO need at least one true before the next cmd
 			#but the current cmd must be enabled to be executed
 				#but maybe the current is already disabled during its own execution
+        #OR a True after the skip range
 
         if enablingMap == None:
             enablingMap = [True] * self.stack.subCmdLengthOnTop(self.cmdList)
