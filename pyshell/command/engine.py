@@ -22,9 +22,10 @@ from utils import *
     #update the index in disable method for every needed item on the stack
     #compute the first index in the inject method, if a map is given
         #same for split/merge
-	#behaviour of such function inside or outside the engine execution
+    #behaviour of such function inside or outside the engine execution
     #what occur if we try to create new item on stack on a path to a completly disabled cmd
         #e.g. a | b | c, b is compltetly disabled, what to do with the result of a ?
+	#every meth will resist if there are several times the same cmd in the list ? a|a|a 
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -271,20 +272,53 @@ class engineV3(object):
             
 ### COMMAND meth ###
 
-    def _isCompletlyDisabled(self, index):
+    def _isDataBunchCompletlyDisabled(self, index):
         self.stack.raiseIfEmpty("_isCompletlyDisabled")
         isAValidIndex(self.stack, index,"_isCompletlyDisabled", "stack")
-
+        
         enablingMap = self.stack.enablingMapOnIndex(index)
         cmd = self.stack.getCmdOnIndex(index, self.cmdList)
-
-        for i in range(0,self.stack.subCmdLengthOnIndex(index)):
+        
+        for i in xrange(0,self.stack.subCmdLengthOnIndex(index)):
             if cmd.isdisabledCmd(i) or (enablingMap != None and enablingMap[i]):
                 return False
-
+        
         return True
-
-
+    
+    def _isCmdWillBeCompletlyDisabled(self, cmdIndex, subCmdIndexThatWillBeDisable):
+        isAValidIndex(self.cmdList, cmdIndex,"_isCmdWillBeCompletlyDisabled", "command list")
+        isAValidIndex(self.cmdList[cmdIndex], subCmdIndexThatWillBeDisable,"_isCmdWillBeCompletlyDisabled", "sub command list")
+        
+        if len(self.cmdList[cmdIndex]) == 1:
+			return True
+        
+        for i in xrange(0,len(self.cmdList[cmdIndex])):
+            if i == subCmdIndexThatWillBeDisable:
+                continue
+            
+            if not self.cmdList[cmdIndex].isdisabledCmd(i):
+                return False
+        
+        return True
+    
+    def _isDataBunchWillBeCompletlyDisabled(self, cmdIndex, subCmdIndexThatWillBeDisable, dataBunchIndex = -1):
+        isAValidIndex(self.cmdList, cmdIndex,"_setStateSubCmdInCmd", "command list")
+        isAValidIndex(self.cmdList[cmdIndex], subCmdIndexThatWillBeDisable,"_setStateSubCmdInCmd", "sub command list")
+        isAValidIndex(self.stack, dataBunchIndex,"_isCompletlyDisabled", "stack")
+        
+        if len(self.cmdList[cmdIndex]) == 1:
+			return True
+        
+        for i in xrange(0,len(self.cmdList[cmdIndex])):
+            if i == subCmdIndexThatWillBeDisable:
+                continue
+            
+            enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
+            if not self.cmdList[cmdIndex].isdisabledCmd(i) and (enablingMap == None or enablingMap[i]):
+                return False
+        
+        return True
+    
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
@@ -303,6 +337,10 @@ class engineV3(object):
         currentCmdID = self.stack.subCmdIndexOnTop()
         enablingMap = self.stack.enablingMapOnTop()
 
+		#TODO need at least one true before the next cmd
+			#but the current cmd must be enabled to be executed
+				#but maybe the current is already disabled during its own execution
+
         if enablingMap == None:
             enablingMap = [True] * self.stack.subCmdLengthOnTop(self.cmdList)
 
@@ -311,9 +349,6 @@ class engineV3(object):
                 continue
 
             enablingMap[i] = False
-
-        #TODO everything is disabled ?
-            #raise
 
         self.stack.setEnableMapOnIndex(-1,enablingMap)
         
@@ -386,25 +421,37 @@ class engineV3(object):
         if value:
             self.cmdList[cmdIndex].enableCmd(subCmdIndex)
         else:
+			#build a list where the cmd is used
+			cmdToUpdate = []
+			for i in range(0,len(self.cmdList))
+				if self.cmdList[i] == self.cmdList[cmdIndex]:
+					cmdToUpdate.append(i)
+			
+			#if in used, check if the databunch will be disabled
+			for i in xrange(0,self.stack.size()):
+				if self.stack.typeOnIndex(i) != PREPROCESS_INSTRUCTION:
+					break
+				
+				if self.stack.cmdIndexOnIndex(i) not in cmdToUpdate:
+					continue
+				
+				if self._isDataBunchWillBeCompletlyDisabled(cmdIndex, subCmdIndex, i):
+					raise executionInitException("(engine) _setStateSubCmdInCmd, can not disabled the sub command <"+str(subCmdIndex)+"> on command <"+str(self.stack.cmdIndexOnIndex(i))+">, the data bunch <"+str(i)+"> will be totally disabled") 
+			
             self.cmdList[cmdIndex].disableCmd(subCmdIndex)
-
-            #TODO everything is disabled on this bunch ? what about the other data bunch on the stack?
-                #raise
-            #TODO need to rebuild path on other data bunch if needed
-            #TODO the entire cmd can't be completly disabled
         
     def _setStateSubCmdInDataBunch(self, dataBunchIndex, subCmdIndex, value):
         isAValidIndex(self.stack, dataBunchIndex,"_setStateSubCmdInDataBunch", "stack")
         enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
+
+		if not value and self._isDataBunchWillBeCompletlyDisabled(self.stack.cmdIndexOnIndex(dataBunchIndex), subCmdIndex, dataBunchIndex):
+			raise executionInitException("(engine) _setStateSubCmdInDataBunch, can not disabled the sub command <"+str(subCmdIndex)+"> on command <"+str(self.stack.cmdIndexOnIndex(dataBunchIndex))+">, the data bunch <"+str(dataBunchIndex)+"> will be totally disabled") 
 
         if enablingMap == None:
             self.stack.setEnableMapOnIndex(dataBunchIndex,[True] * self.stack.subCmdLengthOnIndex(dataBunchIndex, self.cmdList))
 
         isAValidIndex(enablingMap, subCmdIndex,"_setStateSubCmdInDataBunch", "enabling mapping on data bunch")
         enablingMap[subCmdIndex] = value
-
-        #TODO everything is disabled ?
-            #raise
     
     def flushArgs(self, index=None): #None index means current command
         if index == None:
@@ -427,20 +474,19 @@ class engineV3(object):
         #add the sub command
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce, useArgs)
         
-        #extend the enablingMapping existed on the stack
-			#TODO what if the current cmd is used several time in the cmd list ???
-				#must update each level of the use of this cmd
-        
-        #TODO build a list with the index in cmdList with the equivalent cmd as the cmd at cmdID
+        #build a list with the index in cmdList with the equivalent cmd as the cmd at cmdID
+        cmdToUpdate = []
+        for i in range(0,len(self.cmdList))
+			if self.cmdList[i] == self.cmdList[cmdID]:
+				cmdToUpdate.append(i)
 
         for i in range(0, self.stack.size()):
             currentStackItem = self.stack[i]
             if currentStackItem[2] != PREPROCESS_INSTRUCTION:
                 break
             
-            #TODO replace this with a check in built list in the previous TODO
             #is it a wrong path ?
-            if len(currentStackItem[1]) != cmdID+1:
+            if (len(currentStackItem[1])-1) not in cmdToUpdate:
                 continue
             
             #is there an enabled mapping ?
@@ -457,25 +503,25 @@ class engineV3(object):
         #The process (!= pre and != post), must always be the process of the last command in the list
         #if we add a new command, the existing process on the stack became invalid
 
-		for i in range(0,len(self.stack)):
-			currentStackItem = self.stack[len(self.stack) - 1 - i]
-			
-			#if we reach a preprocess, we never reach again a process
-			if currentStackItem[2] == PREPROCESS_INSTRUCTION:
-				break
-			
-			if currentStackItem[2] == POSTPROCESS_INSTRUCTION:
-				continue
-			
-			#so, here we have PROCESS_INSTRUCTION
-			
-			if not convertProcessToPreProcess and (i > 0 or len(self.stack.dataOnTop()) > 1): #if it is the process at the top, it must have its current data and the next
-				raise executionInitException("(engine) addCommand, some process are waiting on the stack, can not add a command")
-		
-			#convert the existing process on the stack into preprocess of the new command
-			new_path = currentStackItem[1][:]
-			new_path.append(0)
-			self.stack[len(self.stack) - 1 - i] = (currentStackItem[0], new_path, PREPROCESS_INSTRUCTION, currentStackItem[3])
+        for i in range(0,len(self.stack)):
+            currentStackItem = self.stack[len(self.stack) - 1 - i]
+            
+            #if we reach a preprocess, we never reach again a process
+            if currentStackItem[2] == PREPROCESS_INSTRUCTION:
+                break
+            
+            if currentStackItem[2] == POSTPROCESS_INSTRUCTION:
+                continue
+            
+            #so, here we have PROCESS_INSTRUCTION
+            
+            if not convertProcessToPreProcess and (i > 0 or len(self.stack.dataOnTop()) > 1): #if it is the process at the top, it must have its current data and the next
+                raise executionInitException("(engine) addCommand, some process are waiting on the stack, can not add a command")
+        
+            #convert the existing process on the stack into preprocess of the new command
+            new_path = currentStackItem[1][:]
+            new_path.append(0) #no need to compute the index, the cmd will be reset
+            self.stack[len(self.stack) - 1 - i] = (currentStackItem[0], new_path, PREPROCESS_INSTRUCTION, currentStackItem[3])
         
         cmd.reset()
         self.cmdList.append(cmd)
@@ -534,15 +580,15 @@ class engineV3(object):
             enablingMap = self.stack.enablingMapOnIndex(indexOfTheMapToKeep)
             
             if enablingMap != None:
-				#the current index must be enabled in the new map
-				subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
-				if not enablingMap[subindex]:
-					raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the selected map")
+                #the current index must be enabled in the new map
+                subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
+                if not enablingMap[subindex]:
+                    raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the selected map")
           
         else:
             enablingMap = None
 
-		#extract information from first item
+        #extract information from first item
         path = self.stack.pathOnIndex(toppestItemToMerge)
 
         for i in range(1,count):
@@ -827,9 +873,9 @@ class engineV3(object):
                 self.stack.push(*to_stack)
     
     def _computeTheNextChildToExecute(self,cmd, currentSubCmdIndex, enablingMap):
-		
-		#TODO currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1) #for the case where currentSubCmdIndex is bigger than the cmd list
-		
+        
+        #TODO currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1) #for the case where currentSubCmdIndex is bigger than the cmd list
+        
         startingIndex = currentSubCmdIndex
         executeOnNextData = False
         while True:

@@ -209,12 +209,12 @@ class MultiCommand(list):
     def isdisabledCmd(self, index = 0):
         isAValidIndex(self, index, "isdisabledCmd", "Command list", "MultiCommand", commandException)
         c,a,e = self[index]
-        retun e
+        return e
 
     def isArgUsage(self, index = 0):
         isAValidIndex(self, index, "isArgUsage", "Command list", "MultiCommand", commandException)
         c,a,e = self[index]
-        retun a
+        return a
 
 #
 # special command class, with only one command (the starting point)
