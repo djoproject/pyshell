@@ -270,54 +270,32 @@ class engineV3(object):
         self.injectDataPreToExecuteAsLateAsPossible(data, cmdPath, enablingMap,False)
             
 ### COMMAND meth ###
+    
+    def _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1):
+        for i in xrange(0,startSkipRange):
+            if not self.cmdList[cmdID].isdisabledCmd(i):
+                return False
 
-    def _isDataBunchCompletlyDisabled(self, index):
-        self.stack.raiseIfEmpty("_isCompletlyDisabled")
-        isAValidIndex(self.stack, index,"_isCompletlyDisabled", "stack")
-        
-        enablingMap = self.stack.enablingMapOnIndex(index)
-        cmd = self.stack.getCmdOnIndex(index, self.cmdList)
-        
-        for i in xrange(0,self.stack.subCmdLengthOnIndex(index)):
-            if cmd.isdisabledCmd(i) or (enablingMap != None and enablingMap[i]):
+        for i in xrange(startSkipRange+rangeLength, len(self.cmdList[cmdID])):
+            if not self.cmdList[cmdID].isdisabledCmd(i):
                 return False
-        
+
         return True
-    
-    def _isCmdWillBeCompletlyDisabled(self, cmdIndex, subCmdIndexThatWillBeDisable):
-        isAValidIndex(self.cmdList, cmdIndex,"_isCmdWillBeCompletlyDisabled", "command list")
-        isAValidIndex(self.cmdList[cmdIndex], subCmdIndexThatWillBeDisable,"_isCmdWillBeCompletlyDisabled", "sub command list")
-        
-        if len(self.cmdList[cmdIndex]) == 1:
-            return True
-        
-        for i in xrange(0,len(self.cmdList[cmdIndex])):
-            if i == subCmdIndexThatWillBeDisable:
-                continue
-            
-            if not self.cmdList[cmdIndex].isdisabledCmd(i):
+
+    def _willThisDataBunchBeCompletlyDisabled(self, dataIndex, startSkipRange, rangeLength=1):
+        emap  = self.stack.enablingMapOnIndex(dataIndex)
+        cmdID = self.stack.cmdIndexOnIndex(dataIndex)
+
+        for j in xrange(0, startSkipRange):
+            if not self.cmdList[cmdID].isdisabledCmd(j) and (emap == None or emap[j]):
                 return False
-        
-        return True
-    
-    def _isDataBunchWillBeCompletlyDisabled(self, cmdIndex, subCmdIndexThatWillBeDisable, dataBunchIndex = -1):
-        isAValidIndex(self.cmdList, cmdIndex,"_setStateSubCmdInCmd", "command list")
-        isAValidIndex(self.cmdList[cmdIndex], subCmdIndexThatWillBeDisable,"_setStateSubCmdInCmd", "sub command list")
-        isAValidIndex(self.stack, dataBunchIndex,"_isCompletlyDisabled", "stack")
-        
-        if len(self.cmdList[cmdIndex]) == 1:
-            return True
-        
-        for i in xrange(0,len(self.cmdList[cmdIndex])):
-            if i == subCmdIndexThatWillBeDisable:
-                continue
-            
-            enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
-            if not self.cmdList[cmdIndex].isdisabledCmd(i) and (enablingMap == None or enablingMap[i]):
+
+        for j in xrange(startSkipRange+rangeLength,len(self.cmdList[cmdID])):
+            if not self.cmdList[cmdID].isdisabledCmd(j) and (emap == None or emap[j]):
                 return False
-        
+
         return True
-    
+
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
@@ -333,28 +311,13 @@ class engineV3(object):
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) skipNextSubCommandForTheEntireExecution, can only skip method on PREPROCESS item")
 
-        cmdID = self.stack.cmdIndexOnTop()
         currentCmdID = self.stack.subCmdIndexOnTop()
-        enablingMap = self.stack.enablingMapOnTop()
 
-        #need at least one remaining enabled sub cmd  on the data bunch
-        #look for a enabled cmd before the skip range
-        trueFound = False
-        for i in xrange(0, currentCmdID+1):
-            if self.cmdList[cmdID][i] and (enablingMap == None or enablingMap[i]):
-                trueFound = True
-                break
-        
-        #if not found, look after an enabled sub cmd after the skip range
-        if not trueFound:
-            for i in xrange(currentCmdID+skipCount, self.stack.subCmdLengthOnTop()):
-                if self.cmdList[cmdID][i] and (enablingMap == None or enablingMap[i]):	
-                    trueFound = True
-                    break
-        
         #if still not found, raise
-        if not trueFound:
+        if self._willThisDataBunchBeCompletlyDisabled(-1, currentCmdID+1, skipCount):
             raise executionException("(engine) skipNextSubCommandForTheEntireDataBunch, every sub cmd in this databunch will be disabled with this skip range")
+
+        enablingMap = self.stack.enablingMapOnTop()
 
         if enablingMap == None:
             enablingMap = [True] * self.stack.subCmdLengthOnTop(self.cmdList)
@@ -378,16 +341,27 @@ class engineV3(object):
         isAValidIndex(self.cmdList, cmdID,"skipNextSubCommandForTheEntireExecution", "command list")
         currentCmdID = self.stack.subCmdIndexOnTop()
 
-        #TODO is the cmd will be compltly disabled with this skip range?
-        #find an enabled cmd before or after the skip range
+        #is the cmd will be compltly disabled with this skip range?
+        if self._willThisCmdBeCompletlyDisabled(cmdID, currentCmdID+1, skipCount):
+            raise executionException("(engine) skipNextSubCommandForTheEntireExecution, the skip range will completly disable the cmd")
 
-        #TODO make a list of the path involved in the disabling
-			#see the code in _setStateSubCmdInCmd
+        #make a list of the path involved in the disabling
+        cmdToUpdate = []
+
+        for i in range(0,len(self.cmdList)):
+            if self.cmdList[i] == self.cmdList[cmdID]:
+                cmdToUpdate.append(i)
             
-        #TODO explore the stack looking after these paths
-        
-            #TODO is this data bunch will be disabled with this skip range ?
-                #TODO if yes, raise
+        #explore the stack looking after these paths
+        for i in xrange(0,self.stack.size()):
+            if self.stack.typeOnIndex(i) != PREPROCESS_INSTRUCTION:
+                break
+            
+            if self.stack.cmdIndexOnIndex(i) not in cmdToUpdate:
+                continue
+            
+            if self._willThisDataBunchBeCompletlyDisabled(i, currentCmdID+1, skipCount):
+                raise executionException("(engine) skipNextSubCommandForTheEntireExecution, the skip range will completly disable a databunch on the stack")
 
         #no prblm found, the disabling can occur
         for i in xrange(currentCmdID+1, min(len(self.cmdList[cmdID]),  currentCmdID+1+skipCount)):
@@ -436,6 +410,9 @@ class engineV3(object):
         if value:
             self.cmdList[cmdIndex].enableCmd(subCmdIndex)
         else:
+            if self._willThisCmdBeCompletlyDisabled(cmdIndex, subCmdIndex, 1):
+                raise executionInitException("(engine) _setStateSubCmdInCmd, the cmd will be completly disabled") 
+
             #build a list where the cmd is used
             cmdToUpdate = []
             for i in range(0,len(self.cmdList)):
@@ -450,7 +427,7 @@ class engineV3(object):
                 if self.stack.cmdIndexOnIndex(i) not in cmdToUpdate:
                     continue
                 
-                if self._isDataBunchWillBeCompletlyDisabled(cmdIndex, subCmdIndex, i):
+                if self._willThisDataBunchBeCompletlyDisabled(i, subCmdIndex):
                     raise executionInitException("(engine) _setStateSubCmdInCmd, can not disabled the sub command <"+str(subCmdIndex)+"> on command <"+str(self.stack.cmdIndexOnIndex(i))+">, the data bunch <"+str(i)+"> will be totally disabled") 
             
             self.cmdList[cmdIndex].disableCmd(subCmdIndex)
@@ -462,11 +439,10 @@ class engineV3(object):
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) _setStateSubCmdInDataBunch, can only set state on PREPROCESS item")
 
-        enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
-
-        if not value and self._isDataBunchWillBeCompletlyDisabled(self.stack.cmdIndexOnIndex(dataBunchIndex), subCmdIndex, dataBunchIndex):
+        if not value and self._willThisDataBunchBeCompletlyDisabled(dataBunchIndex, subCmdIndex):
             raise executionInitException("(engine) _setStateSubCmdInDataBunch, can not disabled the sub command <"+str(subCmdIndex)+"> on command <"+str(self.stack.cmdIndexOnIndex(dataBunchIndex))+">, the data bunch <"+str(dataBunchIndex)+"> will be totally disabled") 
 
+        enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
         if enablingMap == None:
             self.stack.setEnableMapOnIndex(dataBunchIndex,[True] * self.stack.subCmdLengthOnIndex(dataBunchIndex, self.cmdList))
 
@@ -895,6 +871,7 @@ class engineV3(object):
     def _computeTheNextChildToExecute(self,cmd, currentSubCmdIndex, enablingMap):
         
         #TODO currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1) #for the case where currentSubCmdIndex is bigger than the cmd list
+            #just a way to manage user error
         
         startingIndex = currentSubCmdIndex
         executeOnNextData = False
