@@ -270,6 +270,19 @@ class engineV3(object):
         self.injectDataPreToExecuteAsLateAsPossible(data, cmdPath, enablingMap,False)
             
 ### COMMAND meth ###
+    #TODO
+        #use a value to set in, or it will not be possible to implement the enabling with it
+			#_skipOnCmd
+			#_skipOnDataBunch
+        #finish to deploy _skipOnDataBunch in 
+            #enableSubCommandInCurrentDataBunchMap
+            #disableSubCommandInCurrentDataBunchMap
+        #do _skipOnCmd, adapt the code of skipNextSubCommandForTheEntireExecution
+        #deploy _skipOnCmd in
+            #skipNextSubCommandForTheEntireExecution
+            #disableSubCommandInCommandMap
+            #enableSubCommandInCommandMap
+
     
     def _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1):
         for i in xrange(0,startSkipRange):
@@ -296,7 +309,44 @@ class engineV3(object):
 
         return True
 
+    def _skipOnCmd(self,cmdID, subCmdID, skipCount = 1):
+        pass
+        
+    def _skipOnDataBunch(self, dataBunchIndex, subCmdID, skipCount = 1):
+        if skipCount < 1:
+            raise executionException("(engine) _skipOnDataBunch, skip count must be equal or bigger than 1")
+        
+        self.stack.raiseIfEmpty("_skipOnDataBunch")
+        
+        #check valid index
+        isAValidIndex(self.stack, dataBunchIndex,"_skipOnDataBunch", "stack")
+        isAValidIndex(self.stack.getCmd(dataBunchIndex,self.cmdList), subCmdID,"_skipOnDataBunch", "sub command list")
+
+        # can only skip the next command if the state is pre_process
+        if self.stack.typeOnIndex(dataBunchIndex) != PREPROCESS_INSTRUCTION: 
+            raise executionException("(engine) _skipOnDataBunch, can only skip method on PREPROCESS item")
+
+        #if still not found, raise
+        if self._willThisDataBunchBeCompletlyDisabled(dataBunchIndex, subCmdID, skipCount):
+            raise executionException("(engine) _skipOnDataBunch, every sub cmd in this databunch will be disabled with this skip range")
+
+        enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
+
+        if enablingMap == None:
+            enablingMap = [True] * self.stack.subCmdLengthOnIndex(dataBunchIndex, self.cmdList)
+
+        for i in xrange(subCmdID, min(subCmdID+skipCount, len(enablingMap))):
+            if not enablingMap[i]:
+                continue
+
+            enablingMap[i] = False
+
+        self.stack.setEnableMapOnIndex(dataBunchIndex,enablingMap)
+
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
+        if skipCount < 1:
+            raise executionException("(engine) skipNextSubCommandOnTheCurrentData, skip count must be equal or bigger than 1")
+        
         self.stack.raiseIfEmpty("skipNextSubCommandOnTheCurrentData")
         # can only skip the next command if the state is pre_process
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
@@ -306,33 +356,15 @@ class engineV3(object):
 
     def skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
-
-        # can only skip the next command if the state is pre_process
-        if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
-            raise executionException("(engine) skipNextSubCommandForTheEntireExecution, can only skip method on PREPROCESS item")
-
         currentCmdID = self.stack.subCmdIndexOnTop()
-
-        #if still not found, raise
-        if self._willThisDataBunchBeCompletlyDisabled(-1, currentCmdID+1, skipCount):
-            raise executionException("(engine) skipNextSubCommandForTheEntireDataBunch, every sub cmd in this databunch will be disabled with this skip range")
-
-        enablingMap = self.stack.enablingMapOnTop()
-
-        if enablingMap == None:
-            enablingMap = [True] * self.stack.subCmdLengthOnTop(self.cmdList)
-
-        for i in xrange(currentCmdID+1, min(currentCmdID+1+skipCount, len(enablingMap))):
-            if not enablingMap[i]:
-                continue
-
-            enablingMap[i] = False
-
-        self.stack.setEnableMapOnIndex(-1,enablingMap)
+        self._skipOnDataBunch(-1,currentCmdID+1,skipCount)
         
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
+        if skipCount < 1:
+            raise executionException("(engine) skipNextSubCommandOnTheCurrentData, skip count must be equal or bigger than 1")
+        
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
-
+    
         # can only skip the next command if the state is pre_process
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) skipNextSubCommandForTheEntireExecution, can only skip method on PREPROCESS item")
@@ -381,11 +413,6 @@ class engineV3(object):
 
     def enableSubCommandInCurrentDataBunchMap(self, indexSubCmd):
         self.stack.raiseIfEmpty("enableSubCommandInCurrentDataBunchMap")
-
-        # can only skip the next command if the state is pre_process
-        if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
-            raise executionException("(engine) enableSubCommandInCurrentDataBunchMap, can only skip method on PREPROCESS item")
-
         self._setStateSubCmdInDataBunch(-1,indexSubCmd, True)
     
     def enableSubCommandInCommandMap(self, indexCmd, indexSubCmd):
@@ -393,11 +420,6 @@ class engineV3(object):
         
     def disableSubCommandInCurrentDataBunchMap(self, indexSubCmd):
         self.stack.raiseIfEmpty("enableSubCommandInCurrentDataBunchMap")
-
-        # can only skip the next command if the state is pre_process
-        if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
-            raise executionException("(engine) disableSubCommandInCurrentDataBunchMap, can only skip method on PREPROCESS item")
-
         self._setStateSubCmdInDataBunch(-1,indexSubCmd, False)
     
     def disableSubCommandInCommandMap(self, indexCmd, indexSubCmd):
@@ -436,7 +458,7 @@ class engineV3(object):
         isAValidIndex(self.stack, dataBunchIndex,"_setStateSubCmdInDataBunch", "stack")
 
         #must be preprocess
-        if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
+        if self.stack.typeOnIndex(dataBunchIndex) != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) _setStateSubCmdInDataBunch, can only set state on PREPROCESS item")
 
         if not value and self._willThisDataBunchBeCompletlyDisabled(dataBunchIndex, subCmdIndex):

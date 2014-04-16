@@ -13,19 +13,26 @@ def plop(arg):
     return arg
 
 class splitAndMergeTest(unittest.TestCase): 
+	#TODO _willThisCmdBeCompletlyDisabled
+	
+	#TODO _willThisDataBunchBeCompletlyDisabled
+
     #TODO skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         #FAILED
+			#invalid skip count
             #empty stack
             #not pre at top
+            
 
         #SUCCESS
             #add random skip count and check
 
     #TODO skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
         #FAILED
+			#invalid skip count
             #empty stack
             #not pre at top
-            #disable such as the current data bunch is totaly disabled
+            #disable such as the current data bunch is totaly disabled (without disabling each cmd on the data bunch)
             #disable every sub cmd
 
         #SUCCESS
@@ -35,9 +42,13 @@ class splitAndMergeTest(unittest.TestCase):
 
     #TODO skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         #FAILED
+			#invalid skip count
             #empty stack
-            #disable such as the current data bunch is totaly disabled
+            #no pre on top
             #disable everything in the cmd
+            #disable such as another databunch will be completlyt disabled but not this one
+            #disable such as another databunch with another path will be completlyt disabled but not this one
+				#the cmd must be in several part of the path
 
         #SUCCESS
             #disable 0 or negativ
@@ -45,12 +56,18 @@ class splitAndMergeTest(unittest.TestCase):
             #disable more than available
             #disable to recompute path on other bunch
 
+#TODO recheck the test from here
+
+
     #TODO disableEnablingMapOnDataBunch(self,index=0):
         #FAILED
             #invalid index stack
+            #not pre at top
 
         #SUCCESS
             #valid disabling
+				#where already none
+				#where not
     
     #TODO _setStateSubCmdInCmd(self,cmdIndex, subCmdIndex, value):
         #FAILED
