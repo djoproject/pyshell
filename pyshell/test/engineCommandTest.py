@@ -13,85 +13,64 @@ def plop(arg):
     return arg
 
 class splitAndMergeTest(unittest.TestCase): 
-	#TODO _willThisCmdBeCompletlyDisabled
+	#TODO _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
+		#TODO think about test
+		
+	#TODO _willThisDataBunchBeCompletlyDisabled(self, dataIndex, startSkipRange, rangeLength=1)
+		#TODO think about test
 	
-	#TODO _willThisDataBunchBeCompletlyDisabled
-
+	#TODO _willThisDataBunchBeCompletlyEnabled(self, dataIndex, startSkipRange, rangeLength=1)
+		#TODO think about test
+	
+	#TODO _skipOnCmd(self,cmdID, subCmdID, skipCount = 1)
+		#TODO think about test
+	
+	#TODO _enableOnCmd(self, cmdID, subCmdID, enableCount = 1)
+		#TODO think about test
+	
+	#TODO _skipOnDataBunch(self, dataBunchIndex, subCmdID, skipCount = 1)
+		#TODO think about test
+	
+	#TODO _enableOnDataBunch(self, dataBunchIndex, subCmdID, enableCount = 1)
+		#TODO think about test
+ 
+ 
+ 
     #TODO skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         #FAILED
 			#invalid skip count
             #empty stack
             #not pre at top
             
-
         #SUCCESS
             #add random skip count and check
 
     #TODO skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
         #FAILED
-			#invalid skip count
             #empty stack
-            #not pre at top
-            #disable such as the current data bunch is totaly disabled (without disabling each cmd on the data bunch)
-            #disable every sub cmd
 
         #SUCCESS
-            #set where no map exists
-            #skip one or more 
-            #skip already skipped
+			#no test to do
 
     #TODO skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         #FAILED
-			#invalid skip count
-            #empty stack
-            #no pre on top
-            #disable everything in the cmd
-            #disable such as another databunch will be completlyt disabled but not this one
-            #disable such as another databunch with another path will be completlyt disabled but not this one
-				#the cmd must be in several part of the path
+			#empty stack
+			#no preprocess at top
 
         #SUCCESS
-            #disable 0 or negativ
-            #disable 1 or more
-            #disable more than available
-            #disable to recompute path on other bunch
-
-#TODO recheck the test from here
-
+            #no test to do
 
     #TODO disableEnablingMapOnDataBunch(self,index=0):
         #FAILED
             #invalid index stack
             #not pre at top
+            #invalid stack index
 
         #SUCCESS
             #valid disabling
 				#where already none
 				#where not
-    
-    #TODO _setStateSubCmdInCmd(self,cmdIndex, subCmdIndex, value):
-        #FAILED
-        #invalid cmdIndex
-        #invalid subCmdIndex
-        #disable such as the current data bunch is totaly disabled
-        #disable everything in the cmd
 
-        #SUCCESS
-        #update false/true in a command
-        #disable to recompute path on other bunch
-    
-    #TODO _setStateSubCmdInDataBunch(self, dataBunchIndex, subCmdIndex, value)
-		#FAILED
-		#invalid stack index
-		#invalid sub cmd index
-        #disable such as the current data bunch is totaly disabled
-        #disable every sub cmd
-		
-		#SUCCESS
-		#test on data without map
-		#test on data with map
-		#test with False and True
-    
     #TODO flushArgs(self, index=None)
 		#FAILED
 		#None index and empty stack
@@ -99,32 +78,33 @@ class splitAndMergeTest(unittest.TestCase):
 		
 		#SUCCESS
 		#valid index
-    
+
     #TODO addSubCommand(self, cmdID = None, onlyAddOnce = True, useArgs = True)
 		#FAILED
-		#invalid cmd index
+			#cmdID is None, and empty stack
+			#invalid cmd index
 		
 		#SUCCESS
-		#none cmd id must return the cmd index at the top
-		#with empty stack
-		#with stack
-			#with path not using this cmd
-			#with path using this cmd
-				#with None map
-				#with map enabled
-			#with cmd used several times in the cmdList
-    
+			#none cmd id must return the cmd index at the top
+			#with empty stack
+			#with stack (with random data on stack, not only matching result, != path, != preprocess)
+				#with path not using this cmd
+				#with path using this cmd
+					#with None map
+					#with map enabled
+				#with cmd used several times in the cmdList
+
     #TODO addCommand(self, cmd, convertProcessToPreProcess = False)
 		#FAILED
-		#try to insert a not MultiCommand instance
-		#try to insert with process at top
-			#with one data
-			#with more than one data
-		#try to insert with postprocess at top with process in the middle
-		#try to insert with postprocess at top without process in the middle
-		
+			#try to insert a not MultiCommand instance
+			#try to insert with process at top
+				#with one data
+				#with more than one data
+			#try to insert with postprocess at top with process in the middle
+			
 		#SUCCESS
-		#insert a valid one with process in the stack, and see if they are correctly converted
+			#try to insert with postprocess at top without process in the middle
+			#insert a valid one with process in the stack, and see if they are correctly converted
 		
 		
 

@@ -62,6 +62,12 @@ class engineStack(list):
         current = self[index]
         self[index] = (current[0], current[1], current[2], newMap, )
 
+	def setPath(self, index, path)
+		self[index] = (current[0], path, current[2], current[3], )
+
+	def setType(self, index, newType):
+		self[index] = (current[0], current[1], newType, current[3], )
+
     ### MISC meth ###
 
     def top(self):
@@ -88,7 +94,7 @@ class engineStack(list):
             #return getattr(self,name)
             return object.__getattribute__(self, name)
 
-        if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex", "setEnableMap"]:
+        if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex", "setEnableMap", "setPath", "setType"]:
             raise executionException("(engineStack) __getattr__, try to get an unallowed meth")
 
         methToCall  = getattr(self,name)
