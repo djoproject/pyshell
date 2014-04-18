@@ -62,7 +62,7 @@ class engineStack(list):
         current = self[index]
         self[index] = (current[0], current[1], current[2], newMap, )
 
-	def setPath(self, index, path)
+	def setPath(self, index, path):
 		self[index] = (current[0], path, current[2], current[3], )
 
 	def setType(self, index, newType):

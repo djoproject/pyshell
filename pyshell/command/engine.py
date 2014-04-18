@@ -402,7 +402,7 @@ class engineV3(object):
         if self.stack.typeOnIndex(dataBunchIndex) != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) _skipOnDataBunch, can only skip method on PREPROCESS item")
             
-        if self._willThisDataBunchBeCompletlyEnabled(dataBunchIndex, subCmdID, enableCount)
+        if self._willThisDataBunchBeCompletlyEnabled(dataBunchIndex, subCmdID, enableCount):
             enablingMap = None
         else:
             enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)

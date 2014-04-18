@@ -14,27 +14,117 @@ def plop(arg):
 
 class splitAndMergeTest(unittest.TestCase): 
 	#TODO _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
-		#TODO think about test
+		#must return False
+			#empty before range, at least on item true in the after range
+			#not empty before range but no value set to true, at least on item true in the after range
+			#empty after range, at least on item true in the before range
+			
+			#range must have a size of 1 or more than 1
+			#skip range must have a size of 0, 1 or more than 1
+		
+		#mist return True
+			#empty before and empty after range
+			#empty before range and after range only set to False
+			#before range not empty but only with false value, after range empty
+			#before range not empty but only with false value, after range not empty but only with false value
+			
+			#range must have a size of 1 or more than 1
+			#skip range must have a size of 0, 1 or more than 1
 		
 	#TODO _willThisDataBunchBeCompletlyDisabled(self, dataIndex, startSkipRange, rangeLength=1)
-		#TODO think about test
+		#same test as previous, must give the same results, enable map is set to None
+		
+		#same test as previous, but every cmd are enabled and enableMap keep the values, msut give the same results
 	
 	#TODO _willThisDataBunchBeCompletlyEnabled(self, dataIndex, startSkipRange, rangeLength=1)
-		#TODO think about test
+		#must return False
+			#empty before range, at least on item False in the after range
+			#not empty before range but no value set to False, at least on item False in the after range
+			#empty after range, at least on item False in the before range
+			
+			#range must have a size of 1 or more than 1
+			#skip range must have a size of 0, 1 or more than 1
+		
+		#mist return True
+			#None map
+			#empty before and empty after range
+			#empty before range and after range only set to True
+			#before range not empty but only with True value, after range empty
+			#before range not empty but only with True value, after range not empty but only with True value
+			
+			#range must have a size of 1 or more than 1
+			#skip range must have a size of 0, 1 or more than 1
 	
 	#TODO _skipOnCmd(self,cmdID, subCmdID, skipCount = 1)
-		#TODO think about test
+		#FAILED
+			#skip count < 1
+			#invalic cmd index
+			#invalid sub cmd index
+			#this will completly disable a entire cmd
+			#this will disable compeltly a databunch at the current cmdID
+			#this will disable compeltly a databunch at a different cmdID but with the same command
+
+		#SUCCESS
+			#disable range
+				#at the biggining
+				#at the end
+				#in the middle
+			#range of length 1 or more than 1
+			#with empty stack or not
+			#with pre/post/pro process on the stack
+			#switch to False some already false, or not
 	
 	#TODO _enableOnCmd(self, cmdID, subCmdID, enableCount = 1)
-		#TODO think about test
+		#FAILED
+			#skip count < 1
+			#invalic cmd index
+			#invalid sub cmd index
+			
+		#SUCCESS
+			#enable range
+				#at the biggining
+				#at the end
+				#in the middle
+			#range of length 1 or more than 1
+			#switch to true some already true, or not
 	
 	#TODO _skipOnDataBunch(self, dataBunchIndex, subCmdID, skipCount = 1)
-		#TODO think about test
+		#FAILED
+			#skip count < 1
+			#empty stack
+			#invalic dataBunchIndex index
+			#invalid sub cmd index
+			#not a preprocess
+			#will be completly disabled
+		
+		#SUCCESS
+			#enable range
+				#at the biggining
+				#at the end
+				#in the middle
+			#range of length 1 or more than 1
+			#enablingMap is none, or not
+			#switch to False some already false, or not
 	
 	#TODO _enableOnDataBunch(self, dataBunchIndex, subCmdID, enableCount = 1)
-		#TODO think about test
- 
- 
+		#FAILED
+			#skip count < 1
+			#empty stack
+			#invalic dataBunchIndex index
+			#invalid sub cmd index
+			#not a preprocess
+			
+		#SUCCESS
+			#totaly reenabled a databunch
+				#original map was None, or not
+			
+			#enable range
+				#at the biggining
+				#at the end
+				#in the middle
+			#range of length 1 or more than 1
+			#enablingMap is none, or not
+			#switch to True some already True, or not
  
     #TODO skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         #FAILED
@@ -106,8 +196,6 @@ class splitAndMergeTest(unittest.TestCase):
 			#try to insert with postprocess at top without process in the middle
 			#insert a valid one with process in the stack, and see if they are correctly converted
 		
-		
-
     def test_isCurrentRootCommand(self):
         mc = MultiCommand("Multiple test")
         mc.addProcess(plop,plop,plop)
