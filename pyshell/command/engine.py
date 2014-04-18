@@ -507,23 +507,30 @@ class engineV3(object):
             enablingMap.extend(True)
     
     def addCommand(self, cmd, convertProcessToPreProcess = False):
+        #TODO what about an execution outside the execution engine
+        
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
             raise executionInitException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
         
         #The process (!= pre and != post), must always be the process of the last command in the list
         #if we add a new command, the existing process on the stack became invalid
-
+        stackSize = self.stack.size()
         for i in range(0,len(self.stack)):
             #if we reach a preprocess, we never reach again a process
             if self.stack.typeOnIndex(i) == PREPROCESS_INSTRUCTION:
-                break
+                continue
             
             if self.stack.typeOnIndex(i) == POSTPROCESS_INSTRUCTION:
-                continue
+                break
             
             #so, here we only have PROCESS_INSTRUCTION
             
-            if not convertProcessToPreProcess and (i > 0 or len(self.stack.dataOnTop()) > 1): #if it is the process at the top, it must have its current data and the next
+            #if it is the process at the top, it must have its current data and the next
+                #the current data of a top process is currently consumed by a process, so on the next iteration it will not be a problem anymore.  But if a next data exist, it is a problem.
+            if i == stackSize-1 and len(self.stack.dataOnTop()) == 1:
+				continue
+            
+            if not convertProcessToPreProcess: 
                 raise executionInitException("(engine) addCommand, some process are waiting on the stack, can not add a command")
         
             #convert the existing process on the stack into preprocess of the new command
@@ -532,7 +539,7 @@ class engineV3(object):
             
             self.stack.setPathOnIndex(i, new_path)
             self.stack.setTypeOnIndex(i, PREPROCESS_INSTRUCTION)
-			
+            
         cmd.reset()
         self.cmdList.append(cmd)
         
