@@ -4,7 +4,7 @@
 ### STACK PROPERTIES ###
     #TODO
 
-from command import MultiOutput, MultiCommand
+from command import MultiOutput, MultiCommand, Command
 from exception import *
 from stackEngine import engineStack
 from utils import *
@@ -474,7 +474,11 @@ class engineV3(object):
         isAValidIndex(self.cmdList, cmdID,"flushArgs", "command list")
         self.cmdList[cmdID].flushArgs()
     
-    def addSubCommand(self, cmdID = None, onlyAddOnce = True, useArgs = True):
+    def addSubCommand(self, cmd, cmdID = None, onlyAddOnce = True, useArgs = True):
+        #is a valid cmd ?
+        if not isinstance(cmd, Command):#only the Command are allowed in the list
+            raise executionException("(engine) addSubCommand, cmd is not a Command instance, got <"+str(type(cmd))+">")
+        
         #compute the current command index where the sub command will be insert, check the cmd path on the stack
         if cmdID == None:
             self.stack.raiseIfEmpty("addSubCommand")
@@ -490,7 +494,7 @@ class engineV3(object):
         for i in range(0,len(self.cmdList)):
             if self.cmdList[i] == self.cmdList[cmdID]:
                 cmdToUpdate.append(i)
-
+        
         for i in range(0, self.stack.size()):
             if self.stack.typeOnIndex(i) != PREPROCESS_INSTRUCTION:
                 break
@@ -504,13 +508,13 @@ class engineV3(object):
             if enablingMap == None:
                 continue
             
-            enablingMap.extend(True)
+            enablingMap.append(True)
     
     def addCommand(self, cmd, convertProcessToPreProcess = False):
         #TODO what about an execution outside the execution engine
         
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
-            raise executionInitException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
+            raise executionException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
         
         #The process (!= pre and != post), must always be the process of the last command in the list
         #if we add a new command, the existing process on the stack became invalid
@@ -528,10 +532,10 @@ class engineV3(object):
             #if it is the process at the top, it must have its current data and the next
                 #the current data of a top process is currently consumed by a process, so on the next iteration it will not be a problem anymore.  But if a next data exist, it is a problem.
             if i == stackSize-1 and len(self.stack.dataOnTop()) == 1:
-				continue
+                continue
             
             if not convertProcessToPreProcess: 
-                raise executionInitException("(engine) addCommand, some process are waiting on the stack, can not add a command")
+                raise executionException("(engine) addCommand, some process are waiting on the stack, can not add a command")
         
             #convert the existing process on the stack into preprocess of the new command
             new_path = self.stack.pathOnIndex(i)[:]

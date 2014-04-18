@@ -20,7 +20,11 @@ class splitAndMergeTest(unittest.TestCase):
     def setUp(self):
         self.mc = MultiCommand("Multiple test", "help me")
         self.mc.addProcess(noneFun,noneFun,noneFun)
-        self.e = engineV3([self.mc])
+        
+        self.mc2 = MultiCommand("Multiple test2", "help me2")
+        self.mc2.addProcess(noneFun,noneFun,noneFun)
+        
+        self.e = engineV3([self.mc,self.mc2,self.mc2])
 
     #TODO _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
         #must return False
@@ -171,48 +175,91 @@ class splitAndMergeTest(unittest.TestCase):
                 #where not
 
 
-    #TODO flushArgs(self, index=None)
+    #flushArgs(self, index=None)
+    def test_flushArgs(self):
         #FAILED
-        #None index and empty stack
-        #invalid index
+			#None index and empty stack
+		del self.e.stack[:]
+		self.assertRaises(executionException, self.e.flushArgs)
+		
+			#invalid index
+		self.assertRaises(executionException, self.e.flushArgs, -8000)
+		self.assertRaises(executionException, self.e.flushArgs, 123)
         
         #SUCCESS
-        #valid index
+			#valid index
+		self.mc.setArgs("toto")
+		self.mc2.setArgs("tata")
+		self.assertEqual(self.mc.args,["toto"])
+		self.assertEqual(self.mc2.args,["tata"])
+		
+		self.e.flushArgs(1)
+		self.assertEqual(self.mc.args,["toto"])
+		self.assertEqual(self.mc2.args,None)
 
-    #TODO addSubCommand(self, cmdID = None, onlyAddOnce = True, useArgs = True)
+    #addSubCommand(self, cmd, cmdID = None, onlyAddOnce = True, useArgs = True)
+    def test_addSubCommand(self):
         #FAILED
-            #cmdID is None, and empty stack
-            #invalid cmd index
+            #invalid sub cmd instance
+        self.assertRaises(executionException, self.e.addSubCommand, None)
+        self.assertRaises(executionException, self.e.addSubCommand, "toto")
+        self.assertRaises(executionException, self.e.addSubCommand, 52)
         
+            #cmdID is None, and empty stack
+        del self.e.stack[:]
+        self.assertRaises(executionException, self.e.addSubCommand,Command())
+        
+            #invalid cmd index
+        self.assertRaises(executionException, self.e.addSubCommand,Command(), -8000)
+        self.assertRaises(executionException, self.e.addSubCommand,Command(), 123)
+            
         #SUCCESS
-            #none cmd id must return the cmd index at the top
             #with empty stack
+        self.e.addSubCommand(Command(), 1)  
+        self.assertEqual(len(self.e.cmdList[1]), 2)
+        
+            #with not empty stack
+        self.e.stack.append( (["a","b","c"], [0], PREPROCESS_INSTRUCTION, None,) )
+        self.e.stack.append( (["d","e","f"], [0,1], PREPROCESS_INSTRUCTION, None,) )
+        
+            #none cmd id must return the cmd index at the top
+        self.e.addSubCommand(Command(), None)
+        self.assertEqual(len(self.e.cmdList[0]), 1)
+        self.assertEqual(len(self.e.cmdList[1]), 3)
+        
+        self.e.stack.append( (["d","e","f"], [0,1], PREPROCESS_INSTRUCTION, [True,False,True],) ) 
+        self.e.stack.append( (["d","e","f"], [0,1,0], PREPROCESS_INSTRUCTION, [True,False,True],) ) 
+        
             #with stack (with random data on stack, not only matching result, != path, != preprocess)
+        self.e.addSubCommand(Command(), 1)
                 #with path not using this cmd
                 #with path using this cmd
                     #with None map
                     #with map enabled
                 #with cmd used several times in the cmdList
+        self.assertEqual(self.e.stack[1][3],None)
+        self.assertEqual(len(self.e.stack[2][3]),4)
+        self.assertEqual(len(self.e.stack[3][3]),4)
 
     #addCommand(self, cmd, convertProcessToPreProcess = False)
     def test_addCommand(self):
         #FAILED
             #try to insert a not MultiCommand instance
-        self.assertRaises(executionInitException, self.e.addCommand, None)
-        self.assertRaises(executionInitException, self.e.addCommand, "toto")
-        self.assertRaises(executionInitException, self.e.addCommand, 52)
+        self.assertRaises(executionException, self.e.addCommand, None)
+        self.assertRaises(executionException, self.e.addCommand, "toto")
+        self.assertRaises(executionException, self.e.addCommand, 52)
         
             #try to insert with process at top
                 #with more than one data
         del self.e.stack[:]
         self.e.stack.append( (["a","b","c"], [0], PROCESS_INSTRUCTION, None,) )
-        self.assertRaises(executionInitException, self.e.addCommand, self.mc)
+        self.assertRaises(executionException, self.e.addCommand, self.mc)
         
             #try to insert with postprocess at top with process in the middle
         del self.e.stack[:]
         self.e.stack.append( (["a","b","c"], [0], PROCESS_INSTRUCTION, None,) )
         self.e.stack.append( (["a"], [0], POSTPROCESS_INSTRUCTION, None,) )
-        self.assertRaises(executionInitException, self.e.addCommand, self.mc)
+        self.assertRaises(executionException, self.e.addCommand, self.mc)
         
         #SUCCESS
             #try to insert with process at top

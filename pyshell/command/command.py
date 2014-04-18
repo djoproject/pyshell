@@ -119,7 +119,7 @@ class MultiCommand(list):
             raise commandException("(MultiCommand) addStaticCommand, can't insert static command while dynamic command are present, reset the MultiCommand then insert static command")
     
         #if usageBuilder is not set, take the preprocess builder of the cmd 
-        if self.usageBuilder == None:
+        if self.usageBuilder == None and hasattr(cmd.preProcess, "checker"):
             self.usageBuilder = cmd.preProcess.checker
     
         #build help message
