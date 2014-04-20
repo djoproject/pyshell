@@ -272,7 +272,7 @@ class engineV3(object):
 ### COMMAND meth ###
     
     def _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1):
-        for i in xrange(0,startSkipRange):
+        for i in xrange(0,min(startSkipRange,len(self.cmdList[cmdID]))):
             if not self.cmdList[cmdID].isdisabledCmd(i):
                 return False
 
@@ -286,7 +286,7 @@ class engineV3(object):
         emap  = self.stack.enablingMapOnIndex(dataIndex)
         cmdID = self.stack.cmdIndexOnIndex(dataIndex)
 
-        for j in xrange(0, startSkipRange):
+        for j in xrange(0, min(startSkipRange,len(self.cmdList[cmdID]))):
             if not self.cmdList[cmdID].isdisabledCmd(j) and (emap == None or emap[j]):
                 return False
 
@@ -303,7 +303,7 @@ class engineV3(object):
         
         cmdID = self.stack.cmdIndexOnIndex(dataIndex)
 
-        for j in xrange(0, startSkipRange):
+        for j in xrange(0, min(startSkipRange, len(emap))):
             if not emap[j]:
                 return False
 

@@ -15,7 +15,6 @@ def plop(arg):
 def noneFun():
     pass
 
-
 class splitAndMergeTest(unittest.TestCase): 
     def setUp(self):
         self.mc = MultiCommand("Multiple test", "help me")
@@ -26,55 +25,320 @@ class splitAndMergeTest(unittest.TestCase):
         
         self.e = engineV3([self.mc,self.mc2,self.mc2])
 
-    #TODO _willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
+    #_willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
+    def test_willThisCmdBeCompletlyDisabled(self):
+        mc = MultiCommand("Multiple test", "help me")
+        for i in range(0,6):
+            mc.addProcess(noneFun,noneFun,noneFun)
+
+        self.e = engineV3([mc])
+
         #must return False
             #empty before range, at least on item true in the after range
+
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 0, 1))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 0, 2))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 0, 5))
+
             #not empty before range but no value set to true, at least on item true in the after range
+
+        mc.disableCmd(0)
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 1, 1))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 1, 2))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 1, 4))
+
+        mc.disableCmd(1)
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 2, 1))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 2, 2))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 2, 3))
+
             #empty after range, at least on item true in the before range
+
+        mc.enableCmd(0)
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 4, 1))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 3, 2))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 2, 3))
             
             #range must have a size of 1 or more than 1
             #skip range must have a size of 0, 1 or more than 1
+
+        #this test will explore every node
+        mc.enableCmd(1)
+        mc.disableCmd(5)
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 0, 0))
+        self.assertFalse(self.e._willThisCmdBeCompletlyDisabled(0, 6, 0))
         
+        mc.enableCmd(5)
         #mist return True
             #empty before and empty after range
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 0, 6))
+
             #empty before range and after range only set to False
+        mc.disableCmd(5)
+        mc.disableCmd(4)
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 0, 5))
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 0, 4))
+        mc.enableCmd(5)
+        mc.enableCmd(4)
+
             #before range not empty but only with false value, after range empty
+        mc.disableCmd(0)
+        mc.disableCmd(1)
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 1, 5))
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 2, 4))
+
             #before range not empty but only with false value, after range not empty but only with false value
+        mc.disableCmd(5)
+        mc.disableCmd(4)
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 1, 4))
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 1, 3))
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 2, 3))
+        self.assertTrue(self.e._willThisCmdBeCompletlyDisabled(0, 2, 2))
             
             #range must have a size of 1 or more than 1
             #skip range must have a size of 0, 1 or more than 1
         
-    #TODO _willThisDataBunchBeCompletlyDisabled(self, dataIndex, startSkipRange, rangeLength=1)
-        #same test as previous, must give the same results, enable map is set to None
+    #_willThisDataBunchBeCompletlyDisabled(self, dataIndex, startSkipRange, rangeLength=1)
+    def test_willThisDataBunchBeCompletlyDisabled_NoneDatabunch(self):
+        mc = MultiCommand("Multiple test", "help me")
+        for i in range(0,6):
+            mc.addProcess(noneFun,noneFun,noneFun)
+
+        self.e = engineV3([mc])
+
+        #must return False
+            #empty before range, at least on item true in the after range
+
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 5))
+
+            #not empty before range but no value set to true, at least on item true in the after range
+
+        mc.disableCmd(0)
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 4))
+
+        mc.disableCmd(1)
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 3))
+
+            #empty after range, at least on item true in the before range
+
+        mc.enableCmd(0)
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 4, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 3, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 3))
+            
+            #range must have a size of 1 or more than 1
+            #skip range must have a size of 0, 1 or more than 1
+
+        #this test will explore every node
+        mc.enableCmd(1)
+        mc.disableCmd(5)
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 0))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 6, 0))
         
+        mc.enableCmd(5)
+        #mist return True
+            #empty before and empty after range
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 6))
+
+            #empty before range and after range only set to False
+        mc.disableCmd(5)
+        mc.disableCmd(4)
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 5))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 4))
+        mc.enableCmd(5)
+        mc.enableCmd(4)
+
+            #before range not empty but only with false value, after range empty
+        mc.disableCmd(0)
+        mc.disableCmd(1)
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 5))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 4))
+
+            #before range not empty but only with false value, after range not empty but only with false value
+        mc.disableCmd(5)
+        mc.disableCmd(4)
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 4))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 3))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 3))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 2))
+            
+            #range must have a size of 1 or more than 1
+            #skip range must have a size of 0, 1 or more than 1
+
+    def test_willThisDataBunchBeCompletlyDisabled_NotNoneDatabunch(self):
+        mc = MultiCommand("Multiple test", "help me")
+        for i in range(0,6):
+            mc.addProcess(noneFun,noneFun,noneFun)
+
+        self.e = engineV3([mc])
+        self.e.stack.setEnableMapOnIndex(0,[True]*6)
+        emap = self.e.stack.enablingMap(0)
+
+        #must return False
+            #empty before range, at least on item true in the after range
+
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 5))
+
+            #not empty before range but no value set to true, at least on item true in the after range
+
+        emap[0] = False
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 4))
+
+        emap[1] = False
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 3))
+
+            #empty after range, at least on item true in the before range
+
+        emap[0] = True
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 4, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 3, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 3))
+            
+            #range must have a size of 1 or more than 1
+            #skip range must have a size of 0, 1 or more than 1
+
+        #this test will explore every node
+        emap[1] = True
+        emap[5] = False
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 0))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyDisabled(0, 6, 0))
+        
+        emap[5] = True
+        #mist return True
+            #empty before and empty after range
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 6))
+
+            #empty before range and after range only set to False
+        emap[5] = False
+        emap[4] = False
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 5))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 0, 4))
+        emap[5] = True
+        emap[4] = True
+
+            #before range not empty but only with false value, after range empty
+        emap[0] = False
+        emap[1] = False
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 5))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 4))
+
+            #before range not empty but only with false value, after range not empty but only with false value
+        emap[5] = False
+        emap[4] = False
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 4))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 1, 3))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 3))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyDisabled(0, 2, 2))
+            
+            #range must have a size of 1 or more than 1
+            #skip range must have a size of 0, 1 or more than 1
         #same test as previous, but every cmd are enabled and enableMap keep the values, msut give the same results
     
-    #TODO _willThisDataBunchBeCompletlyEnabled(self, dataIndex, startSkipRange, rangeLength=1)
+    #_willThisDataBunchBeCompletlyEnabled(self, dataIndex, startSkipRange, rangeLength=1)
+    def test_willThisDataBunchBeCompletlyEnabled(self):
+        mc = MultiCommand("Multiple test", "help me")
+        for i in range(0,6):
+            mc.addProcess(noneFun,noneFun,noneFun)
+
+        self.e = engineV3([mc])
+
+        #map none
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 3))
+
+        self.e.stack.setEnableMapOnIndex(0,[False]*6)
+        emap = self.e.stack.enablingMap(0)
+
         #must return False
-            #empty before range, at least on item False in the after range
-            #not empty before range but no value set to False, at least on item False in the after range
-            #empty after range, at least on item False in the before range
+            #empty before range, at least on item true in the after range
+
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 5))
+
+            #not empty before range but no value set to true, at least on item true in the after range
+
+        emap[0] = True
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 4))
+
+        emap[1] = True
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 3))
+
+            #empty after range, at least on item true in the before range
+
+        emap[0] = False
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 4, 1))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 3, 2))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 3))
             
             #range must have a size of 1 or more than 1
             #skip range must have a size of 0, 1 or more than 1
+
+        #this test will explore every node
+        emap[1] = False
+        emap[5] = True
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 0))
+        self.assertFalse(self.e._willThisDataBunchBeCompletlyEnabled(0, 6, 0))
         
+        emap[5] = False
         #mist return True
-            #None map
             #empty before and empty after range
-            #empty before range and after range only set to True
-            #before range not empty but only with True value, after range empty
-            #before range not empty but only with True value, after range not empty but only with True value
-            
-            #range must have a size of 1 or more than 1
-            #skip range must have a size of 0, 1 or more than 1
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 6))
+
+            #empty before range and after range only set to False
+        emap[5] = True
+        emap[4] = True
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 5))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 0, 4))
+        emap[5] = False
+        emap[4] = False
+
+            #before range not empty but only with false value, after range empty
+        emap[0] = True
+        emap[1] = True
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 5))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 4))
+
+            #before range not empty but only with false value, after range not empty but only with false value
+        emap[5] = True
+        emap[4] = True
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 4))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 3))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 3))
+        self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 2, 2))
     
     #TODO _skipOnCmd(self,cmdID, subCmdID, skipCount = 1)
+    def test_skipOnCmd(self):
         #FAILED
             #skip count < 1
+        self.assertRaises(executionException,self.e._skipOnCmd,0,0,-10)
+
             #invalic cmd index
+        self.assertRaises(executionException,self.e._skipOnCmd,25,0,1)
+
             #invalid sub cmd index
+        self.assertRaises(executionException,self.e._skipOnCmd,0,25,1)
+
             #this will completly disable a entire cmd
+        self.assertRaises(executionException,self.e._skipOnCmd,0,0,1)
+
             #this will disable compeltly a databunch at the current cmdID
+
             #this will disable compeltly a databunch at a different cmdID but with the same command
 
         #SUCCESS
@@ -86,7 +350,7 @@ class splitAndMergeTest(unittest.TestCase):
             #with empty stack or not
             #with pre/post/pro process on the stack
             #switch to False some already false, or not
-    
+
     #TODO _enableOnCmd(self, cmdID, subCmdID, enableCount = 1)
         #FAILED
             #skip count < 1
@@ -178,24 +442,24 @@ class splitAndMergeTest(unittest.TestCase):
     #flushArgs(self, index=None)
     def test_flushArgs(self):
         #FAILED
-			#None index and empty stack
-		del self.e.stack[:]
-		self.assertRaises(executionException, self.e.flushArgs)
-		
-			#invalid index
-		self.assertRaises(executionException, self.e.flushArgs, -8000)
-		self.assertRaises(executionException, self.e.flushArgs, 123)
+            #None index and empty stack
+        del self.e.stack[:]
+        self.assertRaises(executionException, self.e.flushArgs)
+        
+            #invalid index
+        self.assertRaises(executionException, self.e.flushArgs, -8000)
+        self.assertRaises(executionException, self.e.flushArgs, 123)
         
         #SUCCESS
-			#valid index
-		self.mc.setArgs("toto")
-		self.mc2.setArgs("tata")
-		self.assertEqual(self.mc.args,["toto"])
-		self.assertEqual(self.mc2.args,["tata"])
-		
-		self.e.flushArgs(1)
-		self.assertEqual(self.mc.args,["toto"])
-		self.assertEqual(self.mc2.args,None)
+            #valid index
+        self.mc.setArgs("toto")
+        self.mc2.setArgs("tata")
+        self.assertEqual(self.mc.args,["toto"])
+        self.assertEqual(self.mc2.args,["tata"])
+        
+        self.e.flushArgs(1)
+        self.assertEqual(self.mc.args,["toto"])
+        self.assertEqual(self.mc2.args,None)
 
     #addSubCommand(self, cmd, cmdID = None, onlyAddOnce = True, useArgs = True)
     def test_addSubCommand(self):

@@ -209,7 +209,7 @@ class MultiCommand(list):
     def isdisabledCmd(self, index = 0):
         isAValidIndex(self, index, "isdisabledCmd", "Command list", "MultiCommand", commandException)
         c,a,e = self[index]
-        return e
+        return not e
 
     def isArgUsage(self, index = 0):
         isAValidIndex(self, index, "isArgUsage", "Command list", "MultiCommand", commandException)
