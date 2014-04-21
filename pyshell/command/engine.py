@@ -89,11 +89,9 @@ class engineV3(object):
                 if self.stack[index][2] == POSTPROCESS_INSTRUCTION or (self.stack[index][2] == PROCESS_INSTRUCTION and processType == PREPROCESS_INSTRUCTION):
                     continue
                     
-                break
-                
-        else: #POSTPROCESS_INSTRUCTION
-            if self.stack[-1][2] != POSTPROCESS_INSTRUCTION:
-                return stackLength
+                return index
+            return -1
+        return stackLength - 1
 
     def _findIndexToInjectPre(self, cmdPath):
         #check command path
@@ -113,19 +111,18 @@ class engineV3(object):
                     to_ret = []
 
                 to_ret.append( (self.stack[index], index,))
+            elif path1IsHigher:
+                break
             
-            if to_ret != None:
-                return to_ret
+            index -= 1
+        
+        if to_ret != None:
+            return to_ret
 
-            if path1IsHigher:
-                return ( (None, index+1,),)
-            
-            index -= 1 
-            
         return ( (None, index+1,),)
 
     def _findIndexToInjectProOrPost(self, cmdPath, processType):
-        if processType == PREPROCESS_INSTRUCTION:
+        if processType != PROCESS_INSTRUCTION and processType != POSTPROCESS_INSTRUCTION :
             raise executionException("(engine) _findIndexToInjectProOrPost, can't use preprocess with this function, use _findIndexToInjectPre instead")
 
         #if PROCESS_INSTRUCTION, only root path are allowed
@@ -139,7 +136,7 @@ class engineV3(object):
             isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
 
         index = self._getTheIndexWhereToStartTheSearch(processType)
-       
+        
         #lookup
         while index >= 0 and self.stack[index][2] == processType:
             equals, sameLength, equalsCount, path1IsHigher = equalPath(self.stack[index][1], cmdPath)
