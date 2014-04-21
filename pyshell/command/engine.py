@@ -411,7 +411,7 @@ class engineV3(object):
                 if enablingMap[i]:
                     continue
 
-                enablingMap[i] = False
+                enablingMap[i] = True
 
         self.stack.setEnableMapOnIndex(dataBunchIndex,enablingMap)
 
@@ -444,13 +444,13 @@ class engineV3(object):
         isAValidIndex(self.stack, index,"disableEnablingMapOnDataBunch", "stack")
 
         # can only skip the next command if the state is pre_process
-        if self.stack.typeOnIndex() != PREPROCESS_INSTRUCTION: 
+        if self.stack.typeOnIndex(index) != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) disableEnablingMapOnDataBunch, can only skip method on PREPROCESS item")
 
         mapping = self.stack.enablingMapOnIndex(index)
 
         if mapping != None:
-            self.stack.setEnableMap(None)
+            self.stack.setEnableMapOnIndex(index,None)
 
     def enableSubCommandInCurrentDataBunchMap(self, indexSubCmd):
         self._enableOnDataBunch(-1, indexSubCmd,1)
