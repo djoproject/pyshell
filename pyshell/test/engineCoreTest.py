@@ -549,8 +549,9 @@ class EngineCoreTest(unittest.TestCase):
 
         #cas limite où tout est disable
         self.engine = engineV3([mc, mc])
-        self.engine.disableSubCommandInCurrentDataBunchMap(0)
-        self.engine.disableSubCommandInCurrentDataBunchMap(1)
+        self.engine.stack.setEnableMapOnIndex(-1,[False,False])
+        #self.engine.disableSubCommandInCurrentDataBunchMap(0)
+        #self.engine.disableSubCommandInCurrentDataBunchMap(1)
         self.assertRaises(executionException, self.engine.execute)
     
     #jeu de test qui verifie la consistence de la pile a chaque iteration

@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#TODO
-    #need to create stack iterator/generator/... ?
-
 from exception import *
 
 class engineStack(list):
