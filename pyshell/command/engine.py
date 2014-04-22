@@ -25,6 +25,8 @@ from utils import *
     #what occur if we try to create new item on stack on a path to a completly disabled cmd
         #e.g. a | b | c, b is compltetly disabled, what to do with the result of a ?
     #every meth will resist if there are several times the same cmd in the list ? a|a|a 
+    #the previous node of the same process categorie is the prefix of the next
+        #always the case ?
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -121,13 +123,14 @@ class engineV3(object):
 
                     to_ret.append( (self.stack[index], index,))
 
-            elif processType != PREPROCESS_INSTRUCTION and sameLength and equalsCount == len(cmdPath)-1:
-                    if to_ret == None:
-                        to_ret = []
+            elif processType == PREPROCESS_INSTRUCTION and sameLength and equalsCount == len(cmdPath)-1:
+                if to_ret == None:
+                    to_ret = []
 
-                    to_ret.append( (self.stack[index], index,))
+                to_ret.append( (self.stack[index], index,))
 
-            elif path1IsHigher:
+            #A lower path has been found on the stack, no way to find a better path
+            elif (path1IsHigher != None and path1IsHigher) or len(self.stack[index][1]) < len(cmdPath): 
                 break
 
             index -= 1

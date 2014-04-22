@@ -15,11 +15,31 @@ class injectTest(unittest.TestCase):
     def setUp(self):
         self.mc = MultiCommand("Multiple test", "help me")
         self.mc.addProcess(noneFun,noneFun,noneFun)
-        
+        self.mc.addProcess(noneFun,noneFun,noneFun)
+        self.mc.addProcess(noneFun,noneFun,noneFun)
+        self.mc.addProcess(noneFun,noneFun,noneFun)
+
         self.mc2 = MultiCommand("Multiple test2", "help me2")
         self.mc2.addProcess(noneFun,noneFun,noneFun)
-        
-        self.e = engineV3([self.mc,self.mc2,self.mc2])
+        self.mc2.addProcess(noneFun,noneFun,noneFun)
+        self.mc2.addProcess(noneFun,noneFun,noneFun)
+        self.mc2.addProcess(noneFun,noneFun,noneFun)
+
+        self.e = engineV3([self.mc,self.mc2,self.mc2,self.mc2])
+
+    def resetStack(self):
+        del self.e.stack[:]
+        self.e.stack.append( (["a"], [0,1], PREPROCESS_INSTRUCTION, None, ) )
+
+        self.e.stack.append( (["b"], [0,0,0], PREPROCESS_INSTRUCTION, [True, True, True, True], ) )
+        self.e.stack.append( (["b"], [0,0,0], PREPROCESS_INSTRUCTION, [True, False, True, True], ) )
+        self.e.stack.append( (["b"], [0,0,0], PREPROCESS_INSTRUCTION, [True, True, False, True], ) )
+
+        self.e.stack.append( (["c"], [0,1,0,0], PROCESS_INSTRUCTION, None, ) )
+        self.e.stack.append( (["d"], [0,0,0,0], PROCESS_INSTRUCTION, None, ) )
+
+        self.e.stack.append( (["e"], [0,3], POSTPROCESS_INSTRUCTION, None, ) )
+        self.e.stack.append( (["f"], [0,2,0], POSTPROCESS_INSTRUCTION, None, ) )
 
     #_getTheIndexWhereToStartTheSearch(self,processType)
     def test_getTheIndexWhereToStartTheSearch(self):
@@ -72,13 +92,71 @@ class injectTest(unittest.TestCase):
     def test_findIndexToInject(self):
         #FAIL
             #try to find too big cmdPath, to generate invalid index
+        self.assertRaises(executionException, self.e._findIndexToInject, [1,2,3,4], PREPROCESS_INSTRUCTION)
             #try to find path with invalid sub index
+        self.assertRaises(executionException, self.e._findIndexToInject, [0,25], PREPROCESS_INSTRUCTION)
+
             #try to inject pro process with non root path
+        self.assertRaises(executionException, self.e._findIndexToInject, [0,0], PROCESS_INSTRUCTION)
 
         #SUCCESS
-            #make a perfect match
-            #make a perfect match except for the last sub index
+
+        #perfect match
+        self.resetStack()
+        r = self.e._findIndexToInject([0,2,0], POSTPROCESS_INSTRUCTION)
+        self.assertIs(r[1], 7)
+        self.assertEqual(r[0], self.e.stack[7])
+
+        r = self.e._findIndexToInject([0,3], POSTPROCESS_INSTRUCTION)
+        self.assertIs(r[1], 6)
+        self.assertEqual(r[0], self.e.stack[6])
+
+        r = self.e._findIndexToInject([0,0,0,0], PROCESS_INSTRUCTION)
+        self.assertIs(r[1], 5)
+        self.assertEqual(r[0], self.e.stack[5])
+
+        r = self.e._findIndexToInject([0,1,0,0], PROCESS_INSTRUCTION)
+        self.assertIs(r[1], 4)
+        self.assertEqual(r[0], self.e.stack[4])
+
+        r = self.e._findIndexToInject([0,0,0], PREPROCESS_INSTRUCTION)
+        self.assertIs(len(r), 3)
+        for i in range(0, 3):
+            self.assertIs(r[i][1],3-i)
+            self.assertEqual(r[i][0], self.e.stack[3-i])
+
+        r = self.e._findIndexToInject([0,1], PREPROCESS_INSTRUCTION)
+        self.assertIs(len(r), 1)
+        self.assertIs(r[0][1], 0)
+        self.assertIs(r[0][0], self.e.stack[0])
+
+        #partial match
+        r = self.e._findIndexToInject([0,0,1], PREPROCESS_INSTRUCTION)
+        self.assertIs(len(r), 3)
+        for i in range(0, 3):
+            self.assertIs(r[i][1],3-i)
+            self.assertEqual(r[i][0], self.e.stack[3-i])
+
+        r = self.e._findIndexToInject([0,3], PREPROCESS_INSTRUCTION)
+        self.assertIs(len(r), 1)
+        self.assertIs(r[0][1], 0)
+        self.assertIs(r[0][0], self.e.stack[0])
+
+        #no match
+        r = self.e._findIndexToInject([0,2,0,0], POSTPROCESS_INSTRUCTION) #too long path stop
+        self.assertIs(r[1], 8)
+        self.assertIs(r[0], None)
+        r = self.e._findIndexToInject([0,1,0], POSTPROCESS_INSTRUCTION) #too hight path on stack stop
+        self.assertIs(r[1], 8)
+        self.assertIs(r[0], None)
+
+        #TODO do the same for process and preprocess
+
+            #in each of the three type
+
             #no match
+                #path is higher
+                #path on stack has a bigger length
 
             #only one match on stack
             #several match on stack (only for pre)
@@ -88,7 +166,6 @@ class injectTest(unittest.TestCase):
 
             #with 0, 1 or more item of each type
             #with existing path, or inexsting path
-        pass            
         
     #TODO injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False)
         #FAIL
