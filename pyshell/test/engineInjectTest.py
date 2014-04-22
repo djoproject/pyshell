@@ -68,11 +68,12 @@ class injectTest(unittest.TestCase):
         self.e.stack.append( (["f"], [0], POSTPROCESS_INSTRUCTION, None, ) )
         self.assertIs(self.e._getTheIndexWhereToStartTheSearch(PREPROCESS_INSTRUCTION),-1)
 
-    #TODO _findIndexToInjectPre(self, cmdPath)
+    #TODO _findIndexToInject(self, cmdPath, processType)
+    def test_findIndexToInject(self):
         #FAIL
-            #invalid path length
-            #invalid sub index
-            
+            #try to find too big cmdPath, to generate invalid index
+            #try to find path with invalid sub index
+            #try to inject pro process with non root path
 
         #SUCCESS
             #make a perfect match
@@ -80,21 +81,14 @@ class injectTest(unittest.TestCase):
             #no match
 
             #only one match on stack
-            #several match on stack
+            #several match on stack (only for pre)
 
             #at the botom of the stack
             #or with different path under the current path (higher path ?)
-        
-    #TODO _findIndexToInjectProOrPost(self, cmdPath, processType)
-        #FAIL
-            #try to inject preprocess
-            #try to inject pro process with non root path
-            #try to find to big cmdPath, to generate invalid index
-            #try to find path with invalid sub index
 
-        #SUCCESS
             #with 0, 1 or more item of each type
             #with existing path, or inexsting path
+        pass            
         
     #TODO injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False)
         #FAIL

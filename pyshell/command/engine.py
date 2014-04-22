@@ -93,63 +93,53 @@ class engineV3(object):
             return -1
         return stackLength - 1
 
-    def _findIndexToInjectPre(self, cmdPath):
+    def _findIndexToInject(self, cmdPath, processType):
         #check command path
         isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
-        
+
+        #check subindex
         for i in range(0,len(cmdPath)):
             isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
 
-        index = self._getTheIndexWhereToStartTheSearch(PREPROCESS_INSTRUCTION)
-        
-        #lookup
-        to_ret = None
-        while index >= 0:
-            equals, sameLength, equalsCount, path1IsHigher = equalPath(self.stack[index][1], cmdPath)
-            if equals or (sameLength and equalsCount == len(cmdPath)-1):
-                if to_ret == None:
-                    to_ret = []
-
-                to_ret.append( (self.stack[index], index,))
-            elif path1IsHigher:
-                break
-            
-            index -= 1
-        
-        if to_ret != None:
-            return to_ret
-
-        return ( (None, index+1,),)
-
-    def _findIndexToInjectProOrPost(self, cmdPath, processType):
-        if processType != PROCESS_INSTRUCTION and processType != POSTPROCESS_INSTRUCTION :
-            raise executionException("(engine) _findIndexToInjectProOrPost, can't use preprocess with this function, use _findIndexToInjectPre instead")
-
-        #if PROCESS_INSTRUCTION, only root path are allowed
+        #if look up for a PROCESS, the path must always be a root path
         if processType == PROCESS_INSTRUCTION and len(cmdPath) != len(self.cmdList):
-            raise executionException("(engine) _findIndexToInjectProOrPost, can only insert data to the process of the last command") 
+            raise executionException("(engine) _findIndexToInjectProOrPost, can only insert data to the process of the last command")
 
-        #check command path
-        isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
-        
-        for i in range(0,len(cmdPath)):
-            isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
-
+        #check first index to look (this will also check if processType is valid)
         index = self._getTheIndexWhereToStartTheSearch(processType)
-        
-        #lookup
-        while index >= 0 and self.stack[index][2] == processType:
+        to_ret = None
+
+        while index >= 0 and processType == self.stack.typeOnIndex(index):
             equals, sameLength, equalsCount, path1IsHigher = equalPath(self.stack[index][1], cmdPath)
 
             if equals:
-                return self.stack[index], index
-            
-            if path1IsHigher:
-                return None, index+1
-            
-            index -= 1 
-            
-        return None, index+1
+                if processType != PREPROCESS_INSTRUCTION:
+                    return self.stack[index], index
+                else:
+                    if to_ret == None:
+                        to_ret = []
+
+                    to_ret.append( (self.stack[index], index,))
+
+            elif processType != PREPROCESS_INSTRUCTION and sameLength and equalsCount == len(cmdPath)-1:
+                    if to_ret == None:
+                        to_ret = []
+
+                    to_ret.append( (self.stack[index], index,))
+
+            elif path1IsHigher:
+                break
+
+            index -= 1
+
+        #special case for PREPROCESS_INSTRUCTION, list of result
+        if to_ret != None:
+            return to_ret
+
+        if processType == PREPROCESS_INSTRUCTION:
+            return ( (None, index+1,),)
+        else:
+            return None, index+1
     
     def injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
         obj, index = self._findIndexToInjectProOrPost(cmdPath, processType)
