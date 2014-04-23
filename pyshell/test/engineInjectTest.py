@@ -29,14 +29,14 @@ class injectTest(unittest.TestCase):
 
     def resetStack(self):
         del self.e.stack[:]
-        self.e.stack.append( (["a"], [0,1], PREPROCESS_INSTRUCTION, None, ) )
+        self.e.stack.append( (["a"], [0,2], PREPROCESS_INSTRUCTION, None, ) )
 
-        self.e.stack.append( (["b"], [0,0,0], PREPROCESS_INSTRUCTION, [True, True, True, True], ) )
-        self.e.stack.append( (["b"], [0,0,0], PREPROCESS_INSTRUCTION, [True, False, True, True], ) )
-        self.e.stack.append( (["b"], [0,0,0], PREPROCESS_INSTRUCTION, [True, True, False, True], ) )
+        self.e.stack.append( (["b"], [0,2,0], PREPROCESS_INSTRUCTION, [True, True, True, True], ) )
+        self.e.stack.append( (["b"], [0,2,0], PREPROCESS_INSTRUCTION, [True, False, True, True], ) )
+        self.e.stack.append( (["b"], [0,2,0], PREPROCESS_INSTRUCTION, [True, True, False, True], ) )
 
-        self.e.stack.append( (["c"], [0,1,0,0], PROCESS_INSTRUCTION, None, ) )
-        self.e.stack.append( (["d"], [0,0,0,0], PROCESS_INSTRUCTION, None, ) )
+        self.e.stack.append( (["c"], [0,3,0,0], PROCESS_INSTRUCTION, None, ) )
+        self.e.stack.append( (["d"], [0,2,0,0], PROCESS_INSTRUCTION, None, ) )
 
         self.e.stack.append( (["e"], [0,3], POSTPROCESS_INSTRUCTION, None, ) )
         self.e.stack.append( (["f"], [0,2,0], POSTPROCESS_INSTRUCTION, None, ) )
@@ -88,7 +88,7 @@ class injectTest(unittest.TestCase):
         self.e.stack.append( (["f"], [0], POSTPROCESS_INSTRUCTION, None, ) )
         self.assertIs(self.e._getTheIndexWhereToStartTheSearch(PREPROCESS_INSTRUCTION),-1)
 
-    #TODO _findIndexToInject(self, cmdPath, processType)
+    #_findIndexToInject(self, cmdPath, processType)
     def test_findIndexToInject(self):
         #FAIL
             #try to find too big cmdPath, to generate invalid index
@@ -111,27 +111,27 @@ class injectTest(unittest.TestCase):
         self.assertIs(r[1], 6)
         self.assertEqual(r[0], self.e.stack[6])
 
-        r = self.e._findIndexToInject([0,0,0,0], PROCESS_INSTRUCTION)
+        r = self.e._findIndexToInject([0,2,0,0], PROCESS_INSTRUCTION)
         self.assertIs(r[1], 5)
         self.assertEqual(r[0], self.e.stack[5])
 
-        r = self.e._findIndexToInject([0,1,0,0], PROCESS_INSTRUCTION)
+        r = self.e._findIndexToInject([0,3,0,0], PROCESS_INSTRUCTION)
         self.assertIs(r[1], 4)
         self.assertEqual(r[0], self.e.stack[4])
 
-        r = self.e._findIndexToInject([0,0,0], PREPROCESS_INSTRUCTION)
+        r = self.e._findIndexToInject([0,2,0], PREPROCESS_INSTRUCTION)
         self.assertIs(len(r), 3)
         for i in range(0, 3):
             self.assertIs(r[i][1],3-i)
             self.assertEqual(r[i][0], self.e.stack[3-i])
 
-        r = self.e._findIndexToInject([0,1], PREPROCESS_INSTRUCTION)
+        r = self.e._findIndexToInject([0,3], PREPROCESS_INSTRUCTION)
         self.assertIs(len(r), 1)
         self.assertIs(r[0][1], 0)
         self.assertIs(r[0][0], self.e.stack[0])
 
         #partial match
-        r = self.e._findIndexToInject([0,0,1], PREPROCESS_INSTRUCTION)
+        r = self.e._findIndexToInject([0,2,1], PREPROCESS_INSTRUCTION)
         self.assertIs(len(r), 3)
         for i in range(0, 3):
             self.assertIs(r[i][1],3-i)
@@ -149,31 +149,41 @@ class injectTest(unittest.TestCase):
         r = self.e._findIndexToInject([0,1,0], POSTPROCESS_INSTRUCTION) #too hight path on stack stop
         self.assertIs(r[1], 8)
         self.assertIs(r[0], None)
-
-        #TODO do the same for process and preprocess
-
-            #in each of the three type
-
-            #no match
-                #path is higher
-                #path on stack has a bigger length
-
-            #only one match on stack
-            #several match on stack (only for pre)
-
-            #at the botom of the stack
-            #or with different path under the current path (higher path ?)
-
-            #with 0, 1 or more item of each type
-            #with existing path, or inexsting path
         
-    #TODO injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False)
+        r = self.e._findIndexToInject([0,1,0,0], PROCESS_INSTRUCTION) #too long path stop
+        self.assertIs(r[1], 6)
+        self.assertIs(r[0], None)
+        
+        r = self.e._findIndexToInject([0,2,0,0], PREPROCESS_INSTRUCTION) #too long path stop
+        self.assertIs(len(r), 1)        
+        self.assertIs(r[0][1], 4)
+        self.assertIs(r[0][0], None)
+        
+        r = self.e._findIndexToInject([0,1,0], PREPROCESS_INSTRUCTION) #too hight path on stack stop
+        self.assertIs(len(r), 1)        
+        self.assertIs(r[0][1], 4)
+        self.assertIs(r[0][0], None)
+                
+    #injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False)
+    def test_injectDataProOrPos(self):
         #FAIL
+        self.resetStack()
             #try to insert unexistant path with onlyAppend=True
+        self.assertRaises(executionException, self.e.injectDataProOrPos("toto", [0,3],POSTPROCESS_INSTRUCTION, True))
 
         #SUCCESS
-            #insert existant or not
-            #post or pro
+            #existant
+        self.assertRaises(executionException, self.e.injectDataProOrPos("titi", [0,3,0,0],PROCESS_INSTRUCTION, True))
+        self.assertIn("titi", self.e.stack[4][0])
+        self.assertRaises(executionException, self.e.injectDataProOrPos("toto", [0,3],POSTPROCESS_INSTRUCTION, True))
+        self.assertIn("toto", self.e.stack[6][0])
+
+            #not existant
+        self.assertRaises(executionException, self.e.injectDataProOrPos("plop", [0,1,0,0],PROCESS_INSTRUCTION))        
+        self.assertIn("plop", self.e.stack[6][0])
+        
+        self.assertRaises(executionException, self.e.injectDataProOrPos("plap", [1],POSTPROCESS_INSTRUCTION))
+        self.assertIn("plap", self.e.stack[7][0])
         
     #TODO _injectDataPreToExecute(self, data, cmdPath, index, enablingMap = None, onlyAppend = False)
         #FAIL
@@ -196,7 +206,8 @@ class injectTest(unittest.TestCase):
             #insert existant path with existant map
                 #in the beginning, in the middle or at the end of the existant
             #insert inexistant path
-        
+	
+	
     #TODO insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True)
         #FAIL
             #TODO

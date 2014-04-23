@@ -145,7 +145,7 @@ class engineV3(object):
             return None, index+1
     
     def injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
-        obj, index = self._findIndexToInjectProOrPost(cmdPath, processType)
+        obj, index = self._findIndexToInject(cmdPath, processType)
         
         if obj == None:
             #can only append ?
@@ -158,8 +158,12 @@ class engineV3(object):
         else:
             obj[0].append(data)        
     
+    #TODO merge the following four methods in one
+		#and select a default behaviour if map no found
+			#execute asSoonAsPossible or not
+    
     def _injectDataPreToExecute(self, data, cmdPath, index, enablingMap = None, onlyAppend = False):
-        itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
+        itemCandidateList = self._findIndexToInject(cmdPath, PREPROCESS_INSTRUCTION)
 
         #check map (is a list, valid length, only boolean value)
         if not isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1])):
