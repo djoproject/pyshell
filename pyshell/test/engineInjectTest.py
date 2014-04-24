@@ -289,6 +289,8 @@ class injectTest(unittest.TestCase):
     def test_insertDataToNextSubCommandPreProcess(self):
         #FAIL
             #empty stack
+        del self.e.stack[:]
+        self.assertRaises(executionException, self.e.insertDataToNextSubCommandPreProcess, "toto")
             #last sub cmd of a cmd on top
 
         #SUCCESS
