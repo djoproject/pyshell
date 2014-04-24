@@ -144,7 +144,7 @@ class engineV3(object):
         else:
             return None, index+1
     
-    def injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
+    def _injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False):
         obj, index = self._findIndexToInject(cmdPath, processType)
         
         if obj == None:
@@ -157,53 +157,28 @@ class engineV3(object):
         
         else:
             obj[0].append(data)        
+        
+    def injectDataPro(self, data, cmdPath, processType, onlyAppend = False):
+        self._injectDataProOrPos(self, data, cmdPath, PROCESS_INSTRUCTION, onlyAppend)
+        
+    def injectDataPost(self, data, cmdPath, processType, onlyAppend = False):
+        self._injectDataProOrPos(self, data, cmdPath, POSTPROCESS_INSTRUCTION, onlyAppend) 
     
-    #TODO merge the following four methods in one
-		#and select a default behaviour if map no found
-			#execute asSoonAsPossible or not
-    
-    def _injectDataPreToExecute(self, data, cmdPath, index, enablingMap = None, onlyAppend = False):
+    def injectDataPre(self, data, cmdPath, enablingMap = None, onlyAppend = False, ifNoMatchExecuteSoonerAsPossible = True):
         itemCandidateList = self._findIndexToInject(cmdPath, PREPROCESS_INSTRUCTION)
-
+        
         #check map (is a list, valid length, only boolean value)
         if not isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1])):
             raise executionException("(engine) _injectDataPreToExecute, invalid map")
-
+        
+        #no match
         if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
             if onlyAppend:
-                raise executionException("(engine) _injectDataPreToExecute, no corresponding item on the stack")
+                raise executionException("(engine) injectDataPre, no corresponding item on the stack")
                 
-            #insert at index
-            self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
-
-        else: #there ara already data with the same path
-            #compare the map of the element at the top and the current map
-                
-            if equalMap(itemCandidateList[index][0][3], enablingMap):
-                itemCandidateList[index][0][1].append(data)
-            else:
-                if onlyAppend:
-                    raise executionException("(engine) _injectDataPreToExecute, no corresponding item found on the stack")
-                
-                #insert at index + 1
-                self.stack.insert(itemCandidateList[index][1] + 1 + index, ([data], cmdPath[:], processType, enablingMap, ))
-    
-    def injectDataPreToExecuteAsSoonAsPossible(self, data, cmdPath, enablingMap = None, onlyAppend = False):
-        self._injectDataPreToExecute(data, cmdPath, 0, enablingMap, onlyAppend)
-        
-    def injectDataPreToExecuteAsLateAsPossible(self, data, cmdPath, enablingMap = None, onlyAppend = False):
-        self._injectDataPreToExecute(data, cmdPath, -1, enablingMap, onlyAppend)
-        
-    def injectDataPre(self, data, cmdPath, enablingMap = None): 
-        #only append on perfect match(path, type, map)
-        #or insert on empty stack match
-        #otherwise raise
-
-        itemCandidateList = self._findIndexToInjectPre(cmdPath, PREPROCESS_INSTRUCTION)
-        if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
-            #insert at index
             self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
         else:
+            #try to find an equal map
             for item, index in itemCandidateList:
                 if not equalMap(enablingMap, item[3]):
                     continue
@@ -211,9 +186,15 @@ class engineV3(object):
                 #append
                 item[0].append(data)
                 return
-
-            #not found
-            raise executionException("(engine) injectDataPre, no match foundwhere insert")
+                
+            #no equal map found
+            if onlyAppend:
+                raise executionException("(engine) _injectDataPreToExecute, no corresponding item found on the stack")
+                
+            if ifNoMatchExecuteSoonerAsPossible:
+                self.stack.insert(itemCandidateList[0][1]+1, ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+            else:
+                self.stack.insert(itemCandidateList[-1][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
     
     def insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True):
         self.stack.raiseIfEmpty("insertDataToPreProcess")
@@ -230,7 +211,7 @@ class engineV3(object):
             enablingMap[self.subCmdIndexOnTop()] = True
         
         #inject data
-        self.injectDataPreToExecuteAsSoonAsPossible(data,self.stack.pathOnTop(),enablingMap,False)
+        self.injectDataPre(data, self.stack.pathOnTop(), enablingMap, False,True)
 
     def insertDataToProcess(self, data):
         self.stack.raiseIfEmpty("insertDataToProcess")
@@ -244,7 +225,7 @@ class engineV3(object):
             raise executionException("(engine) insertDataToProcess, only the root command can insert data to the process")
 
         #inject data
-        self.injectData(data, self.stack.pathOnTop(),PROCESS_INSTRUCTION)
+        self.injectDataPro(data, self.stack.pathOnTop())
 
     def insertDataToNextSubCommandPreProcess(self,data):
         self.stack.raiseIfEmpty("insertDataToNextSubCommandPreProcess")
@@ -261,7 +242,7 @@ class engineV3(object):
         enablingMap[cmdPath[-1]] = True
         
         #inject in asLateAsPossible
-        self.injectDataPreToExecuteAsLateAsPossible(data, cmdPath, enablingMap,False)
+        self.injectDataPre(data, cmdPath, enablingMap, False,False)
             
 ### COMMAND meth ###
     

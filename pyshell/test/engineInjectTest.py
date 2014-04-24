@@ -164,70 +164,100 @@ class injectTest(unittest.TestCase):
         self.assertIs(r[0][1], 4)
         self.assertIs(r[0][0], None)
                 
-    #injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False)
+    #_injectDataProOrPos(self, data, cmdPath, processType, onlyAppend = False)
     def test_injectDataProOrPos(self):
         #FAIL
         self.resetStack()
             #try to insert unexistant path with onlyAppend=True
-        self.assertRaises(executionException, self.e.injectDataProOrPos("toto", [0,3],POSTPROCESS_INSTRUCTION, True))
+        self.assertRaises(executionException, self.e._injectDataProOrPos("toto", [0,3],POSTPROCESS_INSTRUCTION, True))
 
         #SUCCESS
             #existant
-        self.assertRaises(executionException, self.e.injectDataProOrPos("titi", [0,3,0,0],PROCESS_INSTRUCTION, True))
+        self.assertRaises(executionException, self.e._injectDataProOrPos("titi", [0,3,0,0],PROCESS_INSTRUCTION, True))
         self.assertIn("titi", self.e.stack[4][0])
-        self.assertRaises(executionException, self.e.injectDataProOrPos("toto", [0,3],POSTPROCESS_INSTRUCTION, True))
+        self.assertRaises(executionException, self.e._injectDataProOrPos("toto", [0,3],POSTPROCESS_INSTRUCTION, True))
         self.assertIn("toto", self.e.stack[6][0])
 
             #not existant
-        self.assertRaises(executionException, self.e.injectDataProOrPos("plop", [0,1,0,0],PROCESS_INSTRUCTION))        
+        self.assertRaises(executionException, self.e._injectDataProOrPos("plop", [0,1,0,0],PROCESS_INSTRUCTION))        
         self.assertIn("plop", self.e.stack[6][0])
         
-        self.assertRaises(executionException, self.e.injectDataProOrPos("plap", [1],POSTPROCESS_INSTRUCTION))
+        self.assertRaises(executionException, self.e._injectDataProOrPos("plap", [1],POSTPROCESS_INSTRUCTION))
         self.assertIn("plap", self.e.stack[7][0])
-        
-    #TODO _injectDataPreToExecute(self, data, cmdPath, index, enablingMap = None, onlyAppend = False)
+    
+    #injectDataPre(self, data, cmdPath, enablingMap = None, onlyAppend = False, ifNoMatchExecuteSoonerAsPossible = True)
+    def test_injectDataPre(self):
         #FAIL
-            #map of invalid length (!= of path)
-            #onlyAppend=True and inexistant path
+            #map of invalid length
+        self.assertRaises(executionException, self.e.injectDataPre, "plop", [0,1,2], "toto")
+        self.assertRaises(executionException, self.e.injectDataPre, "plop", [0,1,2], [1,2,3,4])
+        self.assertRaises(executionException, self.e.injectDataPre, "plop", [0,1,2], [True, False])
+        
+            #no match and onlyAppend = True
+        self.assertRaises(executionException, self.e.injectDataPre, "plop", [0,1,2], [True, False,True,False], True)
+        
             #onlyAppend=True and existant path and different map
-
+        self.resetStack()
+        self.assertRaises(executionException, self.e.injectDataPre, "plop", [0,2,0], [True, False,True,False], True)
+            
         #SUCCESS
             #insert unexisting
+        self.e.injectDataPre("plop", [0,1,2], [True, False,True,False])
+        self.assertEqual(self.e.stack[4][0], ["plop"])
+        self.assertEqual(self.e.stack[4][1], [0,1,2])
+        self.assertEqual(self.e.stack[4][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[4][3], [True, False,True,False])
+
             #insert existing with path matching
-            #insert existing whitout path matching
-
-            #test with index 0 or -1
+        self.e.injectDataPre("plip", [0,2,0], [True, False, True, True])
+        self.assertEqual(self.e.stack[2][0], ["b","plip"])
+            
+            #insert existing whitout path matching with ifNoMatchExecuteSoonerAsPossible = True
+        self.e.injectDataPre("plap", [0,2,0], [True, False,True,False], False, True)
+        self.assertEqual(self.e.stack[4][0], ["plap"])
+        self.assertEqual(self.e.stack[4][1], [0,2,0])
+        self.assertEqual(self.e.stack[4][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[4][3], [True, False,True,False])
         
-    #TODO injectDataPre(self, data, cmdPath, enablingMap = None)
-        #FAIL
-            #insert existant path but with inexistant map
-
-        #SUCCESS
-            #insert existant path with existant map
-                #in the beginning, in the middle or at the end of the existant
-            #insert inexistant path
-	
-	
+            #insert existing whitout path matching with ifNoMatchExecuteSoonerAsPossible = False
+        self.e.injectDataPre("plyp", [0,2,0], [True, False,False,False], False, False)
+        self.assertEqual(self.e.stack[1][0], ["plyp"])
+        self.assertEqual(self.e.stack[1][1], [0,2,0])
+        self.assertEqual(self.e.stack[1][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[1][3], [True, False,False,False])
+    
     #TODO insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True)
+    def test_insertDataToPreProcess(self):
         #FAIL
-            #TODO
+            #empty stack
 
         #SUCCESS
-            #TODO
+            #insert with preprocess at top
+            #insert with anything else at top except preprocess
+                #onlyForTheLinkedSubCmd = True
+                #onlyForTheLinkedSubCmd = False
+        pass
         
     #TODO insertDataToProcess(self, data)
+    def test_insertDataToProcess(self):
         #FAIL
-            #TODO
+            #empty stack
+            #not postprocess on top
+            #not root path on top
 
         #SUCCESS
-            #TODO
+            #success insert
+        pass
         
     #TODO insertDataToNextSubCommandPreProcess(self,data)
+    def test_insertDataToNextSubCommandPreProcess(self):
         #FAIL
-            #TODO
+            #empty stack
+            #last sub cmd of a cmd on top
 
         #SUCCESS
-            #TODO
-
+            #success insert
+        pass
+        
 if __name__ == '__main__':
     unittest.main()
