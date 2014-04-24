@@ -207,8 +207,8 @@ class engineV3(object):
         #computer map
         enablingMap = None
         if onlyForTheLinkedSubCmd:
-            enablingMap = [False] * self.stack.cmdLengthOnTop()
-            enablingMap[self.subCmdIndexOnTop()] = True
+            enablingMap = [False] * self.stack.subCmdLengthOnTop(self.cmdList)
+            enablingMap[self.stack.subCmdIndexOnTop()] = True
         
         #inject data
         self.injectDataPre(data, self.stack.pathOnTop(), enablingMap, False,True)

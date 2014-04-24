@@ -230,13 +230,21 @@ class injectTest(unittest.TestCase):
     def test_insertDataToPreProcess(self):
         #FAIL
             #empty stack
+        del self.e.stack[:]
+        self.assertRaises(executionException, self.e.insertDataToPreProcess, "plop")
 
         #SUCCESS
             #insert with preprocess at top
+        self.e.stack.append( (["a"], [0,2], PREPROCESS_INSTRUCTION, None, ) )
+        self.e.insertDataToPreProcess("plip")
+        
             #insert with anything else at top except preprocess
                 #onlyForTheLinkedSubCmd = True
+        self.e.stack.append( (["a"], [0,2], POSTPROCESS_INSTRUCTION, None, ) )
+        self.e.insertDataToPreProcess("plip", True)
+        
                 #onlyForTheLinkedSubCmd = False
-        pass
+        self.e.insertDataToPreProcess("plip", False)
         
     #TODO insertDataToProcess(self, data)
     def test_insertDataToProcess(self):
