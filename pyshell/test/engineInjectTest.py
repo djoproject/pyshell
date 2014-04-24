@@ -285,17 +285,27 @@ class injectTest(unittest.TestCase):
         self.assertEqual(self.e.stack[2][3], None)
 
         
-    #TODO insertDataToNextSubCommandPreProcess(self,data)
+    #insertDataToNextSubCommandPreProcess(self,data)
     def test_insertDataToNextSubCommandPreProcess(self):
         #FAIL
             #empty stack
         del self.e.stack[:]
         self.assertRaises(executionException, self.e.insertDataToNextSubCommandPreProcess, "toto")
+
             #last sub cmd of a cmd on top
+        self.e.stack.append( (["a"], [0,0,0,3], POSTPROCESS_INSTRUCTION, None, ) )
+        self.assertRaises(executionException, self.e.insertDataToNextSubCommandPreProcess, "toto")
 
         #SUCCESS
             #success insert
-        pass
+        self.e.stack.append( (["a"], [0,0,0,2], POSTPROCESS_INSTRUCTION, None, ) )
+        self.e.insertDataToNextSubCommandPreProcess("toto")
+
+        self.assertEqual(self.e.stack[0][0], ["toto"])
+        self.assertEqual(self.e.stack[0][1], [0,0,0,3])
+        self.assertEqual(self.e.stack[0][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[0][3], [False, False, False, True])
+        
         
 if __name__ == '__main__':
     unittest.main()
