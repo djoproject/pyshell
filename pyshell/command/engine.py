@@ -159,10 +159,10 @@ class engineV3(object):
             obj[0].append(data)        
         
     def injectDataPro(self, data, cmdPath, processType, onlyAppend = False):
-        self._injectDataProOrPos(self, data, cmdPath, PROCESS_INSTRUCTION, onlyAppend)
+        self._injectDataProOrPos(data, cmdPath, PROCESS_INSTRUCTION, onlyAppend)
         
     def injectDataPost(self, data, cmdPath, processType, onlyAppend = False):
-        self._injectDataProOrPos(self, data, cmdPath, POSTPROCESS_INSTRUCTION, onlyAppend) 
+        self._injectDataProOrPos(data, cmdPath, POSTPROCESS_INSTRUCTION, onlyAppend) 
     
     def injectDataPre(self, data, cmdPath, enablingMap = None, onlyAppend = False, ifNoMatchExecuteSoonerAsPossible = True):
         itemCandidateList = self._findIndexToInject(cmdPath, PREPROCESS_INSTRUCTION)
@@ -221,11 +221,11 @@ class engineV3(object):
             raise executionException("(engine) insertDataToProcess, only a process in postprocess state can execute this function")
             
         #the current process must be on a root path
-        if not self.isCurrentRootCommand():
+        if not self.isProcessCommand():
             raise executionException("(engine) insertDataToProcess, only the root command can insert data to the process")
 
         #inject data
-        self.injectDataPro(data, self.stack.pathOnTop())
+        self.injectDataPro(data,self.stack.pathOnTop(), self.stack.pathOnTop())
 
     def insertDataToNextSubCommandPreProcess(self,data):
         self.stack.raiseIfEmpty("insertDataToNextSubCommandPreProcess")
@@ -525,6 +525,10 @@ class engineV3(object):
     def isCurrentRootCommand(self):
         self.stack.raiseIfEmpty("isCurrentRootCommand")
         return self.stack.cmdIndexOnTop() == 0
+
+    def isProcessCommand(self):
+        self.stack.raiseIfEmpty("isProcessCommand")
+        return self.stack.cmdIndexOnTop() == len(self.cmdList)-1
     
 ### SPLIT/MERGE meth ###
     

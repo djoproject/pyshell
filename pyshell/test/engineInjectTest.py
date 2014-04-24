@@ -226,7 +226,7 @@ class injectTest(unittest.TestCase):
         self.assertEqual(self.e.stack[1][2], PREPROCESS_INSTRUCTION)
         self.assertEqual(self.e.stack[1][3], [True, False,False,False])
     
-    #TODO insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True)
+    #insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True)
     def test_insertDataToPreProcess(self):
         #FAIL
             #empty stack
@@ -237,25 +237,53 @@ class injectTest(unittest.TestCase):
             #insert with preprocess at top
         self.e.stack.append( (["a"], [0,2], PREPROCESS_INSTRUCTION, None, ) )
         self.e.insertDataToPreProcess("plip")
+        self.assertEqual(self.e.stack[0][0], ["a","plip"])
+        self.assertEqual(self.e.stack[0][1], [0,2])
+        self.assertEqual(self.e.stack[0][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[0][3], None)
         
             #insert with anything else at top except preprocess
                 #onlyForTheLinkedSubCmd = True
         self.e.stack.append( (["a"], [0,2], POSTPROCESS_INSTRUCTION, None, ) )
-        self.e.insertDataToPreProcess("plip", True)
+        self.e.insertDataToPreProcess("plop", True)
+
+        self.assertEqual(self.e.stack[1][0], ["plop"])
+        self.assertEqual(self.e.stack[1][1], [0,2])
+        self.assertEqual(self.e.stack[1][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[1][3], [False, False, True, False])
         
                 #onlyForTheLinkedSubCmd = False
-        self.e.insertDataToPreProcess("plip", False)
+        self.e.insertDataToPreProcess("plap", False)
+        self.assertEqual(self.e.stack[0][0], ["a","plip","plap"])
+        self.assertEqual(self.e.stack[0][1], [0,2])
+        self.assertEqual(self.e.stack[0][2], PREPROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[0][3], None)
         
-    #TODO insertDataToProcess(self, data)
+    #insertDataToProcess(self, data)
     def test_insertDataToProcess(self):
         #FAIL
             #empty stack
+        del self.e.stack[:]
+        self.assertRaises(executionException, self.e.insertDataToProcess, "toto")
+        
             #not postprocess on top
+        self.e.stack.append( (["a"], [0,2,0,0], PROCESS_INSTRUCTION, None, ) )
+        self.assertRaises(executionException, self.e.insertDataToProcess, "toto")
+
             #not root path on top
+        self.e.stack.append( (["a"], [0,1], PREPROCESS_INSTRUCTION, None, ) )
+        self.assertRaises(executionException, self.e.insertDataToProcess, "toto")
 
         #SUCCESS
             #success insert
-        pass
+        self.e.stack.append( (["a"], [0,0,0,0], POSTPROCESS_INSTRUCTION, None, ) )
+        self.e.insertDataToProcess("toto")
+
+        self.assertEqual(self.e.stack[2][0], ["toto"])
+        self.assertEqual(self.e.stack[2][1], [0,0,0,0])
+        self.assertEqual(self.e.stack[2][2], PROCESS_INSTRUCTION)
+        self.assertEqual(self.e.stack[2][3], None)
+
         
     #TODO insertDataToNextSubCommandPreProcess(self,data)
     def test_insertDataToNextSubCommandPreProcess(self):
