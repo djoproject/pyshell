@@ -470,7 +470,6 @@ class EngineCoreTest(unittest.TestCase):
         #engine.skipNextCommandOnTheCurrentData() #the next command will raise an exception otherwise
         #engine.setCmdRange(1,2)
         self.engine.disableSubCommandInCurrentDataBunchMap(0)
-        #self.engine.stack[-1][1][-1] += 1 #TODO bof bof, essayer d'eviter de devoir faire ce hack
         self.engine.execute()
         
         self.assertIs(self.preCount[0],0)
