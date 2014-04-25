@@ -11,22 +11,28 @@ from utils import *
 
 #TODO
     #voir les notes dans le fichier TODO
-    #eviter de redefinir directement des items sur la stack ou dans les command
-        #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
-        #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
+    
     #check map and path arguments if not done
         #build a method to check path
+    
     #be carefull for an insertion on the stack(with engine for example) after an inject
         #if some data are insert later than the next item to stack in the engine
+    
     #update the index in disable method for every needed item on the stack
+    
     #compute the first index in the inject method, if a map is given
         #same for split/merge
-    #behaviour of such function inside or outside the engine execution
-    #what occur if we try to create new item on stack on a path to a completly disabled cmd
-        #e.g. a | b | c, b is compltetly disabled, what to do with the result of a ?
-    #every meth will resist if there are several times the same cmd in the list ? a|a|a 
-    #the previous node of the same process categorie is the prefix of the next
-        #always the case ?
+    
+    #and if a process want to forward None to an other process ?
+		#None is actually remove from data given in args to process
+		#must use a special token in place of None
+        
+    #TO CHECK ON EACH COMMAND (still need to check from split/merge to the biginning)
+        #every meth will resist if there are several times the same cmd in the list ? a|a|a 
+        #behaviour of such function inside or outside the engine execution
+        #eviter de redefinir directement des items sur la stack ou dans les command
+            #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
+            #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -708,9 +714,7 @@ class engineV3(object):
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
         del self.stack.dataOnTop()[:] #remove everything, the engine is able to manage an empty data bunch
-        
-        #TODO what about an execution outside the execution engine
-    
+            
     def appendData(self, newdata):
         self.stack.raiseIfEmpty("addData")
         self.stack.dataOnTop().append(newdata)
@@ -740,6 +744,11 @@ class engineV3(object):
             #TODO the behaviour will be different if this is executed inside an execution or outside
                 #in inside, the engine will compute the new index after the execution of the current process
                 #in the outside of an execution, the engine will only compute the index at the top
+                
+            #TODO another problem will occur if this process produce result
+                #a new item must be build on the stack with the current path
+                #and this path will have -1 in it
+                
             self.stack[-1][1][-1] = -1
             
     def setData(self, newdata, offset=0):
@@ -780,8 +789,10 @@ class engineV3(object):
 ### ENGINE core meth ###
 
     def execute(self):
+        self.raiseIfInMethodExecution("engine")
+        
         #compute the first index to execute on the first cmd to execute (this index will be executed immediately)
-        if self.stack.size() != 0: 
+        if not self.stack.isEmpty(): 
             cmd = self.stack.getCmdOnTop(self.cmdList)
             nextData, newIndex = self._computeTheNextChildToExecute(cmd, len(cmd)-1, self.stack.enablingMapOnTop())
 
@@ -792,10 +803,15 @@ class engineV3(object):
             #set newIndex
             path = self.stack.pathOnTop()
             path[-1] = newIndex
-            
 
         #consume stack
         while self.stack.size() != 0: #while there is some item into the stack
+        
+            #if empty data, nothing to do
+            if len(self.stack.dataOnTop()) == 0:
+                self.stack.pop()
+                continue
+        
             ### EXTRACT DATA FROM STACK ###
             top                      = self.stack.top()
             cmd                      = self.stack.getCmdOnTop(self.cmdList)
@@ -849,8 +865,12 @@ class engineV3(object):
                 reason,abnormal = self.selfkillreason
                 raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
             
-            if subcmd.preCount > DEFAULT_EXECUTION_LIMIT or subcmd.proCount > DEFAULT_EXECUTION_LIMIT or subcmd.postCount > DEFAULT_EXECUTION_LIMIT :
-                raise executionException("(engine) execute, this subcommand reach the execution limit count")
+            if subcmd.preCount > DEFAULT_EXECUTION_LIMIT:
+                raise executionException("(engine) execute, this subcommand reach the execution limit count for preprocess")
+            elif subcmd.proCount > DEFAULT_EXECUTION_LIMIT:
+                raise executionException("(engine) execute, this subcommand reach the execution limit count for process")
+            elif subcmd.postCount > DEFAULT_EXECUTION_LIMIT:
+                raise executionException("(engine) execute, this subcommand reach the execution limit count for postprocess")
             
             ### MANAGE STACK, need to repush the current item ? ###
             self.stack.pop()
@@ -873,10 +893,7 @@ class engineV3(object):
                 self.stack.push(*to_stack)
     
     def _computeTheNextChildToExecute(self,cmd, currentSubCmdIndex, enablingMap):
-        
-        #TODO currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1) #for the case where currentSubCmdIndex is bigger than the cmd list
-            #just a way to manage user error
-        
+        currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1)
         startingIndex = currentSubCmdIndex
         executeOnNextData = False
         while True:
@@ -939,7 +956,16 @@ class engineV3(object):
             raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
         else:
             self.selfkillreason = (reason,abnormal,)
+    
+    def raiseIfInMethodExecution(self, methName = None):
+        if methName == None:
+            methName = ""
+        else:
+            methName += ", "
         
+        if self._isInProcess:
+            raise executionException("(engine) "+methName+"not allowed to execute this method inside a process")
+    
 ### DEBUG meth ###
     
     def getExecutionSnapshot(self):
@@ -956,15 +982,18 @@ class engineV3(object):
             top = self.stack.top()
 
             info["cmdIndex"]    = self.stack.cmdIndexOnTop()               #the index of the current command in execution
-            info["cmd"]         = self.stack.getCmdOnTop(self.cmdList)                 #the object instance of the current command in execution
-            info["subCmdIndex"] = top[1][-1]                               #the index of the current sub command in execution
+            info["cmd"]         = self.stack.getCmdOnTop(self.cmdList)     #the object instance of the current command in execution
+            info["subCmdIndex"] = self.stack.subCmdIndexOnTop()            #the index of the current sub command in execution
             info["subCmd"]      = self.cmdList[len(top[1]) -1][top[1][-1]] #the object instance of the current sub command in execution
-            info["data"]        = top[0][0]                                #the data of the current execution
+            info["data"]        = self.stack.dataOnTop()                   #the data of the current execution
             info["processType"] = self.stack.typeOnTop()                   #the process type of the current execution
     
         return info
 
     def printStack(self):
+        if self.stack.size() == 0:
+            print "empty stack"
+        
         for i in range(self.stack.size()-1, -1, -1):
             cmdEnabled = self.stack[i][3]
             if cmdEnabled == None:
