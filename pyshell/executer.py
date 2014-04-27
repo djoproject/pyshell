@@ -15,16 +15,17 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-from exception import argException,argExecutionException,argPostExecutionException
-from tries.exception import triesException #TODO
-from tries.multiLevelTries import multiLevelTries #TODO
-from command import UniCommand,MultiCommand, Command
-
+#system library
 import readline
 import os
 import sys
-import traceback
+#import traceback
+
+#custom library
+from tries import multiLevelTries
+from tries.exception import triesException
+from command.exception import *
+from arg.exception import *
 
 ##history file
 #load history file
@@ -50,6 +51,7 @@ class CommandExecuter():
         self.environment["debug"]      = False
         
         #def __init__(self,name,helpMessage,envi,preProcess=None,process=None,argChecker=None,postProcess=None,showInHelp=True):
+   
     def addCommand(self,CommandStrings,preProcess=None,process=None,postProcess=None,showInHelp=True):
         #build the command name
         name = " ".join(CommandStrings)
@@ -144,6 +146,7 @@ class CommandExecuter():
                 finalCmd.append(cmd)
             
             #is there a non empty token list ?
+            print finalCmd
             if len(finalCmd) > 0:
                 #search the command
                 try:
@@ -161,7 +164,7 @@ class CommandExecuter():
         
         #TODO, will probably change, check the method call
         return commandEngine(rawCommandList)
-        
+    
     def mainLoop(self):
         while True:
             #enable autocompletion
@@ -175,7 +178,7 @@ class CommandExecuter():
             
             #read prompt
             try:
-                cmd = raw_input(environment["prompt"])
+                cmd = raw_input(self.environment["prompt"])
             except SyntaxError:
                 print "   syntax error"
                 continue
@@ -232,6 +235,7 @@ class CommandExecuter():
             return key[index]
         except IndexError:
             return None
+
     def executeFile(self,filename):
         f = open(filename, "r")
         exitOnEnd = True
@@ -243,4 +247,8 @@ class CommandExecuter():
                 break
                 
         return exitOnEnd
+
+if __name__ == "__main__":
+    executer = CommandExecuter()
+    executer.mainLoop()
 
