@@ -19,6 +19,7 @@ from utils import *
         #if some data are insert later than the next item to stack in the engine
     
     #update the index in disable method for every needed item on the stack
+        #pour l'instant on raise une exception mais on ne mets pas à jour l'index
     
     #compute the first index in the inject method, if a map is given
         #same for split/merge
@@ -26,10 +27,17 @@ from utils import *
     #and if a process want to forward None to an other process ?
 		#None is actually remove from data given in args to process
 		#must use a special token in place of None
+		
+	#une commande ne peut pas être utilisée deux fois dans le même appel
+	#car elle ne gère qu'une seule fois des args
+	    #il faudrait que la commande soit capable de gèrer plusieurs fois des args
+	    #solution: garder les args dans un tableau dans l'engine
         
-    #TO CHECK ON EACH COMMAND (still need to check from split/merge to the biginning)
-        #every meth will resist if there are several times the same cmd in the list ? a|a|a 
-        #behaviour of such function inside or outside the engine execution
+    #TO CHECK ON EACH COMMAND (still need to check from split/merge to the biginning) # make one check at once, not the three togeter...
+        #every meth will resist if there are several times the same cmd in the list ? a|a|a
+         
+        #behaviour of engine meth inside or outside the engine execution
+        
         #eviter de redefinir directement des items sur la stack ou dans les command
             #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
             #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...

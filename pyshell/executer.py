@@ -149,10 +149,18 @@ class CommandExecuter():
             
             #is there a non empty token list ?
             if len(finalCmd) > 0:
-                #TODO search the command with advanced seach
-                
-                #TODO manage exception
-                
+                #search the command with advanced seach
+                result = None
+                try:
+                    result = self.levelTries.advancedSearch(finalCmd)
+                except triesException as te:
+                    print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
+                    return False
+                    
+                if result == None or result.getTokenFoundCount() == 0:
+                    print "unknown command"
+                    return False
+                    
                 #TODO set the args to the function
                 
                 #TODO append in rawCommandList
