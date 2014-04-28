@@ -1,4 +1,5 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #Copyright (C) 2012  Jonathan Delvaux <jonathan.delvaux@uclouvain.be>
 
@@ -50,9 +51,10 @@ class CommandExecuter():
         self.environment["levelTries"] = self.levelTries
         self.environment["debug"]      = False
         
-        #def __init__(self,name,helpMessage,envi,preProcess=None,process=None,argChecker=None,postProcess=None,showInHelp=True):
+        #TODO try to load standard shell function
    
-    def addCommand(self,CommandStrings,preProcess=None,process=None,postProcess=None,showInHelp=True):
+   #TODO ces methodes doivent se retrouver dans le module standardShell (il faut le créer)
+    """def addCommand(self,CommandStrings,preProcess=None,process=None,postProcess=None,showInHelp=True):
         #build the command name
         name = " ".join(CommandStrings)
         
@@ -75,9 +77,9 @@ class CommandExecuter():
             return c
         except triesException as e:
             print self.printOnShell(str(e))
-            return None
+            return None"""
             
-    def addMultiCommand(self,CommandStrings,helpMessage,showInHelp=True):
+    """def addMultiCommand(self,CommandStrings,helpMessage,showInHelp=True):
         #build the command name
         name = " ".join(CommandStrings)
         
@@ -90,9 +92,9 @@ class CommandExecuter():
             return c
         except triesException as e:
             print self.printOnShell(str(e))
-            return None
+            return None"""
             
-    def addAlias(self,CommandStrings,AliasCommandStrings):
+    """def addAlias(self,CommandStrings,AliasCommandStrings):
         #pas aussi simple
             #on doit pouvoir gerer des alias avec des arguments fixe
         
@@ -108,7 +110,7 @@ class CommandExecuter():
         
         #TODO insert in tree
         
-        pass #TODO
+        pass #TODO"""
     
     #
     #
@@ -146,24 +148,39 @@ class CommandExecuter():
                 finalCmd.append(cmd)
             
             #is there a non empty token list ?
-            print finalCmd
             if len(finalCmd) > 0:
-                #search the command
-                try:
+                #TODO search the command with advanced seach
+                
+                #TODO manage exception
+                
+                #TODO set the args to the function
+                
+                #TODO append in rawCommandList
+                
+                pass
+                
+                """try:
                     #TODO search will fail, need to make an advanced mltries search
                 
                     triesNode,args = self.levelTries.search(finalCmd) #args est une liste
                     rawCommandList.append((triesNode.value,args))
                 except triesException as e:
                     self.printOnShell(str(e))
-                    return True
+                    return True"""
         
         #if the command list is empty, nothing to execute, stop here
         if len(rawCommandList) == 0:
             return False
         
-        #TODO, will probably change, check the method call
-        return commandEngine(rawCommandList)
+        #TODO execute command engine
+        
+        #TODO create engine object
+        
+        #TODO execute engine object
+        
+        #TODO manage the exception
+        
+        pass
     
     def mainLoop(self):
         while True:
