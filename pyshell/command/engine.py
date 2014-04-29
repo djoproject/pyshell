@@ -13,12 +13,12 @@ from utils import *
     #voir les notes dans le fichier TODO
 
 
-    #and if a process want to forward None to an other process ?
+    #A) and if a process want to forward None to an other process ?
         #None is actually remove from data given in args to process
         #must use a special token in place of None
         
         
-    #une commande ne peut pas être utilisée deux fois dans le même appel
+    #B) une commande ne peut pas être utilisée deux fois dans le même appel
     #car elle ne gère qu'une seule fois des args
         #il faudrait que la commande soit capable de gèrer plusieurs fois des args
         #solution: garder les args dans un tableau dans l'engine
@@ -29,30 +29,19 @@ from utils import *
             #dans la methode _executeMethod
    
    
-    #TO CHECK IN INJECT METH ONLY
+    #C) TO CHECK IN INJECT METH ONLY
         #be carefull for an insertion on the stack(with engine for example) after an inject
             #if some data are insert later than the next item to stack in the engine
+
+        #solution, use an index to insert, by default its value is -1
+            #change it when needed then restore it to -1 after an iteration of engine
+
+        #no need to update this index if the method is executed outside of the engine
+
+        #UPDATE TODO in methods:
+            #_injectDataProOrPos
+            #injectDataPre
        
-       
-    #TO CHECK ON EACH METH (still need to check from split/merge to the biginning) # make one check at once, not the three togeter...
-        #check map and path arguments if not done
-            #build a method to check path
-        
-        #every meth will resist if there are several times the same cmd in the list ? a|a|a
-         
-        #behaviour of engine meth inside or outside the engine execution
-			#use raiseIfInMethodExecution
-        
-        #eviter de redefinir directement des items sur la stack ou dans les command
-            #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
-            #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
-            
-        #if a map is given or set
-            #compute the first index
-                #inject method/split/merge/...
-                #disabling method
-                    #pour l'instant on raise une exception mais on ne mets pas à jour l'index
-        
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -111,23 +100,17 @@ class engineV3(object):
         
         #find the place to start the lookup
         if processType != POSTPROCESS_INSTRUCTION:
-            for i in range(0, stackLength):
-                index = stackLength - i - 1
-            
-                if self.stack[index][2] == POSTPROCESS_INSTRUCTION or (self.stack[index][2] == PROCESS_INSTRUCTION and processType == PREPROCESS_INSTRUCTION):
+            for i in range(0, stackLength):            
+                if self.stack.typeOnDepth(i) == POSTPROCESS_INSTRUCTION or (self.stack.typeOnDepth(i) == PROCESS_INSTRUCTION and processType == PREPROCESS_INSTRUCTION):
                     continue
                     
-                return index
-            return -1
-        return stackLength - 1
+                return stackLength - i - 1 #we reach the bottomest item of the wanted type
+            return -1 #we don't find this type on the stack
+        return stackLength - 1 #for POSTPROCESS_INSTRUCTION only, start on the top
 
     def _findIndexToInject(self, cmdPath, processType):
         #check command path
-        isAValidIndex(self.cmdList, len(cmdPath)-1,"findIndexToInject", "command list")
-
-        #check subindex
-        for i in range(0,len(cmdPath)):
-            isAValidIndex(self.cmdList[i], cmdPath[i],"findIndexToInject", "sub command list")
+        raiseIfInvalidPath(cmdPath, self.cmdList, "_findIndexToInject")
 
         #if look up for a PROCESS, the path must always be a root path
         if processType == PROCESS_INSTRUCTION and len(cmdPath) != len(self.cmdList):
@@ -194,15 +177,18 @@ class engineV3(object):
         itemCandidateList = self._findIndexToInject(cmdPath, PREPROCESS_INSTRUCTION)
         
         #check map (is a list, valid length, only boolean value)
-        if not isValidMap(enablingMap, len(self.cmdList[len(cmdPath)-1])):
-            raise executionException("(engine) _injectDataPreToExecute, invalid map")
+        raisIfInvalidMap(enablingMap, len(self.cmdList[len(cmdPath)-1]), "injectDataPre")
         
         #no match
         if len(itemCandidateList) == 1 and itemCandidateList[0][0] == None:
             if onlyAppend:
                 raise executionException("(engine) injectDataPre, no corresponding item on the stack")
-                
-            self.stack.insert(itemCandidateList[0][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+            
+            #need to compute first index
+            newCmdPath = cmdPath[:]
+            newCmdPath[-1] = getFirstEnabledIndexInEnablingMap(enablingMap, newCmdPath[-1])#there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
+
+            self.stack.insert(itemCandidateList[0][1], ([data], newCmdPath, PREPROCESS_INSTRUCTION, enablingMap, ))
         else:
             #try to find an equal map
             for item, index in itemCandidateList:
@@ -215,12 +201,16 @@ class engineV3(object):
                 
             #no equal map found
             if onlyAppend:
-                raise executionException("(engine) _injectDataPreToExecute, no corresponding item found on the stack")
-                
+                raise executionException("(engine) injectDataPre, no corresponding item found on the stack")
+            
+            #need to compute first index
+            newCmdPath = cmdPath[:]
+            newCmdPath[-1] = getFirstEnabledIndexInEnablingMap(enablingMap, newCmdPath[-1])#there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
+
             if ifNoMatchExecuteSoonerAsPossible:
-                self.stack.insert(itemCandidateList[0][1]+1, ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+                self.stack.insert(itemCandidateList[0][1]+1, ([data], newCmdPath, PREPROCESS_INSTRUCTION, enablingMap, ))
             else:
-                self.stack.insert(itemCandidateList[-1][1], ([data], cmdPath[:], PREPROCESS_INSTRUCTION, enablingMap, ))
+                self.stack.insert(itemCandidateList[-1][1], ([data], newCmdPath, PREPROCESS_INSTRUCTION, enablingMap, ))
     
     def insertDataToPreProcess(self, data, onlyForTheLinkedSubCmd = True):
         self.stack.raiseIfEmpty("insertDataToPreProcess")
@@ -315,6 +305,8 @@ class engineV3(object):
         return True
 
     def _skipOnCmd(self,cmdID, subCmdID, skipCount = 1):
+        #TODO the skip will occur on the several instance of the same cmd in the cmdList
+
         if skipCount < 1:
             raise executionException("(engine) _skipOnCmd, skip count must be equal or bigger than 1")
         
@@ -342,6 +334,9 @@ class engineV3(object):
             
             if self._willThisDataBunchBeCompletlyDisabled(i, subCmdID, skipCount):
                 raise executionException("(engine) skipNextSubCommandForTheEntireExecution, the skip range will completly disable a databunch on the stack")
+
+            #TODO recompute the index if needed in the dataBunch 
+                #maybe remove them from stack if no more data...
 
         #no prblm found, the disabling can occur
         for i in xrange(subCmdID, min(len(self.cmdList[cmdID]),  subCmdID+skipCount)):
@@ -388,6 +383,8 @@ class engineV3(object):
             enablingMap[i] = False
 
         self.stack.setEnableMapOnIndex(dataBunchIndex,enablingMap)
+
+        #TODO maybe need to recompute the index of the current cmd
         
     def _enableOnDataBunch(self, dataBunchIndex, subCmdID, enableCount = 1):
         if enableCount < 1:
@@ -425,6 +422,10 @@ class engineV3(object):
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) skipNextSubCommandOnTheCurrentData, can only skip method on PREPROCESS item")
         
+        #TODO could be a prblm if call in the engine
+            #the next preprocess or process piped will have the skipcount in path...
+            #maybe different behaviour in an execution or call outside...
+
         self.stack[-1][1][-1] += skipCount
 
     def skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
@@ -435,6 +436,7 @@ class engineV3(object):
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
         
+        #TODO is this condition really needed ?
         #can only skip the next command if the state is pre_process
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
             raise executionException("(engine) skipNextSubCommandForTheEntireExecution, can only skip method on PREPROCESS item")
@@ -466,6 +468,9 @@ class engineV3(object):
         self._skipOnCmd(indexCmd, indexSubCmd,1)
     
     def flushArgs(self, index=None): #None index means current command
+        #TODO prblm if the same command is several times in the cmd list
+            #the flush will occur for all the instance of the cmd
+
         if index == None:
             self.stack.raiseIfEmpty("flushArgs")
             cmdID = self.stack.cmdIndexOnTop()
@@ -538,6 +543,16 @@ class engineV3(object):
             if not convertProcessToPreProcess: 
                 raise executionException("(engine) addCommand, some process are waiting on the stack, can not add a command")
         
+            #TODO prblm
+                #top PROCESS
+                #more than 1 data
+                #convertProcessToPreProcess = True
+
+                #Result
+                    #a POST process will be push on the stack with the updated PREPROCESS path and not with the old PROCESS path...
+
+                #this prblm only exist inside the PROCESS execution
+
             #convert the existing process on the stack into preprocess of the new command
             new_path = self.stack.pathOnIndex(i)[:]
             new_path.append(0) #no need to compute the index, the cmd will be reset
@@ -549,15 +564,41 @@ class engineV3(object):
         self.cmdList.append(cmd)
         
     def isCurrentRootCommand(self):
+        self.raiseIfInMethodExecution("isCurrentRootCommand")
         self.stack.raiseIfEmpty("isCurrentRootCommand")
         return self.stack.cmdIndexOnTop() == 0
 
     def isProcessCommand(self):
+        self.raiseIfInMethodExecution("isProcessCommand")
         self.stack.raiseIfEmpty("isProcessCommand")
         return self.stack.cmdIndexOnTop() == len(self.cmdList)-1
     
 ### SPLIT/MERGE meth ###
-    
+
+    #TODO check from here
+    #TO CHECK ON EACH METH (still need to check from split/merge to the biginning) # make one check at once, not the three togeter...
+        #A) check map and path arguments if not done
+            #raisIfInvalidMap(enablingMap, len(self.cmdList[len(cmdPath)-1]), "injectDataPre")
+            #raiseIfInvalidPath(cmdPath, self.cmdList, "_findIndexToInject")
+
+        #B) every meth will resist if there are several times the same cmd in the list ? a|a|a
+            #e.g. disable a cmd will disable it everywhere
+         
+        #C) behaviour of engine meth inside or outside the engine execution
+            #use raiseIfInMethodExecution
+            #case:
+                #empty stack ?
+        
+        #D) eviter de redefinir directement des items sur la stack ou dans les command
+            #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
+            #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
+            
+        #E) if a enabling map is given or set
+            #compute the first index
+                #inject method/split/merge/...
+                #disabling method
+                    #pour l'instant on raise une exception mais on ne mets pas à jour l'index
+
     def mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
         self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
         

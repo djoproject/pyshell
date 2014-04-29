@@ -65,8 +65,51 @@ def isValidMap(emap, expectedLength):
     if len(emap) != expectedLength:
         return False
 
+    falseCount = 0
     for b in emap:
         if type(b) != bool:
             return False
 
+        if not b:
+            falseCount += 1
+
+    if falseCount == len(emap):
+        return False
+
     return True
+
+def raisIfInvalidMap(emap, expectedLength, cmdName = None, context="engine", ex = executionException):
+    if not isValidMap(emap, expectedLength):
+        if cmdName != None:
+            cmdName += ", "
+        else:
+            cmdName = ""
+        
+        raise ex("("+context+") "+cmdName+"list index out of range on enabling map")
+
+def raiseIfInvalidPath(cmdPath, cmdList, methName):
+    #check command path
+    isAValidIndex(cmdList, len(cmdPath)-1,methName, "command list")
+
+    #check subindex
+    for i in xrange(0,len(cmdPath)):
+        isAValidIndex(cmdList[i], cmdPath[i],methName, "sub command list")
+
+def getFirstEnabledIndexInEnablingMap(enablingMap, starting=0, cmdName = None, context="engine", ex = executionException):
+    i = 0
+    if enablingMap != None:
+        #there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
+        for i in xrange(starting,len(enablingMap)):
+            if enablingMap[i]:
+                return i
+
+        if cmdName != None:
+            cmdName += ", "
+        else:
+            cmdName = ""
+
+        raise ex("("+context+") "+cmdName+" no enabled index on this enabling map from "+str(starting)+" to the end")
+
+    return i
+
+
