@@ -575,6 +575,27 @@ class engineV3(object):
     
 ### SPLIT/MERGE meth ###
 
+    def mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
+        self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
+        isAValidIndex(self.stack, toppestItemToMerge,"mergeDataAndSetEnablingMap", "stack")
+        raisIfInvalidMap(newMap, self.stack.subCmdLengthOnIndex(toppestItemToMerge,self.cmdList), "mergeDataAndSetEnablingMap")
+        
+        #current index must be enabled in map
+        if newMap != None:
+            subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
+            if not newMap[subindex]:
+                raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the new map")
+        
+        #convert toppestItemToMerge into positive value
+        if toppestItemToMerge < 0:
+            toppestItemToMerge = len(self.stack) + toppestItemToMerge
+        
+        #merge items on stack
+        self.mergeData(toppestItemToMerge, count, None)
+        
+        #set the new map
+        self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
+
     #TODO check from here
     #TO CHECK ON EACH METH (still need to check from split/merge to the biginning) # make one check at once, not the three togeter...
         #A) check map and path arguments if not done
@@ -598,27 +619,6 @@ class engineV3(object):
                 #inject method/split/merge/...
                 #disabling method
                     #pour l'instant on raise une exception mais on ne mets pas à jour l'index
-
-    def mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
-        self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
-        
-        #check new map
-        if newMap != None:
-            if len(newMap) != self.stack.subCmdLengthOnIndex(toppestItemToMerge,self.cmdList):
-                raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map size, must be equal to the sub command list size")
-        
-            isAValidIndex(self.stack, toppestItemToMerge,"mergeDataAndSetEnablingMap", "stack")
-            subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
-            if not newMap[subindex]:
-                raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the new map")
-
-        
-
-        if toppestItemToMerge < 0:
-            toppestItemToMerge = len(self.stack) + toppestItemToMerge
-        
-        self.mergeData(toppestItemToMerge, count, None)
-        self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
 
     def mergeData(self,toppestItemToMerge = -1, count = 2, indexOfTheMapToKeep = None): 
         #need at least two item to merge
@@ -741,7 +741,7 @@ class engineV3(object):
         if len(topdata) < 2 or splitAtDataIndex == 0:
             return False
         
-        #recompute itemToSplit if needed FIXME
+        #recompute itemToSplit if needed
         if itemToSplit < 0:
             itemToSplit = len(self.stack) + itemToSplit
         
