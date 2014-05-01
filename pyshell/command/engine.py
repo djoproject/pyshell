@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-### STACK PROPERTIES ###
-    #TODO
-
 from command import MultiOutput, MultiCommand, Command
 from exception import *
 from stackEngine import engineStack
@@ -17,6 +14,8 @@ from utils import *
         #None is actually remove from data given in args to process
         #must use a special token in place of None
         
+        #UPDATE TODO
+            #_executeMethod
         
     #B) une commande ne peut pas être utilisée deux fois dans le même appel
     #car elle ne gère qu'une seule fois des args
@@ -27,6 +26,7 @@ from utils import *
             #dans le constructeur de engine
             #dans la classe command
             #dans la methode _executeMethod
+            #dans flushargs
    
    
     #C) TO CHECK IN INJECT METH ONLY
@@ -41,7 +41,21 @@ from utils import *
         #UPDATE TODO in methods:
             #_injectDataProOrPos
             #injectDataPre
+            #execute
+
+    #D) check in each command after command index recomputation
+        #then juste remove it, now its computed in execute
+        #maybe it is not needed to remove all of them
        
+    #E) trois fois le même problème
+        #condition du problème : 
+            #on est dans l'execution d'un process
+            #une update sur le path a eu lieu dans le process
+                #ajout d'un element
+                #update du dernier index
+            #après le process on copie le path pour un autre PREPROCESS, PROCESS, ou POSTPROCESS
+            #cette modification est propagé dans cette copie, hors ce n'est pas du tout souhaitable
+
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -186,7 +200,7 @@ class engineV3(object):
             
             #need to compute first index
             newCmdPath = cmdPath[:]
-            newCmdPath[-1] = getFirstEnabledIndexInEnablingMap(enablingMap, newCmdPath[-1])#there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
+            newCmdPath[-1] = getFirstEnabledIndexInEnablingMap(enablingMap, self.cmdList[len(cmdPath)-1], newCmdPath[-1], "injectDataPre")#there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
 
             self.stack.insert(itemCandidateList[0][1], ([data], newCmdPath, PREPROCESS_INSTRUCTION, enablingMap, ))
         else:
@@ -205,7 +219,7 @@ class engineV3(object):
             
             #need to compute first index
             newCmdPath = cmdPath[:]
-            newCmdPath[-1] = getFirstEnabledIndexInEnablingMap(enablingMap, newCmdPath[-1])#there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
+            newCmdPath[-1] = getFirstEnabledIndexInEnablingMap(enablingMap, self.cmdList[len(cmdPath)-1], newCmdPath[-1], "injectDataPre")#there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
 
             if ifNoMatchExecuteSoonerAsPossible:
                 self.stack.insert(itemCandidateList[0][1]+1, ([data], newCmdPath, PREPROCESS_INSTRUCTION, enablingMap, ))
@@ -305,8 +319,6 @@ class engineV3(object):
         return True
 
     def _skipOnCmd(self,cmdID, subCmdID, skipCount = 1):
-        #TODO the skip will occur on the several instance of the same cmd in the cmdList
-
         if skipCount < 1:
             raise executionException("(engine) _skipOnCmd, skip count must be equal or bigger than 1")
         
@@ -315,7 +327,7 @@ class engineV3(object):
         
         #is the cmd will be compltly disabled with this skip range?
         if self._willThisCmdBeCompletlyDisabled(cmdID, subCmdID, skipCount):
-            raise executionException("(engine) skipNextSubCommandForTheEntireExecution, the skip range will completly disable the cmd")
+            raise executionException("(engine) _skipOnCmd, the skip range will completly disable the cmd")
 
         #make a list of the path involved in the disabling
         cmdToUpdate = []
@@ -333,10 +345,7 @@ class engineV3(object):
                 continue
             
             if self._willThisDataBunchBeCompletlyDisabled(i, subCmdID, skipCount):
-                raise executionException("(engine) skipNextSubCommandForTheEntireExecution, the skip range will completly disable a databunch on the stack")
-
-            #TODO recompute the index if needed in the dataBunch 
-                #maybe remove them from stack if no more data...
+                raise executionException("(engine) _skipOnCmd, the skip range will completly disable a databunch on the stack")
 
         #no prblm found, the disabling can occur
         for i in xrange(subCmdID, min(len(self.cmdList[cmdID]),  subCmdID+skipCount)):
@@ -383,8 +392,6 @@ class engineV3(object):
             enablingMap[i] = False
 
         self.stack.setEnableMapOnIndex(dataBunchIndex,enablingMap)
-
-        #TODO maybe need to recompute the index of the current cmd
         
     def _enableOnDataBunch(self, dataBunchIndex, subCmdID, enableCount = 1):
         if enableCount < 1:
@@ -425,23 +432,17 @@ class engineV3(object):
         #TODO could be a prblm if call in the engine
             #the next preprocess or process piped will have the skipcount in path...
             #maybe different behaviour in an execution or call outside...
+            #Global problem E)
 
         self.stack[-1][1][-1] += skipCount
 
     def skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireDataBunch")
-        currentCmdID = self.stack.subCmdIndexOnTop()
-        self._skipOnDataBunch(-1,currentCmdID+1,skipCount)
+        self._skipOnDataBunch(-1,self.stack.subCmdIndexOnTop()+1,skipCount)
         
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
-        
-        #TODO is this condition really needed ?
-        #can only skip the next command if the state is pre_process
-        if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION: 
-            raise executionException("(engine) skipNextSubCommandForTheEntireExecution, can only skip method on PREPROCESS item")
-
-        self._skipOnCmd(self,self.stack.cmdIndexOnTop(), self.stack.subCmdIndexOnTop(), skipCount)
+        self._skipOnCmd(self.stack.cmdIndexOnTop(), self.stack.subCmdIndexOnTop(), skipCount)
     
     def disableEnablingMapOnDataBunch(self,index=-1):
         isAValidIndex(self.stack, index,"disableEnablingMapOnDataBunch", "stack")
@@ -468,9 +469,6 @@ class engineV3(object):
         self._skipOnCmd(indexCmd, indexSubCmd,1)
     
     def flushArgs(self, index=None): #None index means current command
-        #TODO prblm if the same command is several times in the cmd list
-            #the flush will occur for all the instance of the cmd
-
         if index == None:
             self.stack.raiseIfEmpty("flushArgs")
             cmdID = self.stack.cmdIndexOnTop()
@@ -517,8 +515,6 @@ class engineV3(object):
             enablingMap.append(True)
     
     def addCommand(self, cmd, convertProcessToPreProcess = False):
-        #TODO what about an execution outside the execution engine
-        
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
             raise executionException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
         
@@ -544,14 +540,17 @@ class engineV3(object):
                 raise executionException("(engine) addCommand, some process are waiting on the stack, can not add a command")
         
             #TODO prblm
-                #top PROCESS
-                #more than 1 data
-                #convertProcessToPreProcess = True
+                #this prblm only occur when this command is called in a PRO process execution
+                #prblm conditon 
+                    #top PROCESS
+                    #more than 1 data
+                    #convertProcessToPreProcess = True
 
                 #Result
                     #a POST process will be push on the stack with the updated PREPROCESS path and not with the old PROCESS path...
 
                 #this prblm only exist inside the PROCESS execution
+                #Global problem E)
 
             #convert the existing process on the stack into preprocess of the new command
             new_path = self.stack.pathOnIndex(i)[:]
@@ -596,30 +595,6 @@ class engineV3(object):
         #set the new map
         self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
 
-    #TODO check from here
-    #TO CHECK ON EACH METH (still need to check from split/merge to the biginning) # make one check at once, not the three togeter...
-        #A) check map and path arguments if not done
-            #raisIfInvalidMap(enablingMap, len(self.cmdList[len(cmdPath)-1]), "injectDataPre")
-            #raiseIfInvalidPath(cmdPath, self.cmdList, "_findIndexToInject")
-
-        #B) every meth will resist if there are several times the same cmd in the list ? a|a|a
-            #e.g. disable a cmd will disable it everywhere
-         
-        #C) behaviour of engine meth inside or outside the engine execution
-            #use raiseIfInMethodExecution
-            #case:
-                #empty stack ?
-        
-        #D) eviter de redefinir directement des items sur la stack ou dans les command
-            #la structure pourrait encore changer, et il faudrait rechanger l'ensemble des lignes de code...
-            #exemple, faire un setMap pour la stack, un setSubCmdState pour les commands, ...
-            
-        #E) if a enabling map is given or set
-            #compute the first index
-                #inject method/split/merge/...
-                #disabling method
-                    #pour l'instant on raise une exception mais on ne mets pas à jour l'index
-
     def mergeData(self,toppestItemToMerge = -1, count = 2, indexOfTheMapToKeep = None): 
         #need at least two item to merge
         if count < 2:
@@ -653,6 +628,7 @@ class engineV3(object):
                     raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the selected map")
           
         else:
+            #does not keep any map
             enablingMap = None
 
         #extract information from first item
@@ -660,15 +636,15 @@ class engineV3(object):
 
         for i in range(1,count):
             currentStackItem = self.stack.itemOnIndex(toppestItemToMerge-i)
+            equals, sameLength, equalsCount, path1IsHigher = equalPath(path, currentStackItem[1])
 
             #the path must be the same for each item to merge
                 #execpt for the last command, the items not at the top of the stack must have 0 or the cmdStartLimit
-            if len(currentStackItem[1]) != len(path):
+            if not sameLength:
                 raise executionException("(engine) mergeDataOnStack, the command path is different for the item at index <"+str(i)+">")
             
-            for j in range(0,len(path)-1): #don't care about the last index on the path
-                if currentStackItem[1][j] != path[j]:
-                    raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at sub index <"+str(j)+">")
+            if not equals:
+                raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at sub index <"+str(equalsCount)+">")                    
             
             #the action must be the same type
             if currentStackItem[2] != PREPROCESS_INSTRUCTION:
@@ -682,35 +658,25 @@ class engineV3(object):
         
         self.stack.insert(toppestItemToMerge - count + 1, (dataBunch, path, PREPROCESS_INSTRUCTION, enablingMap,) )
         return True
-        
+  
     def splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None):
         self.stack.raiseIfEmpty("splitDataAndSetEnablingMap")
-        
-        if map1 != None:
-            if len(map1) != self.stack.subCmdLengthOnIndex(itemToSplit,self.cmdList):
-                raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map1 size, must be equal to the sub command list size")
-            
-            #current index must be enabled in new map1 (really ?)
-            if not map1[self.stack.subCmdIndexOnIndex(itemToSplit)]:
-                raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command can not be disabled in the map1")
+        isAValidIndex(self.stack, itemToSplit,"splitDataAndSetEnablingMap", "stack")
+        expectedMapLength = self.stack.subCmdLengthOnIndex(itemToSplit,self.cmdList)
+        raisIfInvalidMap(map1, expectedMapLength, "splitDataAndSetEnablingMap")
+        raisIfInvalidMap(map2, expectedMapLength, "splitDataAndSetEnablingMap")
 
-        newMap2Index = 0
-        if map2 != None:
-            if len(map2) != self.stack.subCmdLengthOnIndex(itemToSplit,self.cmdList):
-                raise executionException("(engine) mergeDataAndSetEnablingMap, invalid map2 size, must be equal to the sub command list size")
-        
-            #compute the first index of the second data bunch
-            cmd = self.stack.getCmd(itemToSplit, self.cmdList)
-            nextData, newMap2Index = self._computeTheNextChildToExecute(cmd, len(cmd)-1, map2)
-
-            #this cmd has no subcmd enabled, can not push it again on the stack
-            if newMap2Index == -1:
-                raise executionException("(engine) splitData, no enabled subcmd in this dataBunch")
-        
         #get a positive index
         if itemToSplit < 0:
             itemToSplit = len(self.stack) + itemToSplit
 
+        #current index must be enabled in new map1 (really ?)
+        if map1 != None and not map1[self.stack.subCmdIndexOnIndex(itemToSplit)]:
+            raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command can not be disabled in the map1")
+
+        #compute first available in map2
+        newMap2Index = getFirstEnabledIndexInEnablingMap(map2, self.stack.getCmdOnIndex(itemToSplit,self.cmdList), 0, "splitDataAndSetEnablingMap")
+        
         #split
         state = self.splitData(itemToSplit, splitAtDataIndex, True) 
         
@@ -727,13 +693,13 @@ class engineV3(object):
     def splitData(self, itemToSplit = -1,splitAtDataIndex=0, resetEnablingMap = False): #split the data into two separate stack item at the index, but will not change anything in the process order
         #is empty stack ?
         self.stack.raiseIfEmpty("splitData")
-        
+        isAValidIndex(self.stack, itemToSplit,"splitData", "stack")
+
         #is it a pre ? (?)
-        if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
+        if self.stack.typeOnIndex(itemToSplit) != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) splitData, can't split the data of a PRO/POST process because it will not change anything on the execution")
         
         #split point exist ?
-        isAValidIndex(self.stack, itemToSplit,"splitData", "stack")
         topdata = self.stack.dataOnIndex(itemToSplit)
         isAValidIndex(topdata, splitAtDataIndex,"splitData", "data to split")
         
@@ -755,14 +721,7 @@ class engineV3(object):
             path[-1] = 0
         else:
             enableMap = top[3]
-            cmd = self.cmdList[len(top[1])-1]
-            nextData, newIndex = self._computeTheNextChildToExecute(cmd, len(cmd)-1, enableMap)
-
-            #this cmd has no subcmd enabled, can not push it again on the stack
-            if newIndex == -1:
-                raise executionException("(engine) splitData, no enabled subcmd in this dataBunch")
-
-            path[-1] = newIndex
+            path[-1] = getFirstEnabledIndexInEnablingMap(enableMap, self.cmdList[len(top[1])-1], 0, "splitData")
 
         #push the two new items
         self.stack.insert(itemToSplit, (top[0][0:splitAtDataIndex], top[1], top[2], enableMap,) )
@@ -771,7 +730,7 @@ class engineV3(object):
         return True
 
 ### DATA meth (data of the top item on the stack) ###
-    
+
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
         del self.stack.dataOnTop()[:] #remove everything, the engine is able to manage an empty data bunch
@@ -782,6 +741,8 @@ class engineV3(object):
     
     def addData(self, newdata, offset=-1, forbideInsertionAtZero = True):    
         self.stack.raiseIfEmpty("addData")
+        data = self.stack.dataOnTop()
+
         if forbideInsertionAtZero and offset == 0:
             raise executionException("(engine) addData, can't insert a data at offset 0, it could create infinite loop. it is possible to override this check with the boolean forbideInsertionAtZero, set it to False")
     
@@ -790,11 +751,8 @@ class engineV3(object):
     def removeData(self, offset=0, resetSubCmdIndexIfOffsetZero=True):
         self.stack.raiseIfEmpty("removeData")
         data = self.stack.dataOnTop()
-        
-        #valid offset ?
-        if offset >= len(data) or offset < (-1)*len(data): #allow offset with minus
-            raise executionException("(engine) removeData, offset out of bound, the offset <"+str(offset)+"> can be reach because the data length is <"+str(len(data))+">")
-        
+        isAValidIndex(data, offset,"removeData", "data on top")
+
         #remove the data
         del data[offset]
         
@@ -809,25 +767,21 @@ class engineV3(object):
             #TODO another problem will occur if this process produce result
                 #a new item must be build on the stack with the current path
                 #and this path will have -1 in it
-                
+            
+            #Global problem E)
+
             self.stack[-1][1][-1] = -1
             
     def setData(self, newdata, offset=0):
         self.stack.raiseIfEmpty("setData")
         data = self.stack.dataOnTop()
-        
-        if offset >= len(data):
-            raise executionException("(engine) setData, offset out of bound, the offset <"+str(offset)+"> can be reach because the data length is <"+str(len(data))+">")
-        
+        isAValidIndex(data, offset,"removeData", "data on top")
         data[offset] = newdata
 
     def getData(self, offset=0):
         self.stack.raiseIfEmpty("getData")
         data = self.stack.dataOnTop()
-        
-        if offset >= len(data):
-            raise executionException("(engine) getData, offset out of bound, the offset <"+str(offset)+"> can be reach because the data length is <"+str(len(data))+">")
-        
+        isAValidIndex(data, offset,"getData", "data on top")
         return data[offset]
         
     def hasNextData(self):
@@ -850,7 +804,7 @@ class engineV3(object):
 ### ENGINE core meth ###
 
     def execute(self):
-        self.raiseIfInMethodExecution("engine")
+        self.raiseIfInMethodExecution("execute")
         
         #compute the first index to execute on the first cmd to execute (this index will be executed immediately)
         if not self.stack.isEmpty(): 
@@ -867,17 +821,33 @@ class engineV3(object):
 
         #consume stack
         while self.stack.size() != 0: #while there is some item into the stack
-        
-            #if empty data, nothing to do
-            if len(self.stack.dataOnTop()) == 0:
+            cmd         = self.stack.getCmdOnTop(self.cmdList)
+            subCmdIndex = self.stack.subCmdIndexOnTop() % len(cmd)
+            enablingMap = self.stack.enablingMapOnTop()
+            data        = self.stack.dataOnTop()
+
+            #check if current index is enable, if not
+            subCmdIndex %= len(cmd)
+            while len(data) > 0:
+                if (enablingMap != None and not enablingMap[subCmdIndex]) or cmd.isdisabledCmd(subCmdIndex):
+                    subCmdIndex += 1
+
+                    #do we reach the end of the available index for this data ?
+                    if subCmdIndex >= len(cmd):
+                        del data[0]
+                        subCmdIndex = 0
+
+                    continue #need to test the next index
+                break #we have an enabled index with at least one data
+
+            else: # len(self.stack.dataOnTop()) == 0: #if empty data, nothing to do
                 self.stack.pop()
                 continue
-        
+
             ### EXTRACT DATA FROM STACK ###
             top                      = self.stack.top()
-            cmd                      = self.stack.getCmdOnTop(self.cmdList)
-            subcmd, useArgs, enabled = cmd[top[1][-1]]
-            insType = self.stack.typeOnTop()
+            subcmd, useArgs, enabled = cmd[subCmdIndex]
+            insType                  = self.stack.typeOnTop()
             
             ### EXECUTE command ###
             to_stack = None #prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
