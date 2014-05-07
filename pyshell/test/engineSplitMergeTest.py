@@ -264,7 +264,7 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertTrue(engine.splitData(-1, 1, False))
         self.assertEqual(engine.stack.size(),2)
         self.assertEqual(len(engine.stack[1][0]), 1)
-        self.assertEqual(engine.stack[1][0][0], None)
+        self.assertEqual(engine.stack[1][0][0], EMPTY_DATA_TOKEN)
         self.assertEqual(len(engine.stack[0][0]), 5)
         #print engine.printStack()
         for i in range(1,6):
@@ -288,10 +288,10 @@ class splitAndMergeTest(unittest.TestCase):
 
         for k in range(0, 5):
             engine = engineV3([mc,mc,mc])
-            engine.stack.append( ([None],[0],0,None,)  )
-            engine.stack.append( ([None],[0],0,None,)  )
-            engine.stack.append( ([None],[0],0,None,)  )
-            engine.stack.append( ([None],[0],0,None,)  )
+            engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )
+            engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )
+            engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )
+            engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )
 
             if k==0:
                 tab = [True,True,True]
@@ -325,7 +325,7 @@ class splitAndMergeTest(unittest.TestCase):
                     self.assertEqual(engine.stack[i][3], None)
                     for j in range(0,6):
                         if j == 0:
-                            self.assertEqual(engine.stack[i][0][j], None )
+                            self.assertEqual(engine.stack[i][0][j], EMPTY_DATA_TOKEN )
                             continue
                         
                             self.assertEqual(engine.stack[i][0][j], (str(i+1)+str(j)) )
@@ -339,7 +339,7 @@ class splitAndMergeTest(unittest.TestCase):
                     self.assertEqual(len(engine.stack[i][0]), 2)
                     for j in range(0,2):
                         if j == 0:
-                            self.assertEqual(engine.stack[i][0][j], None )
+                            self.assertEqual(engine.stack[i][0][j], EMPTY_DATA_TOKEN )
                             continue
 
                         self.assertEqual(engine.stack[i][0][j], (str(i)+str(j)) )
@@ -349,7 +349,7 @@ class splitAndMergeTest(unittest.TestCase):
                     self.assertEqual(len(engine.stack[i][0]), 6)
                     for j in range(0,6):
                         if j == 0:
-                            self.assertEqual(engine.stack[i][0][j], None )
+                            self.assertEqual(engine.stack[i][0][j], EMPTY_DATA_TOKEN )
                             continue
 
                         self.assertEqual(engine.stack[i][0][j], (str(i)+str(j)) )

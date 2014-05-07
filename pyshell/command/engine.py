@@ -6,18 +6,16 @@ from exception import *
 from stackEngine import engineStack
 from utils import *
 
+#TODO TO TEST
+    #None type: create a cmd that allow to return None or not, and test
+    #about the extend or append in _executeMethod
+        #what append if a command return a list of items
+            #create a new decorator, extendIfList ? wait for test before to update
+        #if list, extend, otherwise append
+            #and create a decorator to append list ?
+
 #TODO
-    #voir les notes dans le fichier TODO
-
-
-    #A) and if a process want to forward None to an other process ?
-        #None is actually remove from data given in args to process
-        #must use a special token in place of None
-        
-        #UPDATE TODO
-            #_executeMethod
-        
-    #B) une commande ne peut pas être utilisée deux fois dans le même appel
+    #A) TODO une commande ne peut pas être utilisée deux fois dans le même appel
     #car elle ne gère qu'une seule fois des args
         #il faudrait que la commande soit capable de gèrer plusieurs fois des args
         #solution: garder les args dans un tableau dans l'engine
@@ -29,7 +27,7 @@ from utils import *
             #dans flushargs
    
    
-    #C) TO CHECK IN INJECT METH ONLY
+    #B) TODO TO CHECK IN INJECT METH ONLY
         #be carefull for an insertion on the stack(with engine for example) after an inject
             #if some data are insert later than the next item to stack in the engine
 
@@ -43,11 +41,11 @@ from utils import *
             #injectDataPre
             #execute
 
-    #D) check in each command after command index recomputation
+    #C) TODO check in each command after command index recomputation
         #then juste remove it, now its computed in execute
         #maybe it is not needed to remove all of them
        
-    #E) trois fois le même problème
+    #D) TODO trois fois le même problème
         #condition du problème : 
             #on est dans l'execution d'un process
             #une update sur le path a eu lieu dans le process
@@ -61,6 +59,11 @@ DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
+
+class emptyDataToken(object):
+    pass
+    
+EMPTY_DATA_TOKEN = emptyDataToken()
 
 class engineV3(object):
     ### INIT ###
@@ -95,7 +98,7 @@ class engineV3(object):
         self.selfkillreason = None 
 
         #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
-        self.stack.push([None], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
+        self.stack.push([EMPTY_DATA_TOKEN], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
 
     def _getTheIndexWhereToStartTheSearch(self,processType):
         #check processType, must be pre/pro/post
@@ -949,10 +952,11 @@ class engineV3(object):
         #prepare data
         args = cmd.getArgs()
         if args != None and useArgs:
-            if nextData != None:
-                args = args[:]
-                args.extend(nextData)
-        elif nextData != None:
+            args = args[:]
+            if nextData != EMPTY_DATA_TOKEN:
+                args.extend(nextData) #XXX extend or append ? nextData is a list or not ? could be a problem in every case...
+                
+        elif nextData != EMPTY_DATA_TOKEN:
             args = nextData
         else:
             args = []
@@ -969,6 +973,13 @@ class engineV3(object):
             r = subcmd(**data)
         finally:
             self._isInProcess = False
+        
+        #manage None output
+        if r == None:
+            if hasattr(subcmd, "allowToReturnNone") and subcmd.allowToReturnNone:
+                return [None]
+            else:
+                return [EMPTY_DATA_TOKEN]
         
         #r must be a multi output
         if not isinstance(r, MultiOutput):
