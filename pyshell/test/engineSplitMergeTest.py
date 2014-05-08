@@ -21,7 +21,7 @@ class splitAndMergeTest(unittest.TestCase):
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
 
-        engine = engineV3([mc,mc,mc])
+        engine = engineV3([mc,mc,mc], [[],[],[]])
 
         #FAIL
         #empty stack
@@ -71,7 +71,7 @@ class splitAndMergeTest(unittest.TestCase):
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
 
-        engine = engineV3([mc,mc,mc])
+        engine = engineV3([mc,mc,mc], [[],[],[]])
         for i in range(0,4):
             engine.stack.append( ([None],[0],0,None,)  )
 
@@ -172,7 +172,7 @@ class splitAndMergeTest(unittest.TestCase):
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         
-        engine = engineV3([mc,mc,mc])
+        engine = engineV3([mc,mc,mc], [[],[],[]])
         engine.appendData("11")
         engine.appendData("22")
         engine.appendData("33")
@@ -210,7 +210,7 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertEqual(engine.stack[1][1],[0])
         self.assertEqual(engine.stack[0][1],[0])
         
-        engine = engineV3([mc,mc,mc])
+        engine = engineV3([mc,mc,mc], [[],[],[]])
         engine.appendData("11")
         engine.appendData("22")
         engine.appendData("33")
@@ -240,7 +240,7 @@ class splitAndMergeTest(unittest.TestCase):
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         
-        engine = engineV3([mc,mc,mc])
+        engine = engineV3([mc,mc,mc], [[],[],[]])
         engine.appendData("11")
         engine.appendData("22")
         engine.appendData("33")
@@ -287,7 +287,7 @@ class splitAndMergeTest(unittest.TestCase):
         mc.addProcess(plop,plop,plop)
 
         for k in range(0, 5):
-            engine = engineV3([mc,mc,mc])
+            engine = engineV3([mc,mc,mc], [[],[],[]])
             engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )
             engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )
             engine.stack.append( ([EMPTY_DATA_TOKEN],[0],0,None,)  )

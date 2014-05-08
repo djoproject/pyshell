@@ -76,7 +76,7 @@ class engineV3(object):
         if cmdList == None or not isinstance(cmdList, list) or len(cmdList) == 0:
             raise executionInitException("(engine) init, command list is not a valid populated list")
 
-        if argsList == None or not isinstance(argsList, list) or len(argsList) == len(cmdList):
+        if argsList == None or not isinstance(argsList, list) or len(argsList) != len(cmdList):
             raise executionInitException("(engine) init, arg list is not a valid populated list of equal size with the command list")
 
         #reset every commands
@@ -870,10 +870,10 @@ class engineV3(object):
             ## PRE PROCESS
             if insType == PREPROCESS_INSTRUCTION: #pre  
                 if useArgs:
-                    args = self.argsList[self.stack.subCmdIndexOnTop()]
+                    args = self.argsList[self.stack.cmdIndexOnTop()]
                 else:
                     args = None
-                     
+
                 r = self._executeMethod(cmd, subcmd.preProcess, top, args)
                 subcmd.preCount += 1
                 
@@ -970,7 +970,7 @@ class engineV3(object):
         if args != None:
             args = args[:]
             if nextData != EMPTY_DATA_TOKEN:
-                args.extend(nextData) #XXX extend or append ? nextData is a list or not ? could be a problem in every case...
+                args.append(nextData) #XXX extend or append ? nextData is a list or not ? could be a problem in every case...
                 
         elif nextData != EMPTY_DATA_TOKEN:
             args = nextData

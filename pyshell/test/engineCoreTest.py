@@ -36,19 +36,19 @@ class EngineCoreTest(unittest.TestCase):
     #__init__
     def testInit(self):
         #check list
-        self.assertRaises(executionInitException,engineV3,None)
-        self.assertRaises(executionInitException,engineV3,[])
-        self.assertRaises(executionInitException,engineV3,42)
+        self.assertRaises(executionInitException,engineV3,None, [])
+        self.assertRaises(executionInitException,engineV3,[], [])
+        self.assertRaises(executionInitException,engineV3,42, [])
         
         #check command
         mc = MultiCommand("Multiple test", "help me")
-        self.assertRaises(executionInitException,engineV3,[mc])
+        self.assertRaises(executionInitException,engineV3,[mc], [[]])
         
         mc.addProcess(noneFun,noneFun,noneFun)
-        self.assertRaises(executionInitException,engineV3,[mc, 42])
+        self.assertRaises(executionInitException,engineV3,[mc, 42], [[], []])
         
         mc.dymamicCount = 42
-        e = engineV3([mc])
+        e = engineV3([mc], [[]])
         self.assertIs(e.cmdList[0],mc)
         self.assertEqual(mc.dymamicCount, 0) #check the call on reset
         
@@ -65,7 +65,7 @@ class EngineCoreTest(unittest.TestCase):
         a = {}
         a["ddd"] = 53
         a[88] = "plop"
-        e = engineV3([mc],a)
+        e = engineV3([mc], [[]],a)
         self.assertIsInstance(e.env,dict)
         self.assertEqual(len(e.env), 2)
 
@@ -93,7 +93,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest = 25
         self.preCount = self.proCount = self.postCount = 0
         uc = UniCommand("simple test", pre, pro, post)
-        self.engine = engineV3([uc])
+        self.engine = engineV3([uc], [[]])
         self.engine.execute()
         self.assertEqual(self.preCount,1)
         self.assertEqual(self.proCount,1)
@@ -102,7 +102,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest = 100
         self.preCount = self.proCount = self.postCount = 0
         #uni command encapsulation test, the most used case
-        self.engine = engineV3([uc, uc])
+        self.engine = engineV3([uc, uc], [[], []])
         self.engine.execute()
         self.assertEqual(self.preCount ,2)
         self.assertEqual(self.proCount,1)
@@ -110,7 +110,7 @@ class EngineCoreTest(unittest.TestCase):
         
         self.valueToTest = 225
         self.preCount = self.proCount = self.postCount = 0
-        self.engine = engineV3([uc, uc, uc])
+        self.engine = engineV3([uc, uc, uc], [[], [], []])
         self.engine.execute()
         self.assertEqual(self.preCount,3)
         self.assertEqual(self.proCount,1)
@@ -144,7 +144,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest = [25,125, 100, 1000]
         self.preCount = self.proCount = self.postCount = 0
         uc = UniCommand("simple test", pre, pro, post)
-        self.engine = engineV3([uc])
+        self.engine = engineV3([uc], [[]])
         self.engine.execute()
         self.assertEqual(self.preCount,1)
         self.assertEqual(self.proCount,2)
@@ -153,7 +153,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest = [100, 1000, 225, 3375, 400, 8000]
         self.preCount = self.proCount = self.postCount = 0
         #uni command encapsulation test, the most used case
-        self.engine = engineV3([uc, uc])
+        self.engine = engineV3([uc, uc], [[], []])
         self.engine.execute()
         self.assertEqual(self.preCount,3)
         self.assertEqual(self.proCount,4)
@@ -161,7 +161,7 @@ class EngineCoreTest(unittest.TestCase):
         
         self.valueToTest = [225, 3375, 400, 8000, 625, 15625, 900, 27000]
         self.preCount = self.proCount = self.postCount = 0
-        self.engine = engineV3([uc, uc, uc])
+        self.engine = engineV3([uc, uc, uc], [[], [], []])
         self.engine.execute()
         self.assertEqual(self.preCount,7)
         self.assertEqual(self.proCount,8)
@@ -241,7 +241,7 @@ class EngineCoreTest(unittest.TestCase):
         mc.addProcess(pre2,pro2,post2)
         mc.addProcess(pre3,pro3,post3)
         
-        self.engine = engineV3([mc])
+        self.engine = engineV3([mc], [[]])
         self.engine.execute()
                 
         for c in self.preCount:
@@ -257,7 +257,7 @@ class EngineCoreTest(unittest.TestCase):
         self.proCount = [0,0,0]
         self.postCount = [0,0,0]
         self.valueToTest = [[100, 1728, 1296, 144, 36], [1728, 144, 2744, 4096, 512], [1296, 4096, 36, 512, 16]]
-        self.engine = engineV3([mc, mc])
+        self.engine = engineV3([mc, mc], [[], []])
         self.engine.execute()
         
         for c in self.preCount:
@@ -274,7 +274,7 @@ class EngineCoreTest(unittest.TestCase):
         self.proCount = [0,0,0]
         self.postCount = [0,0,0]
         self.valueToTest = [[225, 4913, 14641, 289, 6859, 28561, 121, 2197, 2401, 361, 169, 49], [4913, 289, 6859, 28561, 2197, 361, 9261, 50625, 169, 3375, 6561, 729], [14641, 28561, 121, 2197, 2401, 28561, 50625, 169, 3375, 6561, 49, 729, 81]]
-        self.engine = engineV3([mc, mc, mc])
+        self.engine = engineV3([mc, mc, mc], [[], [], []])
         self.engine.execute()
         
         for c in self.preCount:
@@ -344,7 +344,7 @@ class EngineCoreTest(unittest.TestCase):
         mc.addProcess(pre1,pro1,post1)
         mc.addProcess(pre2,pro2,post2)
         
-        self.engine = engineV3([mc])
+        self.engine = engineV3([mc], [[]])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -369,7 +369,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest2 = [[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]] #6, 7, 8, 4, 5, 9, 10 #+5 3 7 1
         self.valueToTest3 = [[256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125], [256, 512, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20736, 15, 1296, 28561, 2197, 38416, 25, 27, 10000, 6561, 4096, 36, 14641, 169, 3375, 49, 1331, 2744, 1728, 64, 50625, 196, 225, 81, 14, 83521, 343, 216, 729, 4913, 65536, 2401, 100, 16, 17, 1000, 144, 289, 625, 121, 125]]
         
-        self.engine = engineV3([mc, mc])
+        self.engine = engineV3([mc, mc], [[], []])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -441,7 +441,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest1 = [[1, 2, 3], []]
         self.valueToTest2 = [[6,7,8,4,5], []]
         self.valueToTest3 = [[36,49,64,16,25, 1296, 2401, 4096, 256, 625], []]
-        self.engine = engineV3([mc])
+        self.engine = engineV3([mc], [[]])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -463,7 +463,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest1 = [[], [1, 2, 3]]
         self.valueToTest2 = [[], [2,3,4,8,9,10]]
         self.valueToTest3 = [[], [2,3,4,8,9,10,  8,27,64,512,729,1000]]
-        self.engine = engineV3([mc])
+        self.engine = engineV3([mc], [[]])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -486,7 +486,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest1 = [[1, 2, 3], [1, 2, 3]]
         self.valueToTest2 = [[6,7,8,4,5], [2,3,4,8,9,10]]
         self.valueToTest3 = [[36,49,64,16,25, 1296, 2401, 4096, 256, 625], [2,3,4,8,9,10,  8,27,64,512,729,1000]]
-        self.engine = engineV3([mc])
+        self.engine = engineV3([mc], [[]])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -505,7 +505,7 @@ class EngineCoreTest(unittest.TestCase):
         self.preCount = [0,0]
         self.proCount = [0,0]
         self.postCount = [0,0]
-        self.engine = engineV3([mc])
+        self.engine = engineV3([mc], [[]])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -530,7 +530,7 @@ class EngineCoreTest(unittest.TestCase):
         self.valueToTest2 = [[9,10,11,7,8,12,13], [7,8,9,5,6,13, 14, 15, 11, 12]]
         self.valueToTest3 = [[81,6561,100,10000,121,14641,49,2401,64,4096,144,20736,169,28561, 343,512,729,125,216,2197,2744,3375,1331,1728, 7,8,9,5,6,13, 14, 15, 11, 12],[343,512,729,125,216,2197,2744,3375,1331,1728, 7,8,9,5,6,13, 14, 15, 11, 12]]
         
-        self.engine = engineV3([mc, mc])
+        self.engine = engineV3([mc, mc], [[], []])
         self.engine.setData(1)
         self.engine.addData(2,1)
         self.engine.addData(3,2)
@@ -547,7 +547,7 @@ class EngineCoreTest(unittest.TestCase):
         self.assertIs(self.postCount[1],24)
 
         #cas limite où tout est disable
-        self.engine = engineV3([mc, mc])
+        self.engine = engineV3([mc, mc],[[],[]])
         self.engine.stack.setEnableMapOnIndex(-1,[False,False])
         #self.engine.disableSubCommandInCurrentDataBunchMap(0)
         #self.engine.disableSubCommandInCurrentDataBunchMap(1)
@@ -604,21 +604,21 @@ class EngineCoreTest(unittest.TestCase):
         uc = UniCommand("simple test", pre, pro, post)
         
         #set a large amount of data for the pre, then the pro, then the post
-        engine = engineV3([uc])
+        engine = engineV3([uc], [[]])
         engine.stack[0] = ([5]*(DEFAULT_EXECUTION_LIMIT+1),[0],0,None )
         self.assertRaises(executionException, engine.execute)
         self.assertEqual(uc[0][0].preCount,256)
         self.assertEqual(uc[0][0].proCount,255)
         self.assertEqual(uc[0][0].postCount,255)
 
-        engine = engineV3([uc])
+        engine = engineV3([uc], [[]])
         engine.stack[0] = ([5]*(DEFAULT_EXECUTION_LIMIT+1),[0],1,None )
         self.assertRaises(executionException, engine.execute)
         self.assertEqual(uc[0][0].preCount,0)
         self.assertEqual(uc[0][0].proCount,256)
         self.assertEqual(uc[0][0].postCount,255)
         
-        engine = engineV3([uc])
+        engine = engineV3([uc], [[]])
         engine.stack[0] = ([5]*(DEFAULT_EXECUTION_LIMIT+1),[0],2,None )
         self.assertRaises(executionException, engine.execute)
         self.assertEqual(uc[0][0].preCount,0)
@@ -631,14 +631,14 @@ class EngineCoreTest(unittest.TestCase):
         mc = MultiCommand("Multiple test", "help me")
         mc.addProcess(noneFun,noneFun,noneFun)  
     
-        e = engineV3([mc])
+        e = engineV3([mc], [[]])
         
         self.assertIs(e.env, e.getEnv())
         
         a = {}
         a["ddd"] = 53
         a[88] = "plop"
-        e = engineV3([mc],a)
+        e = engineV3([mc], [[]],a)
         
         self.assertIs(e.env, e.getEnv())
         self.assertIs(a, e.getEnv())

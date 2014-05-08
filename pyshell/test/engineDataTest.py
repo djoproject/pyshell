@@ -16,7 +16,7 @@ class dataTest(unittest.TestCase):
     
     #flushData
     def test_flushData(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         e.flushData()
         self.assertIs(len(e.stack[0][0]),0)
         
@@ -32,7 +32,7 @@ class dataTest(unittest.TestCase):
 
     #appendData
     def test_append(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
 
         e.appendData(11)
         e.appendData(12)
@@ -49,7 +49,7 @@ class dataTest(unittest.TestCase):
 
     #addData
     def test_addData(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         self.assertRaises(executionException,e.addData, 33, 0)
         
         #regular addData
@@ -69,7 +69,7 @@ class dataTest(unittest.TestCase):
 
     #removeData
     def test_removeData(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         self.assertRaises(executionException,e.removeData, -2)
         self.assertRaises(executionException,e.removeData, 1)
         
@@ -104,7 +104,7 @@ class dataTest(unittest.TestCase):
     #setData
     #getData
     def test_getData(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         
         self.assertEqual(e.getData(), EMPTY_DATA_TOKEN) 
         e.setData(32)
@@ -118,7 +118,7 @@ class dataTest(unittest.TestCase):
 
     #hasNextData
     def test_hasNextData(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         
         self.assertFalse(e.hasNextData())
         e.addData(11)
@@ -129,7 +129,7 @@ class dataTest(unittest.TestCase):
 
     #getRemainingDataCount
     def test_getRemainingDataCount(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         
         self.assertEqual(e.getRemainingDataCount(), 0)
         e.addData(11)
@@ -145,7 +145,7 @@ class dataTest(unittest.TestCase):
 
     #getDataCount
     def test_getDataCount(self):
-        e = engineV3([self.mc])
+        e = engineV3([self.mc],[[]])
         
         self.assertEqual(e.getDataCount(), 1)
         e.addData(11)
