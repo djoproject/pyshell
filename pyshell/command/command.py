@@ -54,7 +54,6 @@ class MultiCommand(list):
         self.onlyOnceDict = {}          #this dict is used to prevent the insertion of the an existing dynamic sub command
         self.dymamicCount = 0
         
-        self.args         = None        #
         self.preCount = self.proCount = self.postCount = 0
         
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
@@ -136,9 +135,6 @@ class MultiCommand(list):
             return self.name+" "+self.usageBuilder.usage()
 
     def reset(self):
-        #flush args
-        self.args = None
-        
         #remove dynamic command
         del self[len(self)-self.dymamicCount:]
         self.dymamicCount = 0
@@ -157,18 +153,6 @@ class MultiCommand(list):
             c.postCount = 0 #this counter is used to prevent an infinite execution of the post process
             c.reset()
             self[i] = (c,a,True,)  
-
-    def setArgs(self, args):
-        if isinstance(args, MultiOutput):
-            self.args = args
-        else:
-            self.args = MultiOutput([args])
-    
-    def getArgs(self):
-        return self.args 
-
-    def flushArgs(self):
-        self.args = None
 
     def addDynamicCommand(self,c,onlyAddOnce=True, useArgs = True, enabled = True):
         #cmd must be an instance of Command

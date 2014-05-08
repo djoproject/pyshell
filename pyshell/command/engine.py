@@ -8,26 +8,18 @@ from utils import *
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test
+    
     #about the extend or append in _executeMethod
         #what append if a command return a list of items
             #create a new decorator, extendIfList ? wait for test before to update
         #if list, extend, otherwise append
             #and create a decorator to append list ?
-
+                #if decorator enabled, the liste will be appened and not extended
+    
+    #args has moved in engine contructor, update test and create new one to test the new condition
+    
 #TODO
-    #A) TODO une commande ne peut pas être utilisée deux fois dans le même appel
-    #car elle ne gère qu'une seule fois des args
-        #il faudrait que la commande soit capable de gèrer plusieurs fois des args
-        #solution: garder les args dans un tableau dans l'engine
-        
-        #UPDATE TODO
-            #dans le constructeur de engine
-            #dans la classe command
-            #dans la methode _executeMethod
-            #dans flushargs
-   
-   
-    #B) TODO TO CHECK IN INJECT METH ONLY
+    #A) TODO TO CHECK IN INJECT METH ONLY
         #be carefull for an insertion on the stack(with engine for example) after an inject
             #if some data are insert later than the next item to stack in the engine
 
@@ -40,12 +32,23 @@ from utils import *
             #_injectDataProOrPos
             #injectDataPre
             #execute
+            
+        #XXX XXX XXX just forbid the insertion in the future during an execution
+            #if the insertion must occur at the top of the stack, its in the future, only in process execution
+            #need to define the future
+            #search after self.stack.insert
 
-    #C) TODO check in each command after command index recomputation
+    #B) TODO check in each command after command index recomputation
         #then juste remove it, now its computed in execute
         #maybe it is not needed to remove all of them
+        #still need to compute the next index after the cmd execution ?
+        
+        #UPDATE TODO in methods:
+            #_executeMethod
+            #disabling meths
+            #... (where ?)
        
-    #D) TODO trois fois le même problème
+    #C) TODO trois fois le même problème
         #condition du problème : 
             #on est dans l'execution d'un process
             #une update sur le path a eu lieu dans le process
@@ -53,6 +56,7 @@ from utils import *
                 #update du dernier index
             #après le process on copie le path pour un autre PREPROCESS, PROCESS, ou POSTPROCESS
             #cette modification est propagé dans cette copie, hors ce n'est pas du tout souhaitable
+        #XXX voir le copion
 
 
 DEFAULT_EXECUTION_LIMIT = 255
@@ -67,22 +71,30 @@ EMPTY_DATA_TOKEN = emptyDataToken()
 
 class engineV3(object):
     ### INIT ###
-    def __init__(self, cmdList, env=None):#, cmdControlMapping=True):
+    def __init__(self, cmdList, argsList, env=None):#, cmdControlMapping=True):
         #cmd must be a not empty list
         if cmdList == None or not isinstance(cmdList, list) or len(cmdList) == 0:
             raise executionInitException("(engine) init, command list is not a valid populated list")
 
+        if argsList == None or not isinstance(argsList, list) or len(argsList) == len(cmdList):
+            raise executionInitException("(engine) init, arg list is not a valid populated list of equal size with the command list")
+
         #reset every commands
-        for c in cmdList:
+        for i in xrange(0,len(cmdList)):
+            c = cmdList[i]
             if not isinstance(c, MultiCommand):#only the MultiCommand are allowed in the list
-                raise executionInitException("(engine) init, a object in the command list is not a MultiCommand instance, got <"+str(type(c))+">")
+                raise executionInitException("(engine) init, item <"+str(i)+"> in the command list is not a MultiCommand instance, got <"+str(type(c))+">")
             
             if len(c) == 0: #empty multi command are not allowed
                 raise executionInitException("(engine) init, a command is empty")
             
+            if argsList[i] != None and not isinstance(argsList[i], list):
+                raise executionInitException("(engine) init, item <"+str(i)+"> in the arg list is different of None or List instance")
+            
             #reset the information stored in the command from a previous execution
             c.reset()
         
+        self.argsList = argsList
         self.cmdList = cmdList #list of MultiCommand
         
         #check env variable
@@ -478,8 +490,8 @@ class engineV3(object):
         else:
             cmdID = index
         
-        isAValidIndex(self.cmdList, cmdID,"flushArgs", "command list")
-        self.cmdList[cmdID].flushArgs()
+        isAValidIndex(self.argsList, cmdID,"flushArgs", "arg list")
+        self.argsList[cmdID] = None
     
     def addSubCommand(self, cmd, cmdID = None, onlyAddOnce = True, useArgs = True):
         #is a valid cmd ?
@@ -856,8 +868,13 @@ class engineV3(object):
             to_stack = None #prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
 
             ## PRE PROCESS
-            if insType == PREPROCESS_INSTRUCTION: #pre           
-                r = self._executeMethod(cmd, subcmd.preProcess, top, useArgs)
+            if insType == PREPROCESS_INSTRUCTION: #pre  
+                if useArgs:
+                    args = self.argsList[self.stack.subCmdIndexOnTop()]
+                else:
+                    args = None
+                     
+                r = self._executeMethod(cmd, subcmd.preProcess, top, args)
                 subcmd.preCount += 1
                 
                 #manage result
@@ -878,7 +895,7 @@ class engineV3(object):
             
             ## PROCESS ##
             elif insType == PROCESS_INSTRUCTION: #pro
-                r = self._executeMethod(cmd, subcmd.process, top, useArgs)
+                r = self._executeMethod(cmd, subcmd.process, top)
                 subcmd.proCount += 1
                 
                 #manage result
@@ -886,7 +903,7 @@ class engineV3(object):
             
             ## POST PROCESS ##
             elif insType == POSTPROCESS_INSTRUCTION: #post
-                r = self._executeMethod(cmd, subcmd.postProcess, top, useArgs)
+                r = self._executeMethod(cmd, subcmd.postProcess, top)
                 subcmd.postCount += 1
                 
                 #manage result
@@ -907,7 +924,7 @@ class engineV3(object):
                 raise executionException("(engine) execute, this subcommand reach the execution limit count for postprocess")
             
             ### MANAGE STACK, need to repush the current item ? ###
-            self.stack.pop()
+            self.stack.pop() #FIXME maybe the current items is not at th top of the stack anymore
             if insType == PROCESS_INSTRUCTION or insType == POSTPROCESS_INSTRUCTION: #process or postprocess ?
                 if len(top[0]) > 1: #still data to execute ?
                     self.stack.push( top[0][1:],top[1],top[2]) #remove the last used data and push on the stack
@@ -946,12 +963,11 @@ class engineV3(object):
             if startingIndex == currentSubCmdIndex:
                 return executeOnNextData, -1
             
-    def _executeMethod(self, cmd,subcmd, stackState, useArgs):
+    def _executeMethod(self, cmd,subcmd, stackState, args = None):
         nextData = stackState[0][0]
 
         #prepare data
-        args = cmd.getArgs()
-        if args != None and useArgs:
+        if args != None:
             args = args[:]
             if nextData != EMPTY_DATA_TOKEN:
                 args.extend(nextData) #XXX extend or append ? nextData is a list or not ? could be a problem in every case...
@@ -959,7 +975,7 @@ class engineV3(object):
         elif nextData != EMPTY_DATA_TOKEN:
             args = nextData
         else:
-            args = []
+            args = ()
 
         #execute checker
         if hasattr(subcmd, "checker"):         
