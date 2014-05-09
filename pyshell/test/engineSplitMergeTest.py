@@ -231,7 +231,7 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertEqual(engine.stack[1][3], [True, False, True])
         self.assertEqual(engine.stack[0][3], [False, False, True])
         self.assertEqual(engine.stack[1][1],[0])
-        self.assertEqual(engine.stack[0][1],[2])
+        self.assertEqual(engine.stack[0][1],[0])
         
     #splitData(self, itemToSplit = -1,splitAtDataIndex=0, resetEnablingMap = False):
     def test_split(self):
@@ -312,9 +312,9 @@ class splitAndMergeTest(unittest.TestCase):
 
             self.assertEqual(engine.stack.size(),5)
 
-            if k == 4:
-                self.assertRaises(executionException, engine.splitData, k, 2, False)
-                continue
+            #if k == 4:
+            #    self.assertRaises(executionException, engine.splitData, k, 2, False)
+            #    continue
 
             self.assertTrue(engine.splitData(k, 2, False))
             self.assertEqual(engine.stack.size(),6)
@@ -362,7 +362,7 @@ class splitAndMergeTest(unittest.TestCase):
                         self.assertEqual(engine.stack[i+1][1], [0])
                     elif k == 1:
                         self.assertEqual(engine.stack[i][3],[False,True,True])
-                        self.assertEqual(engine.stack[i][1], [1])
+                        self.assertEqual(engine.stack[i][1], [0])
                         self.assertEqual(engine.stack[i+1][3],[False,True,True])
                         self.assertEqual(engine.stack[i+1][1], [0]) #initial value, not recomputed on split even if bitmap set to false
                     elif k == 2:
@@ -372,7 +372,7 @@ class splitAndMergeTest(unittest.TestCase):
                         self.assertEqual(engine.stack[i+1][1], [0])
                     elif k == 3:
                         self.assertEqual(engine.stack[i][3],[False,False,True])
-                        self.assertEqual(engine.stack[i][1], [2])
+                        self.assertEqual(engine.stack[i][1], [0])
                         self.assertEqual(engine.stack[i+1][3],[False,False,True])
                         self.assertEqual(engine.stack[i+1][1], [0]) #initial value, not recomputed on split even if bitmap set to false
                     else:#if k == 4:

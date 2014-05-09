@@ -204,7 +204,7 @@ class injectTest(unittest.TestCase):
             #insert unexisting
         self.e.injectDataPre("plop", [0,1,2], [True, False,True,False])
         self.assertEqual(self.e.stack[4][0], ["plop"])
-        self.assertEqual(self.e.stack[4][1], [0,1,2])
+        self.assertEqual(self.e.stack[4][1], [0,1,0])
         self.assertEqual(self.e.stack[4][2], PREPROCESS_INSTRUCTION)
         self.assertEqual(self.e.stack[4][3], [True, False,True,False])
 
@@ -248,7 +248,7 @@ class injectTest(unittest.TestCase):
         self.e.insertDataToPreProcess("plop", True)
 
         self.assertEqual(self.e.stack[1][0], ["plop"])
-        self.assertEqual(self.e.stack[1][1], [0,2])
+        self.assertEqual(self.e.stack[1][1], [0,0])
         self.assertEqual(self.e.stack[1][2], PREPROCESS_INSTRUCTION)
         self.assertEqual(self.e.stack[1][3], [False, False, True, False])
         
@@ -302,7 +302,7 @@ class injectTest(unittest.TestCase):
         self.e.insertDataToNextSubCommandPreProcess("toto")
 
         self.assertEqual(self.e.stack[0][0], ["toto"])
-        self.assertEqual(self.e.stack[0][1], [0,0,0,3])
+        self.assertEqual(self.e.stack[0][1], [0,0,0,0])
         self.assertEqual(self.e.stack[0][2], PREPROCESS_INSTRUCTION)
         self.assertEqual(self.e.stack[0][3], [False, False, False, True])
         
