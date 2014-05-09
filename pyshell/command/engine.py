@@ -7,6 +7,7 @@ from stackEngine import engineStack
 from utils import *
 
 #TODO TO TEST
+    #update the existing test
     #None type: create a cmd that allow to return None or not, and test    
     #args has moved in engine contructor, update test and create new one to test the new condition
     #test insertion of data in the future
@@ -825,15 +826,9 @@ class engineV3(object):
                 new_path = top[1][:] #copy the path
                 if self.topPreIndexOpp != None:
                     if self.topPreIndexOpp < 0:
-                        top[1][-1] = -1 
-                        #TODO could create an issue in _computeTheNextChildToExecute
-                            #condition "startingIndex == currentSubCmdIndex" will never occur
-                            #because -1 is not in the range
-                            #we can't put 0
-                                #because we want 0, it will compute 1 (0+1)
-                            #len(cmd)-1
-                                #it will compute 0 but with the second available data, we want the first one
-                             
+                        #little hack to get the index 0 on the current data on the next execution
+                        top[1][-1] = len(cmd) -1
+                        top[0].insert(0,None) 
                     else:
                         top[1][-1] += self.topPreIndexOpp
                         
