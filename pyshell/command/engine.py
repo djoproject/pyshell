@@ -10,18 +10,9 @@ from utils import *
     #None type: create a cmd that allow to return None or not, and test    
     #args has moved in engine contructor, update test and create new one to test the new condition
     #test insertion of data in the future
-    
-#TODO
-    #B) TODO trois fois le même problème
-        #condition du problème : 
-            #on est dans l'execution d'un process
-            #une update sur le path a eu lieu dans le process
-                #ajout d'un element
-                #update du dernier index
-            #après le process on copie le path pour un autre PREPROCESS, PROCESS, ou POSTPROCESS
-            #cette modification est propagé dans cette copie, hors ce n'est pas du tout souhaitable
-        #XXX voir le copion
+    #action after process execution (addpath, reset index, skipcount)
 
+#TODO vérifier le copion
 
 DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
@@ -69,9 +60,11 @@ class engineV3(object):
         else:
             raise executionInitException("(engine) init, env must be a dictionnary or None, got <"+str(type(env))+">")
 
-        self.stack          = engineStack()
-        self._isInProcess   = False
-        self.selfkillreason = None 
+        self.stack            = engineStack()
+        self._isInProcess     = False
+        self.selfkillreason   = None 
+        self.topPreIndexOpp   = None
+        self.topProcessToPre  = False
 
         #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
         self.stack.push([EMPTY_DATA_TOKEN], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
@@ -417,12 +410,13 @@ class engineV3(object):
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
             raise executionException("(engine) skipNextSubCommandOnTheCurrentData, can only skip method on PREPROCESS item")
         
-        #TODO could be a prblm if call in the engine
-            #the next preprocess or process piped will have the skipcount in path...
-            #maybe different behaviour in an execution or call outside...
-            #Global problem E)
-
-        self.stack[-1][1][-1] += skipCount
+        if self._isInProcess:
+            if self.topPreIndexOpp == None or self.topPreIndexOpp >= 0:
+                self.topPreIndexOpp += skipCount
+            else:
+                raise executionException("(engine) skipNextSubCommandOnTheCurrentData, a pending operation is already present on this databunch, can not skip the next sub command")
+        else:
+            self.stack[-1][1][-1] += skipCount
 
     def skipNextSubCommandForTheEntireDataBunch(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireDataBunch")
@@ -527,24 +521,14 @@ class engineV3(object):
             if not convertProcessToPreProcess: 
                 raise executionException("(engine) addCommand, some process are waiting on the stack, can not add a command")
         
-            #TODO prblm
-                #this prblm only occur when this command is called in a PRO process execution
-                #prblm conditon 
-                    #top PROCESS
-                    #more than 1 data
-                    #convertProcessToPreProcess = True
-
-                #Result
-                    #a POST process will be push on the stack with the updated PREPROCESS path and not with the old PROCESS path...
-
-                #this prblm only exist inside the PROCESS execution
-                #Global problem E)
-
             #convert the existing process on the stack into preprocess of the new command
-            new_path = self.stack.pathOnIndex(i)[:]
-            new_path.append(0) #no need to compute the index, the cmd will be reset, so the first available sub cmd will be at the index 0
+            if self._isInProcess and i == (self.stack.size()-1):
+                self.topProcessToPre = True
+            else:
+                new_path = self.stack.pathOnIndex(i)[:]
+                new_path.append(0) #no need to compute the index, the cmd will be reset, so the first available sub cmd will be at the index 0
+                self.stack.setPathOnIndex(i, new_path)
             
-            self.stack.setPathOnIndex(i, new_path)
             self.stack.setTypeOnIndex(i, PREPROCESS_INSTRUCTION)
             
         cmd.reset()
@@ -747,20 +731,13 @@ class engineV3(object):
         #set the current cmd index to startIndex -1 (the minus 1 is because the engine will make a plus 1 to execute the next command)
         if resetSubCmdIndexIfOffsetZero and (offset == 0 or len(data) == 0): #len(data) == 0 is to manage the removal of the last item with -1 index on a data bunch of size 1
             #the engine will compute the first enabled cmd, if there is no more data, let the engine compute the cmd index too
-            
-            #TODO the behaviour will be different if this is executed inside an execution or outside
-                #in inside, the engine will compute the new index after the execution of the current process
-                #in the outside of an execution, the engine will only compute the index at the top
-                
-            #TODO another problem will occur if this process produce result
-                #a new item must be build on the stack with the current path
-                #and this path will have -1 in it
-            
-            #TODO could be a prblm with the before index computation, not able to manage minus index
-            
-            #Global problem E)
-
-            self.stack[-1][1][-1] = -1
+            if self._isInProcess:
+                if self.topPreIndexOpp == None or self.topPreIndexOpp == -1:
+                    self.topPreIndexOpp = -1
+                else:
+                    raise executionException("(engine) removeData, a pending operation is already present on this databunch, can not remove the data at zero index")
+            else:
+                self.stack[-1][1][-1] = 0
             
     def setData(self, newdata, offset=0):
         self.stack.raiseIfEmpty("setData")
@@ -845,9 +822,26 @@ class engineV3(object):
                 r = self._executeMethod(cmd, subcmd.preProcess, top, args)
                 subcmd.preCount += 1
                 
+                new_path = top[1][:] #copy the path
+                if self.topPreIndexOpp != None:
+                    if self.topPreIndexOpp < 0:
+                        top[1][-1] = -1 
+                        #TODO could create an issue in _computeTheNextChildToExecute
+                            #condition "startingIndex == currentSubCmdIndex" will never occur
+                            #because -1 is not in the range
+                            #we can't put 0
+                                #because we want 0, it will compute 1 (0+1)
+                            #len(cmd)-1
+                                #it will compute 0 but with the second available data, we want the first one
+                             
+                    else:
+                        top[1][-1] += self.topPreIndexOpp
+                        
+                    self.topPreIndexOpp = None
+                
                 #manage result
                 if len(top[1]) == len(self.cmdList): #no child, next step will be a process
-                    to_stack = (r, top[1][:], PROCESS_INSTRUCTION, )
+                    to_stack = (r, new_path, PROCESS_INSTRUCTION, )
                 else: #there are some child, next step will be another preprocess
                     #build first index to execute, it's not always 0
                     new_cmd = self.cmdList[len(top[1])] #the -1 is not missing, we want the next cmd, not the current
@@ -857,7 +851,6 @@ class engineV3(object):
                     #if newIndex == -1:
                     #    raise executionException("(engine) execute, no enabled subcmd on the cmd "+str(len(top[1])))
                 
-                    new_path = top[1][:] #copy the path
                     new_path.append(0) #then add the first index of the next command
                     to_stack = (r, new_path, PREPROCESS_INSTRUCTION, )
             
@@ -867,7 +860,11 @@ class engineV3(object):
                 subcmd.proCount += 1
                 
                 #manage result
-                to_stack = (r, top[1], POSTPROCESS_INSTRUCTION,)
+                to_stack = (r, top[1][:], POSTPROCESS_INSTRUCTION,)
+            
+                if self.topProcessToPre:
+                    self.topProcessToPre = False
+                    top[1].append(0)
             
             ## POST PROCESS ##
             elif insType == POSTPROCESS_INSTRUCTION: #post
@@ -877,6 +874,7 @@ class engineV3(object):
                 #manage result
                 if len(top[1]) > 1: #not on the root node
                      to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,) #just remove one item in the path to get the next postprocess to execute
+            
             else:
                 raise executionException("(engine) execute, unknwon process command <"+str(insType)+">")
         
