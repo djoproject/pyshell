@@ -75,7 +75,7 @@ class dataTest(unittest.TestCase):
         
         e.removeData()
         self.assertIs(len(e.stack[0][0]),0)
-        self.assertIs(e.stack[0][1][-1],-1)
+        self.assertIs(e.stack[0][1][-1],0)
         
         e.addData(None)
         e.addData(44)
@@ -83,7 +83,7 @@ class dataTest(unittest.TestCase):
 
         e.removeData(1)
         self.assertIs(len(e.stack[0][0]),2)
-        self.assertIs(e.stack[0][1][-1],-1)
+        self.assertIs(e.stack[0][1][-1],0)
         self.assertIs(e.stack[0][0][1],None)
         self.assertIs(e.stack[0][0][0],44)
         
@@ -94,7 +94,7 @@ class dataTest(unittest.TestCase):
         
         e.removeData(-2)
         self.assertIs(len(e.stack[0][0]),2)
-        self.assertIs(e.stack[0][1][-1],-1)
+        self.assertIs(e.stack[0][1][-1],0)
         self.assertIs(e.stack[0][0][1],None)
         self.assertIs(e.stack[0][0][0],44)
         
