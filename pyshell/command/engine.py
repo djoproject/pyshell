@@ -7,20 +7,12 @@ from stackEngine import engineStack
 from utils import *
 
 #TODO TO TEST
-    #None type: create a cmd that allow to return None or not, and test
-    
-    #about the extend or append in _executeMethod
-        #what append if a command return a list of items
-            #create a new decorator, extendIfList ? wait for test before to update
-        #if list, extend, otherwise append
-            #and create a decorator to append list ?
-                #if decorator enabled, the liste will be appened and not extended
-    
+    #None type: create a cmd that allow to return None or not, and test    
     #args has moved in engine contructor, update test and create new one to test the new condition
     #test insertion of data in the future
     
 #TODO
-    #A) TODO trois fois le même problème
+    #B) TODO trois fois le même problème
         #condition du problème : 
             #on est dans l'execution d'un process
             #une update sur le path a eu lieu dans le process
@@ -36,10 +28,10 @@ PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
 
-class emptyDataToken(object):
+class _emptyDataToken(object):
     pass
     
-EMPTY_DATA_TOKEN = emptyDataToken()
+EMPTY_DATA_TOKEN = _emptyDataToken()
 
 class engineV3(object):
     ### INIT ###
@@ -946,7 +938,10 @@ class engineV3(object):
         if args != None:
             args = args[:]
             if nextData != EMPTY_DATA_TOKEN:
-                args.append(nextData) #FIXME extend or append ? nextData is a list or not ? could be a problem in every case...
+                if hasattr(nextData,"__iter__"): #case where the previous process return a list of element
+                    args.extend(nextData)
+                else:                            #case where the previous process return only one args
+                    args.append(nextData)
                 
         elif nextData != EMPTY_DATA_TOKEN:
             args = nextData
@@ -965,20 +960,20 @@ class engineV3(object):
             r = subcmd(**data)
         finally:
             self._isInProcess = False
-        
+
         #manage None output
         if r == None:
             if hasattr(subcmd, "allowToReturnNone") and subcmd.allowToReturnNone:
-                return [None]
+                return [[None]]
             else:
                 return [EMPTY_DATA_TOKEN]
         
         #r must be a multi output
-        if not isinstance(r, MultiOutput):
-            return [r]
+        if isinstance(r, MultiOutput):
+            return r
+        
+        return [r]
 
-        return r
-    
     def stopExecution(self, reason = None,afterThisProcess = True, abnormal = False):
         if not self._isInProcess:
             raise executionException("(engine) stopExecution, can not execute this method outside of a process")
