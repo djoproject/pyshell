@@ -26,6 +26,7 @@ import sys
 from tries import multiLevelTries
 from tries.exception import triesException
 from command.exception import *
+from command.engine import engineV3
 from arg.exception import *
 from addons import stdaddons
 
@@ -54,6 +55,7 @@ class CommandExecuter():
         
         #TODO try to load standard shell function
         #stdaddons.load()
+        stdaddons._loader._load(self.environment["levelTries"])
     #
     #
     # @return, true if no severe error or correct process, false if severe error
@@ -119,7 +121,7 @@ class CommandExecuter():
                 print "args", searchResult.getNotFoundTokenList()
 
                 #append in list
-                rawCommandList.append(searchResult.getValue())
+                rawCommandList.append(searchResult.getLastTokenFoundValue())
                 rawArgList.append(searchResult.getNotFoundTokenList())
         
         #if the command list is empty, nothing to execute, stop here

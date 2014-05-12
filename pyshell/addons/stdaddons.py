@@ -1,5 +1,20 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+from pyshell.command.loader import *
+
+def exitFun():
+    "Exit the program"
+    exit()
+
+
+
+registerCommand( ("exit",) ,  pro=exitFun)
+registerCommand( ("quit",) ,  pro=exitFun)
+
+
    #TODO ces methodes doivent se retrouver dans le module standardShell (il faut le créer)
-    """def addCommand(self,CommandStrings,preProcess=None,process=None,postProcess=None,showInHelp=True):
+"""def addCommand(self,CommandStrings,preProcess=None,process=None,postProcess=None,showInHelp=True):
         #build the command name
         name = " ".join(CommandStrings)
         
@@ -24,7 +39,7 @@
             print self.printOnShell(str(e))
             return None"""
             
-    """def addMultiCommand(self,CommandStrings,helpMessage,showInHelp=True):
+"""def addMultiCommand(self,CommandStrings,helpMessage,showInHelp=True):
         #build the command name
         name = " ".join(CommandStrings)
         
@@ -39,7 +54,7 @@
             print self.printOnShell(str(e))
             return None"""
             
-    """def addAlias(self,CommandStrings,AliasCommandStrings):
+"""def addAlias(self,CommandStrings,AliasCommandStrings):
         #pas aussi simple
             #on doit pouvoir gerer des alias avec des arguments fixe
         
