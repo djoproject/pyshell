@@ -27,10 +27,11 @@ from tries import multiLevelTries
 from tries.exception import triesException
 from command.exception import *
 from arg.exception import *
+from addons import stdaddons
 
 ##history file
 #load history file
-histfile = os.path.join(os.path.expanduser("~"), ".rfidShell") #TODO devrait etre parametrable
+histfile = os.path.join(os.path.expanduser("~"), ".pyshell") #TODO le file name devrait etre parametrable
 try:
     readline.read_history_file(histfile)
 except IOError:
@@ -52,66 +53,7 @@ class CommandExecuter():
         self.environment["debug"]      = False
         
         #TODO try to load standard shell function
-   
-   #TODO ces methodes doivent se retrouver dans le module standardShell (il faut le créer)
-    """def addCommand(self,CommandStrings,preProcess=None,process=None,postProcess=None,showInHelp=True):
-        #build the command name
-        name = " ".join(CommandStrings)
-        
-        #the helping message will be the message of the starting point
-        if preProcess != None :
-            helpMsg = preProcess.__doc__
-        elif process != None:
-            helpMsg = process.__doc__
-        elif postProcess != None:
-            helpMsg = postProcess.__doc__
-        else:
-            helpMsg = "this command do nothing"
-        
-        #build the command
-        c = UniCommand(name,helpMsg,preProcess,process,postProcess,showInHelp)
-        
-        #add the command into the tries
-        try:
-            self.levelTries.insert(CommandStrings,c)
-            return c
-        except triesException as e:
-            print self.printOnShell(str(e))
-            return None"""
-            
-    """def addMultiCommand(self,CommandStrings,helpMessage,showInHelp=True):
-        #build the command name
-        name = " ".join(CommandStrings)
-        
-        #create the command 
-        c = MultiCommand(name,helpMessage,showInHelp)
-        
-        #add the command into the tries
-        try:
-            self.levelTries.insert(CommandStrings,c)
-            return c
-        except triesException as e:
-            print self.printOnShell(str(e))
-            return None"""
-            
-    """def addAlias(self,CommandStrings,AliasCommandStrings):
-        #pas aussi simple
-            #on doit pouvoir gerer des alias avec des arguments fixe
-        
-        #commande speciale
-            #contient le path vers la commande
-            #les arguments ou une partie des arguments
-        
-        #TODO CommandStrings can't contain special token : >, >>, |, ...
-        
-        #TODO find the command in the tree
-        
-        #TODO build alias command
-        
-        #TODO insert in tree
-        
-        pass #TODO"""
-    
+        #stdaddons.load()
     #
     #
     # @return, true if no severe error or correct process, false if severe error
@@ -120,11 +62,12 @@ class CommandExecuter():
         ### STEP 1: split on pipe ### 
         cmd = cmd.split("|")
         if len(cmd) < 0 :
-            print "   split command error"
+            print "   split command error (pipe)"
             return False
         
         ### STEP 2: split on space AND look for command ###
         rawCommandList = []   
+        rawArgList     = []
         for inner in cmd:
             #remove blank char
             inner = inner.strip(' \t\n\r')
@@ -134,9 +77,8 @@ class CommandExecuter():
             #split on space
             inner = inner.split(" ")
             if len(inner) < 0 :
-                print "   split command error"
-                rawCommandList = []
-                break
+                print "   split command error (space)"
+                return False
             
             #fo each token
             finalCmd = []
@@ -150,45 +92,62 @@ class CommandExecuter():
             #is there a non empty token list ?
             if len(finalCmd) > 0:
                 #search the command with advanced seach
-                result = None
+                searchResult = None
                 try:
-                    result = self.levelTries.advancedSearch(finalCmd)
+                    searchResult = self.levelTries.advancedSearch(finalCmd)
                 except triesException as te:
                     print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
                     return False
+                
+                if searchResult.isAmbiguous():
+                    print "ambiguity"#TODO show the different possibility
                     
-                if result == None or result.getTokenFoundCount() == 0:
-                    print "unknown command"
+                    #TODO get tries index in result
+                    
+                    #TODO get corresponding advancedTriesResult
+                    
+                    #TODO generate corresponding value
+                    
+                    #TODO print them
+                    
                     return False
-                    
-                #TODO set the args to the function
-                
-                #TODO append in rawCommandList
-                
-                pass
-                
-                """try:
-                    #TODO search will fail, need to make an advanced mltries search
-                
-                    triesNode,args = self.levelTries.search(finalCmd) #args est une liste
-                    rawCommandList.append((triesNode.value,args))
-                except triesException as e:
-                    self.printOnShell(str(e))
-                    return True"""
+                elif not searchResult.isAvalueOnTheLastTokenFound():
+                    self.printOnShell("unknown command <"+" ".join(finalCmd)+">")
+                    return False
+
+                print "cmd", searchResult.getFoundTokenList()
+                print "args", searchResult.getNotFoundTokenList()
+
+                #append in list
+                rawCommandList.append(searchResult.getValue())
+                rawArgList.append(searchResult.getNotFoundTokenList())
         
         #if the command list is empty, nothing to execute, stop here
-        if len(rawCommandList) == 0:
+        if len(rawCommandList) == 0 or len(rawArgList) == 0:
             return False
         
-        #TODO execute command engine
-        
-        #TODO create engine object
-        
-        #TODO execute engine object
-        
-        #TODO manage the exception
-        
-        pass
+        #execute the engine object
+        try:
+            engine = engineV3(rawCommandList, rawArgList, self.environment)
+            engine.execute()
+            return True
+        except executionInitException as eie:
+            self.printOnShell("Fail to init an execution object: "+str(eie.value))
+        except executionException as ee:
+            self.printOnShell("Fail to execute: "+str(eie.value))
+        except commandException as ce:
+            self.printOnShell("Error in command method: "+str(ce.value))
+        except engineInterruptionException as eien:
+            if eien.abnormal:
+                self.printOnShell("Abnormal execution abort, reason: "+str(eien.value))
+            else:
+                self.printOnShell("Normal execution abort, reason: "+str(eien.value))
+        except argException as ae:
+            self.printOnShell("Error in parsing argument: "+str(ae.value))
+        except Exception as e:
+            self.printOnShell("Unknown error: "+str(e))
+            
+        return False
     
     def mainLoop(self):
         while True:

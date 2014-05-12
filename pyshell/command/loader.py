@@ -4,6 +4,23 @@
 from command import MultiCommand
 from exception import LoadException
 
+#XXX BRAINSTORMING XXX
+    #must be able to load, unload, reload
+    #could be single or several loader in the same package
+    #must be used as simple as possible
+        #if its possible to avoid a class creation/extension
+    
+#XXX SOLUTION XXX
+    #1) just a method call, a kind of register
+        #how differanciate a package from another ?
+        #need to have a global list, in the addons.__init__ ?
+            #what about multiple addons directory ?
+                #WRONG WAY, need a generic solution
+        
+        #could register create a new variable in the module ?
+            #need to access to the caller module, it could be possible
+            #http://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
+
 _raiseIfInvalidKeyList(keyList, methName):
     if not hasattr(keyList,"__iter__"):
         raise LoadException("(Loader) "+methName+", keyList is not iterable")
