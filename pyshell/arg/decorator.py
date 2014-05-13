@@ -108,7 +108,7 @@ def shellMethod(**argList):
                 
                 #check the compatibilty with the previous argument checker
                 if checker.needData() and len(argCheckerList) > 0:
-                    previousName,previousChecker = list(a.items())[-1]
+                    previousName,previousChecker = list(argCheckerList.items())[-1]
                     
                     #check if the previous checker remain a few arg to the following or not
                     if previousChecker.isVariableSize() and previousChecker.maximumSize == None:

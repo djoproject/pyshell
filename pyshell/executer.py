@@ -46,16 +46,18 @@ del os, histfile
 class CommandExecuter():
     def __init__(self):
         self.environment               = {}
-        self.environment["prompt"]     = ":>"
+        self.environment["prompt"]     = "pyshell:>"
         self.environment["printer"]    = self
         self.environment["executer"]   = self
         self.levelTries                = multiLevelTries()
         self.environment["levelTries"] = self.levelTries
         self.environment["debug"]      = False
         
-        #TODO try to load standard shell function
-        #stdaddons.load()
-        stdaddons._loader._load(self.environment["levelTries"])
+        #try to load standard shell function
+        try:
+            stdaddons._loader._load(self.environment["levelTries"])
+        except Exception as ex:
+            print "failed to load standard addon: "+str(ex)
     #
     #
     # @return, true if no severe error or correct process, false if severe error
@@ -96,7 +98,7 @@ class CommandExecuter():
                 #search the command with advanced seach
                 searchResult = None
                 try:
-                    searchResult = self.levelTries.advancedSearch(finalCmd)
+                    searchResult = self.levelTries.advancedSearch(finalCmd, False)
                 except triesException as te:
                     print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
                     return False
@@ -104,9 +106,8 @@ class CommandExecuter():
                 if searchResult.isAmbiguous():
                     print "ambiguity"#TODO show the different possibility
                     
-                    #TODO get tries index in result
-                    
-                    #TODO get corresponding advancedTriesResult
+                    #TODO get tries index in result and get corresponding advancedTriesResult
+                    advancedTriesResult = searchResult.getAdvancedTriesResult(searchResult.getTokenUsed() - 1)
                     
                     #TODO generate corresponding value
                     
@@ -116,9 +117,6 @@ class CommandExecuter():
                 elif not searchResult.isAvalueOnTheLastTokenFound():
                     self.printOnShell("unknown command <"+" ".join(finalCmd)+">")
                     return False
-
-                print "cmd", searchResult.getFoundTokenList()
-                print "args", searchResult.getNotFoundTokenList()
 
                 #append in list
                 rawCommandList.append(searchResult.getLastTokenFoundValue())

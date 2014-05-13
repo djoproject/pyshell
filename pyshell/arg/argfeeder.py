@@ -42,13 +42,13 @@ class ArgFeeder(ArgsChecker):
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
     def checkArgs(self,argsList, engine=None):
-        if not isinstance(argsList,list):
+        if not hasattr(argsList,"__iter__"):#if not isinstance(argsList,list):
             # argsList must be a string
             #if type(argsList) != str and type(argsList) != unicode:
             #    raise argException("(ArgFeeder) string list was expected, got "+str(type(argsList)))
         
-            argsList = [argsList]
-            
+            #argsList = [argsList]
+            argsList = (argsList,)
             #no need to check the other args, they will be checked into the argcheckers
     
         ret             = {}

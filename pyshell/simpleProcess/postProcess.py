@@ -1,10 +1,9 @@
-from decorator import shellMethod
-from argchecker import stringArgChecker,ArgChecker,environmentChecker,listArgChecker
-from arg import environment
+from pyshell.arg.decorator import shellMethod
+from pyshell.arg.argchecker  import stringArgChecker,ArgChecker,environmentChecker,listArgChecker
 
 #@listdecorator("result",stringArgChecker())
 #@environmentdecorator("printer","printer")
-@shellMethod(  printer=environmentChecker("printer",environment),  result=listArgChecker(stringArgChecker())  )
+@shellMethod(  printer=environmentChecker("printer"),  result=listArgChecker(stringArgChecker())  )
 def stringListResultHandler(printer,result):
     #if result == None or len(result) == 0:
     #    Executer.printOnShell("no item available")
@@ -15,14 +14,14 @@ def stringListResultHandler(printer,result):
 
 #@argument("result")
 #@environmentdecorator("printer","printer")
-@shellMethod(printer=environmentChecker("printer",environment),result=ArgChecker())
+@shellMethod(printer=environmentChecker("printer"),result=ArgChecker())
 def printResultHandler(printer,result=None):
     if result != None:
         printer.printOnShell(str(result))
 
 #@listdecorator("result",ArgChecker())
 #@environmentdecorator("printer","printer")
-@shellMethod(printer=environmentChecker("printer",environment),result=listArgChecker(ArgChecker()))
+@shellMethod(printer=environmentChecker("printer"),result=listArgChecker(ArgChecker()))
 def listResultHandler(printer,result):
     #if result == None or len(result) == 0:
     #    Executer.printOnShell("no item available")
@@ -33,7 +32,7 @@ def listResultHandler(printer,result):
         
 #@listdecorator("result",ArgChecker())
 #@environmentdecorator("printer","printer")
-@shellMethod(printer=environmentChecker("printer",environment),result=listArgChecker(ArgChecker()))
+@shellMethod(printer=environmentChecker("printer"),result=listArgChecker(ArgChecker()))
 def listFlatResultHandler(printer,result):
     #if result == None or len(result) == 0:
     #    Executer.printOnShell("no item available")

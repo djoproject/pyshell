@@ -1,0 +1,15 @@
+A)on peut toujours registerer une commande avec des arguments sans avoir de decorator shellMethod associé
+	du coup le binder d'argument ne lui fourni aucun argument
+	et on a une erreur du genre Unknown error: echo16() takes exactly 1 argument (0 given)
+
+B)quand on fait 
+	echo 55 56 57 | toascii
+on obtient
+   89:
+   ()
+pas normal ces doubles parantèses
+
+C) None n'est pas accepté comme liste par défaut dans listArgChecker
+	example, dans helpFun, mettre la valeur par defaut de args à None au lieu de ()
+
+D) si on fait un "help li" ça fonctionne, mais pas un "help l"

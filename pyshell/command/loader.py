@@ -5,6 +5,11 @@ from command import MultiCommand, UniCommand
 from exception import LoadException
 import inspect
 
+#TODO
+    #be able to load a module
+    #be able to load subpart of a module
+    #be able to set temporary prefix
+
 def _raiseIfInvalidKeyList(keyList, methName):
     if not hasattr(keyList,"__iter__"):
         raise LoadException("(Loader) "+methName+", keyList is not iterable")

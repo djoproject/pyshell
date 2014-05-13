@@ -132,7 +132,7 @@ class MultiCommand(list):
         if self.usageBuilder == None :
             return self.name+": no args needed"
         else:
-            return self.name+" "+self.usageBuilder.usage()
+            return self.name+" `"+self.usageBuilder.usage()+"`"
 
     def reset(self):
         #remove dynamic command

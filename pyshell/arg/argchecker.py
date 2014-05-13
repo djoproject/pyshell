@@ -399,7 +399,7 @@ class listArgChecker(ArgChecker):
     
     def getValue(self,values,argNumber=None):    
         #check if it's a list
-        if not isinstance(values,list):
+        if not hasattr(values, "__iter__"):#if not isinstance(values,list):
             raise argException("(List) Argument %s: this arg is not a valid list"%("" if argNumber == None else str(argNumber)+" "))
         
         #len(values) must always be a multiple of self.checker.minimumSize
