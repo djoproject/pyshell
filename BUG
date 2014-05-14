@@ -1,12 +1,8 @@
 A)on peut toujours registerer une commande avec des arguments sans avoir de decorator shellMethod associé
 	du coup le binder d'argument ne lui fourni aucun argument
 	et on a une erreur du genre Unknown error: echo16() takes exactly 1 argument (0 given)
+    
+    modification a faire dans commande, à l'ajout de pre/pro/post process
+    détail de la manière de gèrer ça dans engineCoreTest
 
-B)quand on fait 
-	echo 55 56 57 | toascii
-on obtient
-   89:
-   ()
-pas normal ces doubles parantèses
-
-C) si on fait un "help li" ça fonctionne, mais pas un "help l"
+B) si on fait un "help li" ça fonctionne, mais pas un "help l"
