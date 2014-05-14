@@ -8,6 +8,11 @@ from pyshell.simpleProcess.postProcess import printResultHandler, stringListResu
 from tries.exception import triesException
 import os
 
+#TODO
+    #implement ambiguity management in usage
+    #fix bug in help (see bug file)
+    #emplement alias management
+
 def exitFun():
     "Exit the program"
     exit()
@@ -64,26 +69,33 @@ def listEnvFun(engine):
     "list all the environment variable"
     return [str(k)+" : "+str(v) for k,v in engine.getEnv().iteritems()]
 
-@shellMethod(name=stringArgChecker(), levelTries=environmentChecker("levelTries"))
-def loadAddonFun(name, levelTries):
+@shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=environmentChecker("levelTries"))
+def loadAddonFun(name, levelTries, subAddon = ""):
     "load an external shell addon"
-    
     toLoad = "pyshell.addons."+str(name)
-    print "toLoad",toLoad
+
+    if subAddon == "":
+        subAddon = None
+
     try:
-        mod = __import__(toLoad)
-        print mod
-        mod._loader._load(levelTries)
-        print "   "+toLoad+" loaded !"
+        mod = __import__(toLoad,fromlist=["_loader"])
+        
+        if not hasattr(mod, "_loader"):
+            print("invalid addon, no loader found.  don't forget to register at least one command in the addon")
+        
+        if subAddon not in mod._loader:
+            print("sub addon does not exist in the addon <"+str(name)+">")
+        
+        mod._loader[None]._load(levelTries)
+        print "   "+toLoad+" loaded !"  
     except ImportError as ie:
         print "import error in <"+name+"> loading : "+str(ie)
     except NameError as ne:
         print "name error in <"+name+"> loading : "+str(ne)
-
+    
 @shellMethod(args=listArgChecker(ArgChecker()), mltries=environmentChecker("levelTries"))
 def usageFun(args, mltries):
     "print the usage of a fonction"
-    
     try:
         searchResult = mltries.advancedSearch(args, False)
     except triesException as te:

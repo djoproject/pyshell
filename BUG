@@ -9,7 +9,7 @@ on obtient
    ()
 pas normal ces doubles parantèses
 
-C) None n'est pas accepté comme liste par défaut dans listArgChecker
+C) None n'est pas accepté comme argument par défaut dans listArgChecker, stringArgChecker, ...
 	example, dans helpFun, mettre la valeur par defaut de args à None au lieu de ()
 
 D) si on fait un "help li" ça fonctionne, mais pas un "help l"

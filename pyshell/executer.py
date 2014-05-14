@@ -55,7 +55,7 @@ class CommandExecuter():
         
         #try to load standard shell function
         try:
-            stdaddons._loader._load(self.environment["levelTries"])
+            stdaddons._loader[None]._load(self.environment["levelTries"])
         except Exception as ex:
             print "failed to load standard addon: "+str(ex)
     #
