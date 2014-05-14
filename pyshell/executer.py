@@ -30,6 +30,12 @@ from command.engine import engineV3
 from arg.exception import *
 from addons import stdaddons
 
+#TODO
+    #parameter file
+    #auto completion
+    #print ambiguous posibility
+    
+
 ##history file
 #load history file
 histfile = os.path.join(os.path.expanduser("~"), ".pyshell") #TODO le file name devrait etre parametrable
@@ -43,6 +49,13 @@ import atexit
 atexit.register(readline.write_history_file, histfile)
 del os, histfile      
 
+class writer :
+    def __init__(self, out) :
+    	self.out = out
+
+    def write(self, text) :
+        self.out.write("    "+str(text))
+        
 class CommandExecuter():
     def __init__(self):
         self.environment               = {}
@@ -53,11 +66,17 @@ class CommandExecuter():
         self.environment["levelTries"] = self.levelTries
         self.environment["debug"]      = False
         
+        
         #try to load standard shell function
         try:
             stdaddons._loader[None]._load(self.environment["levelTries"])
         except Exception as ex:
             print "failed to load standard addon: "+str(ex)
+            
+        #redirect output
+        real_out    = sys.stdout
+        self.writer = writer(real_out)
+        sys.stdout  = self.writer
     #
     #
     # @return, true if no severe error or correct process, false if severe error
@@ -115,7 +134,7 @@ class CommandExecuter():
                     
                     return False
                 elif not searchResult.isAvalueOnTheLastTokenFound():
-                    self.printOnShell("unknown command <"+" ".join(finalCmd)+">")
+                    print("unknown command <"+" ".join(finalCmd)+">")
                     return False
 
                 #append in list
@@ -132,20 +151,20 @@ class CommandExecuter():
             engine.execute()
             return True
         except executionInitException as eie:
-            self.printOnShell("Fail to init an execution object: "+str(eie.value))
+            print("Fail to init an execution object: "+str(eie.value))
         except executionException as ee:
-            self.printOnShell("Fail to execute: "+str(eie.value))
+            print("Fail to execute: "+str(eie.value))
         except commandException as ce:
-            self.printOnShell("Error in command method: "+str(ce.value))
+            print("Error in command method: "+str(ce.value))
         except engineInterruptionException as eien:
             if eien.abnormal:
-                self.printOnShell("Abnormal execution abort, reason: "+str(eien.value))
+                print("Abnormal execution abort, reason: "+str(eien.value))
             else:
-                self.printOnShell("Normal execution abort, reason: "+str(eien.value))
+                print("Normal execution abort, reason: "+str(eien.value))
         except argException as ae:
-            self.printOnShell("Error in parsing argument: "+str(ae.value))
+            print("Error in parsing argument: "+str(ae.value))
         except Exception as e:
-            self.printOnShell("Unknown error: "+str(e))
+            print("Unknown error: "+str(e))
             
         return False
     
@@ -162,6 +181,7 @@ class CommandExecuter():
             
             #read prompt
             try:
+                sys.stdout = self.writer.out
                 cmd = raw_input(self.environment["prompt"])
             except SyntaxError:
                 print "   syntax error"
@@ -169,6 +189,9 @@ class CommandExecuter():
             except EOFError:
                 print "\n   end of stream"
                 break
+            finally:
+                sys.stdout = self.writer    
+            
             
             #execute command
             self.executeCommand(cmd)        
@@ -187,11 +210,6 @@ class CommandExecuter():
             sys.stdout.write(environment["prompt"] + readline.get_line_buffer())
 
         sys.stdout.flush()
-    
-    #TODO convert into write function from output
-        #to be able to output on any output stream
-    def printOnShell(self,toPrint):
-        print "   "+str(toPrint)
         
     def complete(self,prefix,index):
         #TODO pas encore au point

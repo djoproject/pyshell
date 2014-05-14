@@ -1,139 +1,21 @@
-ArgChecker
-    -test : OK
-    -dans les argChecker, quand il y a une erreur, insérer systèmatiquement la valeur foireuse dans l'exception : TO CHECK
-    
-ArgChecherS
-    -test : OK
-
-Decorator
-    -test : OK
-    -check this : OK
-    -clean code : OK
-
-Command
-    -clean selfArgChecker : OK
-    -permettre de transfèrer des informations entre les pre et les post
-        -exemple, pre2 a besoin d'info provenant de post1
-            C'est a post1 de lui transmettre
-        -cas de figure : lecture d'un fichier en plusieurs etape, ou une auth, ... 
-            -desfire
-        faire une class special qui fourni le même genre de service que la classe MultiCommand
-            histoire d'avoir une abstraction et de ne devoir rien changer d'autre
-            ??? qu'est ce que j'ai voulu dire ?
-
-        #XXX il faut que les methods(pre/pro/pos) puissent avoir acces à leur input buffer(pre)...
-            #ou pouvoir ajouter des methodes dans le listing ?
-                #plus puissant mais impliquerait de calculer la structure des pipes à la vollée
-                    #pas un prblm
-                #on peut faire les deux
-            #pour les buffer, on peut faire ça par argChecker special
-                #uniquement acces au buffer d'input
-                    #risque de boucle infinie du coup si la meth remplie elle meme sont buffer d'input
-                        #limiter le nombre d'exec
-                #binder a l'exec
-                        
-        #XXX pour l'interruption, on peut mettre un system par exception
-            raise normalRunningStop()
-            raise abnormalRunningStop()
-            ...
-            
-        #XXX permettre egalement d'avoir acces au buffer d'input de la commande suivante
-        
-    #XXX donc, triple mecanisme (pas oublier de relire la reflection quand meme) :
-        va permettre de faire les mêmes choses de manière différente si on veut
-    
-        A) on va pouvoir binder un parametre special (en pre/pro/pos) pour avoir acces a un objet special qui offrira les services suivants:
-            -avoir acces au buffer input de la commande courante
-                limiter le nombre déxecution max d'une commande
-            -avoir acces au buffer input de la commande suivante du même niveau, elle doivent être dans le même MultipleCommand
-                et uniquement, interdiction d'injecter des données a une commande n+2
-            -pouvoir ajouter une commande dans le listing des commandes
-            -accéder aux variables d'état de l'execution 
-            -avoir acces à l'env (get, set, but no creation)
-                un seul argchecker pour tout faire du coup
-            
-            sera binder a l'execution
-        
-        B) Pour communiquer entre pre/pro/pos, les methodes doivent juste faire partie du même objet 
-            et communiquer comme elles veulent au travers de celui-ci (via le self)
-            peuvent juste ovverider la class Command
-            
-            probleme de remanence des donnees si on execute plusieurs fois la commande
-                il faut faire un systeme de reinit
-                
-            pas d'interet pour la pre de parler avec la post de la meme commande puisqu'il se transfere des donnees
-            par contre ça devient interessant si la commande se repete plusieurs fois
-            
-        C) Un système d'exception permettant d'interrompre une execution à partir de n'importe où
-             raise normalRunningStop()
-             raise abnormalRunningStop()
-             ...
-
-        D) les commandes peuvent renvoyer un résultat de type multiOutput (systeme deja en place)
-            les fonctions suivantes seront appelées autant de fois qu'il y a d'output
-            pratique pour la lecture d'un fichier ou l'execution suivante ne se soucie du résultat precedant
-            pas pratique dans le cas d'une authen ou la seconde pass a besoin du résultat de la premiere pass
-
-        X) au lieu de faire des listes de listes, plutôt faire un arbre pour ne pas réexecuter 
-           plusieurs fois les même pre/post.
-           => sauf si le resultat change a chaque execution avec des parametres similaire
-                faire un decorateur speciale pour ces fonctions là et adapater l'arbre en conséquence
-           parcourir l'arbre avec un traversal permettant d'explorer en fonction de l'ordre d'ajout
-           l'arbre devient le buffer
-           possibilité de retirer les branches au fure et à mesure de l'exploration ?
-                non pas vraiment, car on finit toujours avec le post de la premiere instruction
-                    sauf si on fait 2 arbres, les listes sont plus pratiques dans ce cas ci :/
-                    a reflechir
-           les noeuds feuilles seraient les process a executer
-           plusieurs traversal possible
-                le plus logique est :
-                    on descend jusqu'en bas et on remonte jusqu'en haut a chaque fois
-                    ensuite on repart des points d'arret qu'on aura repéré
-                        on prend quel point d'arrêt en premier? 
-                            d'abord les post les plus haut dans l'arbre, ensuite les pre les plus basses
-                    Qu'est ce qu'un point d'arret ?
-                        a chaque fois qu'il y aura un embranchement il faudra marqué ça comme un point d'arret alors ?
-                            ça va faire une sacré liste
-            On place ça dans une priority Queue (heapq)
-            
-Executeur
-    -faire une liste d'alias
-        description dans le code
-    -l'autocomplétion
-    -gérer des trucs comme >, >>, ...
-    -quand il y a une ambiguité sur une commande, afficher directement les possibilités
-    -n'afficher que les commandes terminal dans l'aide, comme dans le shell du proxmark
-        -utiliser le setStopTraversal dans les mltries
-        -l'aide doit s'arreter là et afficher un subset des clés
+### executer ###
+	#alias pointant sur 1..n commande(s)
+        faire une liste d'alias
+            description dans le code
+    #l'autocomplétion
+    #gérer des trucs comme >, >>, ...
+    #quand il y a une ambiguité sur une commande, afficher directement les possibilités
+    #n'afficher que les commandes terminal dans l'aide, comme dans le shell du proxmark
+        utiliser le setStopTraversal dans les mltries
+        l'aide doit s'arreter là et afficher un subset des clés
             mettre une empty command avec un message __doc__ personnalisé
-        -lors du insertion, mettre a jour tout les noeuds parents vide
-    -l'env doit être un triplet clé, valeur, type
+        lors du insertion, mettre a jour tout les noeuds parents vide
+    #l'env doit être un triplet clé, valeur, type
         permettre de creer des triplets en definissant le type
-    
-    
-Shell
-    -créer les commandes manquantes
-        voir fichier
 
-RFID
-    /System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
-        le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
-   
-   - faire un système de gestion des codes d'erreurs
-	    à faire dans executeAPDU
+### parameter in command call ###
 
-   -faire un système de décapsulation des réponses
-	    +- en place
-
-    -manage error code
-	    -pouvoir ajouter son propre handler d'erreur
-
-TEST
-    en faire tout plein :)
-	    
-######################################################
-
-??? Executeur ou ArgChecherS ? entre les deux ?
+    ??? Executeur ou ArgChecherS ? entre les deux ?
     -permettre a l'utilisateur de binder uniquement certains argument
         exemple:
             cmd(a,b,c=None,d=None,e=None)
@@ -193,177 +75,68 @@ TEST
             devra se trouver juste après la recherche de commande
             et juste avant le argfeeder
 
-       
-brainstorming
-    au lieu de garder toute la structure en arbre
-    sur la stack on empile la path sous forme d'une liste d'entier + l'index de celui a executer + le type d'execution (pre/pro/post) + la donnees a executer
-        cette liste d'entier pointe sur une liste de commande
+### parameter files ###
+    what to parameter:
+        tab_length
+        history file for raw input
         
-    deux problèmes se posent dans l'immédiat : 
-        comment structure cette liste, les commandes ont une représentation bidimensionnelle pour l'instant
-            solution:
-                les commandes sont stockées sous forme de triplet (index_parent, cmd, list(index_childs))
-                    pas besoin de l'indice parent si on complete le chemin d'execution a chaque fois, il sera sauvegardé sur la pile
-                    de +, une cmd peut avoir plusieurs parents, on essaye justement de sauvegardé la mémoire
-                    
-                    donc la structure aura plutôt cette tête là : (cmd, list(index_childs),)
-            
-        
-        les données sont dupliquées à chaque fois
-            solution:
-                une liste avec les données
-                la données à executer n'est plus stockée sur la pile
-                seul l'indice de cette liste est stocké sur la pile
-                la donnée est associé à un compteur, celui-ci indique la duree de vie de la donnée
-                lorsqu'il arrive a zero, la donnée est supprimée
-        
-        On pourrait dire qu'on authorise que les multiCmd et on place une partie du mecanisme dedans        
-        
-    optimisation
-        les commandes se suivent dans la liste des commandes
-            on pourrait dés lors juste retenir l'indice d'où commence la commande suivante 
-            et ensuite le nombre d'element la composant
-            
-            prblm, ça complexifie l'ajout de commande dynamiquement
-            
-        On pourrait fonctionner aussi en 2d en utilisant a chaque fois 2 indices (cmd + subcmd)
-            simplifie la structure des commandes 
-            uniquement besoin des indices des subCmd
-                leur position dans la liste indique de quel commande il s'agit
-            
-            prblm, mais ajoute encore des infos sur la pile
-                
-SOLUTION 1 : stack orienté path, chaque path a executer est empilé dans la pile
-    la liste des commandes qui stoque des items de ce type:
-        (cmd=CommandInstance, argList, list(index_childs=int) or None(if no child),)
-        
-    la liste des données qui stoque des items de ce type
-        (data=anything, ttl=int,)
-            le ttl pourrait etre remplacé par un booleen dans la stack genre removeOnGet
-                pour la derniere commande devant utilisé la données
-                bonne idée ou non (?)
-                    quid de l'ajout de commande dynamiquement
-        
-    la stack qui stoque des items de ce type
-        (path=list(cmd_index=int), current_index_in_path=int, execution_type=(pre/pro/post), data_index=int,)
-        
-    On a besoin des methodes suivantes:
-        -buildTree
-            rempli la liste des commandes
-        -initStack
-            avec les commandes composants de la premiere MultipleCommand
-            les datas seront les args
-        -execute
-        -getData
-        -setData
-        
-    Mais PRBLM  
-        on a reduit l'espace mémoire dans la structure de stockage des commandes et dans les buffers
-        Par contre, l'espace occupé par la stack augmente, même s'il n'explose pas...
-            le truc c'est que bcp de commande vont avoir le même prefix
-        
-            Solution (?) : TODO
-                faire une pile orientée data et plus orientée path
-                    on stock une data et un path
-                        le path du prochain noeud a executé avec cette data
-                    une data est toujours lié à un groupe de sibling au parent similaire
-                    s'il reste des sibling au dernier index du path
-                    alors on reempile tout de suite avec l'index du prochain sibling
-                    s'il n'y a plus de sibling, on ne reempile pas
-                    
-                    TODO refaire les scenario
-            
-        
-        la structure permet t'elle de gérer efficacement et facilement:
-            -d'ajouter un element supplementaire dans le buffer de la commande courante
-                scenario:
-                    -on ajoute la donnée dans la liste des données avec un ttl=1
-                    -on empile un etat similaire a celui courant sur la pile mais pointant vers cette donnee
-            -d'ajouter une commande dynamiquement
-                prblm si la commande parente est multiple, l'ajout de la commande risque de se faire plusieurs fois...
-                    solution : on met un boolean a la methode d'ajout de commande pour indiquer si on doit ajouter la commande a chaque execution ou non
-                scenario:
-                    -ajout de la commande dans la liste 
-                        avec les meme childs que la commande qui l'ajoute
-                    -ajout de la commande dans la liste de child du parent
-                    -data + stack
-                        soit une data et fournie et on ajoute juste celle la dans la liste et la stack
-                        soit on parcourt la stack a la recherche de data pour la commande ajoutante
-                            et on duplique les entrees pour la nouvelle commande
-                            pas oublier d'incrementer le ttl des data
-                    
-            -de modifier l'input de la commande suivante
-                possibilité:
-                    -changer les datas juste pour la suivante
-                        scenario:
-                            -ajouter la data dans la liste des donnees avec un ttl de 1
-                                
-                            -identifier l'execution sur la pile (normalement c'est la prochaine)
-                                -changer l'index de la data
-                                -decrementer le ttl de la data qui vient d'etre remplacée
-                    -pour toute les suivantes
-                        -juste mettre la donnée a jour dans la liste des données
     
-SOLUTION 2 : stack orienté data, chaque data a executer est empilée dans la pile
+### workflow ###
+    #n'afficher dans l'aide et n'autoriser que les commandes executables
 
-structure
-    cmd = list de MultiCommand(subCmds=list of command, args=list of args)
-    stack = list of (data=MultiOutput, path=list of integer (index des subCmd), action=(pre/pro/pos))
-    
-    
-    la structure permet t'elle de gérer efficacement et facilement:
-        -une execution
-            scenario:
-                -on prend l'element en sommet de pile
-                    on le pop si:
-                        -data et un MultiOutput de taille 1 ET :
-                            -on est face a une post ou une pro
-                            -on est face a une pre avec le dernier sibling existant
-                    sinon
-                        -il faut retirer le premier element du MultiOutput SI:
-                            -on est face a une post ou une pro
-                            -on est face a une pre avec le dernier sibling existant
-                                dans ce cas-ci il faut remettre l'indice au premier sibling
-                        sinon
-                            -il faut juste incrementer l'indice du sibling
+### application  ###
+    #on remplace le leveltries courrant par un contenant uniquement les commandes de l'application
+        #avec une commande exit pour restaurer le leveltries principale
+        #les commandes du leveltries principales doivent toujours être accessible dans les commandes de l'application
+        #les apps doivent pouvoir executer du code et en même temps appeler des commandes sur le shell
         
-                    -ensuite on execute et on push les donnees suivantes si necessaire
+### service installer ###
+    #être en mesure d'activer des applications en tant que service
+        #au démarrage entre autre
+
+### print service ###
+	an interface with a few meth
+		info
+		error
+		warn
+		...
+### code generator ###
+    #génerer du code executable en dehors du shell
+    
+    #trois level de code executable:
+        #level 0: un maximum de chose ont déjà été interprété (calcul d'apdu, de checksum, etc.)
+            #il ne reste plus qu'à transmettre les données au framework
+            
+        #level 1: rien n'a encore été calculé (calcul d'apdu, ...)
+            #on génére le code avec les appels de fonction encore parametrable
+            #implique une dépendance au code calculant les apdus
+            
+        #level 2: rien n'est calculé, on execute via le shell
+            #on est en niveau de script
+            #besoin de l'ensemble du code
         
-        -d'ajouter un element supplementaire dans le buffer de la commande courante
-            possibilité:
-                -uniquement la commande courante
-                    scenario:
-                        -tagger la data execute once, on peut utiliser la variable pre/post/post et ajouter un type pre_once
-                            gérer ça directement dans multi input, ça evite d'avoir un etat supplementaire
-                        ajouter un parametre ExecuteNow=bool
-                        
-                -tous les sibling
-                    scenario:
-                        ajouter un parametre ExecuteNow=bool
-                        en fonction de ça on met la data en sommet de pile ou juste en dessous de l'element courant
-        -d'ajouter une commande dynamiquement
-            scenario:
-                -l'ajouter dans la multicommande correspondante
-                    la tagger comme dynamique, elle devra être supprimer en fin d'execution
-                
-        -de modifier l'input de la commande suivante
-            possibilité:
-                -changer les datas juste pour la suivante
-                    scenario:
-                        -retirer l'etat courant de la stack
-                        -ajouter un etat pre_once avec la data de la suivante
-                            ce sera gérer dans multi input, pour eviter un etat en +
-                        -ajouter un etat recommençant a la commande encore suivante
-                    
-                    attention le comportement peut être foireux si on a un multi input plus grand que 1
-                        
-                -pour toute les suivantes
-                    scenario:
-                        -changer la valeur sur l'etat en sommet de stack
 
+### context ###
+    #element faisant partie du contexte
+        #type de lecteur
+        #version du firmware du lecteur
+        #type de carte
+        #version de la carte
+        #type de framew
 
+### rfid ###
+    #adapter l'ensemble du code existant au nouveau shell
 
+    #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
+        le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
+   
+   #faire un système de gestion des codes d'erreurs
+	    à faire dans executeAPDU
 
+   #faire un système de décapsulation des réponses
+	    +- en place
 
+   #manage error code
+	    -pouvoir ajouter son propre handler d'erreur
 
-
+### ... ###
