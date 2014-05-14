@@ -61,6 +61,11 @@ class ArgChecker(object):
         
     def setDefaultValue(self,value):
         self.hasDefault = True
+        
+        if value == None:
+            self.default = None
+            return
+            
         self.default = self.getValue(value) #will convert the value if needed
         
     def erraseDefaultValue(self):

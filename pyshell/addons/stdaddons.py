@@ -70,7 +70,7 @@ def listEnvFun(engine):
     return [str(k)+" : "+str(v) for k,v in engine.getEnv().iteritems()]
 
 @shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=environmentChecker("levelTries"))
-def loadAddonFun(name, levelTries, subAddon = ""):
+def loadAddonFun(name, levelTries, subAddon = None):
     "load an external shell addon"
     toLoad = "pyshell.addons."+str(name)
 
@@ -113,7 +113,7 @@ def usageFun(args, mltries):
     print cmd.usage()
 
 @shellMethod(mltries=environmentChecker("levelTries"), args=listArgChecker(ArgChecker()))
-def helpFun(mltries, args=()):
+def helpFun(mltries, args=None):
     "print the usage of a fonction"
     
     if args == None:
