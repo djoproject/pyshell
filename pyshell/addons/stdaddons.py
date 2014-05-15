@@ -1,7 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from pyshell.command.loader import *
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject,net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
@@ -131,6 +146,16 @@ def helpFun(mltries, args=None):
         stringKeys.append(line)
 
     return sorted(stringKeys)
+
+#TODO
+    #unload addon
+    #reload addon
+    #list addon
+        #print loaded or not loaded addon
+    #manage multi src addon
+    #in load addon
+        #if addon have . in its path, just try to load it like that
+        #withou adding a prefix
 
 #TODO         
 """def addAlias(self,CommandStrings,AliasCommandStrings):

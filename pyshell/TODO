@@ -1,19 +1,64 @@
+################
 ### executer ###
+################
+    #l'autocomplétion
+    #gérer des trucs comme >, >>, 2>, 2>>, ...
+        #changer le flux d'output pour la commande
+        #le restaurer ensuiste
+        #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
+            #pour eviter d'avoir plusieurs descripteur vers le même fichier
+            #et ainsi eviter dávoir des overlaps dans le fichier
+        
+    #quand il y a une ambiguité sur une commande, afficher directement les possibilités
+    
+    #manage sigint, sigkill, ...
+    
+#################
+### stdaddons ###
+#################
 	#alias pointant sur 1..n commande(s)
+	    append alias NAME cmd+args
+	    remove alias NAME
+	
         faire une liste d'alias
             description dans le code
-    #l'autocomplétion
-    #gérer des trucs comme >, >>, ...
-    #quand il y a une ambiguité sur une commande, afficher directement les possibilités
+            
+        #un alias peu être utilisé dans un autre alias
+        
+        #probleme lors de la suppression de l'objet pointé
+            #politique de suppression : on_cascade/interactive/error/nothing
+            
+        #eviter d'avoir une reference dans l'objet pointé
+            #comment savoir qu'il est pointé vers un alias alors ?
+            #maintenir un dic avec les mappings ?
+            #checker lors de chaque suppression de commande ?
+
+    #commande pour rediriger l'output vers un fichier
+        #faire une commande de flush
+        #flush and close at exit
+        #si on fait un close, il faut retirer l'event at_exit
+        
+    #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
+        #voir dans les addons rfid
+    
+    #l'env doit être un quadruplet clé, valeur, type, readonly
+        permettre de creer des triplets en definissant le type
+        faire des methodes, get/set/list/...
+        
     #n'afficher que les commandes terminal dans l'aide, comme dans le shell du proxmark
         utiliser le setStopTraversal dans les mltries
         l'aide doit s'arreter là et afficher un subset des clés
             mettre une empty command avec un message __doc__ personnalisé
         lors du insertion, mettre a jour tout les noeuds parents vide
-    #l'env doit être un triplet clé, valeur, type
-        permettre de creer des triplets en definissant le type
 
+    #utilisation de variable
+        #stockée dans l'env
+        #get/set/unset/append/extend/...
+        #dans l'executer: recuperable au niveau du passage de parametre lors d'appelle de commande
+
+#################################
 ### parameter in command call ###
+#################################
 
     ??? Executeur ou ArgChecherS ? entre les deux ?
     -permettre a l'utilisateur de binder uniquement certains argument
@@ -75,32 +120,72 @@
             devra se trouver juste après la recherche de commande
             et juste avant le argfeeder
 
+#######################
 ### parameter files ###
+#######################
     what to parameter:
         tab_length
         history file for raw input
-        
+        param des addons
+            package de base, ...
     
+    faire une classe qui stocke tout les defauts et qui est capable de créer le fichier de conf à partir de zero
+    cette class doit être capable de loader/sauver les params
+    
+    faire des commande pour loader/sauver les parametres n'importe quand
+    
+    mettre le loader/sauver dans les events onstartup/atexit
+    
+    si le load ne parviens pas a trouver le fichier, essayer de le créer
+    
+################
 ### workflow ###
+################
     #n'afficher dans l'aide et n'autoriser que les commandes executables
+        #de manière à vraiment guider l'utilisateur dans ce qu'il peut faire
+        #toujours avoir une commande 
+            #exit : pour quitter le workflow
+            #reset : pour revenir au début du workflow
 
+####################
 ### application  ###
+####################
+
     #on remplace le leveltries courrant par un contenant uniquement les commandes de l'application
         #avec une commande exit pour restaurer le leveltries principale
         #les commandes du leveltries principales doivent toujours être accessible dans les commandes de l'application
         #les apps doivent pouvoir executer du code et en même temps appeler des commandes sur le shell
-        
+    
+    #sorte de workflow
+
+#########################
 ### service installer ###
+#########################
+
     #être en mesure d'activer des applications en tant que service
         #au démarrage entre autre
+    
+    #need to have a loop instruction
+        #or could simply use the loop instruction in shell
 
+#####################
 ### print service ###
+#####################
+
 	an interface with a few meth
 		info
+		    le print classic
 		error
+		    faire un print specific qui va ecrire dans le flux d'erreur
+		    voir exemple sur internet
 		warn
+		    #TODO trouver une astuce
 		...
+
+######################
 ### code generator ###
+######################
+
     #génerer du code executable en dehors du shell
     
     #trois level de code executable:
@@ -115,28 +200,167 @@
             #on est en niveau de script
             #besoin de l'ensemble du code
         
-
+###############
 ### context ###
+###############
+
     #element faisant partie du contexte
         #type de lecteur
         #version du firmware du lecteur
         #type de carte
         #version de la carte
         #type de framew
+        
+    #context method
+        #remove/add context key
+        #remove/add a value to a context key
+            #be able to add a list of value
+        #select value for a context key
+        #set a value as default for a context key
+        #list context key
+        #list value associated to a context key
+        #get value for a context key
+        
+    #thread safe
+        #select/get context must be thread safe
+            #one lock for each contexte
 
+#####################
+### event manager ###
+#####################
+
+    #event type: onstartup, onexit, onContextChange, ...
+    #add event type 
+        #juste une string denomant l'event
+    
+    #list event name
+    #list action to do on event
+        #for on specific event, for an event prefix, for all event, ...
+    #add action on event
+        #add a string command executable in the shell
+        
+    #remove action on event
+        #remove the action at the top
+        #or remove the action at index
+        
+    #permettre de registerer des events dans le loader dans les addons
+    #methode pour declencher les events, fire + event name
+        #être capable de faire fire sur une liste d'event
+        
+    #ça va poser des problèmes si les events sont déclenchés dans des threads
+        #car rien n'est thread safe
+        
+        #mettre un lock sur l'execution d'action ?
+        #ou un pool de commande en attente ?
+        
+    #XXX prblm avec l'event onContextChange
+        #il va probablement survenir lors de l'execution d'un process
+        #on ne peut dés lors pas executer directement l'event, on doit attendre que le courant aie fini
+        #faire un pool d'execution à la fin d'une execution
+        
+    #XXX même problème que precedement mais inversé
+        #si on a un event qui s'éxecute, on ne peut pas démarrer un nouveau process
+        
+    #XXX solution pour les deux problèmes
+        #faire un pool de commande thread safe à executer sequentiellement
+        
+        #si on tente d'executer un process manuellement et qu'un pool de commande est en cours d'execution
+            #on bloque et on attend que le pool soit fini
+            #si le pool de commande genere de nouvelles commandes, celles-ci seront executée avant le process manuel
+            
+        #si on tente d'executer une commande alors qu'un process est en cours d'execution
+            #on l'ajoute dans un pool et on l'execute dès que le process manuel est fini
+
+        #si un second thread veut ajouter des commandes
+            #on fait une priority queueu, classé par thread id
+            #premier arrivé, premier servi
+            #chaque thread a son pool de commande
+            #on ajoute les commandes dans le pool correspondant à l'id du thread qui l'a ajouté
+            #le thread du prompt devient transparent vis à vis des autres threads
+                #cool on gagne en genericité
+
+        import threading
+        threading.Lock()
+        with self.lock:
+        
+        #XXX quid, on perd en puissance niveau multi processing
+            #a quel point ?
+
+    #deux types d'event:
+        #ceux à traiter immediatement
+        #ceux à traiter a la fin du process courant
+        
+        #encore d'actualité avec le thread management ?
+        #même si c'est possible d'executer un process dans un process, c'est crade ...
+    
+    #un fireEvent doit se retrouver dans un nouveau thread pour gérer les locks (see below, threading management)
+        on regroupe un liste de toute les commandes à executer
+        on execute le process de lock
+        on execute les commandes
+
+##########################################
+### threading management brainstorming ###
+##########################################
+
+    okay, a la base, on a juste 1 point d'input, le shell
+        bien que rien n'empêche de finir une partie du process dans un tread de manière à récupérer le prompt plus rapidement
+        ce traitement doit pouvoir être indèpendant de tout autre process lancer ulterieuerement
+            genre: calcul de résultat, écriture sur un fichier, ...
+            
+    Maintenant que se passe t'il si on a des generateur externe d'evenement pouvant executer des commandes?
+        ces commandes peuvent entrer en conflit d'utilisation de ressource exclusive utilisée par une commande venant du prompt
+        
+    Solution 1:
+        tant qu'un tread n'a pas fini d'executer son pool de command, on ne permet pas à un autre tread d'executer son pool de commande
+            #+ : thread safe, completement sequentiel
+            #- : on perd le multitasking
+            
+    Solution 2:
+        Chaque thread examine les ressources necessaires pour executer son groupe de commandes et essayent de les locker de manière ordonnées
+        Si une ressource n'est pas libre, on attends
+            #+ : thread safe aussi
+            #+ : on garde le multitasking
+        
+        prblm si les commandes courantes generent de nouvelle commande dans un fireEvent
+            #car ces nouvelles commandes ont peu être besoin de + de lock qui sont mélangé avec les locks déjà acquis
+            
+        #Solution 2.1:
+            tout groupe de commande genéré se retrouvent dans un nouveau thread où on recommence le process de lock de zéro
+    
+    #definition 
+        #groupe de commande 
+            #liste de 1 à n commande
+        
+        #process de lock
+            #tous les locks sont connu
+            #ils sont classé dans ordre précis
+            #on les acquierent toujours dans le même ordre
+            
+    #quid de l'execution de deux instances de l'application...
+
+############
 ### rfid ###
+############
+
     #adapter l'ensemble du code existant au nouveau shell
 
     #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
         le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
    
-   #faire un système de gestion des codes d'erreurs
+    #faire un système de gestion des codes d'erreurs
 	    à faire dans executeAPDU
+	    -pouvoir ajouter son propre handler d'erreur dans les modules  
+	    
+    #creer de nouveau event: oncardconnect, oncarddisconnect, onreaderconnect, onreaderdisconnect, ...
+    
+    #la commande wait est pourrie dans pyscard, ça fait friser le raspi
+        #essayer de voir s'il n'y a pas moyen d'en faire une sutom moins agressive
 
-   #faire un système de décapsulation des réponses
-	    +- en place
+    #faire des tests de multi process
+        #lancer deux instances de l'application et essayer de se connecter à la même carte
 
-   #manage error code
-	    -pouvoir ajouter son propre handler d'erreur
-
+###########
 ### ... ###
+###########
+
+
