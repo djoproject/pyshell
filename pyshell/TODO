@@ -1,3 +1,9 @@
+##################
+### argchecker ###
+##################
+
+-file path (pour les params)
+
 ################
 ### executer ###
 ################
@@ -40,21 +46,14 @@
         
     #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
         #voir dans les addons rfid
-    
-    #l'env doit être un quadruplet clé, valeur, type, readonly
-        permettre de creer des triplets en definissant le type
-        faire des methodes, get/set/list/...
+        
+        #être capable de faire un diff byte sur deux sources de byte differente
         
     #n'afficher que les commandes terminal dans l'aide, comme dans le shell du proxmark
         utiliser le setStopTraversal dans les mltries
         l'aide doit s'arreter là et afficher un subset des clés
             mettre une empty command avec un message __doc__ personnalisé
         lors du insertion, mettre a jour tout les noeuds parents vide
-
-    #utilisation de variable
-        #stockée dans l'env
-        #get/set/unset/append/extend/...
-        #dans l'executer: recuperable au niveau du passage de parametre lors d'appelle de commande
 
 #################################
 ### parameter in command call ###
@@ -120,23 +119,47 @@
             devra se trouver juste après la recherche de commande
             et juste avant le argfeeder
 
-#######################
-### parameter files ###
-#######################
+#########################
+### Dynamic parameter ###
+#########################
+
+    #l'env doit être un quadruplet clé, valeur, type, readonly
+        permettre de creer des triplets en definissant le type
+        faire des methodes, get/set/list/...
+
+    #utilisation de variable, paramètre dynamique au final
+        #stockée dans l'env 
+            #env["var"] = ...
+        #get/set/unset/append/extend/...
+        #dans l'executer: recuperable au niveau du passage de parametre lors d'appelle de commande
+
+    #fort proche des parametre static, essayer de standardiser
+    
+    #utilisation de type argchecker + readonly boolean
+        #comme pour l'env
+
+################################
+### Static parameter (files) ###
+################################
     what to parameter:
-        tab_length
-        history file for raw input
-        param des addons
+        tab_length                  OK
+        history file for raw input  OK
+        param des addons            TODO use this var
             package de base, ...
     
     faire une classe qui stocke tout les defauts et qui est capable de créer le fichier de conf à partir de zero
-    cette class doit être capable de loader/sauver les params
+    cette class doit être capable de loader/sauver les params OK
     
-    faire des commande pour loader/sauver les parametres n'importe quand
+    faire des commande pour loader/sauver les parametres n'importe quand TODO
     
-    mettre le loader/sauver dans les events onstartup/atexit
+    mettre le loader/sauver dans les events 
+        onstartup TODO (wait event management and loader command)
+            euuuh, ça risque de poser un prblm si on charge les params avant le startup event
+        atexit OK
     
-    si le load ne parviens pas a trouver le fichier, essayer de le créer
+    si le load ne parviens pas a trouver le fichier, essayer de le créer OK
+    
+    https://docs.python.org/2/library/configparser.html
     
 ################
 ### workflow ###
@@ -335,6 +358,10 @@
             #tous les locks sont connu
             #ils sont classé dans ordre précis
             #on les acquierent toujours dans le même ordre
+
+    #XXX    Quid des ressource dynamique necessitant un verrou d'utilisation
+        #exemple une connexion vers une carte rfid
+    
             
     #quid de l'execution de deux instances de l'application...
 

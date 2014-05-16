@@ -29,25 +29,11 @@ from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
 from addons import stdaddons
+from utils import parameterManager
 
 #TODO
-    #parameter file
     #auto completion
     #print ambiguous posibility
-    
-
-##history file
-#load history file
-histfile = os.path.join(os.path.expanduser("~"), ".pyshell") #TODO le file name devrait etre parametrable
-try:
-    readline.read_history_file(histfile)
-except IOError:
-    pass
-
-#save history file at exit
-import atexit
-atexit.register(readline.write_history_file, histfile)
-del os, histfile      
 
 class writer :
     def __init__(self, out) :
@@ -57,7 +43,7 @@ class writer :
         self.out.write("    "+str(text))
         
 class CommandExecuter():
-    def __init__(self):
+    def __init__(self, paramFile):
         self.environment               = {}
         self.environment["prompt"]     = "pyshell:>"
         self.environment["printer"]    = self
@@ -65,7 +51,7 @@ class CommandExecuter():
         self.levelTries                = multiLevelTries()
         self.environment["levelTries"] = self.levelTries
         self.environment["debug"]      = False
-        
+        self.environment["params"]     = paramFile
         
         #try to load standard shell function
         try:
@@ -251,6 +237,21 @@ class CommandExecuter():
         return exitOnEnd
 
 if __name__ == "__main__":
-    executer = CommandExecuter()
+    #load parameter file
+    paramFile = parameterManager.ParameterManager()
+    paramFile.loadFile()
+
+    #load history file
+    try:
+        readline.read_history_file(paramFile.getValue(parameterManager.HISTORY_FILE_PATH))
+    except IOError:
+        pass
+
+    #save history file at exit
+    import atexit
+    atexit.register(readline.write_history_file, paramFile.getValue(parameterManager.HISTORY_FILE_PATH))
+    del os     
+
+    executer = CommandExecuter(paramFile)
     executer.mainLoop()
 
