@@ -3,20 +3,20 @@
 ##################
 
 -file path (pour les params)
+    #correct path
+    #must exist or not
+    #be a file or a directory
+    #...
+
+-environment
+    #just to get the environment variable, not to get a specific variable in it
+    #because it's boring to get the engine var, then the env var...
 
 ################
 ### executer ###
 ################
-    #l'autocomplétion
-    #gérer des trucs comme >, >>, 2>, 2>>, ...
-        #changer le flux d'output pour la commande
-        #le restaurer ensuiste
-        #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
-            #pour eviter d'avoir plusieurs descripteur vers le même fichier
-            #et ainsi eviter dávoir des overlaps dans le fichier
-        
+    #l'autocomplétion        
     #quand il y a une ambiguité sur une commande, afficher directement les possibilités
-    
     #manage sigint, sigkill, ...
     
 #################
@@ -38,11 +38,9 @@
             #comment savoir qu'il est pointé vers un alias alors ?
             #maintenir un dic avec les mappings ?
             #checker lors de chaque suppression de commande ?
-
-    #commande pour rediriger l'output vers un fichier
-        #faire une commande de flush
-        #flush and close at exit
-        #si on fait un close, il faut retirer l'event at_exit
+            
+        #on doit être capable de stocker des args avec l'aliad
+            #tout en pouvant toujours lui en passer en l'appelant
         
     #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
         #voir dans les addons rfid
@@ -119,12 +117,16 @@
             devra se trouver juste après la recherche de commande
             et juste avant le argfeeder
 
+    #inclure la gestion des argument dynamique de type var au moment de la modif
+
+#########################################################################################################################
+
 #########################
 ### Dynamic parameter ###
 #########################
 
-    #l'env doit être un quadruplet clé, valeur, type, readonly
-        permettre de creer des triplets en definissant le type
+    #l'env doit être un quadruplet clé=String, valeur=Object, type=argchecker (ou None si readonly), readonly=Boolean
+        permettre de creer des quadruplets en definissant le type
         faire des methodes, get/set/list/...
 
     #utilisation de variable, paramètre dynamique au final
@@ -132,11 +134,25 @@
             #env["var"] = ...
         #get/set/unset/append/extend/...
         #dans l'executer: recuperable au niveau du passage de parametre lors d'appelle de commande
-
+        #aura un impac au même endroit que les parameter du type "-toto"
+        #accessible sur la ligne de code avec $varname
+        
     #fort proche des parametre static, essayer de standardiser
     
     #utilisation de type argchecker + readonly boolean
         #comme pour l'env
+    
+    #command set
+    create (key) (type=param/var/env) (argchecker) (defaultvalue, if empty argchecker must have default value)
+        #en fonction du type, c'est stocké a des endroits différents dans l'env
+    remove key type
+    create list même argument que create
+        #on a le type context en +
+    remove list
+    get
+    set
+    append (only for list)
+    extend (only for list)
 
 ################################
 ### Static parameter (files) ###
@@ -151,6 +167,7 @@
     cette class doit être capable de loader/sauver les params OK
     
     faire des commande pour loader/sauver les parametres n'importe quand TODO
+        #see command set in Dynamic command
     
     mettre le loader/sauver dans les events 
         onstartup TODO (wait event management and loader command)
@@ -160,69 +177,7 @@
     si le load ne parviens pas a trouver le fichier, essayer de le créer OK
     
     https://docs.python.org/2/library/configparser.html
-    
-################
-### workflow ###
-################
-    #n'afficher dans l'aide et n'autoriser que les commandes executables
-        #de manière à vraiment guider l'utilisateur dans ce qu'il peut faire
-        #toujours avoir une commande 
-            #exit : pour quitter le workflow
-            #reset : pour revenir au début du workflow
 
-####################
-### application  ###
-####################
-
-    #on remplace le leveltries courrant par un contenant uniquement les commandes de l'application
-        #avec une commande exit pour restaurer le leveltries principale
-        #les commandes du leveltries principales doivent toujours être accessible dans les commandes de l'application
-        #les apps doivent pouvoir executer du code et en même temps appeler des commandes sur le shell
-    
-    #sorte de workflow
-
-#########################
-### service installer ###
-#########################
-
-    #être en mesure d'activer des applications en tant que service
-        #au démarrage entre autre
-    
-    #need to have a loop instruction
-        #or could simply use the loop instruction in shell
-
-#####################
-### print service ###
-#####################
-
-	an interface with a few meth
-		info
-		    le print classic
-		error
-		    faire un print specific qui va ecrire dans le flux d'erreur
-		    voir exemple sur internet
-		warn
-		    #TODO trouver une astuce
-		...
-
-######################
-### code generator ###
-######################
-
-    #génerer du code executable en dehors du shell
-    
-    #trois level de code executable:
-        #level 0: un maximum de chose ont déjà été interprété (calcul d'apdu, de checksum, etc.)
-            #il ne reste plus qu'à transmettre les données au framework
-            
-        #level 1: rien n'a encore été calculé (calcul d'apdu, ...)
-            #on génére le code avec les appels de fonction encore parametrable
-            #implique une dépendance au code calculant les apdus
-            
-        #level 2: rien n'est calculé, on execute via le shell
-            #on est en niveau de script
-            #besoin de l'ensemble du code
-        
 ###############
 ### context ###
 ###############
@@ -247,7 +202,37 @@
     #thread safe
         #select/get context must be thread safe
             #one lock for each contexte
+            
+    #merge with dynamic parameter ?
 
+#########################################################################################################################
+
+#####################
+### print service ###
+#####################
+
+	an interface with a few meth
+		info
+		    le print classic
+		error
+		    faire un print specific qui va ecrire dans le flux d'erreur
+		    voir exemple sur internet
+		warn
+		    #TODO trouver une astuce
+		...
+		
+    #gérer des trucs comme >, >>, 2>, 2>>, ...
+        #changer le flux d'output pour la commande
+        #le restaurer ensuiste
+        #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
+            #pour eviter d'avoir plusieurs descripteur vers le même fichier
+            #et ainsi eviter dávoir des overlaps dans le fichier
+
+    #commande pour rediriger l'output vers un fichier
+        #faire une commande de flush
+        #flush and close at exit
+        #si on fait un close, il faut retirer l'event at_exit
+        
 #####################
 ### event manager ###
 #####################
@@ -364,6 +349,57 @@
     
             
     #quid de l'execution de deux instances de l'application...
+
+##### futur work ########################################################################################################
+
+################
+### workflow ###
+################
+    #n'afficher dans l'aide et n'autoriser que les commandes executables
+        #de manière à vraiment guider l'utilisateur dans ce qu'il peut faire
+        #toujours avoir une commande 
+            #exit : pour quitter le workflow
+            #reset : pour revenir au début du workflow
+
+####################
+### application  ###
+####################
+
+    #on remplace le leveltries courrant par un contenant uniquement les commandes de l'application
+        #avec une commande exit pour restaurer le leveltries principale
+        #les commandes du leveltries principales doivent toujours être accessible dans les commandes de l'application
+        #les apps doivent pouvoir executer du code et en même temps appeler des commandes sur le shell
+    
+    #sorte de workflow
+
+#########################
+### service installer ###
+#########################
+
+    #être en mesure d'activer des applications en tant que service
+        #au démarrage entre autre
+    
+    #need to have a loop instruction
+        #or could simply use the loop instruction in shell
+
+######################
+### code generator ###
+######################
+
+    #génerer du code executable en dehors du shell
+    
+    #trois level de code executable:
+        #level 0: un maximum de chose ont déjà été interprété (calcul d'apdu, de checksum, etc.)
+            #il ne reste plus qu'à transmettre les données au framework
+            #minimiser au maximum les imports en provenance du pyshell
+            
+        #level 1: rien n'a encore été calculé (calcul d'apdu, ...)
+            #on génére le code avec les appels de fonction encore parametrable
+            #implique une dépendance au code calculant les apdus
+            
+        #level 2: rien n'est calculé, on execute via le shell
+            #on est en niveau de script
+            #besoin de l'ensemble du code
 
 ############
 ### rfid ###

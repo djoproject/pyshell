@@ -6,3 +6,4 @@ A)on peut toujours registerer une commande avec des arguments sans avoir de deco
     détail de la manière de gèrer ça dans engineCoreTest
 
 B) si on fait un "help li" ça fonctionne, mais pas un "help l"
+    il y a un probleme d'ambiguité, utiliser un systeme similaire que celui utilisé pour les affichers
