@@ -6,7 +6,7 @@ from tries import tries
 from tries.exception import ambiguousPathException
 import collections # for collections.Hashable
 from math import log
-      
+
 ###############################################################################################
 ##### ArgChecker ##############################################################################
 ###############################################################################################
@@ -324,7 +324,7 @@ class environmentChecker(ArgChecker):
         if self.keyname not in self.engine.getEnv():
             raise argException("(Environment) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
     
-        return self.engine.getEnv()[self.keyname]
+        return self.engine.getEnv()[self.keyname][2]
         
     def usage(self):
         return ""
@@ -361,7 +361,7 @@ class environmentDynamicChecker(ArgChecker):
         if value not in self.engine.getEnv():
             raise argException("(EnvironmentDynamic) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
     
-        return self.engine.getEnv()[value]
+        return self.engine.getEnv()[value][2]
     
     def hasDefaultValue(self):
         return False

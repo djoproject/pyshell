@@ -68,4 +68,10 @@ class ParameterManager(object):
         except NoOptionError as noe:
             print("(ParameterManager) getValue, unknow key <"+str(key)+"> : "+str(noe))
             return None
+
+    def keyExist(self, key, parent=MAIN_CATEGORY):
+        return self.config.has_option(parent, key)
+
+    def remove(self, key, parent=MAIN_CATEGORY):
+        self.config.remove_option(parent, key)
         

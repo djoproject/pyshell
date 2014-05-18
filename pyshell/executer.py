@@ -28,34 +28,37 @@ from tries.exception import triesException
 from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
+from arg.argchecker import booleanValueArgChecker, stringArgChecker
 from addons import stdaddons
-from utils import parameterManager
+from utils import parameterManager, contextManager
 
 #TODO
     #auto completion
     #print ambiguous posibility
 
 class writer :
-    def __init__(self, out) :
+    def __init__(self, out):
     	self.out = out
 
-    def write(self, text) :
+    def write(self, text):
         self.out.write("    "+str(text))
         
 class CommandExecuter():
     def __init__(self, paramFile):
         self.environment               = {}
-        self.environment["prompt"]     = "pyshell:>"
-        self.environment["printer"]    = self
-        self.environment["executer"]   = self
+        self.environment["prompt"]     = (stringArgChecker(),False,"pyshell:>",)
+        self.environment["printer"]    = (None,True,self,)
+        self.environment["executer"]   = (None,True,self,)
         self.levelTries                = multiLevelTries()
-        self.environment["levelTries"] = self.levelTries
-        self.environment["debug"]      = False
-        self.environment["params"]     = paramFile
+        self.environment["levelTries"] = (None,True,self.levelTries,)
+        self.environment["debug"]      = (booleanValueArgChecker(),False,False,)
+        self.environment["params"]     = (None,True,paramFile,)
+        self.environment["vars"]       = (None,True,{},)
+        self.environment["context"]    = (None,True,contextManager.contextManager(),)
         
         #try to load standard shell function
         try:
-            stdaddons._loader[None]._load(self.environment["levelTries"])
+            stdaddons._loader[None]._load(self.environment["levelTries"][2])
         except Exception as ex:
             print "failed to load standard addon: "+str(ex)
             
@@ -168,7 +171,7 @@ class CommandExecuter():
             #read prompt
             try:
                 sys.stdout = self.writer.out
-                cmd = raw_input(self.environment["prompt"])
+                cmd = raw_input(self.environment["prompt"][2])
             except SyntaxError:
                 print "   syntax error"
                 continue
@@ -191,9 +194,9 @@ class CommandExecuter():
 
         #this is needed because after an input, the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
-            sys.stdout.write(environment["prompt"])
+            sys.stdout.write(environment["prompt"][2])
         else:
-            sys.stdout.write(environment["prompt"] + readline.get_line_buffer())
+            sys.stdout.write(environment["prompt"][2] + readline.get_line_buffer())
 
         sys.stdout.flush()
         
@@ -209,13 +212,13 @@ class CommandExecuter():
             try:
                 #TODO, la methode searchEntryFromMultiplePrefix ne semble pas adaptee pour ici
                 
-                StartNode,args = environment["levelTries"].searchEntryFromMultiplePrefix(args,True)
+                StartNode,args = environment["levelTries"][2].searchEntryFromMultiplePrefix(args,True)
                 print StartNode.getCompleteName()
             except triesException as e:
                 print "   "+str(e)
                 return None
         if StartNode == None:
-            StartNode = environment["levelTries"].levelOneTries
+            StartNode = environment["levelTries"][2].levelOneTries
     
         key = StartNode.getAllPossibilities().keys()
         #print key
@@ -228,7 +231,7 @@ class CommandExecuter():
         f = open(filename, "r")
         exitOnEnd = True
         for line in f:
-            print environment["prompt"]+line.strip('\n\r')
+            print environment["prompt"][2]+line.strip('\n\r')
             if line.startswith("noexit"):
                 exitOnEnd = False
             elif not self.executeCommand(line):

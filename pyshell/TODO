@@ -12,6 +12,9 @@
     #just to get the environment variable, not to get a specific variable in it
     #because it's boring to get the engine var, then the env var...
 
+-string
+    min size
+
 ################
 ### executer ###
 ################
@@ -26,7 +29,7 @@
 	    append alias NAME cmd+args
 	    remove alias NAME
 	
-        faire une liste d'alias
+        faire une liste d'alias'
             description dans le code
             
         #un alias peu être utilisé dans un autre alias

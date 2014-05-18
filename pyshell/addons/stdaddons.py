@@ -18,10 +18,11 @@
 
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker
+from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker, tokenValueArgChecker
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
 from tries.exception import triesException
 import os
+from pyshell.command.exception import engineInterruptionException
 
 #TODO
     #implement ambiguity management in usage
@@ -147,15 +148,208 @@ def helpFun(mltries, args=None):
 
     return sorted(stringKeys)
 
-#TODO
-    #unload addon
-    #reload addon
-    #list addon
-        #print loaded or not loaded addon
-    #manage multi src addon
-    #in load addon
-        #if addon have . in its path, just try to load it like that
-        #withou adding a prefix
+@shellMethod(newStorageType=tokenValueArgChecker({"variable":"variable", "context":"context", "environment":"environment"}), 
+             key=stringArgChecker(),
+             engine=engineChecker())
+def changeVariableType(newStorageType, key, engine):
+    pass #TODO
+        #only for variable, context and environment
+
+@shellMethod(storageType=tokenValueArgChecker({"variable":"variable", "context":"context", "environment":"environment"}), 
+             key=stringArgChecker(),
+             values=listArgChecker(ArgChecker()),
+             engine=engineChecker())
+def addValuesFun(storageType, key, values, engine):
+    pass #TODO 
+        #only for variable, context and environment
+
+@shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}), 
+             valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
+             key=stringArgChecker(),
+             values=listArgChecker(ArgChecker()),
+             engine=engineChecker(),
+             parent=stringArgChecker())
+def setValuesFun(storageType, valueType, key, values, engine, parent=None):
+    pass #TODO
+        #quid pour le parameter, chiant de stocker des listes...
+
+@shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}), 
+             valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
+             key=stringArgChecker(),
+             value=ArgChecker(),
+             engine=engineChecker(),
+             parent=stringArgChecker())
+def setValueFun(storageType, valueType, key, value, engine, parent=None):
+    env = engine.getEnv()
+
+    #build checker
+    checker = None
+    if valueType == "string":
+        checker = stringArgChecker()
+    elif valueType == "integer":
+        checker = IntegerArgChecker()
+    elif valueType == "boolean":
+        checker = booleanValueArgChecker()
+    elif valueType == "float":
+        checker = floatTokenArgChecker()
+    else:
+        raise engineInterruptionException("Unknow value type", True)
+
+    #check value
+    value = checker.getValue(value)
+
+    #store in the correct place
+    if storageType == "parameter":
+        typ,readonly,val = env["params"]
+        val.setValue(key, str(checker.getValue(value))) #do not store the type
+
+    elif storageType == "variable":
+        typ,readonly,val = env["vars"]
+        val[key] = (checker,value,)
+
+        #TODO 
+            #use which checker ? the new or the old ?
+                #see below
+
+    elif storageType  == "context":
+        typ,readonly,val = env["context"]
+
+        #TODO if checker is not a list
+            #convert the value to list
+            #convert the checker to listchecker
+
+        val.addValue(key, checker.getValue(value), checker)
+    elif storageType == "environment":
+        if key in env:
+            typ,readonly,val = env[key]
+
+            if readonly:
+                raise engineInterruptionException("tis environment object is not removable", True)
+
+        #TODO 
+            #use which checker ? the new or the old ?
+                #use the old, send a warning message if new checker is different
+                #and print a message to explain how to change type
+
+        env[key] = (checker, False, typ.getValue(value),)
+
+    else:
+        raise engineInterruptionException("Unknow storage type",True)
+
+@shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}),  
+             key=stringArgChecker(),
+             engine=engineChecker(),
+             parent=stringArgChecker())
+def getValues(storageType, key, engine, parent=None):
+    "get a value from the environment"
+
+    env = engine.getEnv()
+
+    if storageType == "parameter":
+        typ,readonly,parameters = env["params"]
+        
+        if not parameters.keyExist(key):
+            raise engineInterruptionException("Unknow parameter key", True)
+
+        if parent == None:
+            return parameters.getValue(key)
+        else:
+            return parameters.getValue(key, parent)
+
+    elif storageType == "variable":
+        typ,readonly,val = env["vars"]
+
+        if key not in val:
+            raise engineInterruptionException("Unknow variable key", True)
+
+        return val[key]
+    elif storageType  == "context":
+        typ,readonly,context = env["context"]
+        
+        if not context.hasKey(key):
+            raise engineInterruptionException("Unknow context key", True)
+
+        return context.getValues(key)
+
+    elif storageType == "environment":
+        if key not in env:
+            raise engineInterruptionException("Unknow environment key", True)
+
+        typ,readonly,val = env[key]
+        return val
+    else:
+        raise engineInterruptionException("Unknow storage type",True)
+
+@shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}),  
+             key=stringArgChecker(),
+             engine=engineChecker(),
+             parent=stringArgChecker())
+def removeValues(storageType, key, engine, parent=None):
+    "remove a value from the environment"
+
+    env = engine.getEnv()
+
+    if storageType == "parameter":
+        typ,readonly,parameters = env["params"]
+        
+        if not parameters.keyExist(key):
+            raise engineInterruptionException("Unknow parameter key", True)
+
+        if parent != None:
+            parameters.remove(key, parent)
+        else:
+            parameters.remove(key)
+
+    elif storageType == "variable":
+        typ,readonly,val = env["vars"]
+
+        if key not in val:
+            raise engineInterruptionException("Unknow variable key", True)
+
+        del val[key]
+
+    elif storageType  == "context":
+        typ,readonly,context = env["context"]
+        
+        if not context.hasKey(key):
+            raise engineInterruptionException("Unknow context key", True)
+
+        context.removeContextKey(key)
+
+    elif storageType == "environment":
+        if key not in env:
+            raise engineInterruptionException("Unknow environment key", True)
+
+        typ,readonly,val = env[key]
+        
+        if readonly:
+            raise engineInterruptionException("tis environment object is not removable", True)
+
+        del env[key]
+
+    else:
+        raise engineInterruptionException("Unknow storage type",True)
+
+#TODO needed command
+    #addon
+        #unload addon
+        #reload addon
+        #list addon
+            #print loaded or not loaded addon
+        #manage multi src addon
+        #in load addon
+            #if addon have . in its path, just try to load it like that
+            #withou adding a prefix
+
+    #parameter
+        #list parameter parent
+
+    #context
+        #get selected context
+        #select context value
+
+    #alias
+
 
 #TODO         
 """def addAlias(self,CommandStrings,AliasCommandStrings):
@@ -186,4 +380,7 @@ registerCommand( ("list","environment") , pro=listEnvFun,   post=stringListResul
 registerCommand( ("load","addon",) ,      pro=loadAddonFun)
 registerCommand( ("usage",) ,             pro=usageFun)
 registerCommand( ("help",) ,              pro=helpFun,      post=stringListResultHandler)
+
+registerCommand( ("get","values") ,       pro=getValues,    post=printResultHandler)
+registerCommand( ("remove","values") ,    pro=removeValues)
 

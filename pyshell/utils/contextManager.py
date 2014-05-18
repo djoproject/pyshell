@@ -16,26 +16,53 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from threading import Lock
+
+#TODO
+    #store an argchecker with the value
+
 class contextManager(object):
     def __init__(self):
-        pass #TODO
+        self.lock = Lock()
+        self.context = {}
+                
+    def removeContextKey(self,key):
+        if key in self.context:
+            with self.lock:
+                if key in self.context:
+                    del self.context[key]
         
-    def createContextKey(key, defaultValue=None):
-        pass #TODO
-    
-    #remove/add context key
-        #remove/add a value to a context key
-            #be able to add a list of value
-        #select value for a context key
-        #set a value as default for a context key
-        #list context key
-        #list value associated to a context key
-        #get value for a context key
-    
-    def removeContextKey(key):
-        pass #TODO
+    def addValue(self,key, value, checker = None):
+        with self.lock:
+            if key not in self.context:
+                values = []
+                self.context[key] = values
+            else:
+                values = self.context[key]
+
+            values.append(value)
         
-    def addValue(key):
+    def addValues(self,key, values, checker = None):
+        with self.lock:
+            if key not in self.context:
+                values = []
+                self.context[key] = values
+            else:
+                values = self.context[key]
+
+            values.extend(value)
+
+    def selectValue(self,key, value):
         pass #TODO
-        
-    def addValue
+
+    def getKeys(self):
+        pass #TODO
+
+    def getValues(self,key):
+        pass #TODO
+
+    def getSelectedValue(self, key):
+        pass #TODO
+
+    def hasKey(self, key):
+        return key in self.context
