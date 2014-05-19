@@ -309,6 +309,34 @@ class engineChecker(ArgChecker):
     def erraseDefaultValue(self):
         pass
 
+class completeEnvironmentChecker(ArgChecker):
+    def __init__(self):
+        ArgChecker.__init__(self,0,0,False)
+        
+    def getValue(self,value,argNumber=None):
+        if self.engine == None or not hasattr(self.engine,"getEnv") or not isinstance(self.engine.getEnv(), dict):
+            raise argException("(Environment) Environment is not available")
+    
+        return self.engine.getEnv()
+        
+    def usage(self):
+        return ""
+        
+    def getDefaultValue(self):
+        if self.engine == None or not hasattr(self.engine,"getEnv") or not isinstance(self.engine.getEnv(), dict):
+            raise argException("(Environment) Environment is not available")
+    
+        return self.engine.getEnv()
+        
+    def hasDefaultValue(self):
+        return self.engine == None or not hasattr(self.engine,"getEnv") or not isinstance(self.engine.getEnv(), dict)
+        
+    def setDefaultValue(self,value):
+        pass
+        
+    def erraseDefaultValue(self):
+        pass
+
 class environmentChecker(ArgChecker):
     def __init__(self,keyname):
         if keyname == None or (type(keyname) != str and type(keyname) != unicode) or not isinstance(keyname, collections.Hashable):
@@ -324,7 +352,7 @@ class environmentChecker(ArgChecker):
         if self.keyname not in self.engine.getEnv():
             raise argException("(Environment) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
     
-        return self.engine.getEnv()[self.keyname][2]
+        return self.engine.getEnv()[self.keyname][0]
         
     def usage(self):
         return ""
@@ -333,7 +361,7 @@ class environmentChecker(ArgChecker):
         if self.engine == None or not hasattr(self.engine,"getEnv") or not isinstance(self.engine.getEnv(), dict):
             raise argException("(Environment) Environment is not available")
     
-        return self.engine.getEnv()[self.keyname]
+        return self.engine.getEnv()[self.keyname][0]
         
     def hasDefaultValue(self):
         if self.engine == None or not hasattr(self.engine,"getEnv") or not isinstance(self.engine.getEnv(), dict):
@@ -361,7 +389,7 @@ class environmentDynamicChecker(ArgChecker):
         if value not in self.engine.getEnv():
             raise argException("(EnvironmentDynamic) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
     
-        return self.engine.getEnv()[value][2]
+        return self.engine.getEnv()[value][0]
     
     def hasDefaultValue(self):
         return False

@@ -111,6 +111,9 @@ def registerAddValueToContext(contextKey, value):
     
 def registerAddValueListToContext(contextKey, value):
     pass #TODO
+    
+def registerAddParameter(ParameterParentName, key, value, overrideIfExist = False):
+    pass #TODO
 
 class Loader(object):
     def __init__(self, prefix=()):

@@ -18,7 +18,7 @@
 
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker, tokenValueArgChecker
+from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker, tokenValueArgChecker, completeEnvironmentChecker
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
 from tries.exception import triesException
 import os
@@ -80,10 +80,10 @@ def intToAscii(args):
 
     return s
 
-@shellMethod(engine=engineChecker())
-def listEnvFun(engine):
+@shellMethod(env=completeEnvironmentChecker())
+def listEnvFun(env):
     "list all the environment variable"
-    return [str(k)+" : "+str(v) for k,v in engine.getEnv().iteritems()]
+    return [str(k)+" : "+str(v) for k,v in env.iteritems()]
 
 @shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=environmentChecker("levelTries"))
 def loadAddonFun(name, levelTries, subAddon = None):
@@ -160,8 +160,25 @@ def changeVariableType(newStorageType, key, engine):
              values=listArgChecker(ArgChecker()),
              engine=engineChecker())
 def addValuesFun(storageType, key, values, engine):
-    pass #TODO 
-        #only for variable, context and environment
+    
+    if storageType == "variable":
+        var, typ,readonly,removable = env["vars"]
+
+        #TODO
+        
+    elif storageType  == "context":
+        context, typ,readonly, removable = env["context"]
+
+        #TODO
+        
+    elif storageType == "environment":
+        if key in env:
+            val, typ,readonly, removable = env[key]
+
+            #TODO
+        
+    else:
+        raise engineInterruptionException("Unknow storage type",True)
 
 @shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}), 
              valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
@@ -177,11 +194,13 @@ def setValuesFun(storageType, valueType, key, values, engine, parent=None):
              valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
              key=stringArgChecker(),
              value=ArgChecker(),
-             engine=engineChecker(),
+             env=completeEnvironmentChecker(),
              parent=stringArgChecker())
-def setValueFun(storageType, valueType, key, value, engine, parent=None):
-    env = engine.getEnv()
-
+def setValueFun(storageType, valueType, key, value, env, parent=None):
+    #TODO 
+        #on devrait pouvoir assigner une variable juste avec sa clé, sa valeur et son type
+            #on devrait pouvoir se passer de valueType quand la var existe déjà
+    
     #build checker
     checker = None
     if valueType == "string":
@@ -200,11 +219,11 @@ def setValueFun(storageType, valueType, key, value, engine, parent=None):
 
     #store in the correct place
     if storageType == "parameter":
-        typ,readonly,val = env["params"]
+        val,typ,readonly, removable = env["params"]
         val.setValue(key, str(checker.getValue(value))) #do not store the type
 
     elif storageType == "variable":
-        typ,readonly,val = env["vars"]
+        val,typ,readonly,removable = env["vars"]
         val[key] = (checker,value,)
 
         #TODO 
@@ -212,7 +231,7 @@ def setValueFun(storageType, valueType, key, value, engine, parent=None):
                 #see below
 
     elif storageType  == "context":
-        typ,readonly,val = env["context"]
+        val,typ,readonly,removable = env["context"]
 
         #TODO if checker is not a list
             #convert the value to list
@@ -230,23 +249,22 @@ def setValueFun(storageType, valueType, key, value, engine, parent=None):
             #use which checker ? the new or the old ?
                 #use the old, send a warning message if new checker is different
                 #and print a message to explain how to change type
+                #don't care abour new one if variable exists
 
-        env[key] = (checker, False, typ.getValue(value),)
+        env[key] = (typ.getValue(value), checker, False, True,)
 
     else:
         raise engineInterruptionException("Unknow storage type",True)
 
 @shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}),  
              key=stringArgChecker(),
-             engine=engineChecker(),
+             env=completeEnvironmentChecker(),
              parent=stringArgChecker())
-def getValues(storageType, key, engine, parent=None):
+def getValues(storageType, key, env, parent=None):
     "get a value from the environment"
 
-    env = engine.getEnv()
-
     if storageType == "parameter":
-        typ,readonly,parameters = env["params"]
+        parameters, typ,readonly,removable = env["params"]
         
         if not parameters.keyExist(key):
             raise engineInterruptionException("Unknow parameter key", True)
@@ -257,14 +275,14 @@ def getValues(storageType, key, engine, parent=None):
             return parameters.getValue(key, parent)
 
     elif storageType == "variable":
-        typ,readonly,val = env["vars"]
+        val, typ,readonly,removable = env["vars"]
 
         if key not in val:
             raise engineInterruptionException("Unknow variable key", True)
 
         return val[key]
     elif storageType  == "context":
-        typ,readonly,context = env["context"]
+        context, typ,readonly,removable = env["context"]
         
         if not context.hasKey(key):
             raise engineInterruptionException("Unknow context key", True)
@@ -275,22 +293,22 @@ def getValues(storageType, key, engine, parent=None):
         if key not in env:
             raise engineInterruptionException("Unknow environment key", True)
 
-        typ,readonly,val = env[key]
+        val, typ,readonly, removable = env[key]
         return val
     else:
         raise engineInterruptionException("Unknow storage type",True)
 
 @shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}),  
              key=stringArgChecker(),
-             engine=engineChecker(),
+             env=completeEnvironmentChecker(),
              parent=stringArgChecker())
-def removeValues(storageType, key, engine, parent=None):
+def removeValues(storageType, key, env, parent=None):
     "remove a value from the environment"
 
-    env = engine.getEnv()
+    #TODO manage removable boolean
 
     if storageType == "parameter":
-        typ,readonly,parameters = env["params"]
+        parameters, typ,readonly, removable = env["params"]
         
         if not parameters.keyExist(key):
             raise engineInterruptionException("Unknow parameter key", True)
@@ -301,7 +319,7 @@ def removeValues(storageType, key, engine, parent=None):
             parameters.remove(key)
 
     elif storageType == "variable":
-        typ,readonly,val = env["vars"]
+        val,typ,readonly, removable = env["vars"]
 
         if key not in val:
             raise engineInterruptionException("Unknow variable key", True)
@@ -309,7 +327,7 @@ def removeValues(storageType, key, engine, parent=None):
         del val[key]
 
     elif storageType  == "context":
-        typ,readonly,context = env["context"]
+        context,typ,readonly, removable = env["context"]
         
         if not context.hasKey(key):
             raise engineInterruptionException("Unknow context key", True)
@@ -320,7 +338,7 @@ def removeValues(storageType, key, engine, parent=None):
         if key not in env:
             raise engineInterruptionException("Unknow environment key", True)
 
-        typ,readonly,val = env[key]
+        val,typ,readonly, removable = env[key]
         
         if readonly:
             raise engineInterruptionException("tis environment object is not removable", True)
@@ -347,6 +365,14 @@ def removeValues(storageType, key, engine, parent=None):
     #context
         #get selected context
         #select context value
+        #list context
+    
+    #var
+        #list var
+        #saisir une variable de manière interractive
+        #assigner par pipe
+            #pas besoin d'une commande, juste besoin de la commande setValue
+                #quid de la liste retournée
 
     #alias
 

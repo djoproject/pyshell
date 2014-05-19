@@ -11,6 +11,9 @@
 -environment
     #just to get the environment variable, not to get a specific variable in it
     #because it's boring to get the engine var, then the env var...
+    
+    #add removable boolean
+    #put the value at the biginning of the tuple, then the checker, then the booleans, ...
 
 -string
     min size
