@@ -1,4 +1,10 @@
 ##################
+### decorateur ###
+##################
+-si un arg n'est pas binder dans un decorateur et n'a pas de valeur par defaut, le binder au simple argchecker
+    s'il a un arg par defaut, normalement il prend deja cette valeur la je pense
+
+##################
 ### argchecker ###
 ##################
 

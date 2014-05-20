@@ -20,6 +20,7 @@ from threading import Lock
 
 #TODO
     #store an argchecker with the value
+        #if new key, checker must be different of None
 
 class contextManager(object):
     def __init__(self):
@@ -52,6 +53,9 @@ class contextManager(object):
 
             values.extend(value)
 
+    def setValues(self, key, value):
+        pass #TODO
+
     def selectValue(self,key, value):
         pass #TODO
 
@@ -66,3 +70,4 @@ class contextManager(object):
 
     def hasKey(self, key):
         return key in self.context
+

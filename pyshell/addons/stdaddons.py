@@ -148,47 +148,85 @@ def helpFun(mltries, args=None):
 
     return sorted(stringKeys)
 
-@shellMethod(newStorageType=tokenValueArgChecker({"variable":"variable", "context":"context", "environment":"environment"}), 
-             key=stringArgChecker(),
-             engine=engineChecker())
-def changeVariableType(newStorageType, key, engine):
-    pass #TODO
-        #only for variable, context and environment
-
 @shellMethod(storageType=tokenValueArgChecker({"variable":"variable", "context":"context", "environment":"environment"}), 
              key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
              engine=engineChecker())
 def addValuesFun(storageType, key, values, engine):
-    
     if storageType == "variable":
-        var, typ,readonly,removable = env["vars"]
+        var, checker,readonly,removable = env["vars"]
 
-        #TODO
+        if key not in var:
+            raise engineInterruptionException("Unknow variable key", True)
+
+        value, checker = var[key]
+        
+        if not isinstance(checker,listArgChecker) or not hasattr(value, "__iter__"):
+            raise engineInterruptionException("Variable <"+str(key)+"> is not a list, can not append new value", True)
+        
+        newValues = []
+        for i in range(0, len(values)):
+            newValues.append(checker.getValue(values[i],i))
+        
+        value = list(value)
+        value.append(newValues)
+        var[key] = (value, checher,)
         
     elif storageType  == "context":
         context, typ,readonly, removable = env["context"]
 
-        #TODO
+        if not context.hasKey(key):
+            raise engineInterruptionException("Unknow context key", True)
+
+        context.addValues(key, values)
         
     elif storageType == "environment":
         if key in env:
-            val, typ,readonly, removable = env[key]
+            value, checker,readonly, removable = env[key]
 
-            #TODO
+            if readonly:
+                raise engineInterruptionException("this environment object is not removable", True)
+                
+            if not isinstance(checker,listArgChecker) or not hasattr(value, "__iter__"):
+                raise engineInterruptionException("Variable <"+str(key)+"> is not a list, can not append new value", True)
         
+            newValues = []
+            for i in range(0, len(values)):
+                newValues.append(checker.getValue(values[i],i))
+            
+            value = list(value)
+            value.append(newValues)
+            env[key] = (value, checker,readonly, removable,)
     else:
         raise engineInterruptionException("Unknow storage type",True)
+
+def _getChecker(valueType):
+    if valueType == "string":
+        return stringArgChecker()
+    elif valueType == "integer":
+        return IntegerArgChecker()
+    elif valueType == "boolean":
+        return booleanValueArgChecker()
+    elif valueType == "float":
+        return floatTokenArgChecker()
+    
+    raise engineInterruptionException("Unknow value type", True)
 
 @shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}), 
              valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
              key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
-             engine=engineChecker(),
+             env=completeEnvironmentChecker(),
              parent=stringArgChecker())
-def setValuesFun(storageType, valueType, key, values, engine, parent=None):
-    pass #TODO
-        #quid pour le parameter, chiant de stocker des listes...
+def createValuesFun(storageType, valueType, key, values, env, parent=None):
+    #build checker
+    checker = listArgChecker(_getChecker(valueType),1)
+    
+    #check value
+    value = checker.getValue(values)
+    
+    #TODO assign
+    
 
 @shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}), 
              valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
@@ -196,62 +234,77 @@ def setValuesFun(storageType, valueType, key, values, engine, parent=None):
              value=ArgChecker(),
              env=completeEnvironmentChecker(),
              parent=stringArgChecker())
-def setValueFun(storageType, valueType, key, value, env, parent=None):
-    #TODO 
-        #on devrait pouvoir assigner une variable juste avec sa clé, sa valeur et son type
-            #on devrait pouvoir se passer de valueType quand la var existe déjà
-    
+def createValueFun(storageType, valueType, key, value, env, parent=None):
     #build checker
-    checker = None
-    if valueType == "string":
-        checker = stringArgChecker()
-    elif valueType == "integer":
-        checker = IntegerArgChecker()
-    elif valueType == "boolean":
-        checker = booleanValueArgChecker()
-    elif valueType == "float":
-        checker = floatTokenArgChecker()
-    else:
-        raise engineInterruptionException("Unknow value type", True)
-
+    checker = _getChecker(valueType)
+    
     #check value
     value = checker.getValue(value)
-
-    #store in the correct place
-    if storageType == "parameter":
-        val,typ,readonly, removable = env["params"]
-        val.setValue(key, str(checker.getValue(value))) #do not store the type
-
-    elif storageType == "variable":
-        val,typ,readonly,removable = env["vars"]
-        val[key] = (checker,value,)
-
-        #TODO 
-            #use which checker ? the new or the old ?
-                #see below
+    
+    #TODO assign
+    if storageType == "variable":
+        val,checker,readonly,removable = env["vars"]
+        
+        if key in val:
+            raise engineInterruptionException("Unknow variable key", True)
+        
+        val[key] = (checker.getValue(values), checker,)
 
     elif storageType  == "context":
-        val,typ,readonly,removable = env["context"]
-
-        #TODO if checker is not a list
-            #convert the value to list
-            #convert the checker to listchecker
-
-        val.addValue(key, checker.getValue(value), checker)
+        context,checker,readonly,removable = env["context"]
+    
+        if not context.hasKey(key):
+            raise engineInterruptionException("Unknow context key", True)
+    
+        context.setValues(key, values)
+        
     elif storageType == "environment":
-        if key in env:
-            typ,readonly,val = env[key]
+        if key not in env:
+            raise engineInterruptionException("Unknow environment key", True)
+            
+        val, typ,readonly, removable = env[key]
 
-            if readonly:
-                raise engineInterruptionException("tis environment object is not removable", True)
+        if readonly:
+            raise engineInterruptionException("this environment object is not removable", True)
 
-        #TODO 
-            #use which checker ? the new or the old ?
-                #use the old, send a warning message if new checker is different
-                #and print a message to explain how to change type
-                #don't care abour new one if variable exists
+        env[key] = (checker.getValue(values), checker, readonly, removable,)
 
-        env[key] = (typ.getValue(value), checker, False, True,)
+    else:
+        raise engineInterruptionException("Unknow storage type",True)
+
+
+@shellMethod(storageType=tokenValueArgChecker({"variable":"variable", "context":"context", "environment":"environment"}), 
+             key=stringArgChecker(),
+             values=listArgChecker(ArgChecker(),1),
+             env=completeEnvironmentChecker(),
+             parent=stringArgChecker())
+def setValuesFun(storageType, key, values, env, parent=None):
+    if storageType == "variable":
+        val,checker,readonly,removable = env["vars"]
+        
+        if key not in val:
+            raise engineInterruptionException("Unknow variable key", True)
+        
+        val[key] = (checker.getValue(values), checker,)
+
+    elif storageType  == "context":
+        context,checker,readonly,removable = env["context"]
+    
+        if not context.hasKey(key):
+            raise engineInterruptionException("Unknow context key", True)
+    
+        context.setValues(key, values)
+        
+    elif storageType == "environment":
+        if key not in env:
+            raise engineInterruptionException("Unknow environment key", True)
+            
+        val, typ,readonly, removable = env[key]
+
+        if readonly:
+            raise engineInterruptionException("this environment object is not removable", True)
+
+        env[key] = (checker.getValue(values), checker, readonly, removable,)
 
     else:
         raise engineInterruptionException("Unknow storage type",True)
@@ -305,8 +358,6 @@ def getValues(storageType, key, env, parent=None):
 def removeValues(storageType, key, env, parent=None):
     "remove a value from the environment"
 
-    #TODO manage removable boolean
-
     if storageType == "parameter":
         parameters, typ,readonly, removable = env["params"]
         
@@ -340,13 +391,27 @@ def removeValues(storageType, key, env, parent=None):
 
         val,typ,readonly, removable = env[key]
         
-        if readonly:
-            raise engineInterruptionException("tis environment object is not removable", True)
+        if readonly or not removable:
+            raise engineInterruptionException("this environment object is not removable", True)
 
         del env[key]
 
     else:
         raise engineInterruptionException("Unknow storage type",True)
+
+############### XXX XXX XXX
+    #prblm avec l'approche actuel des variables, on est obligé de les créer pour les utiliser
+        #si on fait 
+            #echo 1 2 3 | setValue
+                #erreur si la var n'existe pas
+            #echo 1 2 3 | createValue
+                #erreur si la variable existe
+    
+    #solution
+        #faire un boolean d'override a la creation
+
+############### XXX XXX XXX
+
 
 #TODO needed command
     #addon
