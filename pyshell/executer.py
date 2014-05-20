@@ -124,7 +124,7 @@ class CommandExecuter():
                     
                     return False
                 elif not searchResult.isAvalueOnTheLastTokenFound():
-                    print("unknown command <"+" ".join(finalCmd)+">")
+                    print("unknown command <"+" ".join(finalCmd)+">, type <help> to get the list of commands")
                     return False
 
                 #append in list

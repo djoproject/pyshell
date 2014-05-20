@@ -407,8 +407,13 @@ def removeValues(storageType, key, env, parent=None):
             #echo 1 2 3 | createValue
                 #erreur si la variable existe
     
-    #solution
+    #solution 1
         #faire un boolean d'override a la creation
+        
+    #solution 2
+        #on se fout du type des variables, on les laisse toujours en mode "string"
+        #elle seront verifiee lors de leur utilisation comme parametre de methode
+        #get, set, unset
 
 ############### XXX XXX XXX
 

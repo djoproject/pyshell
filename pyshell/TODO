@@ -216,6 +216,11 @@
             #one lock for each contexte
             
     #merge with dynamic parameter ?
+    
+    #debug variable must be in context
+        #need to limit edition
+        #lock append
+        #lock remove
 
 #########################################################################################################################
 
