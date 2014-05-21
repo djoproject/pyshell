@@ -328,45 +328,42 @@ def getValues(storageType, key, env, parent=None):
     else:
         raise engineInterruptionException("Unknow storage type",True)
 
-@shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}),  
-             key=stringArgChecker(),
-             env=completeEnvironmentChecker(),
+@shellMethod(key=stringArgChecker(),
+             parameters=environmentChecker("params"),
              parent=stringArgChecker())
-def removeValues(storageType, key, env, parent=None):
-    "remove a value from the environment"
+def removeParameterValues(key, parameters, parent=None):
+    "remove a value from the Parameter"
 
-    if storageType == "parameter":
-        parameters, typ,readonly, removable = env["params"]
-        
-        if not parameters.keyExist(key):
-            return #no job to do
+    if not parameters.keyExist(key):
+        return #no job to do
 
-        if parent != None:
-            parameters.remove(key, parent)
-        else:
-            parameters.remove(key)
-
-    elif storageType  == "context":
-        context,typ,readonly, removable = env["context"]
-        
-        if not context.hasKey(key):
-            return #no job to do
-
-        context.removeContextKey(key)
-
-    elif storageType == "environment":
-        if key not in env:
-            return #no job to do
-
-        val,typ,readonly, removable = env[key]
-        
-        if readonly or not removable:
-            raise engineInterruptionException("this environment object is not removable", True)
-
-        del env[key]
-
+    if parent != None:
+        parameters.remove(key, parent)
     else:
-        raise engineInterruptionException("Unknow storage type",True)
+        parameters.remove(key)
+            
+@shellMethod(key=stringArgChecker(),
+             context=environmentChecker("context"))
+def removeContextValues(key, context):
+    if not context.hasKey(key):
+        return #no job to do
+
+    context.removeContextKey(key)
+
+@shellMethod(key=stringArgChecker(),
+             env=completeEnvironmentChecker())
+def removeEnvironmentContextValues(key, env):
+    if key not in env:
+        return #no job to do
+
+    val,typ,readonly, removable = env[key]
+    
+    if readonly or not removable:
+        raise engineInterruptionException("this environment object is not removable", True)
+
+    del env[key]
+
+### context management ###
 
 ### var management ###
 
@@ -390,6 +387,17 @@ def unsetVar(key, _vars):
     if key in _vars:
         del _vars[key]
 
+@shellMethod(_vars=environmentChecker("vars"))
+def listVar(_vars):
+    ret = []
+    
+    for k,v in _vars.items():
+        ret.append(str(k)+" : "+str(v))
+    
+    return ret
+    
+###
+
 #TODO needed command
     #addon
         #unload addon
@@ -402,6 +410,7 @@ def unsetVar(key, _vars):
             #withou adding a prefix
 
     #parameter/context/environment
+        #split meths in individual, remove storageType
         #bound method to shell
 
     #parameter
@@ -413,7 +422,6 @@ def unsetVar(key, _vars):
         #list context
     
     #var
-        #list var
         #saisir une variable de manière interractive
 
     #alias
@@ -452,7 +460,9 @@ registerCommand( ("help",) ,              pro=helpFun,      post=stringListResul
 #registerCommand( ("get","values") ,       pro=getValues,    post=printResultHandler)
 registerCommand( ("remove","values") ,     pro=removeValues)
 
-registerCommand( ("set","var") ,          pro=setVar)
-registerCommand( ("get","var") ,          pre=getVar, pro=stringListResultHandler)
-registerCommand( ("unset","var") ,        pro=unsetVar)
+registerCommand( ("var", "set") ,          post=setVar)
+registerCommand( ("var", "get",) ,         pre=getVar, pro=stringListResultHandler)
+registerCommand( ("var", "unset") ,        pro=unsetVar)
+registerCommand( ("var", "list") ,         pre=listVar, pro=stringListResultHandler)
+
 
