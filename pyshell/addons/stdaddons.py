@@ -19,7 +19,7 @@
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
-from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
+from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
 from tries.exception import triesException
 import os
 from pyshell.command.exception import engineInterruptionException
@@ -151,39 +151,6 @@ def helpFun(mltries, args=None):
 
 ### various method to manage var ###
 
-@shellMethod(storageType=tokenValueArgChecker({"context":"context", "environment":"environment"}), 
-             key=stringArgChecker(),
-             values=listArgChecker(ArgChecker()),
-             env=completeEnvironmentChecker())
-def addValuesFun(storageType, key, values, env):
-    if storageType  == "context":
-        context, typ,readonly, removable = env["context"]
-
-        if not context.hasKey(key):
-            raise engineInterruptionException("Unknow context key", True)
-
-        context.addValues(key, values)
-        
-    elif storageType == "environment":
-        if key in env:
-            value, checker,readonly, removable = env[key]
-
-            if readonly:
-                raise engineInterruptionException("this environment object is not removable", True)
-                
-            if not isinstance(checker,listArgChecker) or not hasattr(value, "__iter__"):
-                raise engineInterruptionException("Variable <"+str(key)+"> is not a list, can not append new value", True)
-        
-            newValues = []
-            for i in range(0, len(values)):
-                newValues.append(checker.getValue(values[i],i))
-            
-            value = list(value)
-            value.append(newValues)
-            env[key] = (value, checker,readonly, removable,)
-    else:
-        raise engineInterruptionException("Unknow storage type",True)
-
 def _getChecker(valueType):
     if valueType == "string":
         return stringArgChecker()
@@ -196,48 +163,90 @@ def _getChecker(valueType):
     
     raise engineInterruptionException("Unknow value type", True)
 
-@shellMethod( storageType=tokenValueArgChecker({"context":"context", "environment":"environment"}), 
-             valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
-             key=stringArgChecker(),
-             values=listArgChecker(ArgChecker()),
-             #FIXME noErrorIfExists=booleanValueArgChecker(),
-             env=completeEnvironmentChecker())
-def createValuesFun(storageType, valueType, key, values, noErrorIfExists=False, env=None):
-    #build checker
-    checker = listArgChecker(_getChecker(valueType),1)
-    
-    #check value
-    value = checker.getValue(values)
-    
-    #assign
-    if storageType  == "context":
-        context,checker,readonly,removable = env["context"]
+### parameter ###
 
-        if not context.hasKey(key):
-            if noErrorIfExists:
-                return
+@shellMethod(key=stringArgChecker(),
+             parameters=environmentChecker("params"),
+             parent=stringArgChecker())
+def removeParameterValues(key, parameters, parent=None):
+    "remove a value from the Parameter"
 
-            raise engineInterruptionException("Unknow context key", True)
+    if not parameters.keyExist(key):
+        return #no job to do
 
-        context.addValues(key, values, checker)
-
-    elif storageType == "environment":
-        if key in env:
-            if noErrorIfExists:
-                return
-
-            raise engineInterruptionException("Unknow environment key", True)
-
-        env[key] = (value, valueType, False, True,)
-
+    if parent != None:
+        parameters.remove(key, parent)
     else:
-        raise engineInterruptionException("Unknow storage type",True)
+        parameters.remove(key)
 
-@shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
-             key=stringArgChecker(),
+@shellMethod(key=stringArgChecker(),
+             env=completeEnvironmentChecker(),
+             parent=stringArgChecker())
+def getParameterValues(key, env, parent=None):
+    "get a value from the environment"
+
+    parameters, typ,readonly,removable = env["params"]
+    
+    if not parameters.keyExist(key):
+        raise engineInterruptionException("Unknow parameter key", True)
+
+    if parent == None:
+        return parameters.getValue(key)
+    else:
+        return parameters.getValue(key, parent)
+
+@shellMethod(key=stringArgChecker(),
+             values=listArgChecker(ArgChecker(),1),
+             #FIXME parent=stringArgChecker(),
+             parameter=environmentChecker("params"))
+def setParameterValue(key, values, parent = MAIN_CATEGORY, parameter = None):
+    parameter.setValue(key, ', '.join(str(x) for x in values), parent)
+            
+### env management ###
+
+@shellMethod(key=stringArgChecker(),
+             env=completeEnvironmentChecker())
+def removeEnvironmentContextValues(key, env):
+    if key not in env:
+        return #no job to do
+
+    val,typ,readonly, removable = env[key]
+    
+    if readonly or not removable:
+        raise engineInterruptionException("this environment object is not removable", True)
+
+    del env[key]
+
+@shellMethod(key=stringArgChecker(),
+             env=completeEnvironmentChecker())
+def getEnvironmentValues(key, env):
+    if key not in env:
+        raise engineInterruptionException("Unknow environment key", True)
+
+    val, typ,readonly, removable = env[key]
+    return val
+
+@shellMethod(key=stringArgChecker(),
+             values=listArgChecker(ArgChecker(),1),
+             env=completeEnvironmentChecker())
+def setEnvironmentValuesFun(key, values, env):
+    if key not in env:
+        raise engineInterruptionException("Unknow environment key", True)
+        
+    val, typ,readonly, removable = env[key]
+
+    if readonly:
+        raise engineInterruptionException("this environment object is not removable", True)
+
+    #TODO actualy, not possible to set a single value, work only for listchecker
+        #manage the case with only one value
+
+    env[key] = (checker.getValue(values), checker, readonly, removable,)
+
+@shellMethod(key=stringArgChecker(),
              value=ArgChecker(),
              env=completeEnvironmentChecker())
-def createEnvironmentValueFun(valueType, key, value, env, parent=None):
+def createEnvironmentValueFun(key, value, env):
     #build checker
     checker = _getChecker(valueType)
     
@@ -255,93 +264,50 @@ def createEnvironmentValueFun(valueType, key, value, env, parent=None):
 
     env[key] = (checker.getValue(values), checker, readonly, removable,)
 
-@shellMethod(storageType=tokenValueArgChecker({"context":"context", "environment":"environment"}), 
+@shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
              key=stringArgChecker(),
-             values=listArgChecker(ArgChecker(),1),
-             env=completeEnvironmentChecker(),
-             parent=stringArgChecker())
-def setValuesFun(storageType, key, values, env, parent=None):
-    if storageType  == "context":
-        context,checker,readonly,removable = env["context"]
+             values=listArgChecker(ArgChecker()),
+             #FIXME noErrorIfExists=booleanValueArgChecker(),
+             env=completeEnvironmentChecker())
+def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, env=None):
+    #build checker
+    checker = listArgChecker(_getChecker(valueType),1)
     
-        if not context.hasKey(key):
-            raise engineInterruptionException("Unknow context key", True)
+    #check value
+    value = checker.getValue(values)
     
-        context.setValues(key, values)
-        
-    elif storageType == "environment":
-        if key not in env:
-            raise engineInterruptionException("Unknow environment key", True)
-            
-        val, typ,readonly, removable = env[key]
+    #assign
+    if key in env:
+        if noErrorIfExists:
+            return
+
+        raise engineInterruptionException("Unknow environment key", True)
+
+    env[key] = (value, valueType, False, True,)
+
+@shellMethod(key=stringArgChecker(),
+             values=listArgChecker(ArgChecker()),
+             env=completeEnvironmentChecker())
+def addEnvironmentValuesFun(key, values, env):
+    if key in env:
+        value, checker,readonly, removable = env[key]
 
         if readonly:
             raise engineInterruptionException("this environment object is not removable", True)
-
-        #TODO actualy, not possible to set a single value, work only for listchecker
-            #manage the case with only one value
-
-        env[key] = (checker.getValue(values), checker, readonly, removable,)
-
-    else:
-        raise engineInterruptionException("Unknow storage type",True)
-
-@shellMethod(key=stringArgChecker(),
-             values=listArgChecker(ArgChecker(),1),
-             #FIXME parent=stringArgChecker(),
-             parameter=environmentChecker("params"))
-def setParameterValue(key, values, parent = MAIN_CATEGORY, parameter = None):
-    parameter.setValue(key, ', '.join(str(x) for x in values), parent)
-
-@shellMethod(storageType=tokenValueArgChecker({"parameter":"parameter", "variable":"variable", "context":"context", "environment":"environment"}),  
-             key=stringArgChecker(),
-             env=completeEnvironmentChecker(),
-             parent=stringArgChecker())
-def getValues(storageType, key, env, parent=None):
-    "get a value from the environment"
-
-    if storageType == "parameter":
-        parameters, typ,readonly,removable = env["params"]
-        
-        if not parameters.keyExist(key):
-            raise engineInterruptionException("Unknow parameter key", True)
-
-        if parent == None:
-            return parameters.getValue(key)
-        else:
-            return parameters.getValue(key, parent)
-
-    elif storageType  == "context":
-        context, typ,readonly,removable = env["context"]
-        
-        if not context.hasKey(key):
-            raise engineInterruptionException("Unknow context key", True)
-
-        return context.getValues(key)
-
-    elif storageType == "environment":
-        if key not in env:
-            raise engineInterruptionException("Unknow environment key", True)
-
-        val, typ,readonly, removable = env[key]
-        return val
-    else:
-        raise engineInterruptionException("Unknow storage type",True)
-
-@shellMethod(key=stringArgChecker(),
-             parameters=environmentChecker("params"),
-             parent=stringArgChecker())
-def removeParameterValues(key, parameters, parent=None):
-    "remove a value from the Parameter"
-
-    if not parameters.keyExist(key):
-        return #no job to do
-
-    if parent != None:
-        parameters.remove(key, parent)
-    else:
-        parameters.remove(key)
             
+        if not isinstance(checker,listArgChecker) or not hasattr(value, "__iter__"):
+            raise engineInterruptionException("Variable <"+str(key)+"> is not a list, can not append new value", True)
+    
+        newValues = []
+        for i in range(0, len(values)):
+            newValues.append(checker.getValue(values[i],i))
+        
+        value = list(value)
+        value.append(newValues)
+        env[key] = (value, checker,readonly, removable,)
+
+### context management ###
+
 @shellMethod(key=stringArgChecker(),
              context=environmentChecker("context"))
 def removeContextValues(key, context):
@@ -351,19 +317,55 @@ def removeContextValues(key, context):
     context.removeContextKey(key)
 
 @shellMethod(key=stringArgChecker(),
+             context=environmentChecker("context"))
+def getContextValues(key, context):
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    return context.getValues(key)
+
+@shellMethod(key=stringArgChecker(),
+             values=listArgChecker(ArgChecker(),1),
+             context=environmentChecker("context"))
+def setContextValuesFun(key, values, context):
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    context.setValues(key, values)
+
+@shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
+             key=stringArgChecker(),
+             values=listArgChecker(ArgChecker()),
+             #FIXME noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
-def removeEnvironmentContextValues(key, env):
-    if key not in env:
-        return #no job to do
-
-    val,typ,readonly, removable = env[key]
+def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=None):
+    #build checker
+    checker = listArgChecker(_getChecker(valueType),1)
     
-    if readonly or not removable:
-        raise engineInterruptionException("this environment object is not removable", True)
+    #check value
+    value = checker.getValue(values)
+    
+    #assign
+    context,checker,readonly,removable = env["context"]
 
-    del env[key]
+    if not context.hasKey(key):
+        if noErrorIfExists:
+            return
 
-### context management ###
+        raise engineInterruptionException("Unknow context key", True)
+
+    context.addValues(key, values, checker)
+
+@shellMethod(key=stringArgChecker(),
+             values=listArgChecker(ArgChecker()),
+             env=completeEnvironmentChecker())
+def addContextValuesFun(key, values, env):
+    context, typ,readonly, removable = env["context"]
+
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    context.addValues(key, values)
 
 ### var management ###
 
@@ -409,20 +411,22 @@ def listVar(_vars):
             #if addon have . in its path, just try to load it like that
             #withou adding a prefix
 
-    #parameter/context/environment
+    #parameter/context/environment/var
         #split meths in individual, remove storageType
         #bound method to shell
 
-    #parameter
-        #list parameter parent
+        #create a false create method
+            #just check or not (boolean) if the value already exist, then make a set
+
+        #list
+
+        #saisir une variable de manière interractive
 
     #context
         #get selected context
+        #get selected index
         #select context value
-        #list context
-    
-    #var
-        #saisir une variable de manière interractive
+        #select context index
 
     #alias
 
@@ -457,12 +461,23 @@ registerCommand( ("load","addon",) ,      pro=loadAddonFun)
 registerCommand( ("usage",) ,             pro=usageFun)
 registerCommand( ("help",) ,              pro=helpFun,      post=stringListResultHandler)
 
-#registerCommand( ("get","values") ,       pro=getValues,    post=printResultHandler)
-registerCommand( ("remove","values") ,     pro=removeValues)
-
+#var
 registerCommand( ("var", "set") ,          post=setVar)
 registerCommand( ("var", "get",) ,         pre=getVar, pro=stringListResultHandler)
 registerCommand( ("var", "unset") ,        pro=unsetVar)
 registerCommand( ("var", "list") ,         pre=listVar, pro=stringListResultHandler)
+
+#context
+registerCommand( ("context", "unset") ,    pro=removeContextValues)
+registerCommand( ("context", "get") ,      pre=getContextValues, pro=listResultHandler)
+registerCommand( ("context", "set") ,      post=setContextValuesFun)
+registerCommand( ("context", "create") ,   post=createContextValuesFun)
+registerCommand( ("context", "add") ,      post=addContextValuesFun)
+
+#parameter
+
+#env
+
+
 
 
