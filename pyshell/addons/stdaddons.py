@@ -337,35 +337,66 @@ def setContextValuesFun(key, values, context):
              key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
              #FIXME noErrorIfExists=booleanValueArgChecker(),
-             env=completeEnvironmentChecker())
-def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=None):
+             context=environmentChecker("context"))
+def createContextValuesFun(valueType, key, values, noErrorIfExists=False, context=None):
     #build checker
     checker = listArgChecker(_getChecker(valueType),1)
     
     #check value
     value = checker.getValue(values)
-    
-    #assign
-    context,checker,readonly,removable = env["context"]
 
-    if not context.hasKey(key):
+    if context.hasKey(key):
         if noErrorIfExists:
             return
 
         raise engineInterruptionException("Unknow context key", True)
-
-    context.addValues(key, values, checker)
+    
+    #assign
+    context.addValues(key, value, checker)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
-             env=completeEnvironmentChecker())
-def addContextValuesFun(key, values, env):
-    context, typ,readonly, removable = env["context"]
-
+             context=environmentChecker("context"))
+def addContextValuesFun(key, values, context):
     if not context.hasKey(key):
         raise engineInterruptionException("Unknow context key", True)
 
     context.addValues(key, values)
+
+@shellMethod(key=stringArgChecker(),
+             value=ArgChecker(),
+             context=environmentChecker("context"))
+def selectValue(key, value, context):
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    context.selectValue(key, value)
+    
+@shellMethod(key=stringArgChecker(),
+             index=IntegerArgChecker(),
+             context=environmentChecker("context"))
+def selectValueIndex(key, index, context):
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    context.selectValueIndex(key, index)
+
+@shellMethod(key=stringArgChecker(),
+             context=environmentChecker("context"))
+def getSelectedContextValue(key, context):
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    return context.getSelectedValue(key)
+
+@shellMethod(key=stringArgChecker(),
+             context=environmentChecker("context"))
+def getSelectedContextIndex(key, context):
+    if not context.hasKey(key):
+        raise engineInterruptionException("Unknow context key", True)
+
+    return context.getSelectedIndex(key)
+
 
 ### var management ###
 
@@ -423,10 +454,8 @@ def listVar(_vars):
         #saisir une variable de manière interractive
 
     #context
-        #get selected context
-        #get selected index
-        #select context value
-        #select context index
+        #select context value, mapping
+        #select context index, mapping
 
     #alias
 
@@ -473,6 +502,8 @@ registerCommand( ("context", "get") ,      pre=getContextValues, pro=listResultH
 registerCommand( ("context", "set") ,      post=setContextValuesFun)
 registerCommand( ("context", "create") ,   post=createContextValuesFun)
 registerCommand( ("context", "add") ,      post=addContextValuesFun)
+registerCommand( ("context", "value",) ,   pre=getSelectedContextValue, pro=printResultHandler)
+registerCommand( ("context", "index",) ,   pre=getSelectedContextIndex, pro=printResultHandler)
 
 #parameter
 

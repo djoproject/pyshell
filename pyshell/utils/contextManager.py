@@ -21,6 +21,7 @@ from threading import Lock
 #TODO
     #store an argchecker with the value
         #if new key, checker must be different of None
+    #check value
 
 class contextManager(object):
     def __init__(self):
@@ -36,37 +37,63 @@ class contextManager(object):
     def addValue(self,key, value, checker = None):
         with self.lock:
             if key not in self.context:
+                #if checker 
+            
                 values = []
-                self.context[key] = values
+                self.context[key] = values, 0, checker
             else:
-                values = self.context[key]
+                values, index, checker = self.context[key]
 
             values.append(value)
         
-    def addValues(self,key, values, checker = None):
+    def addValues(self,key, newValues, checker = None):
         with self.lock:
             if key not in self.context:
                 values = []
-                self.context[key] = values
+                self.context[key] = values, 0, checker
             else:
-                values = self.context[key]
+                values, index, checker = self.context[key]
 
-            values.extend(value)
+            values.extend(newValues)
 
-    def setValues(self, key, value):
-        pass #TODO
+    def setValues(self, key, new_value, new_checker = None):
+        with self.lock:
+            if key not in self.context:
+                values = []
+                self.context[key] = new_value, 0, new_checker
+            else:
+                values, index, checker = self.context[key]
+                self.context[key] = new_value, 0, checker
 
     def selectValue(self,key, value):
-        pass #TODO
+        if value not in self.context[key][0]:
+            pass #TODO
+            
+        values, index, checker = self.context[key]
+        self.context[key] = values, values.index(value), checker
+
+    def selectValueIndex(self,key, new_index):
+        try:
+            self.context[key][0][index]
+        except IndexError:
+            pass #TODO
+        except TypeError:
+            pass #TODO
+        
+        values, index, checker = self.context[key]
+        self.context[key] = values, new_index, checker
 
     def getKeys(self):
-        pass #TODO
+        return self.context.keys()
 
     def getValues(self,key):
-        pass #TODO
+        return self.context[key][0]
 
     def getSelectedValue(self, key):
-        pass #TODO
+        return self.context[key][0][self.context[key][1]]
+
+    def getSelectedIndex(self, key):
+        return self.context[key][1]
 
     def hasKey(self, key):
         return key in self.context

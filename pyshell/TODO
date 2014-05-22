@@ -30,6 +30,12 @@
     #l'autocomplétion        
     #quand il y a une ambiguité sur une commande, afficher directement les possibilités
     #manage sigint, sigkill, ...
+        #interrompre l'ensemble des process en cours
+        #ou flinguer le courant et demander pour la suite
+        
+    #context
+        #debug
+        #script/interractive/daemon/...
     
 #################
 ### stdaddons ###
