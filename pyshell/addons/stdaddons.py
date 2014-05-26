@@ -57,18 +57,6 @@ def echo16(args):
 
     return s
 
-def listAddonFun():
-    "list the available addons"
-    
-    l = []
-    if os.path.exists("./pyshell/addons/"):
-        for dirname, dirnames, filenames in os.walk('./pyshell/addons/'):
-            for name in filenames:
-                if name.endswith(".py") and name != "__init__.py":
-                    l.append(name[0:-3])
-
-    return l
-
 @shellMethod(args=listArgChecker(IntegerArgChecker()))
 def intToAscii(args):
     "echo all the args into chars"
@@ -80,35 +68,6 @@ def intToAscii(args):
             s += str(a)
 
     return s
-
-@shellMethod(env=completeEnvironmentChecker())
-def listEnvFun(env):
-    "list all the environment variable"
-    return [str(k)+" : "+str(v) for k,v in env.iteritems()]
-
-@shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=environmentChecker("levelTries"))
-def loadAddonFun(name, levelTries, subAddon = None):
-    "load an external shell addon"
-    toLoad = "pyshell.addons."+str(name)
-
-    if subAddon == "":
-        subAddon = None
-
-    try:
-        mod = __import__(toLoad,fromlist=["_loader"])
-        
-        if not hasattr(mod, "_loader"):
-            print("invalid addon, no loader found.  don't forget to register at least one command in the addon")
-        
-        if subAddon not in mod._loader:
-            print("sub addon does not exist in the addon <"+str(name)+">")
-        
-        mod._loader[None]._load(levelTries)
-        print "   "+toLoad+" loaded !"  
-    except ImportError as ie:
-        print "import error in <"+name+"> loading : "+str(ie)
-    except NameError as ne:
-        print "name error in <"+name+"> loading : "+str(ne)
     
 @shellMethod(args=listArgChecker(ArgChecker()), mltries=environmentChecker("levelTries"))
 def usageFun(args, mltries):
@@ -132,6 +91,10 @@ def usageFun(args, mltries):
 @shellMethod(mltries=environmentChecker("levelTries"), args=listArgChecker(ArgChecker()))
 def helpFun(mltries, args=None):
     "print the usage of a fonction"
+    
+    #TODO
+        #big exploration bug in case of ambiguity
+        #use the stop traversal on node
     
     if args == None:
         args = ()
@@ -182,7 +145,7 @@ def removeParameterValues(key, parameters, parent=None):
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker(),
              parent=stringArgChecker())
-def getParameterValues(key, env, parent=None):
+def getParameterValues(key, env, parent=None): 
     "get a value from the environment"
 
     parameters, typ,readonly,removable = env["params"]
@@ -219,7 +182,7 @@ def removeEnvironmentContextValues(key, env):
 
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker())
-def getEnvironmentValues(key, env):
+def getEnvironmentValues(key, env): 
     if key not in env:
         raise engineInterruptionException("Unknow environment key", True)
 
@@ -229,7 +192,7 @@ def getEnvironmentValues(key, env):
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
              env=completeEnvironmentChecker())
-def setEnvironmentValuesFun(key, values, env):
+def setEnvironmentValuesFun(key, values, env): 
     if key not in env:
         raise engineInterruptionException("Unknow environment key", True)
         
@@ -246,7 +209,7 @@ def setEnvironmentValuesFun(key, values, env):
 @shellMethod(key=stringArgChecker(),
              value=ArgChecker(),
              env=completeEnvironmentChecker())
-def createEnvironmentValueFun(key, value, env):
+def createEnvironmentValueFun(key, value, env): 
     #build checker
     checker = _getChecker(valueType)
     
@@ -269,7 +232,7 @@ def createEnvironmentValueFun(key, value, env):
              values=listArgChecker(ArgChecker()),
              #FIXME noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
-def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, env=None):
+def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
     #build checker
     checker = listArgChecker(_getChecker(valueType),1)
     
@@ -305,6 +268,11 @@ def addEnvironmentValuesFun(key, values, env):
         value = list(value)
         value.append(newValues)
         env[key] = (value, checker,readonly, removable,)
+
+@shellMethod(env=completeEnvironmentChecker())
+def listEnvFun(env):
+    "list all the environment variable"
+    return [str(k)+" : "+str(v) for k,v in env.iteritems()]
 
 ### context management ###
 
@@ -397,6 +365,13 @@ def getSelectedContextIndex(key, context):
 
     return context.getSelectedIndex(key)
 
+@shellMethod(context=environmentChecker("context"))
+def listContext(context):
+    strlist = []
+    for k in context.getKeys():
+        strlist.append(k + " : " + ', '.join("<"+str(+x)+">" for x in context.getValues(k)) + "  (selected index: "+str(context.getSelectedIndex(k))+", value: <"+str(context.getSelectedValue(k))+">)")
+
+    return strlist
 
 ### var management ###
 
@@ -428,7 +403,51 @@ def listVar(_vars):
         ret.append(str(k)+" : "+str(v))
     
     return ret
+
+### addon ###
+
+def listAddonFun():
+    "list the available addons"
     
+    l = []
+    if os.path.exists("./pyshell/addons/"):
+        for dirname, dirnames, filenames in os.walk('./pyshell/addons/'):
+            for name in filenames:
+                if name.endswith(".py") and name != "__init__.py":
+                    l.append(name[0:-3])
+
+    return l
+
+@shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=environmentChecker("levelTries"))
+def loadAddonFun(name, levelTries, subAddon = None):
+    "load an external shell addon"
+    toLoad = "pyshell.addons."+str(name)
+
+    if subAddon == "":
+        subAddon = None
+
+    try:
+        mod = __import__(toLoad,fromlist=["_loader"])
+        
+        if not hasattr(mod, "_loader"):
+            print("invalid addon, no loader found.  don't forget to register at least one command in the addon")
+        
+        if subAddon not in mod._loader:
+            print("sub addon does not exist in the addon <"+str(name)+">")
+        
+        mod._loader[None]._load(levelTries)
+        print "   "+toLoad+" loaded !"  
+    except ImportError as ie:
+        print "import error in <"+name+"> loading : "+str(ie)
+    except NameError as ne:
+        print "name error in <"+name+"> loading : "+str(ne)
+
+def unloadAddon():
+    pass #TODO
+
+def reloadAddon():
+    pass #TODO
+
 ###
 
 #TODO needed command
@@ -443,19 +462,12 @@ def listVar(_vars):
             #withou adding a prefix
 
     #parameter/context/environment/var
-        #split meths in individual, remove storageType
-        #bound method to shell
-
         #create a false create method
             #just check or not (boolean) if the value already exist, then make a set
 
         #list
 
         #saisir une variable de manière interractive
-
-    #context
-        #select context value, mapping
-        #select context index, mapping
 
     #alias
 
@@ -479,36 +491,57 @@ def listVar(_vars):
         
         pass #TODO"""
 
-registerCommand( ("exit",) ,              pro=exitFun)
-registerCommand( ("quit",) ,              pro=exitFun)
-registerCommand( ("echo",) ,              pro=echo,         post=printResultHandler)
-registerCommand( ("echo16",) ,            pro=echo16,       post=printResultHandler)
-registerCommand( ("list","addon",) ,      pro=listAddonFun, post=stringListResultHandler)
-registerCommand( ("toascii",) ,           pro=intToAscii,   post=printResultHandler)
-registerCommand( ("list","environment") , pro=listEnvFun,   post=stringListResultHandler)
-registerCommand( ("load","addon",) ,      pro=loadAddonFun)
-registerCommand( ("usage",) ,             pro=usageFun)
-registerCommand( ("help",) ,              pro=helpFun,      post=stringListResultHandler)
+#<misc>
+registerCommand( ("exit",) ,                          pro=exitFun)
+registerCommand( ("quit",) ,                          pro=exitFun)
+registerCommand( ("echo",) ,                          pro=echo,         post=printResultHandler)
+registerCommand( ("echo16",) ,                        pro=echo16,       post=printResultHandler)
+registerCommand( ("toascii",) ,                       pro=intToAscii,   post=printResultHandler)
+registerCommand( ("usage",) ,                         pro=usageFun)
+registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
 
 #var
-registerCommand( ("var", "set") ,          post=setVar)
-registerCommand( ("var", "get",) ,         pre=getVar, pro=stringListResultHandler)
-registerCommand( ("var", "unset") ,        pro=unsetVar)
-registerCommand( ("var", "list") ,         pre=listVar, pro=stringListResultHandler)
+registerCommand( ("var", "set",) ,                    post=setVar)
+registerCommand( ("var", "get",) ,                    pre=getVar, pro=stringListResultHandler)
+registerCommand( ("var", "unset",) ,                  pro=unsetVar)
+registerCommand( ("var", "list",) ,                   pre=listVar, pro=stringListResultHandler)
+registerStopHelpTraversalAt( ("var",) )
 
 #context
-registerCommand( ("context", "unset") ,    pro=removeContextValues)
-registerCommand( ("context", "get") ,      pre=getContextValues, pro=listResultHandler)
-registerCommand( ("context", "set") ,      post=setContextValuesFun)
-registerCommand( ("context", "create") ,   post=createContextValuesFun)
-registerCommand( ("context", "add") ,      post=addContextValuesFun)
-registerCommand( ("context", "value",) ,   pre=getSelectedContextValue, pro=printResultHandler)
-registerCommand( ("context", "index",) ,   pre=getSelectedContextIndex, pro=printResultHandler)
+registerCommand( ("context", "unset",) ,              pro=removeContextValues)
+registerCommand( ("context", "get",) ,                pre=getContextValues, pro=listResultHandler)
+registerCommand( ("context", "set",) ,                post=setContextValuesFun)
+registerCommand( ("context", "create",) ,             post=createContextValuesFun)
+registerCommand( ("context", "add",) ,                post=addContextValuesFun)
+registerCommand( ("context", "value",) ,              pre=getSelectedContextValue, pro=printResultHandler)
+registerCommand( ("context", "index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
+registerCommand( ("context", "select", "index",) ,    post=selectValueIndex)
+registerCommand( ("context", "select", "value",) ,    post=selectValue)
+registerCommand( ("context", "list",) ,               pre=listContext, pro=stringListResultHandler)
+registerStopHelpTraversalAt( ("context",) )
 
-#parameter
+#parameter   
+registerCommand( ("parameter", "unset",) ,            pro=removeParameterValues)
+registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=printResultHandler)
+registerCommand( ("parameter", "set",) ,              post=setParameterValue)
+registerStopHelpTraversalAt( ("parameter",) )
 
 #env
+registerCommand( ("environment", "list",) ,           pro=listEnvFun,   post=stringListResultHandler)
+registerCommand( ("environment", "create","single",), post=createEnvironmentValueFun)
+registerCommand( ("environment", "create","list",),   post=createEnvironmentValuesFun)
+registerCommand( ("environment", "get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
+registerCommand( ("environment", "unset",) ,          pro=removeEnvironmentContextValues)
+registerCommand( ("environment", "set",) ,            post=setEnvironmentValuesFun)
+registerCommand( ("environment", "add",) ,            post=addEnvironmentValuesFun)
+registerStopHelpTraversalAt( ("environment",) )
 
+#addon
+registerCommand( ("addon","list",) ,                  pro=listAddonFun, post=stringListResultHandler)
+registerCommand( ("addon","load",) ,                  pro=loadAddonFun)
+registerStopHelpTraversalAt( ("addon",) )
+
+#alias
 
 
 

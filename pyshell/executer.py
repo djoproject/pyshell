@@ -28,7 +28,7 @@ from tries.exception import triesException
 from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
-from arg.argchecker import booleanValueArgChecker, stringArgChecker
+from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker
 from addons import stdaddons
 from utils import parameterManager, contextManager
 
@@ -52,7 +52,7 @@ class CommandExecuter():
         self.environment["executer"]   = (self,None,True,False,)
         self.levelTries                = multiLevelTries()
         self.environment["levelTries"] = (self.levelTries,None,True,False,)
-        self.environment["debug"]      = (False,booleanValueArgChecker(),False,False,)
+        #self.environment["debug"]      = (False,booleanValueArgChecker(),False,False,)
         self.environment["params"]     = (paramFile,None,True,False,)
         self.environment["vars"]       = ({},None,True,False,)
         self.environment["context"]    = (contextManager.contextManager(),None,True,False,)
@@ -62,7 +62,9 @@ class CommandExecuter():
             stdaddons._loader[None]._load(self.environment["levelTries"][0])
         except Exception as ex:
             print "failed to load standard addon: "+str(ex)
-            
+        
+        self.environment["context"][0].addValues("debug", [0,1,2,3,4,5], IntegerArgChecker())
+        
         #redirect output
         real_out    = sys.stdout
         self.writer = writer(real_out)

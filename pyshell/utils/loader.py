@@ -114,6 +114,9 @@ def registerAddValueListToContext(contextKey, value):
     
 def registerAddParameter(ParameterParentName, key, value, overrideIfExist = False):
     pass #TODO
+    
+def registerStopHelpTraversalAt(keyList):
+    pass #TODO
 
 class Loader(object):
     def __init__(self, prefix=()):
