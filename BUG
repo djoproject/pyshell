@@ -7,6 +7,11 @@ A)on peut toujours registerer une commande avec des arguments sans avoir de deco
 
 B) si on fait un "help li" ça fonctionne, mais pas un "help l"
     il y a un probleme d'ambiguité, utiliser un systeme similaire que celui utilisé pour les affichers
+    
+    XXX ce probleme n'existe plus suite a un rennomage, cela se présentait avec list et load
+    
+    si on fait "help ec", on obitent l'aide pour echo mais pas pour echo16
+    si on fait "help e", on obtient une erreur d'ambiguité...
 
 C) dans les exception du shellMethod decorator, on ne donne pas le nom de la methode
 	pas pratique s'il y a une erreur et qu'on vient d'ajouter plusieurs process

@@ -99,6 +99,14 @@ def helpFun(mltries, args=None):
     if args == None:
         args = ()
 
+    advancedResult = mltries.advancedSearch(args, False)
+    if advancedResult.isAmbiguous():
+        tokenIndex = len(advancedResult.existingPath) - 1
+        tries = advancedResult.existingPath[tokenIndex][1].localTries
+        print tries.getKeyList(args[tokenIndex])
+        #TODO bug dans tries, ça retourne toutes les clés accessibles à partir du noeud trouvé avec la clé passée en parametre
+            #problème, ça renvoit tous les token... 
+
     dic = mltries.buildDictionnary(args, False, True, False)
     stringKeys = []
 
