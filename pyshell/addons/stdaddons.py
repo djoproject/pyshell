@@ -27,7 +27,6 @@ from pyshell.utils.parameterManager import MAIN_CATEGORY
 
 #TODO
     #implement ambiguity management in usage
-    #fix bug in help (see bug file)
     #emplement alias management
 
 def exitFun():
@@ -91,32 +90,104 @@ def usageFun(args, mltries):
 @shellMethod(mltries=environmentChecker("levelTries"), args=listArgChecker(ArgChecker()))
 def helpFun(mltries, args=None):
     "print the usage of a fonction"
-    
-    #TODO
-        #big exploration bug in case of ambiguity
-        #use the stop traversal on node
-    
+
     if args == None:
         args = ()
 
+    #little hack to be able to get help about for a function who has another function as prefix
+    if len(args) > 0:
+        fullArgs = args[:]
+        prefix = args[-1]
+        args = args[:-1]
+    else:
+        prefix = None
+        fullArgs = None
+
+    #manage ambiguity cases
     advancedResult = mltries.advancedSearch(args, False)
     if advancedResult.isAmbiguous():
         tokenIndex = len(advancedResult.existingPath) - 1
         tries = advancedResult.existingPath[tokenIndex][1].localTries
-        print tries.getKeyList(args[tokenIndex])
-        #TODO bug dans tries, ça retourne toutes les clés accessibles à partir du noeud trouvé avec la clé passée en parametre
-            #problème, ça renvoit tous les token... 
+        print tries.childs[0].childs[1].childs
+        keylist = tries.getKeyList(args[tokenIndex])
 
-    dic = mltries.buildDictionnary(args, False, True, False)
+        #if ambiguity occurs on an intermediate key, stop the search
+        print "Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist)
+        return
+
     stringKeys = []
-
+    #cmd without stop traversal
+    dic = mltries.buildDictionnary(args, False, True, False)
     for k in dic.keys():
+        if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
+            continue
+
         line = " ".join(k)
         hmess = dic[k].helpMessage
         if hmess != None and len(hmess) > 0:
             line += ": "+hmess
 
         stringKeys.append(line)
+
+    #cmd with stop traversal
+    dic2 = mltries.buildDictionnary(args, True, True, False)
+    stop = {}
+    for k in dic2.keys():
+        if k in dic:
+            continue
+
+        if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
+            continue
+
+        for i in range(1,len(k)):
+            #this level of k is disabled, not the first occurence
+            if k[0:i] in stop:
+                if i == len(k):
+                    break
+
+                if k[i] not in stop[ k[0:i] ]:
+                    stop[ k[0:i] ].append(k[i])
+
+                break
+
+            #this level of k is disabled, first occurence
+            if mltries.isStopTraversal(k[0:i]):
+
+                #is enable with the args ?
+                equiv = False
+                if fullArgs != None and len(fullArgs) >= len(k[0:i]):
+                    equiv = True
+                    for j in range(0,min(  len(fullArgs), len(k) ) ):
+                        if not k[j].startswith(fullArgs[j]):
+                            equiv = False 
+
+                if not equiv:
+                    if i == len(k):
+                        stop[ k[0:i] ] = []
+                    else:
+                        stop[ k[0:i] ] = ([ k[i] ])
+                    
+                    break
+
+            #this path is not disabled
+            if i == (len(k) -1):
+                line = " ".join(k)
+                hmess = dic2[k].helpMessage
+                if hmess != None and len(hmess) > 0:
+                    line += ": "+hmess
+
+                stringKeys.append(line)
+
+
+    for stopPath, subChild in stop.items():
+        if len(subChild) == 0:
+            continue
+
+        string = " ".join(stopPath) + ": {" + ",".join(subChild[0:3])
+        if len(subChild) > 3:
+            string += ",..."
+
+        stringKeys.append(string+"}")
 
     return sorted(stringKeys)
 

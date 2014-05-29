@@ -115,16 +115,22 @@ def registerAddValueListToContext(contextKey, value):
 def registerAddParameter(ParameterParentName, key, value, overrideIfExist = False):
     pass #TODO
     
-def registerStopHelpTraversalAt(keyList):
-    pass #TODO
+def registerStopHelpTraversalAt(keyList,subLoaderName = None):
+    loader = _getAndInitCallerModule(subLoaderName)
+
+    #check cmd and keylist
+    _raiseIfInvalidKeyList(keyList, "registerCreateMultiCommand")
+    loader.stoplist.append(keyList)
 
 class Loader(object):
     def __init__(self, prefix=()):
-        self.prefix  = prefix
-        self.cmdDict = {}
-        self.TempPrefix = None    
+        self.prefix     = prefix
+        self.cmdDict    = {}
+        self.TempPrefix = None
+        self.stoplist   = []
     
     def _load(self, mltries):
+        #add command
         for k,v in self.cmdDict.iteritems():
             keyList, cmd = v
             key = list(self.prefix)
@@ -133,7 +139,14 @@ class Loader(object):
                 mltries.insert(key, cmd)
             except triesException as te:
                 print "fail to insert key <"+str(" ".join(key))+"> in multi tries: "+str(te)
-            
+
+        #stop traversal
+        for stop in self.stoplist:
+            try:
+                mltries.setStopTraversal(stop, True)
+            except triesException as te:
+                print "fail to disable traversal for key list <"+str(" ".join(stop))+"> in multi tries: "+str(te)
+
     def _unload(self, mltries):
         for k,v in self.cmdDict.iteritems():
             keyList, cmd = v
