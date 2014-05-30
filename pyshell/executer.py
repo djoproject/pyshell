@@ -20,7 +20,6 @@
 import readline
 import os
 import sys
-#import traceback
 
 #custom library
 from tries import multiLevelTries
@@ -31,9 +30,6 @@ from arg.exception import *
 from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker
 from addons import stdaddons
 from utils import parameterManager, contextManager
-
-#TODO
-    #print ambiguous posibility
 
 class writer :
     def __init__(self, out):
@@ -113,19 +109,20 @@ class CommandExecuter():
                     print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
                     return False
                 
-                if searchResult.isAmbiguous():
-                    print "ambiguity"#TODO show the different possibility
-                    
-                    #TODO get tries index in result and get corresponding advancedTriesResult
-                    advancedTriesResult = searchResult.getAdvancedTriesResult(searchResult.getTokenUsed() - 1)
-                    
-                    #TODO generate corresponding value
-                    
-                    #TODO print them
-                    
+                if searchResult.isAmbiguous():                    
+                    tokenIndex = len(searchResult.existingPath) - 1
+                    tries = searchResult.existingPath[tokenIndex][1].localTries
+                    keylist = tries.getKeyList(finalCmd[tokenIndex])
+
+                    print("ambiguity on command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[tokenIndex])+">, possible value: "+ ", ".join(keylist))
+ 
                     return False
                 elif not searchResult.isAvalueOnTheLastTokenFound():
-                    print("unknown command <"+" ".join(finalCmd)+">, type <help> to get the list of commands")
+                    if searchResult.getTokenFoundCount() == len(finalCmd):
+                        print("uncomplete command <"+" ".join(finalCmd)+">, type <help "+" ".join(finalCmd)+"> to get the next available parts of this command")
+                    else:
+                        print("unknown command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[searchResult.getTokenFoundCount()])+"> is unknown, type <help> to get the list of commands")
+                    
                     return False
 
                 #append in list
