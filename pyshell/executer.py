@@ -24,7 +24,7 @@ import sys
 
 #custom library
 from tries import multiLevelTries
-from tries.exception import triesException
+from tries.exception import triesException, pathNotExistsTriesException
 from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
@@ -33,7 +33,6 @@ from addons import stdaddons
 from utils import parameterManager, contextManager
 
 #TODO
-    #auto completion
     #print ambiguous posibility
 
 class writer :
@@ -161,16 +160,17 @@ class CommandExecuter():
         return False
     
     def mainLoop(self):
+        #enable autocompletion
+        if 'libedit' in readline.__doc__:
+            import rlcompleter
+            readline.parse_and_bind ("bind ^I rl_complete")
+        else:
+            readline.parse_and_bind("tab: complete")
+
+        readline.set_completer(self.complete)
+
+        #mainloop
         while True:
-            #enable autocompletion
-                #TODO need to do that at every iteration ???
-            if(sys.platform == 'darwin'):
-                import rlcompleter
-                readline.parse_and_bind ("bind ^I rl_complete")
-            else:
-                readline.parse_and_bind("tab: complete")
-            readline.set_completer(self.complete)
-            
             #read prompt
             try:
                 sys.stdout = self.writer.out
@@ -203,32 +203,78 @@ class CommandExecuter():
 
         sys.stdout.flush()
         
-    def complete(self,prefix,index):
-        #TODO pas encore au point
-        
-        args = prefix.split(" ")
-        if len(args) < 0 :
-            print "   split command error"
-            return None
-        StartNode = None
-        if len(args) > 0:
-            try:
-                #TODO, la methode searchEntryFromMultiplePrefix ne semble pas adaptee pour ici
-                
-                StartNode,args = environment["levelTries"][0].searchEntryFromMultiplePrefix(args,True)
-                print StartNode.getCompleteName()
-            except triesException as e:
-                print "   "+str(e)
-                return None
-        if StartNode == None:
-            StartNode = environment["levelTries"][0].levelOneTries
-    
-        key = StartNode.getAllPossibilities().keys()
-        #print key
+    def complete(self,suffix,index):
+        fullline = readline.get_line_buffer() #get the full data stored in readline
+        fullline = fullline.split("|")[-1]
+
         try:
-            return key[index]
-        except IndexError:
-            return None
+            fullline = fullline.strip(' \t\n\r')
+
+            #special case, empty line
+            if len(fullline) == 0: 
+                fullline = ()
+                dic = self.environment["levelTries"][0].buildDictionnary(fullline, True, True, False)
+
+                toret = {}
+                for k in dic.keys():
+                    toret[k[0]] = None
+
+                toret = toret.keys()[:]
+                toret.append(None)
+                return toret[index]
+            else:
+                #split on space
+                fullline = fullline.split(" ")
+
+            ###manage ambiguity
+            advancedResult = self.environment["levelTries"][0].advancedSearch(fullline, False)
+            if advancedResult.isAmbiguous():
+                tokenIndex = len(advancedResult.existingPath) - 1
+
+                if tokenIndex != (len(fullline)-1):
+                    return None #ambiguity on an inner level
+
+                tries = advancedResult.existingPath[tokenIndex][1].localTries
+                keylist = tries.getKeyList(fullline[tokenIndex])
+
+                keys = []
+                for key in keylist:
+                    tmp = list(fullline[:])
+                    tmp.append(key)
+                    keys.append(tmp)
+            else:
+                try:
+                    dic = self.environment["levelTries"][0].buildDictionnary(fullline, True, True, False)
+                except pathNotExistsTriesException as pnete:
+                    return None
+
+                keys = dic.keys()
+
+            #
+            finalKeys = []
+            for k in keys:
+                if len(k) >= len(fullline) and len(k[len(fullline)-1]) > len(fullline[-1]):
+                    toappend = k[len(fullline)-1]
+
+                    if len(k) > len(fullline):
+                        toappend += " "
+
+                    finalKeys.append(toappend)
+                    break
+
+                finalKeys.append(" ".join(k[len(fullline):]))
+            
+            #if no other choice than the current value, return the current value
+            if "" in finalKeys and len(finalKeys) == 1:
+                return (fullline[-1],None,)[index]
+
+            finalKeys.append(None)
+            return finalKeys[index]
+        except Exception as ex:
+            import traceback,sys
+            print traceback.format_exc()
+
+        return None
 
     def executeFile(self,filename):
         f = open(filename, "r")

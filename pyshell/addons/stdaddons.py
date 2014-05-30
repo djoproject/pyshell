@@ -80,8 +80,9 @@ def usageFun(args, mltries):
     if searchResult.isAmbiguous():
         print "ambiguity"#TODO show the different possibility, see in executer
         return
+
     elif not searchResult.isAvalueOnTheLastTokenFound():
-        print "no result"
+        print "no result" #TODO which is the unknow token ?
         return
 
     cmd = searchResult.getLastTokenFoundValue()
@@ -108,7 +109,6 @@ def helpFun(mltries, args=None):
     if advancedResult.isAmbiguous():
         tokenIndex = len(advancedResult.existingPath) - 1
         tries = advancedResult.existingPath[tokenIndex][1].localTries
-        print tries.childs[0].childs[1].childs
         keylist = tries.getKeyList(args[tokenIndex])
 
         #if ambiguity occurs on an intermediate key, stop the search
