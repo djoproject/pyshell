@@ -27,8 +27,6 @@
 ################
 ### executer ###
 ################
-    #l'autocomplétion        
-    #quand il y a une ambiguité sur une commande, afficher directement les possibilités
     #manage sigint, sigkill, ...
         #interrompre l'ensemble des process en cours
         #ou flinguer le courant et demander pour la suite
@@ -70,6 +68,24 @@
         l'aide doit s'arreter là et afficher un subset des clés
             mettre une empty command avec un message __doc__ personnalisé
         lors du insertion, mettre a jour tout les noeuds parents vide
+
+    """def addAlias(self,CommandStrings,AliasCommandStrings):
+        #pas aussi simple
+            #on doit pouvoir gerer des alias avec des arguments fixe
+        
+        #commande speciale
+            #contient le path vers la commande
+            #les arguments ou une partie des arguments
+        
+        #TODO CommandStrings can't contain special token : >, >>, |, ...
+        
+        #TODO find the command in the tree
+        
+        #TODO build alias command
+        
+        #TODO insert in tree
+        
+        pass #TODO"""
 
 #################################
 ### parameter in command call ###

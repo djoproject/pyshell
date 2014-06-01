@@ -27,7 +27,6 @@ from pyshell.utils.parameterManager import MAIN_CATEGORY
 
 #TODO
     #implement ambiguity management in usage
-    #emplement alias management
 
 def exitFun():
     "Exit the program"
@@ -547,28 +546,6 @@ def reloadAddon():
         #list
 
         #saisir une variable de manière interractive
-
-    #alias
-
-
-#TODO         
-"""def addAlias(self,CommandStrings,AliasCommandStrings):
-        #pas aussi simple
-            #on doit pouvoir gerer des alias avec des arguments fixe
-        
-        #commande speciale
-            #contient le path vers la commande
-            #les arguments ou une partie des arguments
-        
-        #TODO CommandStrings can't contain special token : >, >>, |, ...
-        
-        #TODO find the command in the tree
-        
-        #TODO build alias command
-        
-        #TODO insert in tree
-        
-        pass #TODO"""
 
 #<misc>
 registerCommand( ("exit",) ,                          pro=exitFun)

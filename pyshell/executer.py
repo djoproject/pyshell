@@ -38,15 +38,55 @@ class writer :
     def write(self, text):
         self.out.write("    "+str(text))
         
+#TODO replace every $SOMETHING with its internal value
+
+def _parseLine(line, args):
+    line = line.split("|")
+    toret = []
+
+    for partline in line:
+        #remove blank char
+        partline = partline.strip(' \t\n\r')
+        if len(partline) == 0:
+            continue
+        
+        #split on space
+        partline = partline.split(" ")
+
+        #fo each token
+        finalCmd = []
+        for cmd in partline:
+            cmd = cmd.strip(' \t\n\r')
+            if len(cmd) == 0 :
+                continue
+
+            if cmd.startswith("$") and len(cmd) > 1:
+                if cmd[1:] not in args:
+                    print("Unknown var <"+cmd[1:]+">")
+                    return ()
+
+                finalCmd.extend(args[cmd[1:]])
+
+            elif cmd.startswith("\$"):
+                finalCmd.append(cmd[1:])
+            else:
+                finalCmd.append(cmd)
+
+        if len(finalCmd) == 0:
+            continue
+
+        toret.append(finalCmd)
+
+    return toret
+
 class CommandExecuter():
     def __init__(self, paramFile):
         #self.environment[KEY]         = (VALUE, CHECKER, READONLY, REMOVABLE, )
         self.environment               = {}
         self.environment["prompt"]     = ("pyshell:>",stringArgChecker(),False,False,)
         self.environment["printer"]    = (self,None,True,False,)
-        self.environment["executer"]   = (self,None,True,False,)
-        self.levelTries                = multiLevelTries()
-        self.environment["levelTries"] = (self.levelTries,None,True,False,)
+        #self.environment["executer"]   = (self,None,True,False,)
+        self.environment["levelTries"] = (multiLevelTries(),None,True,False,)
         #self.environment["debug"]      = (False,booleanValueArgChecker(),False,False,)
         self.environment["params"]     = (paramFile,None,True,False,)
         self.environment["vars"]       = ({},None,True,False,)
@@ -59,6 +99,7 @@ class CommandExecuter():
             print "failed to load standard addon: "+str(ex)
         
         self.environment["context"][0].addValues("debug", [0,1,2,3,4,5], IntegerArgChecker())
+            #TODO could be a param too...
         
         #redirect output
         real_out    = sys.stdout
@@ -69,69 +110,46 @@ class CommandExecuter():
     # @return, true if no severe error or correct process, false if severe error
     #
     def executeCommand(self,cmd):
-        ### STEP 1: split on pipe ### 
-        cmd = cmd.split("|")
-        if len(cmd) < 0 :
-            print "   split command error (pipe)"
+        ### STEP 1: split 
+        cmdStringList = _parseLine(cmd,self.environment["vars"][0])
+
+        #if empty list after parsing, nothing to execute
+        if len(cmdStringList) == 0:
             return False
-        
-        ### STEP 2: split on space AND look for command ###
+
         rawCommandList = []   
         rawArgList     = []
-        for inner in cmd:
-            #remove blank char
-            inner = inner.strip(' \t\n\r')
-            if len(inner) == 0:
-                continue
-            
-            #split on space
-            inner = inner.split(" ")
-            if len(inner) < 0 :
-                print "   split command error (space)"
+        for finalCmd in cmdStringList:            
+            #search the command with advanced seach
+            searchResult = None
+            try:
+                searchResult = self.environment["levelTries"][0].advancedSearch(finalCmd, False)
+            except triesException as te:
+                print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
                 return False
             
-            #fo each token
-            finalCmd = []
-            for cmd in inner:
-                cmd = cmd.strip(' \t\n\r')
-                if len(cmd) == 0 :
-                    continue
-                
-                finalCmd.append(cmd)
-            
-            #is there a non empty token list ?
-            if len(finalCmd) > 0:
-                #search the command with advanced seach
-                searchResult = None
-                try:
-                    searchResult = self.levelTries.advancedSearch(finalCmd, False)
-                except triesException as te:
-                    print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
-                    return False
-                
-                if searchResult.isAmbiguous():                    
-                    tokenIndex = len(searchResult.existingPath) - 1
-                    tries = searchResult.existingPath[tokenIndex][1].localTries
-                    keylist = tries.getKeyList(finalCmd[tokenIndex])
+            if searchResult.isAmbiguous():                    
+                tokenIndex = len(searchResult.existingPath) - 1
+                tries = searchResult.existingPath[tokenIndex][1].localTries
+                keylist = tries.getKeyList(finalCmd[tokenIndex])
 
-                    print("ambiguity on command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[tokenIndex])+">, possible value: "+ ", ".join(keylist))
- 
-                    return False
-                elif not searchResult.isAvalueOnTheLastTokenFound():
-                    if searchResult.getTokenFoundCount() == len(finalCmd):
-                        print("uncomplete command <"+" ".join(finalCmd)+">, type <help "+" ".join(finalCmd)+"> to get the next available parts of this command")
+                print("ambiguity on command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[tokenIndex])+">, possible value: "+ ", ".join(keylist))
+
+                return False
+            elif not searchResult.isAvalueOnTheLastTokenFound():
+                if searchResult.getTokenFoundCount() == len(finalCmd):
+                    print("uncomplete command <"+" ".join(finalCmd)+">, type <help "+" ".join(finalCmd)+"> to get the next available parts of this command")
+                else:
+                    if len(finalCmd) == 1:
+                        print("unknown command <"+" ".join(finalCmd)+">, type <help> to get the list of commands")
                     else:
                         print("unknown command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[searchResult.getTokenFoundCount()])+"> is unknown, type <help> to get the list of commands")
-                    
-                    return False
+                
+                return False
 
-                #append in list
-                rawCommandList.append(searchResult.getLastTokenFoundValue())
-                rawArgList.append(searchResult.getNotFoundTokenList())
-        
-        #if the command list is empty, nothing to execute, stop here
-        if len(rawCommandList) == 0 or len(rawArgList) == 0:
-            return False
+            #append in list
+            rawCommandList.append(searchResult.getLastTokenFoundValue())
+            rawArgList.append(searchResult.getNotFoundTokenList())
         
         #execute the engine object
         try:
@@ -151,8 +169,8 @@ class CommandExecuter():
                 print("Normal execution abort, reason: "+str(eien.value))
         except argException as ae:
             print("Error in parsing argument: "+str(ae.value))
-        #except Exception as e:
-        #    print("Unknown error: "+str(e))
+        except Exception as e:
+            print("Unknown error: "+str(e))
             
         return False
     
@@ -201,14 +219,11 @@ class CommandExecuter():
         sys.stdout.flush()
         
     def complete(self,suffix,index):
-        fullline = readline.get_line_buffer() #get the full data stored in readline
-        fullline = fullline.split("|")[-1]
+        cmdStringList = _parseLine(readline.get_line_buffer(),self.environment["vars"][0])
 
         try:
-            fullline = fullline.strip(' \t\n\r')
-
             #special case, empty line
-            if len(fullline) == 0: 
+            if len(cmdStringList) == 0:
                 fullline = ()
                 dic = self.environment["levelTries"][0].buildDictionnary(fullline, True, True, False)
 
@@ -219,9 +234,8 @@ class CommandExecuter():
                 toret = toret.keys()[:]
                 toret.append(None)
                 return toret[index]
-            else:
-                #split on space
-                fullline = fullline.split(" ")
+
+            fullline = cmdStringList[-1]
 
             ###manage ambiguity
             advancedResult = self.environment["levelTries"][0].advancedSearch(fullline, False)
@@ -247,7 +261,7 @@ class CommandExecuter():
 
                 keys = dic.keys()
 
-            #
+            #build final result
             finalKeys = []
             for k in keys:
                 if len(k) >= len(fullline) and len(k[len(fullline)-1]) > len(fullline[-1]):
