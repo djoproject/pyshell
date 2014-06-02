@@ -18,7 +18,7 @@
 
 import sys, os
 
-if sys.version_info.major ==2:
+if sys.version_info.major == 2:
     import ConfigParser 
 else:
     import configparser as ConfigParser

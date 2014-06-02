@@ -19,4 +19,9 @@ C) autocompletion bug
 		it will print "l" in place of "addon l"
 
 D) prblm when autocompletion with var used in command name
+    ex:
+        1)var set toto add
+        2)$toto
+        3)press tab
 
+    #QUICK solution: disable var interpretation in autocompletion

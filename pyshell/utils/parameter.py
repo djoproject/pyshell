@@ -16,16 +16,57 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #prblm with the new parameter created
+        #for example, create a context parameter non transient, its type will not stored
+            #so after a reboot of the application, it will be a GenericParameter in place of a ContextParameter
+
+    #quid, store everything in the same directory, or keep a single dictionary for env, context and generic
+    
+    #convert generic to env
+        #the checker will be a default argChecker
+
 from pyshell.arg.argchecker import listArgChecker, ArgChecker
+
+if sys.version_info.major == 2:
+    import ConfigParser 
+else:
+    import configparser as ConfigParser
+    
+DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
+MAIN_CATEGORY          = "main"
 
 #TODO
 	#save/load method
 
-def loadParametersFromFile():
+def loadParametersFromFile(filepath, existingParams):
+    #TODO load params
+
+    #TODO returns params
+
 	pass #TODO
 
-def saveParametersFromFile():
-	pass #TODO
+def saveParametersFromFile(filepath, params):
+    config = ConfigParser.RawConfigParser()
+
+    #build config
+	for k,v in params.items():
+	    if v.isTransient():
+	        continue
+	        
+        if v.getParent() == None:
+            parent = MAIN_CATEGORY
+        else:
+            parent = v.getParent()
+            
+        config.set(parent, k, str(v.getValue()))
+	
+	#save the config
+	try:
+        with open(filepath, 'wb') as configfile:
+            config.write(configfile)
+    except Exception as ex:
+        print("(ParameterManager) saveParametersFromFile, fail to save parameter file : "+str(ex))
 
 def getInitParameters():
 	params = {}
@@ -50,20 +91,17 @@ class Parameter(object):
 	def setValue(self,value):
 		pass #TO OVERRIDE
 
-
 	def setTransient(self,state):
 		self.transient = state
 
 	def isTransient(self):
 		return self.transient
 
-
 	def isReadOnly(self):
 		return False
 
 	def isRemovable(self):
 		return self.transient
-
 
 	def getParent(self):
 		return self.parent
@@ -88,22 +126,18 @@ class EnvironmentParameter(Parameter):
 		self.readonly  = readonly
 		self.removable = removable
 
-		#TODO typ must be argChecker
+		#typ must be argChecker
+		if not isinstance(typ,ArgChecker):
+		    raise Exception("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
 
 		self.typ = typ
-
-		#TODO value must be checked
-
-		self.value = value
-		
+        self.setValue(value)
 
 	def getValue(self):
 		return self.value
 
 	def setValue(self,value):
-		#TODO value must be checked
-
-		self.value = value
+		self.value = self.typ.getValue(value)
 
 	def isReadOnly(self):
 		return self.readonly
@@ -127,7 +161,14 @@ class ContextParameter(EnvironmentParameter):
 		self.index = 0
 
 	def setIndex(self, index):
-		pass #TODO
+		try:
+            self.value[index]
+        except IndexError:
+            raise Exception("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
+        except TypeError:
+            raise Exception("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
+            
+        self.index = index
 
 	def getIndex(self):
 		return self.index

@@ -222,7 +222,8 @@ class CommandExecuter():
         cmdStringList = _parseLine(readline.get_line_buffer(),self.environment["vars"][0])
 
         try:
-            #special case, empty line
+            ## special case, empty line ##
+                #only print root tokens
             if len(cmdStringList) == 0:
                 fullline = ()
                 dic = self.environment["levelTries"][0].buildDictionnary(fullline, True, True, False)
@@ -237,7 +238,7 @@ class CommandExecuter():
 
             fullline = cmdStringList[-1]
 
-            ###manage ambiguity
+            ## manage ambiguity ##
             advancedResult = self.environment["levelTries"][0].advancedSearch(fullline, False)
             if advancedResult.isAmbiguous():
                 tokenIndex = len(advancedResult.existingPath) - 1
@@ -264,6 +265,8 @@ class CommandExecuter():
             #build final result
             finalKeys = []
             for k in keys:
+            
+                #special case to complete the last token if needed
                 if len(k) >= len(fullline) and len(k[len(fullline)-1]) > len(fullline[-1]):
                     toappend = k[len(fullline)-1]
 
@@ -273,6 +276,7 @@ class CommandExecuter():
                     finalKeys.append(toappend)
                     break
 
+                #normal case, the last token on the line is complete, only add its child tokens
                 finalKeys.append(" ".join(k[len(fullline):]))
             
             #if no other choice than the current value, return the current value
@@ -287,7 +291,7 @@ class CommandExecuter():
 
         return None
 
-    def executeFile(self,filename):
+    """def executeFile(self,filename):
         f = open(filename, "r")
         exitOnEnd = True
         for line in f:
@@ -297,7 +301,7 @@ class CommandExecuter():
             elif not self.executeCommand(line):
                 break
                 
-        return exitOnEnd
+        return exitOnEnd"""
 
 if __name__ == "__main__":
     #load parameter file
