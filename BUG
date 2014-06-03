@@ -25,3 +25,8 @@ D) prblm when autocompletion with var used in command name
         3)press tab
 
     #QUICK solution: disable var interpretation in autocompletion
+    
+E) autocompletion, missing cmd
+    for example, echo and echo16
+    echo16 is never print in the autocompletion list
+        except with an empty line

@@ -16,15 +16,25 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #prblm with the new parameter created
+#TODO prblm
+    #1) prblm with the new parameter created
         #for example, create a context parameter non transient, its type will not stored
             #so after a reboot of the application, it will be a GenericParameter in place of a ContextParameter
 
-    #quid, store everything in the same directory, or keep a single dictionary for env, context and generic
-    
-    #convert generic to env
-        #the checker will be a default argChecker
+    #2) quid, store everything in the same directory, or keep a single dictionary for env, context and generic
+       
+### XXX brainstoming XXX ###
+    #SOLUTION 1 to prblm 1
+        #parent is the name of the field
+            #sub element: type, value, acces boolean, ...
+            
+        #if a parent has at least the subelement "value", parse it
+        
+        #otherelse, how to manage it ?
+            #load them like basic GenericParameter
+            #imply to store them in the same way
+            
+        #so two store system in the same file
 
 from pyshell.arg.argchecker import listArgChecker, ArgChecker
 
@@ -109,15 +119,9 @@ class Parameter(object):
 	def setParent(self, parent):
 		self.parent = parent
 
-class GenericParameter(Parameter):
+class GenericParameter(EnvironmentParameter):
 	def __init__(self, value, transient = False, parent = None):
-		Parameter.__init__(transient, parent)
-		self.value = value
-
-	def getValue(self):
-		return self.value
-
-	def setValue(self,value):
+		EnvironmentParameter.__init__(self, value, ArgChecker(), transient, False,True , parent)
 		self.value = value
 
 class EnvironmentParameter(Parameter):
@@ -158,7 +162,7 @@ class ContextParameter(EnvironmentParameter):
 			typ = listArgChecker(typ)
 
 		EnvironmentParameter.__init__(self, value, typ, transient, parent)
-		self.index = 0
+		self.index = 0 #TODO transient index or not ?
 
 	def setIndex(self, index):
 		try:
