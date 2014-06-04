@@ -37,7 +37,12 @@
     
 #################
 ### stdaddons ###
-#################
+#################       
+    #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
+        #voir dans les addons rfid
+        
+        #être capable de faire un diff byte sur deux sources de byte differente
+        
 	#alias pointant sur 1..n commande(s)
 	    append alias NAME cmd+args
 	    remove alias NAME
@@ -58,17 +63,6 @@
         #on doit être capable de stocker des args avec l'aliad
             #tout en pouvant toujours lui en passer en l'appelant
         
-    #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
-        #voir dans les addons rfid
-        
-        #être capable de faire un diff byte sur deux sources de byte differente
-        
-    #n'afficher que les commandes terminal dans l'aide, comme dans le shell du proxmark
-        utiliser le setStopTraversal dans les mltries
-        l'aide doit s'arreter là et afficher un subset des clés
-            mettre une empty command avec un message __doc__ personnalisé
-        lors du insertion, mettre a jour tout les noeuds parents vide
-
     """def addAlias(self,CommandStrings,AliasCommandStrings):
         #pas aussi simple
             #on doit pouvoir gerer des alias avec des arguments fixe

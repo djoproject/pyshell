@@ -36,7 +36,7 @@
             
         #so two store system in the same file
 
-from pyshell.arg.argchecker import listArgChecker, ArgChecker
+from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker
 
 if sys.version_info.major == 2:
     import ConfigParser 
@@ -47,29 +47,83 @@ DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
 MAIN_CATEGORY          = "main"
 
 #TODO
-	#save/load method
+	#finish loader
+	#executer command mapping
+	#context/env manager ?
+	    #to manage concurrency for example ?
+	#test
+	
+
+#TODO prblm to solve
+    #if the parent is a child key, and not a parent key
+        #could be some conflict if two parent store the same child key
+        
+        #prblm in environment storage
+        
+        #prblm in loading
+        
+        #SOLUTION: not really a parent, some kind of family, keep the unicity of env key
+            #bof bof
+            
+            #BUT maybe it is possible to store several time the same key in a config file
+                #so there is only a problem in the env dic storage
 
 def loadParametersFromFile(filepath, existingParams):
-    #TODO load params
+    #load params
+    config = None
+    if os.path.exists(filepath):
+        config = ConfigParser.RawConfigParser()
+        try:
+            self.config.read(filepath)
+        except Exception as ex:
+            print("(ParameterManager) loadFile, fail to read parameter file : "+str(ex))
+            return
+    else:
+        saveParametersFromFile(filepath, existingParams)
+        self.saveFile()
+        return
 
-    #TODO returns params
+    #read and parse
+    for section in config.section():
+        if config.has_option(section, "value"):
+            pass #TODO ContextParameter or EnvironmentParameter
+        else:
+            for option in config.options(section):
+                pass #TODO GenericParameter
+        
+    return existingParams
 
-	pass #TODO
 
 def saveParametersFromFile(filepath, params):
     config = ConfigParser.RawConfigParser()
 
     #build config
 	for k,v in params.items():
+	    #not parameter type (user mistake)
+	    if isinstance(v, Parameter):
+	        config.set(MAIN_CATEGORY, k, str(v))
+	        continue
+	
+	    #transient type, no need to store them
 	    if v.isTransient():
 	        continue
-	        
-        if v.getParent() == None:
-            parent = MAIN_CATEGORY
+        
+        
+        subParams = v.getParameterSerializableField()
+        
+        #with type, advanced param structure
+        if "type" in subParams:
+            for subk,subv in subParams.items():
+                config.set(k, subk, str(subv))
+        
+        #no type, its just a key/value string pair
         else:
-            parent = v.getParent()
+            if v.getParent() == None:
+                parent = MAIN_CATEGORY
+            else:
+                parent = v.getParent()
             
-        config.set(parent, k, str(v.getValue()))
+            config.set(parent, k, str(v.getValue()))
 	
 	#save the config
 	try:
@@ -82,15 +136,14 @@ def getInitParameters():
 	params = {}
 
 	params["prompt"]     = EnvironmentParameter(value="pyshell:>", typ=stringArgChecker())
-	params["vars"]       = GenericParameter(value={},transient=True)
-	params["levelTries"] = GenericParameter(value=multiLevelTries(),transient=True)
-
-
+	params["vars"]       = GenericParameter(value={},transient=True,readonly=True, removable=False)
+	params["levelTries"] = GenericParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False)
+	params["debug"]      = ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0)
 
 	return params
 
 
-class Parameter(object):
+class Parameter(object): #abstract
 	def __init__(self, transient = False, parent = None):
 		self.transient = transient
 		self.parent    = parent
@@ -118,11 +171,14 @@ class Parameter(object):
 
 	def setParent(self, parent):
 		self.parent = parent
-
-class GenericParameter(EnvironmentParameter):
-	def __init__(self, value, transient = False, parent = None):
-		EnvironmentParameter.__init__(self, value, ArgChecker(), transient, False,True , parent)
-		self.value = value
+		
+	def getParameterSerializableField(self):
+	    toret = {}
+	    
+	    if self.parent != None:
+	        toret["parent"] = str(self.parent)
+	    
+	    return toret
 
 class EnvironmentParameter(Parameter):
 	def __init__(self, value, typ, transient = False, readonly = False, removable = False, parent = None):
@@ -155,14 +211,44 @@ class EnvironmentParameter(Parameter):
 	def setRemovable(self, state):
 		self.removable = state
 
+	def getParameterSerializableField(self):
+	    toret = Parameter.getParameterSerializableField(self)
+	    toret["value"]     = str(self.value)
+	    toret["type"]      = str(self.typ)
+	    toret["readonly"]  = str(self.readonly)
+	    toret["removable"] = str(self.removable)
+	    
+	    if isinstance(self.typ, listArgChecker):
+	        toret["listType"] = str(True)
+        else:
+            toret["listType"] = str(False)
+
+	    return toret
+
+
+class GenericParameter(EnvironmentParameter):
+	def __init__(self, value, transient = False, readonly = False, removable = False, parent = None):
+		EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable, parent)
+		self.setValue(value)
+		
+	def getParameterSerializableField(self):
+	    toret = EnvironmentParameter.getParameterSerializableField(self)
+	    
+	    if "type" in toret:
+	        del toret["type"]
+
+	    return toret
+
 class ContextParameter(EnvironmentParameter):
-	def __init__(self, value, typ, transient = False, parent = None):
+	def __init__(self, value, typ, transient = False, transientIndex = False, defaultIndex = 0, parent = None):
 
 		if not isinstance(typ,listArgChecker):
 			typ = listArgChecker(typ)
 
 		EnvironmentParameter.__init__(self, value, typ, transient, parent)
-		self.index = 0 #TODO transient index or not ?
+		self.index = defaultIndex
+		self.defaultIndex = defaultIndex
+		self.transientIndex = transientIndex
 
 	def setIndex(self, index):
 		try:
@@ -179,7 +265,36 @@ class ContextParameter(EnvironmentParameter):
 
 	def getSelectedValue(self):
 		return self.value[self.index]
+		
+	def setTransientIndex(self,transientIndex):
+	    self.transientIndex = transientIndex
+	    
+    def getTransientIndex(self):
+        return self.transientIndex
+        
+    def setDefaultIndex(self,defaultIndex):
+        try:
+            self.value[defaultIndex]
+        except IndexError:
+            raise Exception("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
+        except TypeError:
+            raise Exception("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
+            
+        self.defaultIndex = defaultIndex
+        
+    def getDefaultIndex(self):
+        return self.defaultIndex
 
+	def getParameterSerializableField(self):
+	    toret = EnvironmentParameter.getParameterSerializableField(self)
+	    
+	    if not self.transientIndex:
+	        toret["index"] = str(self.index)
+	        
+        toret["defaultIndex"] = str(self.defaultIndex)
+        toret["contextType"]  = str(True)
+        toret["listType"]     = str(True)
 
+	    return toret
 
 
