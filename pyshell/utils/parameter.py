@@ -62,12 +62,22 @@ MAIN_CATEGORY          = "main"
         
         #prblm in loading
         
-        #SOLUTION: not really a parent, some kind of family, keep the unicity of env key
+        #SOLUTION 1: not really a parent, some kind of family, keep the unicity of env key
             #bof bof
             
-            #BUT maybe it is possible to store several time the same key in a config file
-                #so there is only a problem in the env dic storage
-
+        #SOLUTION 2: prefix every variable with the name of the parent
+            #store it in the file with the parent name
+                #not obsious to manually update :/
+            
+            #easy to manage in dictionary
+            
+        #SOLUTION 3: store in several files, one per parent
+            #solve the problem of file storage
+            #but what about memory storage ?
+                #one dico per parent
+                    #so no need to store parent name in parameter object
+                                
+    
 def loadParametersFromFile(filepath, existingParams):
     #load params
     config = None
@@ -296,5 +306,8 @@ class ContextParameter(EnvironmentParameter):
         toret["listType"]     = str(True)
 
 	    return toret
+	    
+    def reset(self):
+        self.index = self.defaultIndex
 
 
