@@ -37,6 +37,7 @@
         #so two store system in the same file
 
 from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker
+import os
 
 if sys.version_info.major == 2:
     import ConfigParser 
@@ -76,15 +77,75 @@ MAIN_CATEGORY          = "main"
             #but what about memory storage ?
                 #one dico per parent
                     #so no need to store parent name in parameter object
-                                
-    
-def loadParametersFromFile(filepath, existingParams):
+            
+            #PRBLM avec les parametres normaux...
+                #voir plus bas
+                
+def loadParametersFromDirectory(directoryPath, existingParams):
+    for f in os.listdir(directoryPath):
+        if not f.endswith(".conf"):
+            continue
+        
+        parentName = f[0:-4]
+        
+        if len(parentName) <= 0:
+            continue
+        
+        completeFilePath = directoryPath + f
+        config = ConfigParser.RawConfigParser()
+        try:
+            config.read(filepath)
+        except Exception as ex:
+            print("(ParameterManager) loadFile, fail to read configuration file <"+parentName+"> : "+str(ex))
+            continue
+        
+        if parentName in existingParams:
+            dico = existingParams[parentName]
+        else:
+            dico = {}
+        
+        for section in config.section():
+            if config.has_option(section, "value"):
+            
+                #type is difined ?
+                typeDefined = False
+                if config.has_option(section, "type"):
+                    typeDefined = True
+                
+                #context is difined ?
+                contextDefined = False
+                if config.has_option(section, "contextType"):
+                    try:
+                        contextDefined = bool(config.get(section, "contextType"))
+                    except Exception:
+                        contextDefined = False
+                        
+                if typeDefined:
+                    if contextDefined:
+                        pass #TODO ContextParameter(value, typ, transient = False, transientIndex = False, defaultIndex = 0, parent = None)
+                    else:
+                        pass #TODO EnvironmentParameter(value, typ, transient = False, readonly = False, removable = False, parent = None)
+                else:
+                    pass #TODO GenericParameter(value, transient = False, readonly = False, removable = False, parent = None)
+                
+                
+            else:
+                continue #invalid parameter TODO what to do with this ?
+                            #it will disapper on the next save...
+                        #create a new level of parameter?, a dictionary of key/value
+                        #not really usefull :/
+        
+        if len(dico) > 0:
+            existingParams[parentName] = dico
+        
+
+"""def loadParametersFromFile(filepath, existingParams):
     #load params
     config = None
     if os.path.exists(filepath):
         config = ConfigParser.RawConfigParser()
         try:
-            self.config.read(filepath)
+            config.read(filepath)
         except Exception as ex:
             print("(ParameterManager) loadFile, fail to read parameter file : "+str(ex))
             return
@@ -140,7 +201,7 @@ def saveParametersFromFile(filepath, params):
         with open(filepath, 'wb') as configfile:
             config.write(configfile)
     except Exception as ex:
-        print("(ParameterManager) saveParametersFromFile, fail to save parameter file : "+str(ex))
+        print("(ParameterManager) saveParametersFromFile, fail to save parameter file : "+str(ex))"""
 
 def getInitParameters():
 	params = {}
