@@ -80,8 +80,120 @@ MAIN_CATEGORY          = "main"
             
             #PRBLM avec les parametres normaux...
                 #voir plus bas
+
+#SOLUTION
+    #un seul fichier
+    #context et EnvironmentParameter n'ont pas de parent
+        #context.parent = "context"
+        #EnvironmentParameter.parent = "environment"
+    #GenericParameter a un parent
+        #parent quelconque
+            #excepté nom d'env ou nom de contexte
+    #on garde un dictionnaire a deux niveaux
+        #a[parent][key]
+    #il n'y a plus de variable parent dans les class, ça se trouve dans les dictionnaires
+    
+    #!!! un parent ne peut pas avoir un nom de contexte/env et vice versa !!!
+        #sinon impossible a gerer dans le fichier...
+        #quoi que rien n'empeche de le gerer tant qu'on a pas une des cles de config de l'un de ces objets
+            #oui mais le fichier va devenir crade...
+    
+    #TODO creer des methodes pour generer de nouveaux contexte, env, generic
+        #faire une classe
+
+
+def loadParametersFromFileV3(filepath, existingParams):
+    #load params
+    config = None
+    if os.path.exists(filepath):
+        config = ConfigParser.RawConfigParser()
+        try:
+            config.read(filepath)
+        except Exception as ex:
+            print("(ParameterManager) loadFile, fail to read parameter file : "+str(ex))
+            return
+    else:
+        return saveParametersFromFileV3(filepath, existingParams)
+
+    #read and parse
+    for section in config.section():
+        if config.has_option(section, "value"):
+            contextDefined = False
+            if config.has_option(section, "contextType"):
+                try:
+                    contextDefined = bool(config.get(section, "contextType"))
+                except Exception:
+                    contextDefined = False
+                    
+            if contextDefined:
+                if "context" not in existingParams:
+                    existingParams["context"] = {}
+            
+                #TODO manage existing
+            
+                pass #TODO ContextParameter
                 
-def loadParametersFromDirectory(directoryPath, existingParams):
+            else:
+                if "environment" not in existingParams:
+                    existingParams["environment"] = {}
+            
+                #TODO manage existing
+            
+                pass #TODO EnvironmentParameter
+                
+        else:
+            if section in ("context", "environment", ):
+                print("(ParameterManager) loadFile, parent section of name \"context\" or \"environment\" are not allowed")
+                continue
+        
+            for option in config.options(section):
+                if section not in existingParams:
+                    existingParams[section] = {}
+                
+                if option in existingParams[section]:
+                    if isinstance(existingParams[section][option], Parameter):
+                        existingParams[section][option].setValue(config.get(section, option))
+                        continue        
+                        
+                existingParams[section][option] = GenericParameter(value=config.get(section, option))
+        
+    return existingParams
+    
+def saveParametersFromFileV3(filepath, params):
+
+    #manage standard parameter
+    config = ConfigParser.RawConfigParser()
+    for parent, childs in params.items():   
+        if parent in ("context", "environment", ):
+            continue
+        
+        if parent == None:
+            parent = MAIN_CATEGORY
+        
+        for childName, childValue in childs:
+            if isinstance(childValue, Parameter):
+                if childValue.isTransient():
+                    continue
+            
+                value = str(childValue.getValue())
+            else:
+                value = str(childValue)
+        
+            config.set(parent, childName, value)
+    
+    #manage context and environment
+    for s in ("context", "environment", ):
+        if s in params:
+            for contextName, contextValue in params[s].items():
+                if contextValue.isTransient():
+                    continue
+            
+                for name, value in contextValue.getParameterSerializableField():
+                    config.set(contextName, name, value)
+    
+    
+
+"""def loadParametersFromDirectory(directoryPath, existingParams):
     for f in os.listdir(directoryPath):
         if not f.endswith(".conf"):
             continue
@@ -139,7 +251,7 @@ def loadParametersFromDirectory(directoryPath, existingParams):
             existingParams[parentName] = dico
         
 
-"""def loadParametersFromFile(filepath, existingParams):
+def loadParametersFromFile(filepath, existingParams):
     #load params
     config = None
     if os.path.exists(filepath):
@@ -215,9 +327,8 @@ def getInitParameters():
 
 
 class Parameter(object): #abstract
-	def __init__(self, transient = False, parent = None):
+	def __init__(self, transient = False):
 		self.transient = transient
-		self.parent    = parent
 
 	def getValue(self):
 		pass #TO OVERRIDE
@@ -236,24 +347,13 @@ class Parameter(object): #abstract
 
 	def isRemovable(self):
 		return self.transient
-
-	def getParent(self):
-		return self.parent
-
-	def setParent(self, parent):
-		self.parent = parent
 		
 	def getParameterSerializableField(self):
-	    toret = {}
-	    
-	    if self.parent != None:
-	        toret["parent"] = str(self.parent)
-	    
-	    return toret
+	    return {}
 
 class EnvironmentParameter(Parameter):
-	def __init__(self, value, typ, transient = False, readonly = False, removable = False, parent = None):
-		Parameter.__init__(transient, parent)
+	def __init__(self, value, typ, transient = False, readonly = False, removable = False):
+		Parameter.__init__(transient)
 		self.readonly  = readonly
 		self.removable = removable
 
@@ -298,8 +398,8 @@ class EnvironmentParameter(Parameter):
 
 
 class GenericParameter(EnvironmentParameter):
-	def __init__(self, value, transient = False, readonly = False, removable = False, parent = None):
-		EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable, parent)
+	def __init__(self, value, transient = False, readonly = False, removable = True):
+		EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable)
 		self.setValue(value)
 		
 	def getParameterSerializableField(self):
@@ -311,12 +411,12 @@ class GenericParameter(EnvironmentParameter):
 	    return toret
 
 class ContextParameter(EnvironmentParameter):
-	def __init__(self, value, typ, transient = False, transientIndex = False, defaultIndex = 0, parent = None):
+	def __init__(self, value, typ, transient = False, transientIndex = False, defaultIndex = 0):
 
 		if not isinstance(typ,listArgChecker):
 			typ = listArgChecker(typ)
 
-		EnvironmentParameter.__init__(self, value, typ, transient, parent)
+		EnvironmentParameter.__init__(self, value, typ, transient)
 		self.index = defaultIndex
 		self.defaultIndex = defaultIndex
 		self.transientIndex = transientIndex
