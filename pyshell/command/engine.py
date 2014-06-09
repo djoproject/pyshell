@@ -5,6 +5,7 @@ from command import MultiOutput, MultiCommand, Command
 from exception import *
 from stackEngine import engineStack
 from utils import *
+from pyshell.utils.parameter import ParameterManager
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test    
@@ -54,11 +55,11 @@ class engineV3(object):
         
         #check env variable
         if env == None:
-            self.env = {}
-        elif isinstance(env, dict):
+            self.env = ParameterManager()
+        elif isinstance(env, ParameterManager):
             self.env  = env
         else:
-            raise executionInitException("(engine) init, env must be a dictionnary or None, got <"+str(type(env))+">")
+            raise executionInitException("(engine) init, env must be an instance of ParameterManager or None, got <"+str(type(env))+">")
 
         self.stack            = engineStack()
         self._isInProcess     = False

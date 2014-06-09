@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2012  Jonathan Delvaux <jonathan.delvaux@uclouvain.be>
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ from command.engine import engineV3
 from arg.exception import *
 from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker
 from addons import stdaddons
-from utils import parameterManager, contextManager
+from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, GenericParameter, ContextParameter
 
 class writer :
     def __init__(self, out):
@@ -37,8 +37,6 @@ class writer :
 
     def write(self, text):
         self.out.write("    "+str(text))
-        
-#TODO replace every $SOMETHING with its internal value
 
 def _parseLine(line, args):
     line = line.split("|")
@@ -80,26 +78,52 @@ def _parseLine(line, args):
     return toret
 
 class CommandExecuter():
-    def __init__(self, paramFile):
+    def __init__(self, paramFile, useHistory = True):
+        #create param manager
+        self.params = ParameterManager(paramFile)
+
+        #init original params
+        self.params.setEnvironement("prompt", EnvironmentParameter(value="pyshell:>", typ=stringArgChecker(),transient=False,readonly=False, removable=False))
+        self.params.setParameter("vars", GenericParameter(value={},transient=True,readonly=True, removable=False))
+        self.params.setParameter("levelTries", GenericParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
+        self.params.setContext("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0))
+        self.params.setEnvironement("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False))
+
+        #TODO try to load parameter file
+
+        #TODO save at exit
+
+        #load history file
+        if useHistory:
+            try:
+                readline.read_history_file(self.params.getEnvironment("historyFile").getValue())
+            except IOError:
+                pass
+
+            #save history file at exit
+            import atexit
+            atexit.register(readline.write_history_file, self.params.getEnvironment("historyFile").getValue())
+            del atexit 
+
         #self.environment[KEY]         = (VALUE, CHECKER, READONLY, REMOVABLE, )
-        self.environment               = {}
-        self.environment["prompt"]     = ("pyshell:>",stringArgChecker(),False,False,)
-        self.environment["printer"]    = (self,None,True,False,)
+        #self.environment               = {}
+
+        #self.environment["prompt"]     = ("pyshell:>",stringArgChecker(),False,False,)
+        #self.environment["printer"]    = (self,None,True,False,)
         #self.environment["executer"]   = (self,None,True,False,)
-        self.environment["levelTries"] = (multiLevelTries(),None,True,False,)
+        #self.environment["levelTries"] = (multiLevelTries(),None,True,False,)
         #self.environment["debug"]      = (False,booleanValueArgChecker(),False,False,)
-        self.environment["params"]     = (paramFile,None,True,False,)
-        self.environment["vars"]       = ({},None,True,False,)
-        self.environment["context"]    = (contextManager.contextManager(),None,True,False,)
+        #self.environment["params"]     = (paramFile,None,True,False,)
+        #self.environment["vars"]       = ({},None,True,False,)
+        #self.environment["context"]    = (contextManager.contextManager(),None,True,False,)
         
         #try to load standard shell function
         try:
-            stdaddons._loader[None]._load(self.environment["levelTries"][0])
+            stdaddons._loader[None]._load(self.params.getParameter("levelTries").getValue())
         except Exception as ex:
             print "failed to load standard addon: "+str(ex)
         
-        self.environment["context"][0].addValues("debug", [0,1,2,3,4,5], IntegerArgChecker())
-            #TODO could be a param too...
+        #self.environment["context"][0].addValues("debug", [0,1,2,3,4,5], IntegerArgChecker())
         
         #redirect output
         real_out    = sys.stdout
@@ -111,7 +135,7 @@ class CommandExecuter():
     #
     def executeCommand(self,cmd):
         ### STEP 1: split 
-        cmdStringList = _parseLine(cmd,self.environment["vars"][0])
+        cmdStringList = _parseLine(cmd,self.params.getParameter("vars").getValue())
 
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
@@ -123,7 +147,7 @@ class CommandExecuter():
             #search the command with advanced seach
             searchResult = None
             try:
-                searchResult = self.environment["levelTries"][0].advancedSearch(finalCmd, False)
+                searchResult = self.params.getParameter("levelTries").getValue().advancedSearch(finalCmd, False)
             except triesException as te:
                 print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
                 return False
@@ -153,7 +177,7 @@ class CommandExecuter():
         
         #execute the engine object
         try:
-            engine = engineV3(rawCommandList, rawArgList, self.environment)
+            engine = engineV3(rawCommandList, rawArgList, self.params)
             engine.execute()
             return True
         except executionInitException as eie:
@@ -189,7 +213,7 @@ class CommandExecuter():
             #read prompt
             try:
                 sys.stdout = self.writer.out
-                cmd = raw_input(self.environment["prompt"][0])
+                cmd = raw_input(self.params.getEnvironment("prompt").getValue())
             except SyntaxError:
                 print "   syntax error"
                 continue
@@ -212,21 +236,21 @@ class CommandExecuter():
 
         #this is needed because after an input, the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
-            sys.stdout.write(environment["prompt"][0])
+            sys.stdout.write(self.params.getEnvironment("prompt").getValue())
         else:
-            sys.stdout.write(environment["prompt"][0] + readline.get_line_buffer())
+            sys.stdout.write(self.params.getEnvironment("prompt").getValue() + readline.get_line_buffer())
 
         sys.stdout.flush()
         
     def complete(self,suffix,index):
-        cmdStringList = _parseLine(readline.get_line_buffer(),self.environment["vars"][0])
+        cmdStringList = _parseLine(readline.get_line_buffer(),self.params.getParameter("vars").getValue())
 
         try:
             ## special case, empty line ##
                 #only print root tokens
             if len(cmdStringList) == 0:
                 fullline = ()
-                dic = self.environment["levelTries"][0].buildDictionnary(fullline, True, True, False)
+                dic = self.params.getParameter("levelTries").getValue().buildDictionnary(fullline, True, True, False)
 
                 toret = {}
                 for k in dic.keys():
@@ -239,7 +263,7 @@ class CommandExecuter():
             fullline = cmdStringList[-1]
 
             ## manage ambiguity ##
-            advancedResult = self.environment["levelTries"][0].advancedSearch(fullline, False)
+            advancedResult = self.params.getParameter("levelTries").getValue().advancedSearch(fullline, False)
             if advancedResult.isAmbiguous():
                 tokenIndex = len(advancedResult.existingPath) - 1
 
@@ -256,7 +280,7 @@ class CommandExecuter():
                     keys.append(tmp)
             else:
                 try:
-                    dic = self.environment["levelTries"][0].buildDictionnary(fullline, True, True, False)
+                    dic = self.params.getParameter("levelTries").getValue().buildDictionnary(fullline, True, True, False)
                 except pathNotExistsTriesException as pnete:
                     return None
 
@@ -295,7 +319,7 @@ class CommandExecuter():
         f = open(filename, "r")
         exitOnEnd = True
         for line in f:
-            print environment["prompt"][0]+line.strip('\n\r')
+            print self.params.getEnvironment("prompt").getValue()+line.strip('\n\r')
             if line.startswith("noexit"):
                 exitOnEnd = False
             elif not self.executeCommand(line):
@@ -305,20 +329,10 @@ class CommandExecuter():
 
 if __name__ == "__main__":
     #load parameter file
-    paramFile = parameterManager.ParameterManager()
-    paramFile.loadFile()
+    #paramFile = parameterManager.ParameterManager()
+    #paramFile.loadFile()
 
     #load history file
-    try:
-        readline.read_history_file(paramFile.getValue(parameterManager.HISTORY_FILE_PATH))
-    except IOError:
-        pass
-
-    #save history file at exit
-    import atexit
-    atexit.register(readline.write_history_file, paramFile.getValue(parameterManager.HISTORY_FILE_PATH))
-    del os     
-
-    executer = CommandExecuter(paramFile)
+    executer = CommandExecuter(DEFAULT_PARAMETER_FILE)
     executer.mainLoop()
 

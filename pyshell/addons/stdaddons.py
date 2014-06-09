@@ -18,12 +18,12 @@
 
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, environmentChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
 from tries.exception import triesException
 import os
 from pyshell.command.exception import engineInterruptionException
-from pyshell.utils.parameterManager import MAIN_CATEGORY
+from pyshell.utils.parameter import GenericParameter
 
 #TODO
     #implement ambiguity management in usage
@@ -67,11 +67,11 @@ def intToAscii(args):
 
     return s
     
-@shellMethod(args=listArgChecker(ArgChecker()), mltries=environmentChecker("levelTries"))
+@shellMethod(args=listArgChecker(ArgChecker()), mltries=parameterChecker("levelTries"))
 def usageFun(args, mltries):
     "print the usage of a fonction"
     try:
-        searchResult = mltries.advancedSearch(args, False)
+        searchResult = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
         print "failed to find the command <"+str(args)+">, reason: "+str(te)
         return
@@ -87,7 +87,7 @@ def usageFun(args, mltries):
     cmd = searchResult.getLastTokenFoundValue()
     print cmd.usage()
 
-@shellMethod(mltries=environmentChecker("levelTries"), args=listArgChecker(ArgChecker()))
+@shellMethod(mltries=parameterChecker("levelTries"), args=listArgChecker(ArgChecker()))
 def helpFun(mltries, args=None):
     "print the usage of a fonction"
 
@@ -104,7 +104,7 @@ def helpFun(mltries, args=None):
         fullArgs = None
 
     #manage ambiguity cases
-    advancedResult = mltries.advancedSearch(args, False)
+    advancedResult = mltries.getValue().advancedSearch(args, False)
     if advancedResult.isAmbiguous():
         tokenIndex = len(advancedResult.existingPath) - 1
         tries = advancedResult.existingPath[tokenIndex][1].localTries
@@ -116,7 +116,7 @@ def helpFun(mltries, args=None):
 
     stringKeys = []
     #cmd without stop traversal
-    dic = mltries.buildDictionnary(args, False, True, False)
+    dic = mltries.getValue().buildDictionnary(args, False, True, False)
     for k in dic.keys():
         if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
             continue
@@ -129,7 +129,7 @@ def helpFun(mltries, args=None):
         stringKeys.append(line)
 
     #cmd with stop traversal
-    dic2 = mltries.buildDictionnary(args, True, True, False)
+    dic2 = mltries.getValue().buildDictionnary(args, True, True, False)
     stop = {}
     for k in dic2.keys():
         if k in dic:
@@ -150,7 +150,7 @@ def helpFun(mltries, args=None):
                 break
 
             #this level of k is disabled, first occurence
-            if mltries.isStopTraversal(k[0:i]):
+            if mltries.getValue().isStopTraversal(k[0:i]):
 
                 #is enable with the args ?
                 equiv = False
@@ -207,43 +207,35 @@ def _getChecker(valueType):
 ### parameter ###
 
 @shellMethod(key=stringArgChecker(),
-             parameters=environmentChecker("params"),
+             parameters=completeEnvironmentChecker(),
              parent=stringArgChecker())
 def removeParameterValues(key, parameters, parent=None):
     "remove a value from the Parameter"
 
-    if not parameters.keyExist(key):
+    if not parameters.hasParameter(key, parent):
         return #no job to do
 
-    if parent != None:
-        parameters.remove(key, parent)
-    else:
-        parameters.remove(key)
+    parameters.unsetParameter(key, parent)
 
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker(),
              parent=stringArgChecker())
 def getParameterValues(key, env, parent=None): 
     "get a value from the environment"
-
-    parameters, typ,readonly,removable = env["params"]
     
-    if not parameters.keyExist(key):
+    if not env.hasParameter(key, parent):
         raise engineInterruptionException("Unknow parameter key", True)
 
-    if parent == None:
-        return parameters.getValue(key)
-    else:
-        return parameters.getValue(key, parent)
+    return env.getParameter(key, parent)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
              #FIXME parent=stringArgChecker(),
-             parameter=environmentChecker("params"))
-def setParameterValue(key, values, parent = MAIN_CATEGORY, parameter = None):
-    parameter.setValue(key, ', '.join(str(x) for x in values), parent)
+             parameter=completeEnvironmentChecker())
+def setParameterValue(key, values, parent = None, parameter = None):
+    parameter.setParameter(key,GenericParameter(', '.join(str(x) for x in values)), parent)
             
-### env management ###
+"""### env management ###
 
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker())
@@ -449,35 +441,35 @@ def listContext(context):
     for k in context.getKeys():
         strlist.append(k + " : " + ', '.join("<"+str(+x)+">" for x in context.getValues(k)) + "  (selected index: "+str(context.getSelectedIndex(k))+", value: <"+str(context.getSelectedValue(k))+">)")
 
-    return strlist
+    return strlist"""
 
 ### var management ###
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
-             _vars=environmentChecker("vars"))
+             _vars=parameterChecker("vars"))
 def setVar(key, values, _vars):
-    _vars[key] = values
+    _vars.getValue()[key] = values
 
 @shellMethod(key=stringArgChecker(),
-             _vars=environmentChecker("vars"))
+             _vars=parameterChecker("vars"))
 def getVar(key, _vars):
-    if key not in _vars:
+    if key not in _vars.getValue():
         raise engineInterruptionException("(getVar) Unknow var key <"+str(key)+">",True)
 
-    return _vars[key]
+    return _vars.getValue()[key]
 
 @shellMethod(key=stringArgChecker(),
-             _vars=environmentChecker("vars"))
+             _vars=parameterChecker("vars"))
 def unsetVar(key, _vars):
-    if key in _vars:
-        del _vars[key]
+    if key in _vars.getValue():
+        del _vars.getValue()[key]
 
-@shellMethod(_vars=environmentChecker("vars"))
+@shellMethod(_vars=parameterChecker("vars"))
 def listVar(_vars):
     ret = []
     
-    for k,v in _vars.items():
+    for k,v in _vars.getValue().items():
         ret.append(str(k)+" : "+str(v))
     
     return ret
@@ -496,7 +488,7 @@ def listAddonFun():
 
     return l
 
-@shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=environmentChecker("levelTries"))
+@shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=parameterChecker("levelTries"))
 def loadAddonFun(name, levelTries, subAddon = None):
     "load an external shell addon"
     toLoad = "pyshell.addons."+str(name)
@@ -513,7 +505,7 @@ def loadAddonFun(name, levelTries, subAddon = None):
         if subAddon not in mod._loader:
             print("sub addon does not exist in the addon <"+str(name)+">")
         
-        mod._loader[None]._load(levelTries)
+        mod._loader[None]._load(levelTries.getValue())
         print "   "+toLoad+" loaded !"  
     except ImportError as ie:
         print "import error in <"+name+"> loading : "+str(ie)
@@ -563,7 +555,7 @@ registerCommand( ("var", "unset",) ,                  pro=unsetVar)
 registerCommand( ("var", "list",) ,                   pre=listVar, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("var",) )
 
-#context
+"""#context
 registerCommand( ("context", "unset",) ,              pro=removeContextValues)
 registerCommand( ("context", "get",) ,                pre=getContextValues, pro=listResultHandler)
 registerCommand( ("context", "set",) ,                post=setContextValuesFun)
@@ -575,13 +567,16 @@ registerCommand( ("context", "select", "index",) ,    post=selectValueIndex)
 registerCommand( ("context", "select", "value",) ,    post=selectValue)
 registerCommand( ("context", "list",) ,               pre=listContext, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("context",) )
+"""
 
 #parameter   
 registerCommand( ("parameter", "unset",) ,            pro=removeParameterValues)
 registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=printResultHandler)
 registerCommand( ("parameter", "set",) ,              post=setParameterValue)
 registerStopHelpTraversalAt( ("parameter",) )
+#TODO list
 
+"""
 #env
 registerCommand( ("environment", "list",) ,           pro=listEnvFun,   post=stringListResultHandler)
 registerCommand( ("environment", "create","single",), post=createEnvironmentValueFun)
@@ -590,7 +585,7 @@ registerCommand( ("environment", "get",) ,            pre=getEnvironmentValues, 
 registerCommand( ("environment", "unset",) ,          pro=removeEnvironmentContextValues)
 registerCommand( ("environment", "set",) ,            post=setEnvironmentValuesFun)
 registerCommand( ("environment", "add",) ,            post=addEnvironmentValuesFun)
-registerStopHelpTraversalAt( ("environment",) )
+registerStopHelpTraversalAt( ("environment",) )"""
 
 #addon
 registerCommand( ("addon","list",) ,                  pro=listAddonFun, post=stringListResultHandler)
