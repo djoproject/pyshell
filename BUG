@@ -30,3 +30,6 @@ E) autocompletion, missing cmd
     for example, echo and echo16
     echo16 is never print in the autocompletion list
         except with an empty line
+        
+F) si on met un environment parameter avec une value null dans le prototype de la fonction qui est decorée, 
+   la variable engine dans le argchecker est à null

@@ -234,7 +234,33 @@ def getParameterValues(key, env, parent=None):
              parameter=completeEnvironmentChecker())
 def setParameterValue(key, values, parent = None, parameter = None):
     parameter.setParameter(key,GenericParameter(', '.join(str(x) for x in values)), parent)
+
+@shellMethod(parameter=completeEnvironmentChecker(),
+             parent=stringArgChecker(),
+             key=stringArgChecker())
+def listParameter(parameter, parent=None, key=None):
+    if parent != None:
+        if parent not in parameter.params:
+            raise engineInterruptionException("unknown parameter parent <"+str(parent)+">", True) 
+        
+        if key != None:
+            if key not in parameter.params[parent]:
+                raise engineInterruptionException("unknown key <"+str(key)+"> in parent <"+str(parent)+">", True) 
+    
+            return (str(parent)+"."+str(key)+" : \""+str(parameter.params[parent][key])+"\"",)
+    
+        keys = (parent,)
+    else:
+        keys = parameter.params.keys()
+    
+    to_ret = []
+    for k in keys:
+        to_ret.append(k)
+        for subk,subv in parameter.params[k].items():
+            to_ret.append("    "+subk+" : \""+str(subv)+"\"")
             
+    return to_ret
+
 """### env management ###
 
 @shellMethod(key=stringArgChecker(),
@@ -573,6 +599,8 @@ registerStopHelpTraversalAt( ("context",) )
 registerCommand( ("parameter", "unset",) ,            pro=removeParameterValues)
 registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=printResultHandler)
 registerCommand( ("parameter", "set",) ,              post=setParameterValue)
+registerCommand( ("parameter", "list",) ,             pre=listParameter, pro=stringListResultHandler)
+
 registerStopHelpTraversalAt( ("parameter",) )
 #TODO list
 

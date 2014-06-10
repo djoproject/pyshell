@@ -323,6 +323,7 @@ class completeEnvironmentChecker(ArgChecker):
         
     def getDefaultValue(self):
         if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#n not isinstance(self.engine.getEnv(), ParameterManager):
+            print self.engine
             raise argException("(Environment) Environment is not available")
     
         return self.engine.getEnv()
