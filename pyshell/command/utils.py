@@ -3,6 +3,58 @@
 
 from exception import executionException
 
+def dashParamParser(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
+    if not isinstance(argTypeList,OrderedDict) and  ( not isinstance(argTypeList, dict) or len(argTypeList) != 0): 
+        raise argInitializationException("(ArgFeeder) argTypeList must be a valid instance of an ordered dictionnary")
+    
+    paramFound    = {}
+    remainingArgs = []
+    remainingArgTypeList = []
+    
+    i = 0
+    while i < len(inputArgs):
+        #exclusion character
+        if inputArgs[i].startswith(exclusion + prefix):
+            remainingArgs.append(inputArgs[i][1:])
+            i += 1
+            continue
+        
+        #not a param token
+        if not inputArgs[i].startswith(prefix):
+            remainingArgs.append(inputArgs[i])
+            i += 1
+            continue
+        
+        #is it a negative number ?
+        number = True
+        try:
+            float(inputArgs[i])
+        except ValueError:
+            number = False
+            
+        if number:
+            remainingArgs.append(inputArgs[i])
+            i += 1
+            continue
+        
+        ### params token found ###
+        paramName = inputArgs[i][1:]
+        
+        if paramName not in argTypeList:
+            pass #TODO raise
+        
+        #TODO use the major boucle to grab the arg before to parse them with the argchecker of the param
+            #change remainingArgs
+            #use a boolean to manage the behaviour of the param management
+            #be carefull with the end of list
+                #and the boolean
+                #and ? (forget something, i know it...)
+            #manage the list size to not grab too much token
+                    
+        
+    
+    return paramFound, remainingArgs, remainingArgTypeList
+
 def equalPath(path1,path2):
     sameLength    = True
     equals        = True
