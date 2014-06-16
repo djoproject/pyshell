@@ -2,58 +2,104 @@
 # -*- coding: utf-8 -*-
 
 from exception import executionException
+from pyshell.arg.argchecker import 
 
-def dashParamParser(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
-    if not isinstance(argTypeList,OrderedDict) and  ( not isinstance(argTypeList, dict) or len(argTypeList) != 0): 
-        raise argInitializationException("(ArgFeeder) argTypeList must be a valid instance of an ordered dictionnary")
+#TODO 
+    #move that into the arg package
+    #where to call it ?
+        #because pre/pro/post have an argfeeder process...
+            #solution, if unknown param, use it as classical string token
+class dashParamParser(object):
+    def __init__(self,argTypeList, prefix= "-", exclusion = "\\"):
     
-    paramFound    = {}
-    remainingArgs = []
-    remainingArgTypeList = []
+        if not isinstance(argTypeList,OrderedDict) and  ( not isinstance(argTypeList, dict) or len(argTypeList) != 0): 
+            raise argInitializationException("(ArgFeeder) argTypeList must be a valid instance of an ordered dictionnary")
+        
+        self.argTypeList = argTypeList
+        self.prefix = prefix
+        self.exclusion = exclusion
     
-    i = 0
-    while i < len(inputArgs):
-        #exclusion character
-        if inputArgs[i].startswith(exclusion + prefix):
-            remainingArgs.append(inputArgs[i][1:])
-            i += 1
-            continue
+    def _init(self):
+        self.paramFound    = {}
+        self.remainingArgs = []
+        self.remainingArgTypeList = []    #TODO populate
+        self.argCollectedForParam = None
+        self.whereToStore = self.remainingArgs
+    
+    def _checkParam(self, name, checker):
+        #TODO did we reach minimal size
+            #TODO no, but is it a boolean type ?
+                #if yes, set to true
+    
+        #compute param
+        self.paramFound[name] = checker.getValue(self.argCollectedForParam)
         
-        #not a param token
-        if not inputArgs[i].startswith(prefix):
-            remainingArgs.append(inputArgs[i])
-            i += 1
-            continue
+        #flush variable
+        self.lastParamFound = None
+        self.argCollectedForParam = None
+        self.whereToStore = self.remainingArgs
+    
+    def parse(self, inputArgs):
+        self._init()
         
-        #is it a negative number ?
-        number = True
-        try:
-            float(inputArgs[i])
-        except ValueError:
-            number = False
+        i = 0
+        lastParamFound = None
+        
+        while i < len(inputArgs):
+            ### manage parameter ###
+            if lastParamFound != None and len(self.whereToStore) == lastParamFound[1].maximumSize:
+                self._checkParam(paramFound, lastParamFound[0], lastParamFound[1])
+        
+            ### standard management ###
+            #exclusion character
+            if inputArgs[i].startswith(self.exclusion + self.prefix):
+                self.whereToStore.append(inputArgs[i][1:])
+                i += 1
+                continue
             
-        if number:
-            remainingArgs.append(inputArgs[i])
-            i += 1
-            continue
+            #not a param token
+            if not inputArgs[i].startswith(self.prefix):
+                self.whereToStore.append(inputArgs[i])
+                i += 1
+                continue
+            
+            #is it a negative number ?
+            number = True
+            try:
+                float(inputArgs[i])
+            except ValueError:
+                number = False
+                
+            if number:
+                self.whereToStore.append(inputArgs[i])
+                i += 1
+                continue
+            
+            ### params token found ###
+            if lastParamFound != None and len(self.whereToStore):
+                self._checkParam(paramFound, lastParamFound[0], lastParamFound[1])
+            
+            paramName = inputArgs[i][1:]
+            
+            if paramName not in self.argTypeList:
+                pass #TODO raise
+            
+            argChecker = self.argTypeList[paramName]
+            
+            #does not care about empty param
+            if argChecker.maximumSize = 0:
+                i += 1
+                continue
+                
+            self.argCollectedForParam = []
+            self.whereToStore = self.argCollectedForParam
+            lastParamFound = (paramName,argChecker,)
+
+        if lastParamFound != None:
+            self._checkParam(paramFound, lastParamFound[0], lastParamFound[1])
         
-        ### params token found ###
-        paramName = inputArgs[i][1:]
-        
-        if paramName not in argTypeList:
-            pass #TODO raise
-        
-        #TODO use the major boucle to grab the arg before to parse them with the argchecker of the param
-            #change remainingArgs
-            #use a boolean to manage the behaviour of the param management
-            #be carefull with the end of list
-                #and the boolean
-                #and ? (forget something, i know it...)
-            #manage the list size to not grab too much token
-                    
-        
-    
-    return paramFound, remainingArgs, remainingArgTypeList
+        return self.paramFound, self.remainingArgs, self.remainingArgTypeList
+
 
 def equalPath(path1,path2):
     sameLength    = True
