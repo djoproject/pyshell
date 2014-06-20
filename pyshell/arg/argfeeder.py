@@ -54,7 +54,7 @@ class ArgFeeder(ArgsChecker):
         ret             = {}
         argCheckerIndex = 0
         dataIndex       = 0
-        
+
         for (name,checker) in self.argTypeList.iteritems():
             #set the engine
             checker.setEngine(engine)
@@ -92,7 +92,8 @@ class ArgFeeder(ArgsChecker):
         items_list = list(self.argTypeList.items())
         for i in range(argCheckerIndex,len(self.argTypeList)):
             (name,checker) = items_list[i]
-                
+            checker.setEngine(engine)
+
             if checker.hasDefaultValue():
                 ret[name] = checker.getDefaultValue()
             else:

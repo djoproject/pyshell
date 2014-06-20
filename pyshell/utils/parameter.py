@@ -28,6 +28,9 @@ else:
 DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
 MAIN_CATEGORY          = "main"
 
+CONTEXT_NAME           = "context"
+ENVIRONMENT_NAME       = "environment"
+
 def getInstanceType(typ):
     if typ == "string":
         return stringArgChecker()
@@ -90,9 +93,9 @@ def _getBool(config, section, option, defaultValue):
 class ParameterManager(object):
     def __init__(self, filePath = None):
         self.params = {}
-        self.params["context"] = {}
-        self.params["environment"] = {}
-        self._forbidenSectionName = ("context", "environment", )
+        self.params[CONTEXT_NAME] = {}
+        self.params[ENVIRONMENT_NAME] = {}
+        self._forbidenSectionName = (CONTEXT_NAME, ENVIRONMENT_NAME, )
         self.filePath = filePath
 
     def load(self):
@@ -135,8 +138,8 @@ class ParameterManager(object):
 
                 ### CONTEXT ###
                 if contextDefined:
-                    if section in self.params["context"]:
-                        context = self.params["context"][section]
+                    if section in self.params[CONTEXT_NAME]:
+                        context = self.params[CONTEXT_NAME][section]
                         try:
                             context.setValue(value)
                         except Exception as ex:
@@ -149,7 +152,7 @@ class ParameterManager(object):
                             typ = listArgChecker(typ)
 
                         context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable)
-                        self.params["context"][section] = context
+                        self.params[CONTEXT_NAME][section] = context
 
                     #manage selected index
                     transientIndex = not config.has_option(section, "index")
@@ -160,13 +163,13 @@ class ParameterManager(object):
                 ### ENVIRONMENT ###
                 else:
                     #manage existing
-                    if section in self.params["environment"]:
-                        self.params["environment"][section].setValue(config.get(section, "value"))
+                    if section in self.params[ENVIRONMENT_NAME]:
+                        self.params[ENVIRONMENT_NAME][section].setValue(config.get(section, "value"))
                     else:
                         if isAList:
                             typ = listArgChecker(typ)
                         
-                        self.params["environment"][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable)
+                        self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable)
             
             ### GENERIC ### 
             else:
@@ -236,14 +239,14 @@ class ParameterManager(object):
         if name in self.params:
             raise ParameterException("(ParameterManager) setContext, invalid context name, a similar generic environment already has this name")
 
-        self.params["context"][name] = context
+        self.params[CONTEXT_NAME][name] = context
 
     def getContext(self, name):
         #name exists ?
-        if name not in self.params["context"]:
+        if name not in self.params[CONTEXT_NAME]:
             raise ParameterException("(ParameterManager) getContext, unknown context name <"+str(name)+"> does not exist")
 
-        return self.params["context"][name]
+        return self.params[CONTEXT_NAME][name]
 
     def setEnvironement(self, name, environment):
         #is environment instance
@@ -254,14 +257,14 @@ class ParameterManager(object):
         if name in self.params:
             raise ParameterException("(ParameterManager) setEnvironement, invalid environment name, a similar generic environment already has this name")
 
-        self.params["environment"][name] = environment
+        self.params[ENVIRONMENT_NAME][name] = environment
 
     def getEnvironment(self, name):
         #name exists ?
-        if name not in self.params["environment"]:
+        if name not in self.params[ENVIRONMENT_NAME]:
             raise ParameterException("(ParameterManager) getEnvironment, environment name <"+str(name)+"> does not exist")
 
-        return self.params["environment"][name]
+        return self.params[ENVIRONMENT_NAME][name]
 
     def setParameter(self,name, param, parent = None):
         if parent == None:
@@ -276,9 +279,12 @@ class ParameterManager(object):
         if not isinstance(param, GenericParameter):
             raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of GenericParameter was expected, got "+str(type(param)))
 
-
         if parent not in self.params:
             self.params[parent] = {}
+
+        if name in self.params[parent]:
+            if self.params[parent][name].isReadOnly() or not self.params[parent][name].isRemovable():
+                raise ParameterException("(ParameterManager) setParameter, this parameter name already exist and is readonly or not removable")
 
         self.params[parent][name] = param
 
@@ -289,7 +295,11 @@ class ParameterManager(object):
         #if parent in self._forbidenSectionName:
         #    raise ParameterException("(ParameterManager) getParameter, can not directly access to <"+str(parent)+">, use the appropriate method")
         #XXX if this condition is enabled, could cause some problem in argchecker
+            #Why: because there is no decorator to access to the _forbidenSectionName and the generic decorator use this method
         #TODO ... pas classe
+            #cette verif devrait etre egalement faite dans les autres methode Parameter
+
+        #TODO plutôt rester générique et faire des vérifs quand ce sont du context ou du env
 
         #name exists ?
         if name not in self.params[parent]:
@@ -309,6 +319,9 @@ class ParameterManager(object):
 
         if parent not in self.params or name not in self.params[parent]:
             raise ParameterException("(ParameterManager) unsetParameter, parameter name <"+str(name)+">  does not exist")
+
+        if not self.params[parent][name].isRemovable():
+            raise ParameterException("(ParameterManager) setParameter, this parameter is not removable")
 
         del self.params[parent][name]
 
@@ -358,12 +371,18 @@ class EnvironmentParameter(Parameter):
 
         self.isListType = isinstance(typ, listArgChecker)
         self.typ = typ
-        self.setValue(value)
+        self._setValue(value)
 
     def getValue(self):
         return self.value
 
-    def setValue(self,value):
+    def setValue(self, value):
+        if self.readonly:
+            raise ParameterException("(EnvironmentParameter) setValue, read only parameter")
+
+        self._setValue(value)
+
+    def _setValue(self,value):
         self.value = self.typ.getValue(value)
 
     def isReadOnly(self):
@@ -425,6 +444,16 @@ class ContextParameter(EnvironmentParameter):
             raise Exception("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
         except TypeError:
             raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
+            
+        self.index = index
+
+    def setIndexValue(self,value):
+        try:
+            self.index = self.value.index(value)
+        except IndexError:
+            raise Exception("(ContextParameter) setIndexValue, invalid index value")
+        except TypeError:
+            raise ParameterException("(ContextParameter) setIndexValue, invalid index value, the value must exist in the context")
             
         self.index = index
 

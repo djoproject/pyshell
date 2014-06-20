@@ -23,7 +23,7 @@ from pyshell.simpleProcess.postProcess import printResultHandler, stringListResu
 from tries.exception import triesException
 import os
 from pyshell.command.exception import engineInterruptionException
-from pyshell.utils.parameter import GenericParameter
+from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter
 
 #TODO
     #implement ambiguity management in usage
@@ -226,7 +226,7 @@ def getParameterValues(key, env, parent=None):
     if not env.hasParameter(key, parent):
         raise engineInterruptionException("Unknow parameter key", True)
 
-    return env.getParameter(key, parent)
+    return env.getParameter(key, parent).getValue()
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
@@ -261,67 +261,50 @@ def listParameter(parameter, parent=None, key=None):
             
     return to_ret
 
-"""### env management ###
+### env management ###
 
 @shellMethod(key=stringArgChecker(),
-             env=completeEnvironmentChecker())
-def removeEnvironmentContextValues(key, env):
-    if key not in env:
-        return #no job to do
-
-    val,typ,readonly, removable = env[key]
-    
-    if readonly or not removable:
-        raise engineInterruptionException("this environment object is not removable", True)
-
-    del env[key]
+             parameters=completeEnvironmentChecker())
+def removeEnvironmentContextValues(key, parameters):
+    removeParameterValues(key, parameters, ENVIRONMENT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker())
 def getEnvironmentValues(key, env): 
-    if key not in env:
-        raise engineInterruptionException("Unknow environment key", True)
-
-    val, typ,readonly, removable = env[key]
-    return val
+    return getParameterValues(key, env, ENVIRONMENT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
              env=completeEnvironmentChecker())
-def setEnvironmentValuesFun(key, values, env): 
-    if key not in env:
-        raise engineInterruptionException("Unknow environment key", True)
-        
-    val, typ,readonly, removable = env[key]
+def setEnvironmentValuesFun(key, values, env):
+    if not env.hasParameter(key, ENVIRONMENT_NAME):
+        raise engineInterruptionException("Unknow environment key <"+str(key)+">", True)
 
-    if readonly:
-        raise engineInterruptionException("this environment object is not removable", True)
+    envParam = env.getParameter(key, ENVIRONMENT_NAME)
 
-    #TODO actualy, not possible to set a single value, work only for listchecker
-        #manage the case with only one value
+    if isinstance(envParam.typ, listArgChecker):
+        envParam.setValue(values)
+    else:
+        envParam.setValue(values[0])
 
-    env[key] = (checker.getValue(values), checker, readonly, removable,)
-
-@shellMethod(key=stringArgChecker(),
+@shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}),
+             key=stringArgChecker(),
              value=ArgChecker(),
+             noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
-def createEnvironmentValueFun(key, value, env): 
+def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=None): 
+    if env.hasParameter(key,ENVIRONMENT_NAME):
+        if noErrorIfExists:
+            #TODO value assign
+
+            return 
+
     #build checker
     checker = _getChecker(valueType)
     
     #check value
     value = checker.getValue(value)
-    
-    #assign
-    if key not in env:
-        raise engineInterruptionException("Unknow environment key", True)
-        
-    val, typ, readonly, removable = env[key]
-
-    if readonly:
-        raise engineInterruptionException("this environment object is not removable", True)
-
-    env[key] = (checker.getValue(values), checker, readonly, removable,)
+    env.setEnvironement(key, EnvironmentParameter(value, checker))
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
              key=stringArgChecker(),
@@ -329,145 +312,140 @@ def createEnvironmentValueFun(key, value, env):
              #FIXME noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
 def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
+    if env.hasParameter(key,ENVIRONMENT_NAME):
+        if noErrorIfExists:
+            #TODO value assign
+
+            return 
+
     #build checker
     checker = listArgChecker(_getChecker(valueType),1)
     
     #check value
     value = checker.getValue(values)
-    
-    #assign
-    if key in env:
-        if noErrorIfExists:
-            return
-
-        raise engineInterruptionException("Unknow environment key", True)
-
-    env[key] = (value, valueType, False, True,)
+    env.setEnvironement(key, EnvironmentParameter(value, checker))
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
              env=completeEnvironmentChecker())
 def addEnvironmentValuesFun(key, values, env):
-    if key in env:
-        value, checker,readonly, removable = env[key]
+    if not env.hasParameter(key, ENVIRONMENT_NAME):
+        raise engineInterruptionException("Unknow environment key <"+str(key)+">", True)
 
-        if readonly:
-            raise engineInterruptionException("this environment object is not removable", True)
-            
-        if not isinstance(checker,listArgChecker) or not hasattr(value, "__iter__"):
-            raise engineInterruptionException("Variable <"+str(key)+"> is not a list, can not append new value", True)
-    
-        newValues = []
-        for i in range(0, len(values)):
-            newValues.append(checker.getValue(values[i],i))
-        
-        value = list(value)
-        value.append(newValues)
-        env[key] = (value, checker,readonly, removable,)
+    envParam = env.getParameter(key, ENVIRONMENT_NAME)
 
-@shellMethod(env=completeEnvironmentChecker())
-def listEnvFun(env):
+    if not isinstance(envParam.typ, listArgChecker):
+        raise engineInterruptionException("This environment has not a list checker, can not add value", True)
+
+    values = envParam.getValue()[:]
+    values.extend(values)
+    envParam.setValue(values)
+
+@shellMethod(parameter=completeEnvironmentChecker(),
+             key=stringArgChecker())
+def listEnvFun(parameter, key=None):
     "list all the environment variable"
-    return [str(k)+" : "+str(v) for k,v in env.iteritems()]
+    return listParameter(parameter, ENVIRONMENT_NAME, key)
 
 ### context management ###
 
 @shellMethod(key=stringArgChecker(),
-             context=environmentChecker("context"))
-def removeContextValues(key, context):
-    if not context.hasKey(key):
-        return #no job to do
-
-    context.removeContextKey(key)
+             parameters=completeEnvironmentChecker())
+def removeContextValues(key, parameters):
+    removeParameterValues(key, parameters, CONTEXT_NAME)
 
 @shellMethod(key=stringArgChecker(),
-             context=environmentChecker("context"))
-def getContextValues(key, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
-
-    return context.getValues(key)
+             env=completeEnvironmentChecker())
+def getContextValues(key, env): 
+    return getParameterValues(key, env, CONTEXT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
-             context=environmentChecker("context"))
-def setContextValuesFun(key, values, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
+             env=completeEnvironmentChecker())
+def setContextValuesFun(key, values, env):
+    if not env.hasParameter(key, CONTEXT_NAME):
+        raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    context.setValues(key, values)
+    envParam = env.getParameter(key, CONTEXT_NAME)
+    envParam.setValue(values)
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
              key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
              #FIXME noErrorIfExists=booleanValueArgChecker(),
-             context=environmentChecker("context"))
-def createContextValuesFun(valueType, key, values, noErrorIfExists=False, context=None):
+             env=completeEnvironmentChecker())
+def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
+    if env.hasParameter(key,CONTEXT_NAME):
+        if noErrorIfExists:
+            #TODO value assign
+
+            return 
+
     #build checker
     checker = listArgChecker(_getChecker(valueType),1)
     
     #check value
     value = checker.getValue(values)
-
-    if context.hasKey(key):
-        if noErrorIfExists:
-            return
-
-        raise engineInterruptionException("Unknow context key", True)
-    
-    #assign
-    context.addValues(key, value, checker)
+    env.setEnvironement(key, ContextParameter(value, checker))
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
-             context=environmentChecker("context"))
-def addContextValuesFun(key, values, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
+             env=completeEnvironmentChecker())
+def addContextValuesFun(key, values, env):
+    if not env.hasParameter(key, CONTEXT_NAME):
+        raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    context.addValues(key, values)
+    envParam = env.getParameter(key, CONTEXT_NAME)
+    values = envParam.getValue()[:]
+    values.extend(values)
+    envParam.setValue(values)
+
 
 @shellMethod(key=stringArgChecker(),
              value=ArgChecker(),
-             context=environmentChecker("context"))
+             context=completeEnvironmentChecker())
 def selectValue(key, value, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
+    if not context.hasParameter(key, CONTEXT_NAME):
+        raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    context.selectValue(key, value)
+    envParam = env.getParameter(key, CONTEXT_NAME)
+    envParam.setIndexValue(value)
     
 @shellMethod(key=stringArgChecker(),
              index=IntegerArgChecker(),
-             context=environmentChecker("context"))
+             context=completeEnvironmentChecker())
 def selectValueIndex(key, index, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
+    if not context.hasParameter(key, CONTEXT_NAME):
+        raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    context.selectValueIndex(key, index)
+    envParam = context.getParameter(key, CONTEXT_NAME)
+    envParam.setIndex(index)
 
 @shellMethod(key=stringArgChecker(),
-             context=environmentChecker("context"))
+             context=completeEnvironmentChecker())
 def getSelectedContextValue(key, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
+    if not context.hasParameter(key, CONTEXT_NAME):
+        raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    return context.getSelectedValue(key)
+    envParam = context.getParameter(key, CONTEXT_NAME)
+
+    return envParam.getSelectedValue()
 
 @shellMethod(key=stringArgChecker(),
-             context=environmentChecker("context"))
+             context=completeEnvironmentChecker())
 def getSelectedContextIndex(key, context):
-    if not context.hasKey(key):
-        raise engineInterruptionException("Unknow context key", True)
+    if not context.hasParameter(key, CONTEXT_NAME):
+        raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    return context.getSelectedIndex(key)
+    envParam = context.getParameter(key, CONTEXT_NAME)
 
-@shellMethod(context=environmentChecker("context"))
-def listContext(context):
-    strlist = []
-    for k in context.getKeys():
-        strlist.append(k + " : " + ', '.join("<"+str(+x)+">" for x in context.getValues(k)) + "  (selected index: "+str(context.getSelectedIndex(k))+", value: <"+str(context.getSelectedValue(k))+">)")
+    return envParam.getIndex()
 
-    return strlist"""
+@shellMethod(parameter=completeEnvironmentChecker(),
+             key=stringArgChecker())
+def listContext(parameter, key=None):
+    "list all the context variable"
+    return listParameter(parameter, CONTEXT_NAME, key)
 
 ### var management ###
 
@@ -581,30 +559,29 @@ registerCommand( ("var", "unset",) ,                  pro=unsetVar)
 registerCommand( ("var", "list",) ,                   pre=listVar, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("var",) )
 
-"""#context
+#context
 registerCommand( ("context", "unset",) ,              pro=removeContextValues)
 registerCommand( ("context", "get",) ,                pre=getContextValues, pro=listResultHandler)
 registerCommand( ("context", "set",) ,                post=setContextValuesFun)
 registerCommand( ("context", "create",) ,             post=createContextValuesFun)
 registerCommand( ("context", "add",) ,                post=addContextValuesFun)
+
 registerCommand( ("context", "value",) ,              pre=getSelectedContextValue, pro=printResultHandler)
 registerCommand( ("context", "index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
 registerCommand( ("context", "select", "index",) ,    post=selectValueIndex)
 registerCommand( ("context", "select", "value",) ,    post=selectValue)
 registerCommand( ("context", "list",) ,               pre=listContext, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("context",) )
-"""
+
 
 #parameter   
 registerCommand( ("parameter", "unset",) ,            pro=removeParameterValues)
-registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=printResultHandler)
+registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=listResultHandler)
 registerCommand( ("parameter", "set",) ,              post=setParameterValue)
 registerCommand( ("parameter", "list",) ,             pre=listParameter, pro=stringListResultHandler)
-
 registerStopHelpTraversalAt( ("parameter",) )
-#TODO list
+#TODO load, save
 
-"""
 #env
 registerCommand( ("environment", "list",) ,           pro=listEnvFun,   post=stringListResultHandler)
 registerCommand( ("environment", "create","single",), post=createEnvironmentValueFun)
@@ -613,7 +590,7 @@ registerCommand( ("environment", "get",) ,            pre=getEnvironmentValues, 
 registerCommand( ("environment", "unset",) ,          pro=removeEnvironmentContextValues)
 registerCommand( ("environment", "set",) ,            post=setEnvironmentValuesFun)
 registerCommand( ("environment", "add",) ,            post=addEnvironmentValuesFun)
-registerStopHelpTraversalAt( ("environment",) )"""
+registerStopHelpTraversalAt( ("environment",) )
 
 #addon
 registerCommand( ("addon","list",) ,                  pro=listAddonFun, post=stringListResultHandler)
