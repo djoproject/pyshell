@@ -193,9 +193,9 @@ class CommandExecuter():
                 print("Normal execution abort, reason: "+str(eien.value))
         except argException as ae:
             print("Error in parsing argument: "+str(ae.value))
-        except Exception as e:
-            print("Unknown error: "+str(e))
-            
+        #except Exception as e:
+        #    print("Unknown error: "+str(e))
+
         return False
     
     def mainLoop(self):

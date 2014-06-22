@@ -261,6 +261,14 @@ def listParameter(parameter, parent=None, key=None):
             
     return to_ret
 
+@shellMethod(parameter=completeEnvironmentChecker())
+def loadParameter(parameter):
+    parameter.load()
+
+@shellMethod(parameter=completeEnvironmentChecker())
+def saveParameter(parameter):
+    parameter.save()
+
 ### env management ###
 
 @shellMethod(key=stringArgChecker(),
@@ -579,6 +587,8 @@ registerCommand( ("parameter", "unset",) ,            pro=removeParameterValues)
 registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=listResultHandler)
 registerCommand( ("parameter", "set",) ,              post=setParameterValue)
 registerCommand( ("parameter", "list",) ,             pre=listParameter, pro=stringListResultHandler)
+registerCommand( ("parameter", "load",) ,             pro=loadParameter)
+registerCommand( ("parameter", "save",) ,             pro=saveParameter)
 registerStopHelpTraversalAt( ("parameter",) )
 #TODO load, save
 

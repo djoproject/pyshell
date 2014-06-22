@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from exception import executionException
-from pyshell.arg.argchecker import 
+#from pyshell.arg.argchecker import 
 
 #TODO 
     #move that into the arg package
@@ -87,7 +87,7 @@ class dashParamParser(object):
             argChecker = self.argTypeList[paramName]
             
             #does not care about empty param
-            if argChecker.maximumSize = 0:
+            if argChecker.maximumSize == 0:
                 i += 1
                 continue
                 
