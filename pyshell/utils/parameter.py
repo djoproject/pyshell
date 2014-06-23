@@ -449,14 +449,12 @@ class ContextParameter(EnvironmentParameter):
 
     def setIndexValue(self,value):
         try:
-            self.index = self.value.index(value)
+            self.index = self.value.index(self.typ.checker.getValue(value))
         except IndexError:
             raise Exception("(ContextParameter) setIndexValue, invalid index value")
         except TypeError:
             raise ParameterException("(ContextParameter) setIndexValue, invalid index value, the value must exist in the context")
             
-        self.index = index
-
     def getIndex(self):
         return self.index
 

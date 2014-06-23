@@ -416,7 +416,7 @@ def selectValue(key, value, context):
     if not context.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
-    envParam = env.getParameter(key, CONTEXT_NAME)
+    envParam = context.getParameter(key, CONTEXT_NAME)
     envParam.setIndexValue(value)
     
 @shellMethod(key=stringArgChecker(),
