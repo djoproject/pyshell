@@ -78,7 +78,7 @@ def _parseLine(line, args):
     return toret
 
 class CommandExecuter():
-    def __init__(self, paramFile, useHistory = True):
+    def __init__(self, paramFile = None, useHistory = True):
         #create param manager
         self.params = ParameterManager(paramFile)
 
@@ -93,8 +93,10 @@ class CommandExecuter():
 
         #TODO save at exit
 
-        #load history file
+        #load and manage history file
         if useHistory:
+            #TODO historyFile must be define and exist
+        
             try:
                 readline.read_history_file(self.params.getEnvironment("historyFile").getValue())
             except IOError:
@@ -104,26 +106,12 @@ class CommandExecuter():
             import atexit
             atexit.register(readline.write_history_file, self.params.getEnvironment("historyFile").getValue())
             del atexit 
-
-        #self.environment[KEY]         = (VALUE, CHECKER, READONLY, REMOVABLE, )
-        #self.environment               = {}
-
-        #self.environment["prompt"]     = ("pyshell:>",stringArgChecker(),False,False,)
-        #self.environment["printer"]    = (self,None,True,False,)
-        #self.environment["executer"]   = (self,None,True,False,)
-        #self.environment["levelTries"] = (multiLevelTries(),None,True,False,)
-        #self.environment["debug"]      = (False,booleanValueArgChecker(),False,False,)
-        #self.environment["params"]     = (paramFile,None,True,False,)
-        #self.environment["vars"]       = ({},None,True,False,)
-        #self.environment["context"]    = (contextManager.contextManager(),None,True,False,)
-        
+            
         #try to load standard shell function
         try:
             stdaddons._loader[None]._load(self.params.getParameter("levelTries").getValue())
         except Exception as ex:
             print "failed to load standard addon: "+str(ex)
-        
-        #self.environment["context"][0].addValues("debug", [0,1,2,3,4,5], IntegerArgChecker())
         
         #redirect output
         real_out    = sys.stdout
@@ -180,6 +168,8 @@ class CommandExecuter():
             engine = engineV3(rawCommandList, rawArgList, self.params)
             engine.execute()
             return True
+            
+        #TODO print stack trace if debug is enabled
         except executionInitException as eie:
             print("Fail to init an execution object: "+str(eie.value))
         except executionException as ee:
@@ -243,6 +233,8 @@ class CommandExecuter():
         sys.stdout.flush()
         
     def complete(self,suffix,index):
+        #TODO ça ne marche pas encore genial avec les $vars, voir fichier de bug
+    
         cmdStringList = _parseLine(readline.get_line_buffer(),self.params.getParameter("vars").getValue())
 
         try:
@@ -315,6 +307,7 @@ class CommandExecuter():
 
         return None
 
+    #TODO
     """def executeFile(self,filename):
         f = open(filename, "r")
         exitOnEnd = True
@@ -328,11 +321,7 @@ class CommandExecuter():
         return exitOnEnd"""
 
 if __name__ == "__main__":
-    #load parameter file
-    #paramFile = parameterManager.ParameterManager()
-    #paramFile.loadFile()
-
-    #load history file
+    #run basic instance
     executer = CommandExecuter(DEFAULT_PARAMETER_FILE)
     executer.mainLoop()
 

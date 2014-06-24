@@ -204,6 +204,10 @@ def _getChecker(valueType):
     
     raise engineInterruptionException("Unknow value type", True)
 
+#TODO
+    #-create generic method
+    #-in env/context list, remove env/context title, we know the section where we are
+
 ### parameter ###
 
 @shellMethod(key=stringArgChecker(),
@@ -554,6 +558,7 @@ def reloadAddon():
 #<misc>
 registerCommand( ("exit",) ,                          pro=exitFun)
 registerCommand( ("quit",) ,                          pro=exitFun)
+registerStopHelpTraversalAt( ("quit",) ) #TODO must hide the function, does not seem to work
 registerCommand( ("echo",) ,                          pro=echo,         post=printResultHandler)
 registerCommand( ("echo16",) ,                        pro=echo16,       post=printResultHandler)
 registerCommand( ("toascii",) ,                       pro=intToAscii,   post=printResultHandler)
@@ -561,50 +566,54 @@ registerCommand( ("usage",) ,                         pro=usageFun)
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
 
 #var
-registerCommand( ("var", "set",) ,                    post=setVar)
-registerCommand( ("var", "get",) ,                    pre=getVar, pro=stringListResultHandler)
-registerCommand( ("var", "unset",) ,                  pro=unsetVar)
-registerCommand( ("var", "list",) ,                   pre=listVar, pro=stringListResultHandler)
+registerSetTempPrefix( ("var", ) )
+registerCommand( ("set",) ,                    post=setVar)
+registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
+registerCommand( ("unset",) ,                  pro=unsetVar)
+registerCommand( ("list",) ,                   pre=listVar, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("var",) )
 
 #context
-registerCommand( ("context", "unset",) ,              pro=removeContextValues)
-registerCommand( ("context", "get",) ,                pre=getContextValues, pro=listResultHandler)
-registerCommand( ("context", "set",) ,                post=setContextValuesFun)
-registerCommand( ("context", "create",) ,             post=createContextValuesFun)
-registerCommand( ("context", "add",) ,                post=addContextValuesFun)
-
-registerCommand( ("context", "value",) ,              pre=getSelectedContextValue, pro=printResultHandler)
-registerCommand( ("context", "index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
-registerCommand( ("context", "select", "index",) ,    post=selectValueIndex)
-registerCommand( ("context", "select", "value",) ,    post=selectValue)
-registerCommand( ("context", "list",) ,               pre=listContext, pro=stringListResultHandler)
+registerSetTempPrefix( ("context", ) )
+registerCommand( ("unset",) ,              pro=removeContextValues)
+registerCommand( ("get",) ,                pre=getContextValues, pro=listResultHandler)
+registerCommand( ("set",) ,                post=setContextValuesFun)
+registerCommand( ("create",) ,             post=createContextValuesFun)
+registerCommand( ("add",) ,                post=addContextValuesFun)
+registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=printResultHandler)
+registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
+registerCommand( ("select", "index",) ,    post=selectValueIndex)
+registerCommand( ("select", "value",) ,    post=selectValue)
+registerCommand( ("list",) ,               pre=listContext, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
 
 #parameter   
-registerCommand( ("parameter", "unset",) ,            pro=removeParameterValues)
-registerCommand( ("parameter", "get",) ,              pre=getParameterValues, pro=listResultHandler)
-registerCommand( ("parameter", "set",) ,              post=setParameterValue)
-registerCommand( ("parameter", "list",) ,             pre=listParameter, pro=stringListResultHandler)
-registerCommand( ("parameter", "load",) ,             pro=loadParameter)
-registerCommand( ("parameter", "save",) ,             pro=saveParameter)
+registerSetTempPrefix( ("parameter", ) )
+registerCommand( ("unset",) ,            pro=removeParameterValues)
+registerCommand( ("get",) ,              pre=getParameterValues, pro=listResultHandler)
+registerCommand( ("set",) ,              post=setParameterValue)
+registerCommand( ("list",) ,             pre=listParameter, pro=stringListResultHandler)
+registerCommand( ("load",) ,             pro=loadParameter)
+registerCommand( ("save",) ,             pro=saveParameter)
 registerStopHelpTraversalAt( ("parameter",) )
 #TODO load, save
 
 #env
-registerCommand( ("environment", "list",) ,           pro=listEnvFun,   post=stringListResultHandler)
-registerCommand( ("environment", "create","single",), post=createEnvironmentValueFun)
-registerCommand( ("environment", "create","list",),   post=createEnvironmentValuesFun)
-registerCommand( ("environment", "get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
-registerCommand( ("environment", "unset",) ,          pro=removeEnvironmentContextValues)
-registerCommand( ("environment", "set",) ,            post=setEnvironmentValuesFun)
-registerCommand( ("environment", "add",) ,            post=addEnvironmentValuesFun)
+registerSetTempPrefix( ("environment", ) )
+registerCommand( ("list",) ,           pro=listEnvFun,   post=stringListResultHandler)
+registerCommand( ("create","single",), post=createEnvironmentValueFun)
+registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
+registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
+registerCommand( ("unset",) ,          pro=removeEnvironmentContextValues)
+registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
+registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
 registerStopHelpTraversalAt( ("environment",) )
 
 #addon
-registerCommand( ("addon","list",) ,                  pro=listAddonFun, post=stringListResultHandler)
-registerCommand( ("addon","load",) ,                  pro=loadAddonFun)
+registerSetTempPrefix( ("addon", ) )
+registerCommand( ("list",) ,                  pro=listAddonFun, post=stringListResultHandler)
+registerCommand( ("load",) ,                  pro=loadAddonFun)
 registerStopHelpTraversalAt( ("addon",) )
 
 #alias

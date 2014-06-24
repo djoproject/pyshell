@@ -84,10 +84,15 @@ def registerAnInstanciatedCommand(keyList, cmd, subLoaderName = None):
 def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, subLoaderName = None):
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerCommand")
-
-    name = " ".join(keyList)
-    cmd = UniCommand(name, pre,pro,post, showInHelp)
     loader = _getAndInitCallerModule(subLoaderName)
+    
+    if loader.TempPrefix != None:
+        name = " ".join(loader.TempPrefix) + " ".join(keyList)
+    else:
+        name = " ".join(keyList)
+    
+    cmd = UniCommand(name, pre,pro,post, showInHelp)
+    
     loader._addCmd(name, keyList, cmd)
     return cmd
 
@@ -96,23 +101,32 @@ def registerCreateMultiCommand(keyList, showInHelp=True, subLoaderName = None):
 
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerCreateMultiCommand")
-
-    name = " ".join(keyList)
+    
+    if loader.TempPrefix != None:
+        name = " ".join(loader.TempPrefix) + " ".join(keyList)
+    else:
+        name = " ".join(keyList)
+    
     cmd = MultiCommand(name, showInHelp)
     loader._addCmd(name, keyList, cmd)
 
     return cmd
 
+#XXX the following one is not doable now...
 def registerAddActionOnEvent(eventType, action):
-    pass #TODO
+    pass #TODO need to have event manager, later
     
+#TODO the following are doable
 def registerAddValueToContext(contextKey, value):
     pass #TODO
     
-def registerAddValueListToContext(contextKey, value):
+def registerAddValueToEnvironment(contextKey, value, typ = None):
     pass #TODO
     
-def registerAddParameter(ParameterParentName, key, value, overrideIfExist = False):
+def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = False):
+    pass #TODO
+    
+def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False):
     pass #TODO
     
 def registerStopHelpTraversalAt(keyList,subLoaderName = None):
@@ -142,10 +156,15 @@ class Loader(object):
 
         #stop traversal
         for stop in self.stoplist:
+            #TODO also use self.prefix
+        
             try:
                 mltries.setStopTraversal(stop, True)
             except triesException as te:
                 print "fail to disable traversal for key list <"+str(" ".join(stop))+"> in multi tries: "+str(te)
+
+        #TODO manage parameter
+            #need to have parameter as argument to the _load meth
 
     def _unload(self, mltries):
         for k,v in self.cmdDict.iteritems():
@@ -157,7 +176,10 @@ class Loader(object):
                 mltries.remove(key)
             except triesException as te:
                 print "fail to remove key <"+str(" ".join(key))+"> in multi tries: "+str(te)
-            
+        
+        #TODO ? unload parameter ?
+            #not in every case...
+        
     def _reload(self, mltries):
         self.unload(mltries)
         self.load(mltries)
@@ -165,7 +187,7 @@ class Loader(object):
     def _addCmd(self, name, keyList, cmd):
         if self.TempPrefix != None:
             prefix = list(self.TempPrefix)
-            prefix.append(keyList)
+            prefix.extend(keyList)
         else:
             prefix = keyList
     
