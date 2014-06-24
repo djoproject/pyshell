@@ -30,6 +30,7 @@ MAIN_CATEGORY          = "main"
 
 CONTEXT_NAME           = "context"
 ENVIRONMENT_NAME       = "environment"
+FORBIDEN_SECTION_NAME  = (CONTEXT_NAME, ENVIRONMENT_NAME, ) 
 
 def getInstanceType(typ):
     if typ == "string":
@@ -95,7 +96,6 @@ class ParameterManager(object):
         self.params = {}
         self.params[CONTEXT_NAME] = {}
         self.params[ENVIRONMENT_NAME] = {}
-        self._forbidenSectionName = (CONTEXT_NAME, ENVIRONMENT_NAME, )
         self.filePath = filePath
 
     def load(self):
@@ -173,7 +173,7 @@ class ParameterManager(object):
             
             ### GENERIC ### 
             else:
-                if section in self._forbidenSectionName:
+                if section in FORBIDEN_SECTION_NAME:
                     print("(ParameterManager) loadFile, parent section name not allowed")
                     continue
             
@@ -194,7 +194,7 @@ class ParameterManager(object):
         #manage standard parameter
         config = ConfigParser.RawConfigParser()
         for parent, childs in self.params.items():   
-            if parent in self._forbidenSectionName:
+            if parent in FORBIDEN_SECTION_NAME:
                 continue
             
             if parent == None:
@@ -215,7 +215,7 @@ class ParameterManager(object):
                 config.set(parent, childName, value)
         
         #manage context and environment
-        for s in self._forbidenSectionName:
+        for s in FORBIDEN_SECTION_NAME:
             if s in self.params:
                 for contextName, contextValue in self.params[s].items():
                     if contextValue.isTransient():
@@ -270,8 +270,8 @@ class ParameterManager(object):
         if parent == None:
             parent = MAIN_CATEGORY
 
-        #parent can not be a name of a child of self._forbidenSectionName
-        for forbidenName in self._forbidenSectionName:
+        #parent can not be a name of a child of FORBIDEN_SECTION_NAME
+        for forbidenName in FORBIDEN_SECTION_NAME:
             if name in self.params[forbidenName]:
                 raise ParameterException("(ParameterManager) setParameter, invalid parameter name, a similar "+forbidenName+" object already has this name")
 
@@ -292,10 +292,10 @@ class ParameterManager(object):
         if parent == None:
             parent = MAIN_CATEGORY
 
-        #if parent in self._forbidenSectionName:
+        #if parent in FORBIDEN_SECTION_NAME:
         #    raise ParameterException("(ParameterManager) getParameter, can not directly access to <"+str(parent)+">, use the appropriate method")
         #XXX if this condition is enabled, could cause some problem in argchecker
-            #Why: because there is no decorator to access to the _forbidenSectionName and the generic decorator use this method
+            #Why: because there is no decorator to access to the FORBIDEN_SECTION_NAME and the generic decorator use this method
         #TODO ... pas classe
             #cette verif devrait etre egalement faite dans les autres methode Parameter
 
@@ -371,6 +371,7 @@ class EnvironmentParameter(Parameter):
 
         self.isListType = isinstance(typ, listArgChecker)
         self.typ = typ
+        self.value = None
         self._setValue(value)
 
     def getValue(self):

@@ -111,7 +111,7 @@ class CommandExecuter():
         try:
             stdaddons._loader[None]._load(self.params.getParameter("levelTries").getValue())
         except Exception as ex:
-            print "failed to load standard addon: "+str(ex)
+            print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
         
         #redirect output
         real_out    = sys.stdout

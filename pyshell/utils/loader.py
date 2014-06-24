@@ -20,6 +20,9 @@ from pyshell.command.command import MultiCommand, UniCommand
 from exception import LoadException
 from tries.exception import triesException
 import inspect
+from pyshell.utils.parameter import CONTEXT_NAME, ENVIRONMENT_NAME, FORBIDEN_SECTION_NAME, EnvironmentParameter, GenericParameter, ContextParameter
+from pyshell.arg.exception import argException
+from pyshell.arg.argchecker import ArgChecker
 
 def _raiseIfInvalidKeyList(keyList, methName):
     if not hasattr(keyList,"__iter__"):
@@ -112,22 +115,71 @@ def registerCreateMultiCommand(keyList, showInHelp=True, subLoaderName = None):
 
     return cmd
 
-#XXX the following one is not doable now...
-def registerAddActionOnEvent(eventType, action):
-    pass #TODO need to have event manager, later
+def registerAddActionOnEvent(eventType, action, subLoaderName = None):
+    pass #TODO XXX need to have event manager, later
+
+def registerDependOnAddon(name, subLoaderName = None):
+    if type(name) != str and type(name) != unicode:
+        raise LoadException("(Loader) registerDependOnAddon, only string or unicode addon name are allowed")
+
+    loader = _getAndInitCallerModule(subLoaderName)
+    loader.dep.append(name)
+
+#TODO if value is a list, must have more than one element
+
+def registerAddValueToContext(contextKey, value, typ = None, subLoaderName = None):
+    #test key
+    if type(contextKey) != str and type(contextKey) != unicode:
+        raise LoadException("(Loader) registerSetParameterValue, only string or unicode key are allowed")
+
+    #check typ si different de None
+    if typ != None and not isinstance(typ, ArgChecker):
+        raise LoadException("(Loader) registerSetParameterValue, type must be None or an instance of ArgChecker")
+
+    loader = _getAndInitCallerModule(subLoaderName)
+    loader.context.append( (contextKey, value, typ) )
     
-#TODO the following are doable
-def registerAddValueToContext(contextKey, value):
-    pass #TODO
+def registerAddValueToEnvironment(envKey, value, typ = None, subLoaderName = None):
+    #test key
+    if type(envKey) != str and type(envKey) != unicode:
+        raise LoadException("(Loader) registerAddValueToEnvironment, only string or unicode key are allowed")
+
+    #check typ si different de None
+    if typ != None and not isinstance(typ, ArgChecker):
+        raise LoadException("(Loader) registerAddValueToEnvironment, type must be None or an instance of ArgChecker")
+
+    loader = _getAndInitCallerModule(subLoaderName)
+    loader.env.append( (envKey, value, typ) )
     
-def registerAddValueToEnvironment(contextKey, value, typ = None):
-    pass #TODO
+def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = False, override = False, subLoaderName = None):
+    ##test key
+    if type(envKey) != str and type(envKey) != unicode:
+        raise LoadException("(Loader) registerSetEnvironmentValue, only string or unicode key are allowed")
+
+    #check typ si different de None
+    if typ != None and not isinstance(typ, ArgChecker):
+            raise LoadException("(Loader) registerSetEnvironmentValue, type must be None or an instance of ArgChecker")
+
+    loader = _getAndInitCallerModule(subLoaderName)
+    loader.env_set.append( (envKey, value, typ, noErrorIfKeyExist, override) )
     
-def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = False):
-    pass #TODO
-    
-def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False):
-    pass #TODO
+def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, override = False, parent = None, subLoaderName = None):
+    #test key
+    if type(paramKey) != str and type(paramKey) != unicode:
+        raise LoadException("(Loader) registerSetParameterValue, only string or unicode key are allowed")
+
+    if parent != None and parent in FORBIDEN_SECTION_NAME:
+        raise LoadException("(Loader) registerSetParameterValue, <"+str(parent)+"> is not an allowed parent name")
+
+    #test value
+    try:
+        value = str(value)
+    except Exception as ex:
+        raise LoadException("(Loader) registerSetParameterValue, fail to convert value to string")
+
+    #append
+    loader = _getAndInitCallerModule(subLoaderName)
+    loader.params.append( (paramKey, value, noErrorIfKeyExist, override, parent) )
     
 def registerStopHelpTraversalAt(keyList,subLoaderName = None):
     loader = _getAndInitCallerModule(subLoaderName)
@@ -142,8 +194,14 @@ class Loader(object):
         self.cmdDict    = {}
         self.TempPrefix = None
         self.stoplist   = []
+
+        self.context    = [] 
+        self.env        = [] 
+        self.env_set    = [] 
+        self.params     = [] 
+        self.dep        = [] #TODO
     
-    def _load(self, mltries):
+    def _load(self, mltries, parameterManager= None):
         #add command
         for k,v in self.cmdDict.iteritems():
             keyList, cmd = v
@@ -156,15 +214,122 @@ class Loader(object):
 
         #stop traversal
         for stop in self.stoplist:
-            #TODO also use self.prefix
+            key = list(self.prefix)
+            key.extend(stop)
         
             try:
-                mltries.setStopTraversal(stop, True)
+                mltries.setStopTraversal(key, True)
             except triesException as te:
                 print "fail to disable traversal for key list <"+str(" ".join(stop))+"> in multi tries: "+str(te)
 
-        #TODO manage parameter
-            #need to have parameter as argument to the _load meth
+        self._loadParams(parameterManager)
+
+    def _loadParams(self, parameterManager = None):
+
+        #TODO chaque appel a parameterManager peut déclencher une exception ParameterException, les catcher !!!
+            #les appels au sous object aussi, context, env, ...
+
+        if parameterManager == None:
+            return
+
+        #context
+        for contextKey, value, typ in self.context:
+            if parameterManager.hasParameter(contextKey,CONTEXT_NAME):
+                context = parameterManager.getContext(contextKey)
+
+                if not hasattr(value, "__iter__"):
+                    value = (value,)
+
+                for v in value:
+                    if v not in context.value:
+                        try:
+                            context.value.append( context.typ.checker.getValue(v) )
+                        except argException as argE:
+                            print("fail to add value <"+str(v)+"> in context <"+contextKey+"> beacause: "+str(argE))
+            else:
+                if typ == None:
+                    print("the context <"+contextKey+"> does not exist and no type defined to create it")
+                    continue
+
+                if not hasattr(value, "__iter__"):
+                    value = (value,)
+
+                try:
+                    parameterManager.setContext(contextKey, ContextParameter(value, typ)) #TODO may throw an exception
+                except argException as argE:
+                    print("fail to create context <"+contextKey+">, because invalid value: "+str(argE))
+                    continue
+
+        for envKey, value, typ in self.env:
+            if parameterManager.hasParameter(envKey, ENVIRONMENT_NAME):
+                envobject = parameterManager.getEnvironment(envKey)
+
+                if not isinstance(envobject.typ, listArgChecker):
+                    print("fail to add environment value on <"+envKey+">, because the existing one is not a list environment")
+                    continue
+
+                oldValue = envobject.getValue()[:]
+                if not hasattr(value, "__iter__"):
+                    oldValue.append(value)
+                else:
+                    oldValue.extend(value)
+
+                envobject.setValue(oldValue) #TODO may raise an exception
+
+            else:
+                if typ == None:
+                    print("fail to add environment value on <"+envKey+">, because the environment does not exist and no type is defined")
+                    continue
+
+                if not hasattr(value, "__iter__"):
+                    value = (value,)
+
+                if not isinstance(typ, listArgChecker):
+                    typ = listArgChecker(typ)
+
+                parameterManager.setEnvironement(envKey, EnvironmentParameter(value, typ)) #TODO may throw an exception
+
+
+        for envKey, value, typ, noErrorIfKeyExist, override in self.env_set:
+            if parameterManager.hasParameter(envKey, ENVIRONMENT_NAME):
+                if not override:
+                    continue
+
+                envobject = parameterManager.getEnvironment(envKey)
+
+                if not hasattr(value, "__iter__") and isinstance(envobject.typ, listArgChecker):
+                    value = (value, )
+
+                if hasattr(value, "__iter__") and not isinstance(envobject.typ, listArgChecker):
+                    value = value[0]
+
+                envobject.setValue(value) #TODO may throw an exception
+
+            else:
+                if typ == None:
+                    if not noErrorIfKeyExist:
+                        print("fail to add environment value on <"+envKey+">, because the environment does not exist and no type is defined")
+
+                    continue
+
+                if not hasattr(value, "__iter__") and isinstance(typ, listArgChecker):
+                    value = (value, )
+
+                if hasattr(value, "__iter__") and not isinstance(typ, listArgChecker):
+                    typ = listArgChecker(typ)
+
+                parameterManager.setParameter(paramKey, GenericParameter(value),parent) #TODO may throw an exception
+
+        for paramKey, value, noErrorIfKeyExist, override, parent in self.params:
+            if parameterManager.hasParameter(paramKey,parent):
+                if override:
+                    parameterManager.setParameter(paramKey, GenericParameter(value),parent) #TODO may throw an exception
+                elif not noErrorIfKeyExist:
+                    print("fail to create parameter <"+paramKey+">, already exists and override not allowed")
+
+            else:
+                parameterManager.setParameter(paramKey, GenericParameter(value),parent) #TODO may throw an exception
+
 
     def _unload(self, mltries):
         for k,v in self.cmdDict.iteritems():
@@ -175,10 +340,12 @@ class Loader(object):
             try:
                 mltries.remove(key)
             except triesException as te:
-                print "fail to remove key <"+str(" ".join(key))+"> in multi tries: "+str(te)
+                print("fail to remove key <"+str(" ".join(key))+"> in multi tries: "+str(te))
         
-        #TODO ? unload parameter ?
-            #not in every case...
+        #don't unload params on unload
+
+    def _unloadParams(self, parameterManager):
+        pass #TODO
         
     def _reload(self, mltries):
         self.unload(mltries)
