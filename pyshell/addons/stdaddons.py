@@ -27,7 +27,6 @@ from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_
 
 #TODO
     #implement ambiguity management in usage
-    #add hidden "?" command
     #if help return only one command without ambiguity, return usage result instead
 
 def exitFun():
@@ -72,6 +71,10 @@ def intToAscii(args):
 @shellMethod(args=listArgChecker(ArgChecker()), mltries=parameterChecker("levelTries"))
 def usageFun(args, mltries):
     "print the usage of a fonction"
+    
+    #TODO if token does not store a command, print it
+        #for example a parent node
+    
     try:
         searchResult = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
@@ -91,7 +94,10 @@ def usageFun(args, mltries):
 
 @shellMethod(mltries=parameterChecker("levelTries"), args=listArgChecker(ArgChecker()))
 def helpFun(mltries, args=None):
-    "print the usage of a fonction"
+    "print the help"
+
+    #TODO what is the behaviour if we try to get the help on a node that is parent and hold a command ?
+        #...
 
     if args == None:
         args = ()
@@ -543,6 +549,22 @@ def unloadAddon():
 
 def reloadAddon():
     pass #TODO
+
+### aliad
+def createAlias(name, command):
+    pass
+
+def removeAlias(name):
+    pass
+    
+def addMethodToAlias(name, command):
+    pass
+    
+def listAlias(name):
+    pass
+    
+def
+
 
 ###
 

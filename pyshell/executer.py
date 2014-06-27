@@ -234,6 +234,9 @@ class CommandExecuter():
         
     def complete(self,suffix,index):
         #TODO ça ne marche pas encore genial avec les $vars, voir fichier de bug
+            #le probleme vient de l'autocompletion de readline
+            #pas grand chose que lon puisse faire sans faire un sale hack avec readline
+            #le plus simple serait de desactiver l'autocompletion avec les vars
     
         cmdStringList = _parseLine(readline.get_line_buffer(),self.params.getParameter("vars").getValue())
 

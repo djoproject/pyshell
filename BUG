@@ -25,11 +25,26 @@ D) prblm when autocompletion with var used in command name
         3)press tab
 
     #QUICK solution: disable var interpretation in autocompletion
+
+E) prblm avec l'autocompletion
+    1) write "env g"
+    2) press tab
+    3) remove the get but leave the space char
+    4) press tab again
     
-E) autocompletion, missing cmd
+    it will print "env environment"
+
+F) autocompletion, missing cmd
     for example, echo and echo16
     echo16 is never print in the autocompletion list
         except with an empty line
         
-F) si on met un environment parameter avec une value null dans le prototype de la fonction qui est decorée, 
+G) si on met un environment parameter avec une value null dans le prototype de la fonction qui est decorée, 
    la variable engine dans le argchecker est à null
+   
+   Quelque chose comme ça ? tenter de reproduire le bug, car il y a des examples ou le bug ne se produit pas...
+   
+    @shellMethod(env=completeEnvironmentChecker())
+    def toto(env = None):
+   
+   
