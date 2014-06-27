@@ -90,10 +90,10 @@ def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, subLo
     loader = _getAndInitCallerModule(subLoaderName)
     
     if loader.TempPrefix != None:
-        name = " ".join(loader.TempPrefix) + " ".join(keyList)
+        name = " ".join(loader.TempPrefix) + " " + " ".join(keyList)
     else:
         name = " ".join(keyList)
-    
+        
     cmd = UniCommand(name, pre,pro,post, showInHelp)
     
     loader._addCmd(name, keyList, cmd)
@@ -106,7 +106,7 @@ def registerCreateMultiCommand(keyList, showInHelp=True, subLoaderName = None):
     _raiseIfInvalidKeyList(keyList, "registerCreateMultiCommand")
     
     if loader.TempPrefix != None:
-        name = " ".join(loader.TempPrefix) + " ".join(keyList)
+        name = " ".join(loader.TempPrefix) + " " + " ".join(keyList)
     else:
         name = " ".join(keyList)
     

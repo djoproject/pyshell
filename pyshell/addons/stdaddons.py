@@ -27,6 +27,8 @@ from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_
 
 #TODO
     #implement ambiguity management in usage
+    #add hidden "?" command
+    #if help return only one command without ambiguity, return usage result instead
 
 def exitFun():
     "Exit the program"
@@ -116,9 +118,13 @@ def helpFun(mltries, args=None):
 
     stringKeys = []
     #cmd without stop traversal
-    dic = mltries.getValue().buildDictionnary(args, False, True, False)
+    dic = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=False, addPrexix=True, onlyPerfectMatch=False)
     for k in dic.keys():
         if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
+            continue
+
+        #is it a hidden cmd ?
+        if mltries.getValue().isStopTraversal(k):
             continue
 
         line = " ".join(k)
@@ -129,13 +135,17 @@ def helpFun(mltries, args=None):
         stringKeys.append(line)
 
     #cmd with stop traversal
-    dic2 = mltries.getValue().buildDictionnary(args, True, True, False)
+    dic2 = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
     stop = {}
     for k in dic2.keys():
         if k in dic:
             continue
 
         if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
+            continue
+
+        #is it a hidden cmd ?
+        if mltries.getValue().isStopTraversal(k):
             continue
 
         for i in range(1,len(k)):
@@ -546,24 +556,28 @@ def reloadAddon():
         #in load addon
             #if addon have . in its path, just try to load it like that
             #withou adding a prefix
+        
+        #load/unload param from addons
 
     #parameter/context/environment/var
-        #create a false create method
-            #just check or not (boolean) if the value already exist, then make a set
-
-        #list
-
         #saisir une variable de manière interractive
+            #demande a l'utilisateur d'encoder une valeur
+        #usage pour les scripts
+        
+        #on peut envisager une boucle infinie jusqu'à ce que l'utilisateur encode une valeur correcte
+        #et possibilité d'encoder dans une variable/cont/env/... deja existant ou d'en créer un
 
 #<misc>
 registerCommand( ("exit",) ,                          pro=exitFun)
 registerCommand( ("quit",) ,                          pro=exitFun)
-registerStopHelpTraversalAt( ("quit",) ) #TODO must hide the function, does not seem to work
+registerStopHelpTraversalAt( ("quit",) )
 registerCommand( ("echo",) ,                          pro=echo,         post=printResultHandler)
 registerCommand( ("echo16",) ,                        pro=echo16,       post=printResultHandler)
 registerCommand( ("toascii",) ,                       pro=intToAscii,   post=printResultHandler)
 registerCommand( ("usage",) ,                         pro=usageFun)
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
+registerCommand( ("?",) ,                          pro=helpFun,      post=stringListResultHandler)
+registerStopHelpTraversalAt( ("?",) )
 
 #var
 registerSetTempPrefix( ("var", ) )
@@ -587,7 +601,6 @@ registerCommand( ("select", "value",) ,    post=selectValue)
 registerCommand( ("list",) ,               pre=listContext, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
-
 #parameter   
 registerSetTempPrefix( ("parameter", ) )
 registerCommand( ("unset",) ,            pro=removeParameterValues)
@@ -597,7 +610,6 @@ registerCommand( ("list",) ,             pre=listParameter, pro=stringListResult
 registerCommand( ("load",) ,             pro=loadParameter)
 registerCommand( ("save",) ,             pro=saveParameter)
 registerStopHelpTraversalAt( ("parameter",) )
-#TODO load, save
 
 #env
 registerSetTempPrefix( ("environment", ) )
