@@ -26,8 +26,9 @@ from pyshell.command.exception import engineInterruptionException
 from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter
 
 #TODO
-    #implement ambiguity management in usage
     #if help return only one command without ambiguity, return usage result instead
+        #prblm help return a list of string, not a single string
+            #solution return a list of one string
 
 def exitFun():
     "Exit the program"
@@ -72,9 +73,6 @@ def intToAscii(args):
 def usageFun(args, mltries):
     "print the usage of a fonction"
     
-    #TODO if token does not store a command, print it
-        #for example a parent node
-    
     try:
         searchResult = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
@@ -82,11 +80,20 @@ def usageFun(args, mltries):
         return
 
     if searchResult.isAmbiguous():
-        print "ambiguity"#TODO show the different possibility, see in executer
+        tokenIndex = len(searchResult.existingPath) - 1
+        tries = searchResult.existingPath[tokenIndex][1].localTries
+        keylist = tries.getKeyList(args[tokenIndex])
+
+        print("ambiguity on command <"+" ".join(args)+">, token <"+str(args[tokenIndex])+">, possible value: "+ ", ".join(keylist))
         return
 
-    elif not searchResult.isAvalueOnTheLastTokenFound():
-        print "no result" #TODO which is the unknow token ?
+    if not searchResult.isPathFound():
+        tokenNotFound = searchResult.getNotFoundTokenList()
+        print "command not found, unknown token <"+tokenNotFound[0]+">"
+        return 
+
+    if not searchResult.isAvalueOnTheLastTokenFound():
+        print "parent token, no usage on this path" 
         return
 
     cmd = searchResult.getLastTokenFoundValue()
@@ -193,7 +200,6 @@ def helpFun(mltries, args=None):
 
                 stringKeys.append(line)
 
-
     for stopPath, subChild in stop.items():
         if len(subChild) == 0:
             continue
@@ -222,7 +228,6 @@ def _getChecker(valueType):
 
 #TODO
     #-create generic method
-    #-in env/context list, remove env/context title, we know the section where we are
 
 ### parameter ###
 
@@ -258,7 +263,7 @@ def setParameterValue(key, values, parent = None, parameter = None):
 @shellMethod(parameter=completeEnvironmentChecker(),
              parent=stringArgChecker(),
              key=stringArgChecker())
-def listParameter(parameter, parent=None, key=None):
+def listParameter(parameter, parent=None, key=None, printParent = True):
     if parent != None:
         if parent not in parameter.params:
             raise engineInterruptionException("unknown parameter parent <"+str(parent)+">", True) 
@@ -275,9 +280,14 @@ def listParameter(parameter, parent=None, key=None):
     
     to_ret = []
     for k in keys:
-        to_ret.append(k)
+        if printParent:
+            to_ret.append(k)
+
         for subk,subv in parameter.params[k].items():
-            to_ret.append("    "+subk+" : \""+str(subv)+"\"")
+            if printParent:
+                to_ret.append("    "+subk+" : \""+str(subv)+"\"")
+            else:
+                to_ret.append(subk+" : \""+str(subv)+"\"")
             
     return to_ret
 
@@ -373,7 +383,7 @@ def addEnvironmentValuesFun(key, values, env):
              key=stringArgChecker())
 def listEnvFun(parameter, key=None):
     "list all the environment variable"
-    return listParameter(parameter, ENVIRONMENT_NAME, key)
+    return listParameter(parameter, ENVIRONMENT_NAME, key, False)
 
 ### context management ###
 
@@ -473,7 +483,7 @@ def getSelectedContextIndex(key, context):
              key=stringArgChecker())
 def listContext(parameter, key=None):
     "list all the context variable"
-    return listParameter(parameter, CONTEXT_NAME, key)
+    return listParameter(parameter, CONTEXT_NAME, key, False)
 
 ### var management ###
 
@@ -552,19 +562,16 @@ def reloadAddon():
 
 ### aliad
 def createAlias(name, command):
-    pass
+    pass #TODO
 
 def removeAlias(name):
-    pass
+    pass #TODO
     
 def addMethodToAlias(name, command):
-    pass
+    pass #TODO
     
 def listAlias(name):
-    pass
-    
-def
-
+    pass #TODO
 
 ###
 
@@ -598,7 +605,7 @@ registerCommand( ("echo16",) ,                        pro=echo16,       post=pri
 registerCommand( ("toascii",) ,                       pro=intToAscii,   post=printResultHandler)
 registerCommand( ("usage",) ,                         pro=usageFun)
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
-registerCommand( ("?",) ,                          pro=helpFun,      post=stringListResultHandler)
+registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)
 registerStopHelpTraversalAt( ("?",) )
 
 #var
