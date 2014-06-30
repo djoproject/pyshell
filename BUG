@@ -48,7 +48,7 @@ G) si on met un environment parameter avec une value null dans le prototype de l
     def toto(env = None):
 
 H) just write 
-    he he he
+    he he he    
     he he he he
    
    
