@@ -23,12 +23,7 @@ from pyshell.simpleProcess.postProcess import printResultHandler, stringListResu
 from tries.exception import triesException
 import os
 from pyshell.command.exception import engineInterruptionException
-from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter
-
-#TODO
-    #if help return only one command without ambiguity, return usage result instead
-        #prblm help return a list of string, not a single string
-            #solution return a list of one string
+from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter   
 
 def exitFun():
     "Exit the program"
@@ -69,7 +64,7 @@ def intToAscii(args):
 
     return s
     
-@shellMethod(args=listArgChecker(ArgChecker()), mltries=parameterChecker("levelTries"))
+@shellMethod(args=listArgChecker(ArgChecker(),1), mltries=parameterChecker("levelTries"))
 def usageFun(args, mltries):
     "print the usage of a fonction"
     
@@ -97,14 +92,11 @@ def usageFun(args, mltries):
         return
 
     cmd = searchResult.getLastTokenFoundValue()
-    print cmd.usage()
+    return cmd.usage()
 
 @shellMethod(mltries=parameterChecker("levelTries"), args=listArgChecker(ArgChecker()))
 def helpFun(mltries, args=None):
     "print the help"
-
-    #TODO what is the behaviour if we try to get the help on a node that is parent and hold a command ?
-        #...
 
     if args == None:
         args = ()
@@ -128,11 +120,14 @@ def helpFun(mltries, args=None):
         #if ambiguity occurs on an intermediate key, stop the search
         print "Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist)
         return
-
+    
+    found = []
     stringKeys = []
-    #cmd without stop traversal
+    #cmd without stop traversal, this will retrieve every tuple path/value
     dic = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=False, addPrexix=True, onlyPerfectMatch=False)
     for k in dic.keys():
+    
+        #the last corresponding token in k must start with the last token of args => prefix
         if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
             continue
 
@@ -144,23 +139,28 @@ def helpFun(mltries, args=None):
         hmess = dic[k].helpMessage
         if hmess != None and len(hmess) > 0:
             line += ": "+hmess
-
+        
+        found.append(  (k,hmess,)  )
         stringKeys.append(line)
 
-    #cmd with stop traversal
+    #cmd with stop traversal (parent category only)
     dic2 = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
     stop = {}
     for k in dic2.keys():
+        #if k is in dic, already processed
         if k in dic:
             continue
-
+        
+        #the last corresponding token in k must start with the last token of args => prefix
         if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
             continue
 
-        #is it a hidden cmd ?
-        if mltries.getValue().isStopTraversal(k):
-            continue
+        #is it a hidden cmd ? only for final node, because they don't appear in dic2
+        #useless, "k in dic" is enough
+        #if mltries.getValue().isStopTraversal(k):
+        #    continue
 
+        #is there a disabled token ?
         for i in range(1,len(k)):
             #this level of k is disabled, not the first occurence
             if k[0:i] in stop:
@@ -175,14 +175,15 @@ def helpFun(mltries, args=None):
             #this level of k is disabled, first occurence
             if mltries.getValue().isStopTraversal(k[0:i]):
 
-                #is enable with the args ?
+                #if the disabled string token is in the args to print, it is equivalent to enabled
                 equiv = False
                 if fullArgs != None and len(fullArgs) >= len(k[0:i]):
                     equiv = True
                     for j in range(0,min(  len(fullArgs), len(k) ) ):
                         if not k[j].startswith(fullArgs[j]):
                             equiv = False 
-
+                
+                #if the args are not a prefix for every corresponding key, is is disabled
                 if not equiv:
                     if i == len(k):
                         stop[ k[0:i] ] = []
@@ -191,15 +192,20 @@ def helpFun(mltries, args=None):
                     
                     break
 
-            #this path is not disabled
+            #this path is not disabled and it is the last path, occured with a not disabled because in the path
             if i == (len(k) -1):
                 line = " ".join(k)
                 hmess = dic2[k].helpMessage
                 if hmess != None and len(hmess) > 0:
                     line += ": "+hmess
-
+                
+                found.append( (k,hmess,) )
                 stringKeys.append(line)
-
+    
+    #build the "real" help
+    if len(found) == 1:
+        return ( "Command Name:","       "+" ".join(found[0][0]),"", "Description:","       "+found[0][1],"","Usage: ","       "+usageFun(found[0][0], mltries), "",)
+    
     for stopPath, subChild in stop.items():
         if len(subChild) == 0:
             continue
@@ -212,7 +218,7 @@ def helpFun(mltries, args=None):
 
     return sorted(stringKeys)
 
-### various method to manage var ###
+### various method to manage parameter ###
 
 def _getChecker(valueType):
     if valueType == "string":
@@ -228,6 +234,11 @@ def _getChecker(valueType):
 
 #TODO
     #-create generic method
+        #for which one ?
+            #createContextValuesFun/createEnvironmentValueFun
+            #addContextValuesFun/addEnvironmentValuesFun
+    
+    #-create setter/getter for parameter settings (transient/readonly/...)
 
 ### parameter ###
 
@@ -258,12 +269,14 @@ def getParameterValues(key, env, parent=None):
              #FIXME parent=stringArgChecker(),
              parameter=completeEnvironmentChecker())
 def setParameterValue(key, values, parent = None, parameter = None):
+    "assign a value to a parameter"
     parameter.setParameter(key,GenericParameter(', '.join(str(x) for x in values)), parent)
 
 @shellMethod(parameter=completeEnvironmentChecker(),
              parent=stringArgChecker(),
              key=stringArgChecker())
 def listParameter(parameter, parent=None, key=None, printParent = True):
+    "list every parameter sorted by the parent name"
     if parent != None:
         if parent not in parameter.params:
             raise engineInterruptionException("unknown parameter parent <"+str(parent)+">", True) 
@@ -293,10 +306,12 @@ def listParameter(parameter, parent=None, key=None, printParent = True):
 
 @shellMethod(parameter=completeEnvironmentChecker())
 def loadParameter(parameter):
+    "load parameters from the settings file"
     parameter.load()
 
 @shellMethod(parameter=completeEnvironmentChecker())
 def saveParameter(parameter):
+    "save not transient parameters to the settings file"
     parameter.save()
 
 ### env management ###
@@ -304,17 +319,21 @@ def saveParameter(parameter):
 @shellMethod(key=stringArgChecker(),
              parameters=completeEnvironmentChecker())
 def removeEnvironmentContextValues(key, parameters):
+    "remove an environment parameter"
     removeParameterValues(key, parameters, ENVIRONMENT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker())
-def getEnvironmentValues(key, env): 
+def getEnvironmentValues(key, env):
+    "get an environment parameter value" 
     return getParameterValues(key, env, ENVIRONMENT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
              env=completeEnvironmentChecker())
 def setEnvironmentValuesFun(key, values, env):
+    "set an environment parameter value"
+     
     if not env.hasParameter(key, ENVIRONMENT_NAME):
         raise engineInterruptionException("Unknow environment key <"+str(key)+">", True)
 
@@ -331,6 +350,7 @@ def setEnvironmentValuesFun(key, values, env):
              noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
 def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=None): 
+    "create an environment parameter value" 
     if env.hasParameter(key,ENVIRONMENT_NAME):
         if noErrorIfExists:
             #TODO value assign
@@ -350,6 +370,7 @@ def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=
              #FIXME noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
 def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
+    "create an environment parameter value list" 
     if env.hasParameter(key,ENVIRONMENT_NAME):
         if noErrorIfExists:
             #TODO value assign
@@ -367,6 +388,8 @@ def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, en
              values=listArgChecker(ArgChecker()),
              env=completeEnvironmentChecker())
 def addEnvironmentValuesFun(key, values, env):
+    "add values to an environment parameter list"
+     
     if not env.hasParameter(key, ENVIRONMENT_NAME):
         raise engineInterruptionException("Unknow environment key <"+str(key)+">", True)
 
@@ -390,17 +413,21 @@ def listEnvFun(parameter, key=None):
 @shellMethod(key=stringArgChecker(),
              parameters=completeEnvironmentChecker())
 def removeContextValues(key, parameters):
+    "remove a context parameter"
     removeParameterValues(key, parameters, CONTEXT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              env=completeEnvironmentChecker())
 def getContextValues(key, env): 
+    "get a context parameter value" 
     return getParameterValues(key, env, CONTEXT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker(),1),
              env=completeEnvironmentChecker())
 def setContextValuesFun(key, values, env):
+    "set a context parameter value"
+
     if not env.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
@@ -413,6 +440,7 @@ def setContextValuesFun(key, values, env):
              #FIXME noErrorIfExists=booleanValueArgChecker(),
              env=completeEnvironmentChecker())
 def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
+    "create a context parameter value list"
     if env.hasParameter(key,CONTEXT_NAME):
         if noErrorIfExists:
             #TODO value assign
@@ -430,6 +458,7 @@ def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=No
              values=listArgChecker(ArgChecker()),
              env=completeEnvironmentChecker())
 def addContextValuesFun(key, values, env):
+    "add values to a context parameter list"
     if not env.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
@@ -443,6 +472,7 @@ def addContextValuesFun(key, values, env):
              value=ArgChecker(),
              context=completeEnvironmentChecker())
 def selectValue(key, value, context):
+    "select the value for the current context"
     if not context.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
@@ -453,6 +483,7 @@ def selectValue(key, value, context):
              index=IntegerArgChecker(),
              context=completeEnvironmentChecker())
 def selectValueIndex(key, index, context):
+    "select the value index for the current context"
     if not context.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
@@ -462,6 +493,7 @@ def selectValueIndex(key, index, context):
 @shellMethod(key=stringArgChecker(),
              context=completeEnvironmentChecker())
 def getSelectedContextValue(key, context):
+    "get the selected value for the current context"
     if not context.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
@@ -472,6 +504,7 @@ def getSelectedContextValue(key, context):
 @shellMethod(key=stringArgChecker(),
              context=completeEnvironmentChecker())
 def getSelectedContextIndex(key, context):
+    "get the selected value index for the current context"
     if not context.hasParameter(key, CONTEXT_NAME):
         raise engineInterruptionException("Unknow context key <"+str(key)+">", True)
 
@@ -491,11 +524,13 @@ def listContext(parameter, key=None):
              values=listArgChecker(ArgChecker(),1),
              _vars=parameterChecker("vars"))
 def setVar(key, values, _vars):
+    "assign a value to a var"
     _vars.getValue()[key] = values
 
 @shellMethod(key=stringArgChecker(),
              _vars=parameterChecker("vars"))
 def getVar(key, _vars):
+    "get the value of a var"
     if key not in _vars.getValue():
         raise engineInterruptionException("(getVar) Unknow var key <"+str(key)+">",True)
 
@@ -504,11 +539,13 @@ def getVar(key, _vars):
 @shellMethod(key=stringArgChecker(),
              _vars=parameterChecker("vars"))
 def unsetVar(key, _vars):
+    "unset a var"
     if key in _vars.getValue():
         del _vars.getValue()[key]
 
 @shellMethod(_vars=parameterChecker("vars"))
 def listVar(_vars):
+    "list every existing var"
     ret = []
     
     for k,v in _vars.getValue().items():
@@ -517,6 +554,19 @@ def listVar(_vars):
     return ret
 
 ### addon ###
+
+#TODO
+    #unload addon
+    #reload addon
+    #list addon
+        #print loaded or not loaded addon
+    #manage multi src addon
+    #in load addon
+        #if addon have . in its path, just try to load it like that
+        #withou adding a prefix
+    
+    #load/unload param from addons
+
 
 def listAddonFun():
     "list the available addons"
@@ -555,12 +605,45 @@ def loadAddonFun(name, levelTries, subAddon = None):
         print "name error in <"+name+"> loading : "+str(ne)
 
 def unloadAddon():
+    "unload an addon"
+    
     pass #TODO
 
 def reloadAddon():
+    "reload an addon"
+
     pass #TODO
 
-### aliad
+### alias
+
+#TODO
+    #problm to solve
+        #name and command are both unknows length string list
+        #so it is difficult to known where finish the first one
+        
+            #Solution 1: wait for parameter implementation
+            #Solution 2: use variable
+            #Solution 3: use named alias without value at the beginning
+                #then only use add to associate a command to an alias
+                    #bof, need two step to create an alias :/
+            #Solution 4: alias are a one token string
+                #et on stocke ça dans un parameter avec un parent special "alias"
+                #permettrait d'avoir les alias qui se sauvegarde tout seul
+                
+                #drawback
+                    #alias a un seul token string
+                    #categorie parente figée
+        
+        #alias must be disabled if one of the included command has been unloaded
+        #we need to know if a command is linked to an alias
+        
+            #Solution 1: keep a map of the alias and check at the unload
+                #the alias list ?
+            #Solution 2: add an attribute to the multiCommand object
+            #Solution 3:
+            
+            
+
 def createAlias(name, command):
     pass #TODO
 
@@ -575,26 +658,29 @@ def listAlias(name):
 
 ###
 
-#TODO needed command
-    #addon
-        #unload addon
-        #reload addon
-        #list addon
-            #print loaded or not loaded addon
-        #manage multi src addon
-        #in load addon
-            #if addon have . in its path, just try to load it like that
-            #withou adding a prefix
-        
-        #load/unload param from addons
+#TODO
+#parameter/context/environment/var
+    #saisir une variable de manière interractive
+        #demande a l'utilisateur d'encoder une valeur
+    #usage pour les scripts
+    
+    #on peut envisager une boucle infinie jusqu'à ce que l'utilisateur encode une valeur correcte
+    #et possibilité d'encoder dans une variable/cont/env/... deja existant ou d'en créer un
+    
+    #stocker juste dans les vars et ensuite assigner a para/cont/env si on le souhaite
+    
+    #peut poser des prblm avec le REPL
+        #si on doit saisir quelque chose à l'écran
+        #on va devoir faire une saisie
+        #et si le REPL s'enclenche a ce moment là...
 
-    #parameter/context/environment/var
-        #saisir une variable de manière interractive
-            #demande a l'utilisateur d'encoder une valeur
-        #usage pour les scripts
-        
-        #on peut envisager une boucle infinie jusqu'à ce que l'utilisateur encode une valeur correcte
-        #et possibilité d'encoder dans une variable/cont/env/... deja existant ou d'en créer un
+def askForValue():
+    pass #TODO
+    
+def askForValueList():
+    pass #TODO
+
+### REGISTER SECTION ###
 
 #<misc>
 registerCommand( ("exit",) ,                          pro=exitFun)
@@ -603,7 +689,7 @@ registerStopHelpTraversalAt( ("quit",) )
 registerCommand( ("echo",) ,                          pro=echo,         post=printResultHandler)
 registerCommand( ("echo16",) ,                        pro=echo16,       post=printResultHandler)
 registerCommand( ("toascii",) ,                       pro=intToAscii,   post=printResultHandler)
-registerCommand( ("usage",) ,                         pro=usageFun)
+registerCommand( ("usage",) ,                         pro=usageFun,     post=printResultHandler)
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
 registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)
 registerStopHelpTraversalAt( ("?",) )
