@@ -20,7 +20,7 @@ from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
-from tries.exception import triesException
+from tries.exception import triesException, pathNotExistsTriesException
 import os
 from pyshell.command.exception import engineInterruptionException
 from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter   
@@ -121,6 +121,12 @@ def helpFun(mltries, args=None):
         print "Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist)
         return
     
+    #manage not found case
+    if not advancedResult.isPathFound():
+        notFoundToken = advancedResult.getNotFoundTokenList()
+        print "unkwnon token "+str(advancedResult.getTokenFoundCount())+": <"+notFoundToken[0]+">"
+        return
+    
     found = []
     stringKeys = []
     #cmd without stop traversal, this will retrieve every tuple path/value
@@ -203,9 +209,16 @@ def helpFun(mltries, args=None):
                 stringKeys.append(line)
     
     #build the "real" help
-    if len(found) == 1:
-        return ( "Command Name:","       "+" ".join(found[0][0]),"", "Description:","       "+found[0][1],"","Usage: ","       "+usageFun(found[0][0], mltries), "",)
-    
+    if len(stop) == 0:
+        if len(found) == 0:
+            if len(fullArgs) > 0:
+                print "unkwnon token 0: <"+fullArgs[0]+">"
+            else:
+                print "no help available"
+                
+        if len(found) == 1 :
+            return ( "Command Name:","       "+" ".join(found[0][0]),"", "Description:","       "+found[0][1],"","Usage: ","       "+usageFun(found[0][0], mltries), "",)
+        
     for stopPath, subChild in stop.items():
         if len(subChild) == 0:
             continue
