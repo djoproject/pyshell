@@ -20,6 +20,7 @@
 import readline
 import os
 import sys
+import atexit
 
 #custom library
 from tries import multiLevelTries
@@ -89,9 +90,14 @@ class CommandExecuter():
         self.params.setContext("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0))
         self.params.setEnvironement("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False))
 
-        #TODO try to load parameter file
+        #try to load parameter file
+        try:
+            self.params.load()
+        except Exception as ex:
+            print "Fail to load parameters file: "+str(ex)
 
-        #TODO save at exit
+        #save at exit
+        atexit.register(self.params.save)
 
         #load and manage history file
         if useHistory:
@@ -103,9 +109,7 @@ class CommandExecuter():
                 pass
 
             #save history file at exit
-            import atexit
             atexit.register(readline.write_history_file, self.params.getEnvironment("historyFile").getValue())
-            del atexit 
             
         #try to load standard shell function
         try:

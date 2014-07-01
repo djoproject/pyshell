@@ -57,6 +57,8 @@ def getTypeFromInstance(instance):
         return "any"
 
 #TODO
+    #store a readible list char separator
+
     #manage readonly
 
     #gestion des erreurs dans le loader et un peu partout
