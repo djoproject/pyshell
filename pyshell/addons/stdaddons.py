@@ -252,6 +252,11 @@ def _getChecker(valueType):
             #addContextValuesFun/addEnvironmentValuesFun
     
     #-create setter/getter for parameter settings (transient/readonly/...)
+    
+    #reset params
+        #load from default
+        
+    #print in log
 
 ### parameter ###
 
@@ -375,7 +380,7 @@ def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=
     
     #check value
     value = checker.getValue(value)
-    env.setEnvironement(key, EnvironmentParameter(value, checker))
+    env.setParameter(key, EnvironmentParameter(value, checker),ENVIRONMENT_NAME)
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
              key=stringArgChecker(),
@@ -395,7 +400,7 @@ def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, en
     
     #check value
     value = checker.getValue(values)
-    env.setEnvironement(key, EnvironmentParameter(value, checker))
+    env.setParameter(key, EnvironmentParameter(value, checker),ENVIRONMENT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),
@@ -465,7 +470,7 @@ def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=No
     
     #check value
     value = checker.getValue(values)
-    env.setEnvironement(key, ContextParameter(value, checker))
+    env.setParameter(key, ContextParameter(value, checker),CONTEXT_NAME)
 
 @shellMethod(key=stringArgChecker(),
              values=listArgChecker(ArgChecker()),

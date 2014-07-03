@@ -30,7 +30,7 @@ from command.engine import engineV3
 from arg.exception import *
 from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker
 from addons import stdaddons
-from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, GenericParameter, ContextParameter
+from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, GenericParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
 
 class writer :
     def __init__(self, out):
@@ -84,11 +84,11 @@ class CommandExecuter():
         self.params = ParameterManager(paramFile)
 
         #init original params
-        self.params.setEnvironement("prompt", EnvironmentParameter(value="pyshell:>", typ=stringArgChecker(),transient=False,readonly=False, removable=False))
+        self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("vars", GenericParameter(value={},transient=True,readonly=True, removable=False))
         self.params.setParameter("levelTries", GenericParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
-        self.params.setContext("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0))
-        self.params.setEnvironement("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False))
+        self.params.setParameter("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
 
         #try to load parameter file
         try:
@@ -104,12 +104,12 @@ class CommandExecuter():
             #TODO historyFile must be define and exist
         
             try:
-                readline.read_history_file(self.params.getEnvironment("historyFile").getValue())
+                readline.read_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
             except IOError:
                 pass
 
             #save history file at exit
-            atexit.register(readline.write_history_file, self.params.getEnvironment("historyFile").getValue())
+            atexit.register(readline.write_history_file, self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
             
         #try to load standard shell function
         try:
@@ -207,7 +207,7 @@ class CommandExecuter():
             #read prompt
             try:
                 sys.stdout = self.writer.out
-                cmd = raw_input(self.params.getEnvironment("prompt").getValue())
+                cmd = raw_input(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue())
             except SyntaxError:
                 print "   syntax error"
                 continue
@@ -230,9 +230,9 @@ class CommandExecuter():
 
         #this is needed because after an input, the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
-            sys.stdout.write(self.params.getEnvironment("prompt").getValue())
+            sys.stdout.write(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue())
         else:
-            sys.stdout.write(self.params.getEnvironment("prompt").getValue() + readline.get_line_buffer())
+            sys.stdout.write(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue() + readline.get_line_buffer())
 
         sys.stdout.flush()
         
@@ -319,7 +319,7 @@ class CommandExecuter():
         f = open(filename, "r")
         exitOnEnd = True
         for line in f:
-            print self.params.getEnvironment("prompt").getValue()+line.strip('\n\r')
+            print self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue()+line.strip('\n\r')
             if line.startswith("noexit"):
                 exitOnEnd = False
             elif not self.executeCommand(line):

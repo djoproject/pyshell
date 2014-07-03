@@ -235,7 +235,7 @@ class Loader(object):
         #context
         for contextKey, value, typ in self.context:
             if parameterManager.hasParameter(contextKey,CONTEXT_NAME):
-                context = parameterManager.getContext(contextKey)
+                context = parameterManager.getParameter(contextKey, CONTEXT_NAME)
 
                 if not hasattr(value, "__iter__"):
                     value = (value,)
@@ -255,14 +255,14 @@ class Loader(object):
                     value = (value,)
 
                 try:
-                    parameterManager.setContext(contextKey, ContextParameter(value, typ)) #TODO may throw an exception
+                    parameterManager.setParameter(contextKey, ContextParameter(value, typ), CONTEXT_NAME) #TODO may throw an exception
                 except argException as argE:
                     print("fail to create context <"+contextKey+">, because invalid value: "+str(argE))
                     continue
 
         for envKey, value, typ in self.env:
             if parameterManager.hasParameter(envKey, ENVIRONMENT_NAME):
-                envobject = parameterManager.getEnvironment(envKey)
+                envobject = parameterManager.getParameter(envKey, ENVIRONMENT_NAME)
 
                 if not isinstance(envobject.typ, listArgChecker):
                     print("fail to add environment value on <"+envKey+">, because the existing one is not a list environment")
@@ -287,7 +287,7 @@ class Loader(object):
                 if not isinstance(typ, listArgChecker):
                     typ = listArgChecker(typ)
 
-                parameterManager.setEnvironement(envKey, EnvironmentParameter(value, typ)) #TODO may throw an exception
+                parameterManager.setParameter(envKey, EnvironmentParameter(value, typ), ENVIRONMENT_NAME) #TODO may throw an exception
 
 
         for envKey, value, typ, noErrorIfKeyExist, override in self.env_set:
@@ -295,7 +295,7 @@ class Loader(object):
                 if not override:
                     continue
 
-                envobject = parameterManager.getEnvironment(envKey)
+                envobject = parameterManager.getParameter(envKey, ENVIRONMENT_NAME)
 
                 if not hasattr(value, "__iter__") and isinstance(envobject.typ, listArgChecker):
                     value = (value, )

@@ -57,19 +57,15 @@ def getTypeFromInstance(instance):
         return "any"
 
 #TODO
-    #store a readible list char separator
-
-    #manage readonly
-
     #gestion des erreurs dans le loader et un peu partout
         #gerer les appels de sous methodes qui génére des exception
             #genre le arg checker get value
 
         #pour le loader, tout charger même s'il y a des erreurs et afficher un recap'
 
-    #executer command mapping
     #context/env manager ?
         #to manage concurrency for example ?
+        
     #test
 
 def _getInt(config, section, option, defaultValue):
@@ -92,6 +88,7 @@ def _getBool(config, section, option, defaultValue):
             ret = False
 
     return ret
+    
 
 class ParameterManager(object):
     def __init__(self, filePath = None):
@@ -101,6 +98,9 @@ class ParameterManager(object):
         self.filePath = filePath
 
     def load(self):
+        #TODO
+            #can't load a contect/env if the parent 
+    
         #load params
         config = None
         if os.path.exists(self.filePath):
@@ -133,10 +133,22 @@ class ParameterManager(object):
                 else:
                     typ = ArgChecker()
 
-                isAList = contextDefined or _getBool(config, section, "listType", False)
+                #has a separator? is a list ?
+                isAList = False
+                if config.has_option(section, "separator"):
+                    isAList = True
+                    sep = config.get(section, "separator")
+                    
+                    if sep == None or (type(sep) != str and type(sep) != unicode):
+                        print("Section <"+str(section)+">, separator must be a string, get "+str(type(sep)))
+                        continue
+                        
+                    if len(sep) != 1:
+                        print("Section <"+str(section)+">, separator must have a length of 1, get <"+str(len(sep))+">")
+                        continue
 
                 if isAList:
-                    value = value.split(chr(31))
+                    value = value.split(sep)
 
                 ### CONTEXT ###
                 if contextDefined:
@@ -232,7 +244,7 @@ class ParameterManager(object):
         with open(self.filePath, 'wb') as configfile:
             config.write(configfile)
 
-    def setContext(self, name, context): #ParameterException
+    """def setContext(self, name, context): #ParameterException
         #is context instance
         if not isinstance(context, ContextParameter):
             raise ParameterException("(ParameterManager) setContext, invalid context, an instance of ContextParameter was expected, got "+str(type(context)))
@@ -266,21 +278,43 @@ class ParameterManager(object):
         if name not in self.params[ENVIRONMENT_NAME]:
             raise ParameterException("(ParameterManager) getEnvironment, environment name <"+str(name)+"> does not exist")
 
-        return self.params[ENVIRONMENT_NAME][name]
+        return self.params[ENVIRONMENT_NAME][name]"""
 
     def setParameter(self,name, param, parent = None):
         if parent == None:
             parent = MAIN_CATEGORY
+        
+        ## CONTEXT ##
+        if parent == CONTEXT_NAME:
+            #is context instance
+            if not isinstance(param, ContextParameter):
+                raise ParameterException("(ParameterManager) setParameter, invalid context, an instance of ContextParameter was expected, got "+str(type(param)))
+            
+            #name can't be an existing section name
+            if name in self.params:
+                raise ParameterException("(ParameterManager) setContext, invalid context name, a similar generic environment already has this name")
+        
+        ## ENVIRONMENT ##
+        elif parent == ENVIRONMENT_NAME:
+            #is environment instance
+            if not isinstance(param, EnvironmentParameter):# or isinstance(environment, GenericParameter):
+                raise ParameterException("(ParameterManager) setEnvironement, invalid environment, an instance of EnvironmentParameter was expected, got "+str(type(param)))
 
-        #parent can not be a name of a child of FORBIDEN_SECTION_NAME
-        for forbidenName in FORBIDEN_SECTION_NAME:
-            if name in self.params[forbidenName]:
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter name, a similar "+forbidenName+" object already has this name")
-
-        #is generic instance 
-        if not isinstance(param, GenericParameter):
-            raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of GenericParameter was expected, got "+str(type(param)))
-
+            #name can't be an existing section name
+            if name in self.params:
+                raise ParameterException("(ParameterManager) setEnvironement, invalid environment name, a similar generic environment already has this name")
+        
+        ## GENERIC ##
+        else:
+            #is generic instance 
+            if not isinstance(param, GenericParameter):
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of GenericParameter was expected, got "+str(type(param)))
+        
+            #parent can not be a name of a child of FORBIDEN_SECTION_NAME
+            for forbidenName in FORBIDEN_SECTION_NAME:
+                if name in self.params[forbidenName]:
+                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name <"+name+">, a similar <"+forbidenName+"> object already has this name")
+            
         if parent not in self.params:
             self.params[parent] = {}
 
@@ -293,15 +327,6 @@ class ParameterManager(object):
     def getParameter(self, name, parent = None):
         if parent == None:
             parent = MAIN_CATEGORY
-
-        #if parent in FORBIDEN_SECTION_NAME:
-        #    raise ParameterException("(ParameterManager) getParameter, can not directly access to <"+str(parent)+">, use the appropriate method")
-        #XXX if this condition is enabled, could cause some problem in argchecker
-            #Why: because there is no decorator to access to the FORBIDEN_SECTION_NAME and the generic decorator use this method
-        #TODO ... pas classe
-            #cette verif devrait etre egalement faite dans les autres methode Parameter
-
-        #TODO plutôt rester générique et faire des vérifs quand ce sont du context ou du env
 
         #name exists ?
         if name not in self.params[parent]:
@@ -362,7 +387,7 @@ class Parameter(object): #abstract
         return str(self.getValue())
 
 class EnvironmentParameter(Parameter):
-    def __init__(self, value, typ, transient = False, readonly = False, removable = True):
+    def __init__(self, value, typ, transient = False, readonly = False, removable = True, sep = ";"):
         Parameter.__init__(self, transient)
         self.readonly  = readonly
         self.removable = removable
@@ -372,9 +397,19 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
 
         self.isListType = isinstance(typ, listArgChecker)
+        self.setListSeparator(sep)
         self.typ = typ
         self.value = None
         self._setValue(value)
+
+    def setListSeparator(self, sep):
+        if sep == None or (type(sep) != str and type(sep) != unicode):
+            raise ParameterException("(EnvironmentParameter) setListSeparator, separator must be a string, get "+str(type(sep)))
+            
+        if len(sep) != 1:
+            raise ParameterException("(EnvironmentParameter) setListSeparator, separator must have a length of 1, get <"+str(len(sep))+">")
+            
+        self.sep = sep
 
     def getValue(self):
         return self.value
@@ -406,12 +441,13 @@ class EnvironmentParameter(Parameter):
         toret["removable"] = str(self.removable)
         
         if self.isListType:
-            toret["listType"] = str(True)
+            #toret["listType"] = str(True)
+            toret["separator"] = self.sep
             toret["type"]     = getTypeFromInstance(self.typ.checker)
-            toret["value"]    = chr(31).join(str(x) for x in self.value) #concat on ascii unit separator character
+            toret["value"]    = self.sep.join(str(x) for x in self.value) #concat on ascii unit separator character
 
         else:
-            toret["listType"] = str(False)
+            #toret["listType"] = str(False)
             toret["type"]     = getTypeFromInstance(self.typ)
             toret["value"]    = str(self.value)
 
