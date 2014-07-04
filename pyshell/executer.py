@@ -79,7 +79,7 @@ def _parseLine(line, args):
     return toret
 
 class CommandExecuter():
-    def __init__(self, paramFile = None, useHistory = True):
+    def __init__(self, paramFile = None):
         #create param manager
         self.params = ParameterManager(paramFile)
 
@@ -89,7 +89,8 @@ class CommandExecuter():
         self.params.setParameter("levelTries", GenericParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
         self.params.setParameter("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-
+        self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=booleanValueArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        
         #try to load parameter file
         try:
             self.params.load()
@@ -97,12 +98,10 @@ class CommandExecuter():
             print "Fail to load parameters file: "+str(ex)
 
         #save at exit
-        atexit.register(self.params.save)
+        atexit.register(self.saveHistory)
 
         #load and manage history file
-        if useHistory:
-            #TODO historyFile must be define and exist
-        
+        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
             try:
                 readline.read_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
             except IOError:
@@ -121,6 +120,11 @@ class CommandExecuter():
         real_out    = sys.stdout
         self.writer = writer(real_out)
         sys.stdout  = self.writer
+        
+    def saveHistory(self):
+        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
+            self.params.save()
+        
     #
     #
     # @return, true if no severe error or correct process, false if severe error
@@ -328,6 +332,10 @@ class CommandExecuter():
         return exitOnEnd"""
 
 if __name__ == "__main__":
+    #TODO
+        #manage a config file from param
+
+
     #run basic instance
     executer = CommandExecuter(DEFAULT_PARAMETER_FILE)
     executer.mainLoop()

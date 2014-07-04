@@ -237,7 +237,9 @@ class booleanValueArgChecker(tokenValueArgChecker):
                 value = self.TrueName
             else:
                 value = self.FalseName
-        
+        else:
+            value = str(value).lower()
+
         return tokenValueArgChecker.getValue(self,value,argNumber)
     
 class floatTokenArgChecker(ArgChecker):

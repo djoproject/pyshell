@@ -45,23 +45,23 @@ def getInstanceType(typ):
         return ArgChecker()
 
 def getTypeFromInstance(instance):
-    if isinstance(instance, stringArgChecker):
+    if isinstance(instance, booleanValueArgChecker):
+        return "bool"
+    elif isinstance(instance, stringArgChecker):
         return "string"
     elif isinstance(instance, IntegerArgChecker):
         return "int"
-    elif isinstance(instance, booleanValueArgChecker):
-        return "bool"
     elif isinstance(instance, floatTokenArgChecker):
         return "float"
     else:
         return "any"
 
 #TODO
-    #gestion des erreurs dans le loader et un peu partout
+    #gestion des erreurs dans le load et un peu partout
         #gerer les appels de sous methodes qui génére des exception
             #genre le arg checker get value
 
-        #pour le loader, tout charger même s'il y a des erreurs et afficher un recap'
+        #pour le load, tout charger même s'il y a des erreurs et afficher un recap'
 
     #context/env manager ?
         #to manage concurrency for example ?
@@ -99,7 +99,7 @@ class ParameterManager(object):
 
     def load(self):
         #TODO
-            #can't load a contect/env if the parent 
+            #can't load a contect/env if name exist as parent for generic parameters
     
         #load params
         config = None
@@ -123,7 +123,11 @@ class ParameterManager(object):
                 value = config.get(section, "value")
 
                 #is it context type ?
-                contextDefined = _getBool(config, section, "contextType", False)
+                contextDefined = False
+                if config.has_option(section, "defaultIndex"):
+                    contextDefined = True
+                    defaultIndex = _getInt(config, section, "defaultIndex", 0)
+                
                 readonly       = _getBool(config, section, "readonly", False)
                 removable      = _getBool(config, section, "removable", False)
 
@@ -159,13 +163,10 @@ class ParameterManager(object):
                         except Exception as ex:
                             print("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
                     else:
-                        #get default index
-                        defaultIndex = _getInt(config, section, "defaultIndex", 0)
-
                         if isAList:
                             typ = listArgChecker(typ)
 
-                        context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable)
+                        context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable) #TODO could raise on value conversion
                         self.params[CONTEXT_NAME][section] = context
 
                     #manage selected index
@@ -178,12 +179,12 @@ class ParameterManager(object):
                 else:
                     #manage existing
                     if section in self.params[ENVIRONMENT_NAME]:
-                        self.params[ENVIRONMENT_NAME][section].setValue(config.get(section, "value"))
+                        self.params[ENVIRONMENT_NAME][section].setValue(config.get(section, "value")) #TODO could raise on value conversion
                     else:
                         if isAList:
                             typ = listArgChecker(typ)
                         
-                        self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable)
+                        self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable) #TODO could raise on value conversion
             
             ### GENERIC ### 
             else:
@@ -243,42 +244,6 @@ class ParameterManager(object):
         
         with open(self.filePath, 'wb') as configfile:
             config.write(configfile)
-
-    """def setContext(self, name, context): #ParameterException
-        #is context instance
-        if not isinstance(context, ContextParameter):
-            raise ParameterException("(ParameterManager) setContext, invalid context, an instance of ContextParameter was expected, got "+str(type(context)))
-
-        #name can't be an existing section name
-        if name in self.params:
-            raise ParameterException("(ParameterManager) setContext, invalid context name, a similar generic environment already has this name")
-
-        self.params[CONTEXT_NAME][name] = context
-
-    def getContext(self, name):
-        #name exists ?
-        if name not in self.params[CONTEXT_NAME]:
-            raise ParameterException("(ParameterManager) getContext, unknown context name <"+str(name)+"> does not exist")
-
-        return self.params[CONTEXT_NAME][name]
-
-    def setEnvironement(self, name, environment):
-        #is environment instance
-        if not isinstance(environment, EnvironmentParameter) or isinstance(environment, GenericParameter):
-            raise ParameterException("(ParameterManager) setEnvironement, invalid environment, an instance of EnvironmentParameter was expected, got "+str(type(environment)))
-
-        #name can't be an existing section name
-        if name in self.params:
-            raise ParameterException("(ParameterManager) setEnvironement, invalid environment name, a similar generic environment already has this name")
-
-        self.params[ENVIRONMENT_NAME][name] = environment
-
-    def getEnvironment(self, name):
-        #name exists ?
-        if name not in self.params[ENVIRONMENT_NAME]:
-            raise ParameterException("(ParameterManager) getEnvironment, environment name <"+str(name)+"> does not exist")
-
-        return self.params[ENVIRONMENT_NAME][name]"""
 
     def setParameter(self,name, param, parent = None):
         if parent == None:
@@ -526,7 +491,6 @@ class ContextParameter(EnvironmentParameter):
             toret["index"] = str(self.index)
             
         toret["defaultIndex"] = str(self.defaultIndex)
-        toret["contextType"]  = str(True)
 
         return toret
         

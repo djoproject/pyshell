@@ -126,6 +126,7 @@ def registerDependOnAddon(name, subLoaderName = None):
     loader.dep.append(name)
 
 #TODO if value is a list, must have more than one element
+    #???
 
 def registerAddValueToContext(contextKey, value, typ = None, subLoaderName = None):
     #test key

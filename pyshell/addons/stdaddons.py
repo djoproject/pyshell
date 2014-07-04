@@ -325,13 +325,21 @@ def listParameter(parameter, parent=None, key=None, printParent = True):
 @shellMethod(parameter=completeEnvironmentChecker())
 def loadParameter(parameter):
     "load parameters from the settings file"
-    parameter.load()
+    
+    try:
+        parameter.load()
+    except Exception as ex:
+        print("fail to load parameter fail: "+str(ex))
 
 @shellMethod(parameter=completeEnvironmentChecker())
 def saveParameter(parameter):
     "save not transient parameters to the settings file"
-    parameter.save()
-
+    
+    try:
+        parameter.save()
+    except Exception as ex:
+        print("fail to save parameter fail: "+str(ex))
+    
 ### env management ###
 
 @shellMethod(key=stringArgChecker(),
