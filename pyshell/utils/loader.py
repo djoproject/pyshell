@@ -21,8 +21,10 @@ from exception import LoadException
 from tries.exception import triesException
 import inspect
 from pyshell.utils.parameter import CONTEXT_NAME, ENVIRONMENT_NAME, FORBIDEN_SECTION_NAME, EnvironmentParameter, GenericParameter, ContextParameter
+from pyshell.utils.exception import ParameterException
 from pyshell.arg.exception import argException
 from pyshell.arg.argchecker import ArgChecker
+
 
 def _raiseIfInvalidKeyList(keyList, methName):
     if not hasattr(keyList,"__iter__"):
@@ -126,7 +128,7 @@ def registerDependOnAddon(name, subLoaderName = None):
     loader.dep.append(name)
 
 #TODO if value is a list, must have more than one element
-    #???
+    #??? what does it mean ?
 
 def registerAddValueToContext(contextKey, value, typ = None, subLoaderName = None):
     #test key
@@ -159,7 +161,7 @@ def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = F
 
     #check typ si different de None
     if typ != None and not isinstance(typ, ArgChecker):
-            raise LoadException("(Loader) registerSetEnvironmentValue, type must be None or an instance of ArgChecker")
+        raise LoadException("(Loader) registerSetEnvironmentValue, type must be None or an instance of ArgChecker")
 
     loader = _getAndInitCallerModule(subLoaderName)
     loader.env_set.append( (envKey, value, typ, noErrorIfKeyExist, override) )
@@ -233,11 +235,14 @@ class Loader(object):
         if parameterManager == None:
             return
 
-        #context
+        errorList = []
+
+        ## ADD VALUE TO CONTEXT ##
         for contextKey, value, typ in self.context:
             if parameterManager.hasParameter(contextKey,CONTEXT_NAME):
                 context = parameterManager.getParameter(contextKey, CONTEXT_NAME)
 
+                #value must be a list in context
                 if not hasattr(value, "__iter__"):
                     value = (value,)
 
@@ -246,7 +251,7 @@ class Loader(object):
                         try:
                             context.value.append( context.typ.checker.getValue(v) )
                         except argException as argE:
-                            print("fail to add value <"+str(v)+"> in context <"+contextKey+"> beacause: "+str(argE))
+                            errorList.append("fail to add value <"+str(v)+"> in context <"+contextKey+"> beacause: "+str(argE))
             else:
                 if typ == None:
                     print("the context <"+contextKey+"> does not exist and no type defined to create it")
@@ -256,17 +261,19 @@ class Loader(object):
                     value = (value,)
 
                 try:
-                    parameterManager.setParameter(contextKey, ContextParameter(value, typ), CONTEXT_NAME) #TODO may throw an exception
+                    parameterManager.setParameter(contextKey, ContextParameter(value, typ), CONTEXT_NAME)
                 except argException as argE:
-                    print("fail to create context <"+contextKey+">, because invalid value: "+str(argE))
-                    continue
+                    errorList.append("fail to create context <"+contextKey+">, because invalid value: "+str(argE))
+                except ParameterException as ex:
+                    errorList.append("fail to create context <"+contextKey+">: "+str(ex))
 
+        ## ADD VALUE TO ENV ##
         for envKey, value, typ in self.env:
             if parameterManager.hasParameter(envKey, ENVIRONMENT_NAME):
                 envobject = parameterManager.getParameter(envKey, ENVIRONMENT_NAME)
 
                 if not isinstance(envobject.typ, listArgChecker):
-                    print("fail to add environment value on <"+envKey+">, because the existing one is not a list environment")
+                    errorList.append("fail to add environment value on <"+envKey+">, because the existing one is not a list environment")
                     continue
 
                 oldValue = envobject.getValue()[:]
@@ -275,11 +282,15 @@ class Loader(object):
                 else:
                     oldValue.extend(value)
 
-                envobject.setValue(oldValue) #TODO may raise an exception
-
+                try:
+                    envobject.setValue(oldValue)
+                except argException as argE:
+                    errorList.append("fail to add new items to environment <"+contextKey+">, because invalid value: "+str(argE))
+                except ParameterException as pe:
+                    errorList.append("fail to add new items to environment <"+contextKey+">: "+str(pe))
             else:
                 if typ == None:
-                    print("fail to add environment value on <"+envKey+">, because the environment does not exist and no type is defined")
+                    errorList.append("fail to add new items to environment <"+envKey+">, because the environment does not exist and no type is defined")
                     continue
 
                 if not hasattr(value, "__iter__"):
@@ -288,9 +299,14 @@ class Loader(object):
                 if not isinstance(typ, listArgChecker):
                     typ = listArgChecker(typ)
 
-                parameterManager.setParameter(envKey, EnvironmentParameter(value, typ), ENVIRONMENT_NAME) #TODO may throw an exception
+                try:
+                    parameterManager.setParameter(envKey, EnvironmentParameter(value, typ), ENVIRONMENT_NAME)
+                except argException as argE:
+                    errorList.append("fail to create new environment <"+envKey+">, because invalid value: "+str(argE))
+                except ParameterException as pe:
+                    errorList.append("fail to create new environment <"+envKey+">: "+str(pe))
 
-
+        ## SET ENV ##
         for envKey, value, typ, noErrorIfKeyExist, override in self.env_set:
             if parameterManager.hasParameter(envKey, ENVIRONMENT_NAME):
                 if not override:
@@ -304,9 +320,18 @@ class Loader(object):
                 if hasattr(value, "__iter__") and not isinstance(envobject.typ, listArgChecker):
                     value = value[0]
 
-                envobject.setValue(value) #TODO may throw an exception
+                try:
+                    envobject.setValue(value)
+                except argException as argE:
+                    errorList.append("fail to set value to environment <"+envKey+">, because invalid value: "+str(argE))
+                except ParameterException as pe:
+                    errorList.append("fail to set value to environment <"+envKey+">: "+str(pe))
 
             else:
+                #TODO this statement looks weird...
+                    #try to understand what does it need to do
+                    #then compare with the existing code
+
                 if typ == None:
                     if not noErrorIfKeyExist:
                         print("fail to add environment value on <"+envKey+">, because the environment does not exist and no type is defined")
@@ -319,18 +344,27 @@ class Loader(object):
                 if hasattr(value, "__iter__") and not isinstance(typ, listArgChecker):
                     typ = listArgChecker(typ)
 
-                parameterManager.setParameter(paramKey, GenericParameter(value),parent) #TODO may throw an exception
+                try:
+                    parameterManager.setParameter(paramKey, EnvironmentParameter(value, typ),ENVIRONMENT_NAME)
+                except argException as argE:
+                    errorList.append("fail to create new environment <"+envKey+">, because invalid value: "+str(argE))
+                except ParameterException as pe:
+                    errorList.append("fail to create new environment <"+envKey+">: "+str(pe))
 
+        ## SET PARAMS ##
         for paramKey, value, noErrorIfKeyExist, override, parent in self.params:
             if parameterManager.hasParameter(paramKey,parent):
                 if override:
-                    parameterManager.setParameter(paramKey, GenericParameter(value),parent) #TODO may throw an exception
+                    parameterManager.setParameter(paramKey, GenericParameter(value),parent)
                 elif not noErrorIfKeyExist:
                     print("fail to create parameter <"+paramKey+">, already exists and override not allowed")
 
             else:
-                parameterManager.setParameter(paramKey, GenericParameter(value),parent) #TODO may throw an exception
+                parameterManager.setParameter(paramKey, GenericParameter(value),parent)
 
+        #print error list
+        for error in errorList:
+            print(error)
 
     def _unload(self, mltries):
         for k,v in self.cmdDict.iteritems():

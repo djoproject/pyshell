@@ -24,10 +24,14 @@ if sys.version_info.major == 2:
     import ConfigParser 
 else:
     import configparser as ConfigParser
-    
+
+#TODO
+    #context/env manager ?
+        #how to manage concurrency?
+
+
 DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
 MAIN_CATEGORY          = "main"
-
 CONTEXT_NAME           = "context"
 ENVIRONMENT_NAME       = "environment"
 FORBIDEN_SECTION_NAME  = (CONTEXT_NAME, ENVIRONMENT_NAME, ) 
@@ -55,19 +59,7 @@ def getTypeFromInstance(instance):
         return "float"
     else:
         return "any"
-
-#TODO
-    #gestion des erreurs dans le load et un peu partout
-        #gerer les appels de sous methodes qui génére des exception
-            #genre le arg checker get value
-
-        #pour le load, tout charger même s'il y a des erreurs et afficher un recap'
-
-    #context/env manager ?
-        #to manage concurrency for example ?
         
-    #test
-
 def _getInt(config, section, option, defaultValue):
     ret = defaultValue
     if config.has_option(section, option):
@@ -98,9 +90,6 @@ class ParameterManager(object):
         self.filePath = filePath
 
     def load(self):
-        #TODO
-            #can't load a contect/env if name exist as parent for generic parameters
-    
         #load params
         config = None
         if os.path.exists(self.filePath):
@@ -112,14 +101,24 @@ class ParameterManager(object):
                 return
         else:
             #if no parameter file, try to create it, then return
-            self.save()
+            try:
+                self.save()
+            except Exception as ex:
+                print("(ParameterManager) loadFile, parameter file does not exist, fail to create it"+str(ex))
             return
 
         #read and parse, for each section
+        errorList = []
         for section in config.sections():
 
             #advanced section (context or env)
             if config.has_option(section, "value"):
+
+                #a parent category with a similar name can not already exist
+                if section in self.params:
+                    errorList.append("Section <"+str(section)+">, a parent category with this name already exist, can not create a context or environment with this name")
+                    continue
+
                 value = config.get(section, "value")
 
                 #is it context type ?
@@ -144,11 +143,11 @@ class ParameterManager(object):
                     sep = config.get(section, "separator")
                     
                     if sep == None or (type(sep) != str and type(sep) != unicode):
-                        print("Section <"+str(section)+">, separator must be a string, get "+str(type(sep)))
+                        errorList.append("Section <"+str(section)+">, separator must be a string, get "+str(type(sep)))
                         continue
                         
                     if len(sep) != 1:
-                        print("Section <"+str(section)+">, separator must have a length of 1, get <"+str(len(sep))+">")
+                        errorList.append("Section <"+str(section)+">, separator must have a length of 1, get <"+str(len(sep))+">")
                         continue
 
                 if isAList:
@@ -161,12 +160,17 @@ class ParameterManager(object):
                         try:
                             context.setValue(value)
                         except Exception as ex:
-                            print("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
+                            errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
                     else:
                         if isAList:
                             typ = listArgChecker(typ)
 
-                        context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable) #TODO could raise on value conversion
+                        try:
+                            context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable, sep)
+                        except Exception as ex:
+                            errorList.append("(ParameterManager) loadFile, fail to create new context <"+str(section)+"> : "+str(ex))
+                            continue
+
                         self.params[CONTEXT_NAME][section] = context
 
                     #manage selected index
@@ -179,17 +183,21 @@ class ParameterManager(object):
                 else:
                     #manage existing
                     if section in self.params[ENVIRONMENT_NAME]:
-                        self.params[ENVIRONMENT_NAME][section].setValue(config.get(section, "value")) #TODO could raise on value conversion
+                        self.params[ENVIRONMENT_NAME][section].setValue(config.get(section, "value"))
                     else:
                         if isAList:
                             typ = listArgChecker(typ)
                         
-                        self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable) #TODO could raise on value conversion
-            
+                        try:
+                            self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable, sep)
+                        except Exception as ex:
+                            errorList.append("(ParameterManager) loadFile, fail to create new environment <"+str(section)+"> : "+str(ex))
+                            continue
+
             ### GENERIC ### 
             else:
                 if section in FORBIDEN_SECTION_NAME:
-                    print("(ParameterManager) loadFile, parent section name not allowed")
+                    errorList.append("(ParameterManager) loadFile, parent section name <"+str(section)+"> not allowed")
                     continue
             
                 #if section in 
@@ -204,7 +212,11 @@ class ParameterManager(object):
                             continue        
                             
                     self.params[section][option] = GenericParameter(value=config.get(section, option))
-            
+        
+        #manage errorList
+        for error in errorList:
+            print(error)
+
     def save(self):
         #manage standard parameter
         config = ConfigParser.RawConfigParser()
@@ -419,8 +431,8 @@ class EnvironmentParameter(Parameter):
         return toret
 
 class GenericParameter(EnvironmentParameter):
-    def __init__(self, value, transient = False, readonly = False, removable = True):
-        EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable)
+    def __init__(self, value, transient = False, readonly = False, removable = True, sep = ";"):
+        EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable, sep)
         
     def getParameterSerializableField(self):
         toret = EnvironmentParameter.getParameterSerializableField(self)

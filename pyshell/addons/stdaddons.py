@@ -101,40 +101,47 @@ def helpFun(mltries, args=None):
     if args == None:
         args = ()
 
-    #little hack to be able to get help about for a function who has another function as prefix
+    #little hack to be able to get help about for a function who has another function as suffix
     if len(args) > 0:
         fullArgs = args[:]
-        prefix = args[-1]
+        suffix = args[-1]
         args = args[:-1]
     else:
-        prefix = None
+        suffix = None
         fullArgs = None
 
     #manage ambiguity cases
-    advancedResult = mltries.getValue().advancedSearch(args, False)
-    if advancedResult.isAmbiguous():
-        tokenIndex = len(advancedResult.existingPath) - 1
-        tries = advancedResult.existingPath[tokenIndex][1].localTries
-        keylist = tries.getKeyList(args[tokenIndex])
+    if fullArgs != None:
+        advancedResult = mltries.getValue().advancedSearch(fullArgs, False)
+        ambiguityOnLastToken = False
+        if advancedResult.isAmbiguous():
+            tokenIndex = len(advancedResult.existingPath) - 1
+            tries = advancedResult.existingPath[tokenIndex][1].localTries
+            keylist = tries.getKeyList(fullArgs[tokenIndex])
 
-        #if ambiguity occurs on an intermediate key, stop the search
-        print "Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist)
-        return
-    
-    #manage not found case
-    if not advancedResult.isPathFound():
-        notFoundToken = advancedResult.getNotFoundTokenList()
-        print "unkwnon token "+str(advancedResult.getTokenFoundCount())+": <"+notFoundToken[0]+">"
-        return
+            #don't care about ambiguity on last token
+            ambiguityOnLastToken = tokenIndex == len(fullArgs) -1
+            if not ambiguityOnLastToken:
+                #if ambiguity occurs on an intermediate key, stop the search
+                print "Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist)
+                return
+
+        #manage not found case
+        if not ambiguityOnLastToken and not advancedResult.isPathFound():
+            notFoundToken = advancedResult.getNotFoundTokenList()
+            print "unkwnon token "+str(advancedResult.getTokenFoundCount())+": <"+notFoundToken[0]+">"
+            return
     
     found = []
     stringKeys = []
-    #cmd without stop traversal, this will retrieve every tuple path/value
+    #cmd with stop traversal, this will retrieve every tuple path/value
     dic = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=False, addPrexix=True, onlyPerfectMatch=False)
     for k in dic.keys():
-    
-        #the last corresponding token in k must start with the last token of args => prefix
-        if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
+        #if (fullArgs == None and len(k) < len(args)) or (fullArgs != None and len(k) < len(fullArgs)):
+        #    continue
+
+        #the last corresponding token in k must start with the last token of args => suffix
+        if suffix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(suffix):
             continue
 
         #is it a hidden cmd ?
@@ -149,7 +156,7 @@ def helpFun(mltries, args=None):
         found.append(  (k,hmess,)  )
         stringKeys.append(line)
 
-    #cmd with stop traversal (parent category only)
+    #cmd without stop traversal (parent category only)
     dic2 = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
     stop = {}
     for k in dic2.keys():
@@ -157,8 +164,11 @@ def helpFun(mltries, args=None):
         if k in dic:
             continue
         
-        #the last corresponding token in k must start with the last token of args => prefix
-        if prefix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(prefix):
+        #if (fullArgs == None and len(k) < len(args)) or (fullArgs != None and len(k) < len(fullArgs)):
+        #    continue
+
+        #the last corresponding token in k must start with the last token of args => suffix
+        if suffix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(suffix):
             continue
 
         #is it a hidden cmd ? only for final node, because they don't appear in dic2
@@ -215,8 +225,9 @@ def helpFun(mltries, args=None):
                 print "unkwnon token 0: <"+fullArgs[0]+">"
             else:
                 print "no help available"
-                
-        if len(found) == 1 :
+        
+            return ()
+        elif len(found) == 1 :
             return ( "Command Name:","       "+" ".join(found[0][0]),"", "Description:","       "+found[0][1],"","Usage: ","       "+usageFun(found[0][0], mltries), "",)
         
     for stopPath, subChild in stop.items():
@@ -255,6 +266,8 @@ def _getChecker(valueType):
     
     #reset params
         #load from default
+    
+    #unset/reset params from addons
         
     #print in log
 
