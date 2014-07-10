@@ -16,6 +16,96 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from apdu.readers.proxnroll import ProxnrollAPDUBuilder
+from pyshell.utils.loader import *
+from pyshell.arg.decorator import shellMethod
+from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+
+## METHOD ##
+_colourTokenChecker = tokenValueArgChecker(ProxnrollAPDUBuilder.ColorSettings)
+@shellMethod(red = _colourTokenChecker, green=_colourTokenChecker, yellow_blue=_colourTokenChecker)
+def setLight(red, green, yellow_blue = None):
+    return ProxnrollAPDUBuilder.setLedColorFun(red, green, yellow_blue)
+
+@shellMethod(duration=IntegerArgChecker(0,60000))
+def setBuzzer(duration=2000):
+    return ProxnrollAPDUBuilder.setBuzzerDuration(duration)
+
+## REGISTER ##
+
+# MAIN #
+registerSetGlobalPrefix( ("proxnroll", ) )
+registerCommand( ( "setlight",), pre=setLight) 
+registerCommand( ( "setbuzzer",), pre=setBuzzer)
+registerCommand( ( "vendor",), pre=ProxnrollAPDUBuilder.getDataVendorName)
+#TODO registerCommand( ( "test",), )
+#TODO registerCommand( ( "read",), )
+#TODO registerCommand( ( "update",), )
+#TODO registerCommand( ( "readall",), )
+
+# CALYPSO #
+registerSetTempPrefix( ("calypso",  ) )
+#TODO registerCommand( ( "setspeed","9600",), )
+#TODO registerCommand( ( "setspeed","115200",), )
+#TODO registerCommand( ( "enabledigestupdate",), )
+#TODO registerCommand( ( "disabledigestupdate",), )
+
+# PRODUCT #
+registerSetTempPrefix( ("product",  ) )
+#TODO registerCommand( ( "name",), )
+#TODO registerCommand( ( "serialString",), )
+#TODO registerCommand( ( "usbidentifiel",), )
+#TODO registerCommand( ( "version",), )
+#TODO registerCommand( ( "serial",), )
+
+# CARD #
+registerSetTempPrefix( ("card",  ) )
+#TODO registerCommand( ( "serial",), )
+#TODO registerCommand( ( "ats",), )
+#TODO registerCommand( ( "completeIdentifier",), )
+#TODO registerCommand( ( "type",), )
+#TODO registerCommand( ( "shortSerial",), )
+#TODO registerCommand( ( "atr",), )
+#TODO registerCommand( ( "hardwareIdentifier",), )
+
+# TRACKING #
+registerSetTempPrefix( ("control","tracking",  ) )
+#TODO registerCommand( ( "resume",), )
+#TODO registerCommand( ( "suspend",), )
+
+# RFFIELD #
+registerSetTempPrefix( ("control","rffield",  ) )
+#TODO registerCommand( ( "stop",), )
+#TODO registerCommand( ( "start",), )
+#TODO registerCommand( ( "reset",), )
+
+# T=CL #
+registerSetTempPrefix( ("control","t=cl",  ) )
+#TODO registerCommand( ( "deactivation",), )
+#TODO registerCommand( ( "activation","a",), )
+#TODO registerCommand( ( "activation","b",), )
+#TODO registerCommand( ( "disable","next",), )           
+#TODO registerCommand( ( "disable","every",), )
+#TODO registerCommand( ( "enable",), )
+#TODO registerCommand( ( "reset",), )
+
+# STROP CONTROL #
+registerSetTempPrefix( ("control", ) )
+#TODO registerCommand( ( ,), "stop")
+
+# MIFARE CLASSIC #
+registerSetTempPrefix( ("mifare", ) )
+#TODO registerCommand( ( "loadkey",), )
+#TODO registerCommand( ( "authenticate",), )
+#TODO registerCommand( ( "read",), )
+#TODO registerCommand( ( "update",), )
+
+# ENCAPSULATE # 
+registerSetTempPrefix( ("encapsulate", ) )
+#TODO registerCommand( ( "standard",), )
+#TODO registerCommand( ( "redirection",), )
+#TODO registerCommand( ( "partial",), )
+
 """def readAllFun(envi):
     ls = []
     for i in range(0,0xffff):
@@ -43,9 +133,6 @@ except NameError:
 t = tokenValueArgChecker({"off":ProxnrollAPDUBuilder.colorOFF,"on":ProxnrollAPDUBuilder.colorON,"auto":ProxnrollAPDUBuilder.colorAUTO,"slow":ProxnrollAPDUBuilder.colorSLOW,"quick":ProxnrollAPDUBuilder.colorQUICK,"beat":ProxnrollAPDUBuilder.colorBEAT})
 i0to60000 = IntegerArgChecker(0,60000)
 
-
-Executer.addCommand(CommandStrings=["proxnroll","setlight"],                               preProcess=ProxnrollAPDUBuilder.setLedColorFun,process=executeAPDU,argChecker=DefaultArgsChecker([("red",t),("green",t),("yellow_blue",t)],2))
-Executer.addCommand(CommandStrings=["proxnroll","setbuzzer"],                              preProcess=ProxnrollAPDUBuilder.setBuzzerDuration,process=executeAPDU,                                  argChecker=DefaultArgsChecker([("duration",i0to60000)],0))
 Executer.addCommand(CommandStrings=["proxnroll","calypso","setspeed","9600"],              preProcess=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600,process=executeAPDU)
 Executer.addCommand(CommandStrings=["proxnroll","calypso","setspeed","115200"],            preProcess=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200,process=executeAPDU)
 Executer.addCommand(CommandStrings=["proxnroll","calypso","enabledigestupdate"],           preProcess=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate,process=executeAPDU)
@@ -81,9 +168,6 @@ Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","enable"],     
 Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","reset"],                 preProcess=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL,process=executeAPDU)
 
 Executer.addCommand(CommandStrings=["proxnroll","control","stop"],                         preProcess=ProxnrollAPDUBuilder.slotControlStop,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","test"],                                   preProcess=ProxnrollAPDUBuilder.test,process=executeAPDU
-                    ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("expected_answer_size",IntegerArgChecker(0,255)),("delay_to_answer",IntegerArgChecker(0,63))])
-                    ,postProcess=resultHandlerAPDUAndPrintDataAndSW)
 
 typeAB = tokenValueArgChecker({"a":True,"b":False})
 typeVolatile = tokenValueArgChecker({"volatile":True,"nonvolatile":False})
