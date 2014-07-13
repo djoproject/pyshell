@@ -228,7 +228,12 @@ def helpFun(mltries, args=None):
         
             return ()
         elif len(found) == 1 :
-            return ( "Command Name:","       "+" ".join(found[0][0]),"", "Description:","       "+found[0][1],"","Usage: ","       "+usageFun(found[0][0], mltries), "",)
+            if found[0][1] == None:
+                description = "No description"
+            else:
+                description = found[0][1]
+
+            return ( "Command Name:","       "+" ".join(found[0][0]),"", "Description:","       "+description,"","Usage: ","       "+usageFun(found[0][0], mltries), "",)
         
     for stopPath, subChild in stop.items():
         if len(subChild) == 0:

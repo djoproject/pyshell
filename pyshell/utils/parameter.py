@@ -20,7 +20,12 @@ from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker
 from exception import ParameterException
 import os, sys
 
-if sys.version_info.major == 2:
+try:
+    pyrev = sys.version_info.major
+except AttributeError:
+    pyrev = sys.version_info[0]
+
+if pyrev == 2:
     import ConfigParser 
 else:
     import configparser as ConfigParser

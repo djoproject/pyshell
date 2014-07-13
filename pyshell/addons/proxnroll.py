@@ -35,6 +35,7 @@ def setBuzzer(duration=2000):
 
 # MAIN #
 registerSetGlobalPrefix( ("proxnroll", ) )
+registerStopHelpTraversalAt( () )
 registerCommand( ( "setlight",), pre=setLight) 
 registerCommand( ( "setbuzzer",), pre=setBuzzer)
 registerCommand( ( "vendor",), pre=ProxnrollAPDUBuilder.getDataVendorName)
@@ -45,10 +46,11 @@ registerCommand( ( "vendor",), pre=ProxnrollAPDUBuilder.getDataVendorName)
 
 # CALYPSO #
 registerSetTempPrefix( ("calypso",  ) )
-#TODO registerCommand( ( "setspeed","9600",), )
-#TODO registerCommand( ( "setspeed","115200",), )
-#TODO registerCommand( ( "enabledigestupdate",), )
-#TODO registerCommand( ( "disabledigestupdate",), )
+registerCommand( ( "setspeed","9600",),     pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600)
+registerCommand( ( "setspeed","115200",),   pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200)
+registerCommand( ( "enabledigestupdate",),  pre=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate)
+registerCommand( ( "disabledigestupdate",), pre=ProxnrollAPDUBuilder.configureCalypsoSamDisableInternalDigestUpdate)
+registerStopHelpTraversalAt( ("calypso",) )
 
 # PRODUCT #
 registerSetTempPrefix( ("product",  ) )
@@ -57,6 +59,7 @@ registerSetTempPrefix( ("product",  ) )
 #TODO registerCommand( ( "usbidentifiel",), )
 #TODO registerCommand( ( "version",), )
 #TODO registerCommand( ( "serial",), )
+#registerStopHelpTraversalAt( ("product",) )
 
 # CARD #
 registerSetTempPrefix( ("card",  ) )
@@ -67,31 +70,36 @@ registerSetTempPrefix( ("card",  ) )
 #TODO registerCommand( ( "shortSerial",), )
 #TODO registerCommand( ( "atr",), )
 #TODO registerCommand( ( "hardwareIdentifier",), )
+#registerStopHelpTraversalAt( ("card",) )
 
 # TRACKING #
 registerSetTempPrefix( ("control","tracking",  ) )
-#TODO registerCommand( ( "resume",), )
-#TODO registerCommand( ( "suspend",), )
+registerCommand( ( "resume",), pre=ProxnrollAPDUBuilder.slotControlResumeCardTracking)
+registerCommand( ( "suspend",), pre=ProxnrollAPDUBuilder.slotControlSuspendCardTracking)
+registerStopHelpTraversalAt( ("control",) )
+registerStopHelpTraversalAt( ("control","tracking") )
 
 # RFFIELD #
 registerSetTempPrefix( ("control","rffield",  ) )
-#TODO registerCommand( ( "stop",), )
-#TODO registerCommand( ( "start",), )
-#TODO registerCommand( ( "reset",), )
+registerCommand( ( "stop",), pre=ProxnrollAPDUBuilder.slotControlStopRFField)
+registerCommand( ( "start",), pre=ProxnrollAPDUBuilder.slotControlStartRFField)
+registerCommand( ( "reset",), pre=ProxnrollAPDUBuilder.slotControlResetRFField)
+registerStopHelpTraversalAt( ("control","rffield") )
 
 # T=CL #
 registerSetTempPrefix( ("control","t=cl",  ) )
-#TODO registerCommand( ( "deactivation",), )
-#TODO registerCommand( ( "activation","a",), )
-#TODO registerCommand( ( "activation","b",), )
-#TODO registerCommand( ( "disable","next",), )           
-#TODO registerCommand( ( "disable","every",), )
-#TODO registerCommand( ( "enable",), )
-#TODO registerCommand( ( "reset",), )
+registerCommand( ( "deactivation",), pre=ProxnrollAPDUBuilder.slotControlTCLDeactivation)
+registerCommand( ( "activation","a",), pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeA)
+registerCommand( ( "activation","b",), pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeB)
+registerCommand( ( "disable","next",), pre=ProxnrollAPDUBuilder.slotControlDisableNextTCL)           
+registerCommand( ( "disable","every",), pre=ProxnrollAPDUBuilder.slotControlDisableEveryTCL)
+registerCommand( ( "enable",), pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain)
+registerCommand( ( "reset",), pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL)
+registerStopHelpTraversalAt( ("control","t=cl") )
 
 # STROP CONTROL #
 registerSetTempPrefix( ("control", ) )
-#TODO registerCommand( ( ,), "stop")
+registerCommand( ( "stop",), pre=ProxnrollAPDUBuilder.slotControlStop)
 
 # MIFARE CLASSIC #
 registerSetTempPrefix( ("mifare", ) )
@@ -99,12 +107,14 @@ registerSetTempPrefix( ("mifare", ) )
 #TODO registerCommand( ( "authenticate",), )
 #TODO registerCommand( ( "read",), )
 #TODO registerCommand( ( "update",), )
+#registerStopHelpTraversalAt( ("mifare",) )
 
 # ENCAPSULATE # 
 registerSetTempPrefix( ("encapsulate", ) )
 #TODO registerCommand( ( "standard",), )
 #TODO registerCommand( ( "redirection",), )
 #TODO registerCommand( ( "partial",), )
+#registerStopHelpTraversalAt( ("encapsulate",) )
 
 """def readAllFun(envi):
     ls = []
@@ -122,22 +132,8 @@ registerSetTempPrefix( ("encapsulate", ) )
 ##############################################################################################################
 ##############################################################################################################
 ##############################################################################################################
-#(CommandStrings=,preProcess=None,process=None,argChecker=None,postProcess=None,showInHelp=True):
 
-try:
-    Executer
-except NameError:
-    print "  No variable Executer found, this is an addon, it can't be executed alone"
-    exit()
-            
-t = tokenValueArgChecker({"off":ProxnrollAPDUBuilder.colorOFF,"on":ProxnrollAPDUBuilder.colorON,"auto":ProxnrollAPDUBuilder.colorAUTO,"slow":ProxnrollAPDUBuilder.colorSLOW,"quick":ProxnrollAPDUBuilder.colorQUICK,"beat":ProxnrollAPDUBuilder.colorBEAT})
-i0to60000 = IntegerArgChecker(0,60000)
-
-Executer.addCommand(CommandStrings=["proxnroll","calypso","setspeed","9600"],              preProcess=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","calypso","setspeed","115200"],            preProcess=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","calypso","enabledigestupdate"],           preProcess=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","calypso","disabledigestupdate"],          preProcess=ProxnrollAPDUBuilder.configureCalypsoSamDisableInternalDigestUpdate,process=executeAPDU)
-                
+                  
 Executer.addCommand(CommandStrings=["proxnroll","vendor"],                   preProcess=ProxnrollAPDUBuilder.getDataVendorName,process=executeAPDU                                   ,postProcess=resultHandlerAPDUAndConvertDataToString)
 Executer.addCommand(CommandStrings=["proxnroll","product","name"],           preProcess=ProxnrollAPDUBuilder.getDataProductName,process=executeAPDU                                  ,postProcess=resultHandlerAPDUAndConvertDataToString)
 Executer.addCommand(CommandStrings=["proxnroll","product","serialString"],   preProcess=ProxnrollAPDUBuilder.getDataProductSerialNumber,process=executeAPDU                          ,postProcess=resultHandlerAPDUAndConvertDataToString)
@@ -152,22 +148,6 @@ Executer.addCommand(CommandStrings=["proxnroll","card","type"],              pre
 Executer.addCommand(CommandStrings=["proxnroll","card","shortSerial"],       preProcess=ProxnrollAPDUBuilder.getDataCardShortSerialNumber,process=executeAPDU ,postProcess=resultHandlerAPDUAndPrintData)
 Executer.addCommand(CommandStrings=["proxnroll","card","atr"],               preProcess=ProxnrollAPDUBuilder.getDataCardATR,process=executeAPDU               ,postProcess=printATR) #resultHandlerAPDUAndPrintData
 Executer.addCommand(CommandStrings=["proxnroll","hardwareIdentifier"],       preProcess=ProxnrollAPDUBuilder.getDataHarwareIdentifier,process=executeAPDU     ,postProcess=resultHandlerAPDUAndPrintData)
-
-Executer.addCommand(CommandStrings=["proxnroll","control","tracking","resume"],            preProcess=ProxnrollAPDUBuilder.slotControlResumeCardTracking,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","tracking","suspend"],           preProcess=ProxnrollAPDUBuilder.slotControlSuspendCardTracking,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","rffield","stop"],               preProcess=ProxnrollAPDUBuilder.slotControlStopRFField,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","rffield","start"],              preProcess=ProxnrollAPDUBuilder.slotControlStartRFField,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","rffield","reset"],              preProcess=ProxnrollAPDUBuilder.slotControlResetRFField,process=executeAPDU)
-
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","deactivation"],          preProcess=ProxnrollAPDUBuilder.slotControlTCLDeactivation,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","activation","a"],        preProcess=ProxnrollAPDUBuilder.slotControlTCLActivationTypeA,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","activation","b"],        preProcess=ProxnrollAPDUBuilder.slotControlTCLActivationTypeB,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","disable","next"],        preProcess=ProxnrollAPDUBuilder.slotControlDisableNextTCL,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","disable","every"],       preProcess=ProxnrollAPDUBuilder.slotControlDisableEveryTCL,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","enable"],                preProcess=ProxnrollAPDUBuilder.slotControlEnableTCLAgain,process=executeAPDU)
-Executer.addCommand(CommandStrings=["proxnroll","control","t=cl","reset"],                 preProcess=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL,process=executeAPDU)
-
-Executer.addCommand(CommandStrings=["proxnroll","control","stop"],                         preProcess=ProxnrollAPDUBuilder.slotControlStop,process=executeAPDU)
 
 typeAB = tokenValueArgChecker({"a":True,"b":False})
 typeVolatile = tokenValueArgChecker({"volatile":True,"nonvolatile":False})
