@@ -81,11 +81,14 @@ class stringArgChecker(ArgChecker):
 
     def getValue(self, value,argNumber=None):
         value = ArgChecker.getValue(self, value,argNumber)
-    
-        if value == None:
+
+        if value is None:
             raise argException("(String) Argument %s: the string arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
 
         if type(value) != str and type(value) != unicode:
+            if hasattr(value, "__str__"):
+                return str(value)
+        
             raise argException("(String) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
     
         return value

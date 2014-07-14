@@ -19,72 +19,91 @@
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+from pyshell.simpleProcess.postProcess import stringListResultHandler
 
-#TODO move import from load to here
-	#try/catch it then raise an adpated message
+try:
+    from smartcard.System import readers
+    from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
+    from smartcard.ReaderMonitoring import ReaderMonitor, ReaderObserver
+    from smartcard.CardMonitoring import CardMonitor, CardObserver
+    from smartcard.CardConnection import CardConnection
+    from smartcard.ATR import ATR
+    from smartcard.pcsc.PCSCContext import PCSCContext
+    from smartcard.pcsc.PCSCExceptions import EstablishContextException
+
+    from smartcard.sw.ErrorCheckingChain import ErrorCheckingChain
+    from smartcard.sw.ISO7816_4ErrorChecker import ISO7816_4ErrorChecker
+    from smartcard.sw.ISO7816_8ErrorChecker import ISO7816_8ErrorChecker
+    from smartcard.sw.ISO7816_9ErrorChecker import ISO7816_9ErrorChecker
+except ImportError as ie:
+    #TODO improve
+        #the printed message will not be really pretty
+        #becaus the raised exception will be print and the hint message too
+        
+    #print "failed to import smartcard : "+str(ie)
+    print "maybe the library is not installed for this version of python"
+    print "http://pyscard.sourceforge.net"
+    
+    import sys
+    if(sys.platform == 'darwin'):
+        print "HINT : on macos system, try to execute this script with python2.6"
+        #TODO not a problem of macos, we try to execute the script with python2.7 and pyscard is installed with python2.6
+            #yeah but why this occured each times with macos ???
+    
+    raise Exception("Fail to import smartcard : "+str(ie))
+
+#TODO  
+    #create two variable
+        #one for enable autoload
+        #one to check if the context is already loaded  
 
 def loadPCSC():
-	#load smartcard
-	try:
-	    from smartcard.System import readers
-	    from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
-	    from smartcard.ReaderMonitoring import ReaderMonitor, ReaderObserver
-	    from smartcard.CardMonitoring import CardMonitor, CardObserver
-	    from smartcard.CardConnection import CardConnection
-	    from smartcard.ATR import ATR
-	    from smartcard.pcsc.PCSCContext import PCSCContext
-	    from smartcard.pcsc.PCSCExceptions import EstablishContextException
-
-	    from smartcard.sw.ErrorCheckingChain import ErrorCheckingChain
-	    from smartcard.sw.ISO7816_4ErrorChecker import ISO7816_4ErrorChecker
-	    from smartcard.sw.ISO7816_8ErrorChecker import ISO7816_8ErrorChecker
-	    from smartcard.sw.ISO7816_9ErrorChecker import ISO7816_9ErrorChecker
-	except ImportError as ie:
-	    print "failed to load smartcard : "+str(ie)
-	    print "maybe the library is not installed"
-	    print "http://pyscard.sourceforge.net"
-	    
-	    import sys
-	    if(sys.platform == 'darwin'):
-	        print "HINT : on macos system, try to execute this script with python2.6"
-
-	#load context
-	#not already called in an import ?
-	try:
-	    print "context loading... please wait"
-	    PCSCContext()
-	    print "context loaded"
-	except EstablishContextException as e:
-	    print "   "+str(e)
-	    
-	    import platform
-	    pf = platform.system()
-	    if pf == 'Darwin':
-	        print "   HINT : connect a reader and use a tag/card with it, then retry the command"
-	    elif pf == 'Linux':
-	        print "   HINT : check if the 'pcscd' daemon is running, maybe it has not yet started or it crashed"
-	    elif pf == 'Windows':
-	        print "   HINT : check if the 'scardsvr' service is running, maybe it has not yet started or it crashed"
-	    else:
-	        print "   HINT : check the os process that manage card reader"
+    #not already called in an import ?
+    try:
+        print "context loading... please wait"
+        PCSCContext()
+        print "context loaded"
+    except EstablishContextException as e:
+        print "   "+str(e)
+        
+        import platform
+        pf = platform.system()
+        if pf == 'Darwin':
+            print "   HINT : connect a reader and use a tag/card with it, then retry the command"
+        elif pf == 'Linux':
+            print "   HINT : check if the 'pcscd' daemon is running, maybe it has not yet started or it crashed"
+        elif pf == 'Windows':
+            print "   HINT : check if the 'scardsvr' service is running, maybe it has not yet started or it crashed"
+        else:
+            print "   HINT : check the os process that manage card reader"
 
 def transmit(data, connection=0):
-	pass
+    pass
 
 def connectCard(index=0):
-	pass
+    pass
 
 def connectReader(index=0):
-	pass
+    pass
+    
+def disconnect(index=0):
+    pass
 
-def getConnectedCard():
-	pass
+def getConnected():
+    pass
 
-def getReader():
-	pass
+def getAvailableCard():
+    pass
+
+def getAvailableReader():
+    return readers()
+    
+#XXX what about scard data transmit ?
 
 registerSetGlobalPrefix( ("pcsc", ) )
 registerCommand( ("load",) ,           pro=loadPCSC)
+registerCommand( ("reader",) ,         pro=getAvailableReader, post=stringListResultHandler)
+
 
 
 
