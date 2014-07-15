@@ -21,14 +21,18 @@ import readline
 import os
 import sys
 import atexit
+import getopt
+import traceback
 
-#custom library
+#tries library
 from tries import multiLevelTries
 from tries.exception import triesException, pathNotExistsTriesException
+
+#local library
 from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
-from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker
+from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker, listArgChecker
 from addons import stdaddons
 from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, GenericParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
 
@@ -90,6 +94,8 @@ class CommandExecuter():
         self.params.setParameter("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=booleanValueArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=stringArgChecker(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("addonToLoad", EnvironmentParameter(value=(), typ=listArgChecker(stringArgChecker()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
         #try to load parameter file
         try:
@@ -120,6 +126,12 @@ class CommandExecuter():
         real_out    = sys.stdout
         self.writer = writer(real_out)
         sys.stdout  = self.writer
+        
+        #load other addon
+        #XXX move to onStartUp event when the event manager will be ready
+        for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
+            print "load addon: "+addonName
+            #TODO laod this addon
         
     def saveHistory(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
@@ -177,7 +189,6 @@ class CommandExecuter():
             engine.execute()
             return True
             
-        #TODO print stack trace if debug is enabled
         except executionInitException as eie:
             print("Fail to init an execution object: "+str(eie.value))
         except executionException as ee:
@@ -191,8 +202,12 @@ class CommandExecuter():
                 print("Normal execution abort, reason: "+str(eien.value))
         except argException as ae:
             print("Error in parsing argument: "+str(ae.value))
-        #except Exception as e:
-        #    print("Unknown error: "+str(e))
+        except Exception as e:
+            print("Unknown error: "+str(e))
+
+        #print stack trace if debug is enabled
+        if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+            traceback.print_exc()
 
         return False
     
@@ -318,25 +333,80 @@ class CommandExecuter():
 
         return None
 
-    #TODO
-    """def executeFile(self,filename):
-        f = open(filename, "r")
-        exitOnEnd = True
-        for line in f:
-            print self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue()+line.strip('\n\r')
-            if line.startswith("noexit"):
-                exitOnEnd = False
-            elif not self.executeCommand(line):
-                break
+    def executeFile(self,filename):
+        shellOnExit = False
+        
+        try:
+            with open(filename, 'wb') as f:
+                config.write(configfile)
                 
-        return exitOnEnd"""
+                for line in f:
+                    if line.trim() == "noexit":
+                        shellOnExit = True
+                
+                    self.executeCommand(line)
+        except Exception as ex:
+            print("An error occured during the script execution: "+str(ex))
+        
+        return shellOnExit
+
+def usage():
+    print("")
+    print("executer.py [-h -p <parameter file> -i <script file> -s]")
+    
+def help():
+    usage()
+    print("")
+    print("Python Custom Shell Executer v1.0")
+    print("")
+    print("-h, --help:      print this help message")
+    print("-p, --parameter: define a custom parameter file")
+    print("-s, --script:    define a script to execute")
+    print("-n, --no-exit:   start the shell after the script")
+    print("")
 
 if __name__ == "__main__":
-    #TODO
-        #manage a config file from param
-
-
+    #manage args
+    opts = ()
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hp:s:n", ["help", "parameter=", "script=", "no-exit"])
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print(str(err)) # will print something like "option -a not recognized"
+        usage()
+        print("")
+        print("to get help: executer.py -h")
+        print("")
+        sys.exit(2)
+        
+    ParameterFile   = None
+    ScriptFile      = None
+    ExitAfterScript = True
+    
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            help()
+            exit()
+        elif o in ("-p", "--parameter"):
+            ParameterFile = a
+        elif o in ("-s", "--script"):
+            ScriptFile = a
+        elif o in ("-n", "--no-exit"):
+            ExitAfterScript = False
+        else:
+            print("unknown parameter: "+str(o))
+    
+    if ParameterFile is None:
+        ParameterFile = DEFAULT_PARAMETER_FILE
+    
     #run basic instance
-    executer = CommandExecuter(DEFAULT_PARAMETER_FILE)
-    executer.mainLoop()
+    executer = CommandExecuter(ParameterFile)
+    
+    if ScriptFile != None:
+        ExitAfterScript = not self.executeFile(ScriptFile)
+    else:
+        ExitAfterScript = False
+    
+    if not ExitAfterScript:
+        executer.mainLoop()
 

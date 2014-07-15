@@ -95,6 +95,9 @@ class ParameterManager(object):
         self.filePath = filePath
 
     def load(self):
+        if self.filePath is None:
+            return
+    
         #load params
         config = None
         if os.path.exists(self.filePath):
@@ -156,7 +159,11 @@ class ParameterManager(object):
                         continue
 
                 if isAList:
-                    value = value.split(sep)
+                    value = value.strip()
+                    if len(value) == 0:
+                        value = ()
+                    else:
+                        value = value.split(sep)
 
                 ### CONTEXT ###
                 if contextDefined:
@@ -188,7 +195,11 @@ class ParameterManager(object):
                 else:
                     #manage existing
                     if section in self.params[ENVIRONMENT_NAME]:
-                        self.params[ENVIRONMENT_NAME][section].setValue(config.get(section, "value"))
+                        try:
+                            self.params[ENVIRONMENT_NAME][section].setValue(value)
+                        except Exception as ex:
+                            errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
+                            
                     else:
                         if isAList:
                             typ = listArgChecker(typ)
@@ -223,6 +234,9 @@ class ParameterManager(object):
             print(error)
 
     def save(self):
+        if self.filePath is None:
+            return
+    
         #manage standard parameter
         config = ConfigParser.RawConfigParser()
         for parent, childs in self.params.items():   

@@ -1,6 +1,27 @@
+#############################
+### loader                ###
+#############################
+
+prblm avec le unload des parametres
+    si par exemple ces parametres ont été loadé deux fois, à la fois par l'addon à unloaded et par un autre addon mais que ce dernier n'est pas déchargé
+
+#############################
+### utilisation des tries ###
+#############################
+
+plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un peu dommage et ça casse la synergie
+    
+    Where to update:
+        -Parameter parent name
+        -Parameter name
+        -var name (avant de résoudre ici, voir si les var ne vont pas disparaitre et etre remplacée par des generic parameter)
+        -addon name
+        -...
+
 ##################
 ### decorateur ###
 ##################
+
 -si un arg n'est pas binder dans un decorateur et n'a pas de valeur par defaut, le binder au simple argchecker
     s'il a un arg par defaut, normalement il prend deja cette valeur la je pense
 
@@ -18,9 +39,6 @@
     #just to get the environment variable, not to get a specific variable in it
     #because it's boring to get the engine var, then the env var...
     
-    #add removable boolean
-    #put the value at the biginning of the tuple, then the checker, then the booleans, ...
-
 -string
     min size
 
@@ -30,10 +48,7 @@
     #manage sigint, sigkill, ...
         #interrompre l'ensemble des process en cours
         #ou flinguer le courant et demander pour la suite
-        
-    #context
-        #debug
-        #script/interractive/daemon/...
+            #comme dans un terminal classique
     
 #################
 ### stdaddons ###
@@ -42,6 +57,7 @@
         #voir dans les addons rfid
         
         #être capable de faire un diff byte sur deux sources de byte differente
+            #avec des jolie couleur en mode bisounours
         
 	#alias pointant sur 1..n commande(s)
 	    append alias NAME cmd+args
@@ -53,7 +69,7 @@
         #un alias peu être utilisé dans un autre alias
         
         #probleme lors de la suppression de l'objet pointé
-            #politique de suppression : on_cascade/interactive/error/nothing
+            #politique de suppression : on_cascade/interactive/error/nothing ?
             
         #eviter d'avoir une reference dans l'objet pointé
             #comment savoir qu'il est pointé vers un alias alors ?
@@ -80,6 +96,11 @@
         #TODO insert in tree
         
         pass #TODO"""
+        
+    PRBLM to solve
+        addon creation at once (see addon file)
+        deletion politics 
+        dependencies deletion politics
 
 #################################
 ### parameter in command call ###
@@ -146,65 +167,29 @@
             et juste avant le argfeeder
 
     #inclure la gestion des argument dynamique de type var au moment de la modif
+    
+    PRBLM to solve
+        where to use binded argument ?
+            in pre, in pro or in post ?
 
 #########################################################################################################################
 
-#########################
-### Dynamic parameter ###
-#########################
+################################
+### VAR                      ###
+################################
 
-    #l'env doit être un quadruplet clé=String, valeur=Object, type=argchecker (ou None si readonly), readonly=Boolean
-        permettre de creer des quadruplets en definissant le type
-        faire des methodes, get/set/list/...
+les vars ne sont jamais que des genericParameter en mode transient et en mode list
+    voir dans quelle mesure les deux systèmes peuvent être fusionné
 
-    #utilisation de variable, paramètre dynamique au final
-        #stockée dans l'env 
-            #env["var"] = ...
-        #get/set/unset/append/extend/...
-        #dans l'executer: recuperable au niveau du passage de parametre lors d'appelle de commande
-        #aura un impac au même endroit que les parameter du type "-toto"
-        #accessible sur la ligne de code avec $varname
-        
-    #fort proche des parametre static, essayer de standardiser
-    
-    #utilisation de type argchecker + readonly boolean
-        #comme pour l'env
-    
-    #command set
-    create (key) (type=param/var/env) (argchecker) (defaultvalue, if empty argchecker must have default value)
-        #en fonction du type, c'est stocké a des endroits différents dans l'env
-    remove key type
-    create list même argument que create
-        #on a le type context en +
-    remove list
-    get
-    set
-    append (only for list)
-    extend (only for list)
 
 ################################
 ### Static parameter (files) ###
 ################################
     what to parameter:
-        tab_length                  OK
+        tab_length                  TODO
         history file for raw input  OK
         param des addons            TODO use this var
             package de base, ...
-    
-    faire une classe qui stocke tout les defauts et qui est capable de créer le fichier de conf à partir de zero
-    cette class doit être capable de loader/sauver les params OK
-    
-    faire des commande pour loader/sauver les parametres n'importe quand TODO
-        #see command set in Dynamic command
-    
-    mettre le loader/sauver dans les events 
-        onstartup TODO (wait event management and loader command)
-            euuuh, ça risque de poser un prblm si on charge les params avant le startup event
-        atexit OK
-    
-    si le load ne parviens pas a trouver le fichier, essayer de le créer OK
-    
-    https://docs.python.org/2/library/configparser.html
 
 ###############
 ### context ###
@@ -216,28 +201,12 @@
         #type de carte
         #version de la carte
         #type de framew
-        
-    #context method
-        #remove/add context key
-        #remove/add a value to a context key
-            #be able to add a list of value
-        #select value for a context key
-        #set a value as default for a context key
-        #list context key
-        #list value associated to a context key
-        #get value for a context key
-        
+        #...
+                
     #thread safe
         #select/get context must be thread safe
             #one lock for each contexte
-            
-    #merge with dynamic parameter ?
-    
-    #debug variable must be in context
-        #need to limit edition
-        #lock append
-        #lock remove
-
+                
 #########################################################################################################################
 
 #####################
@@ -254,6 +223,8 @@
 		    #TODO trouver une astuce
 		...
 		
+		#utiliser le package log
+		
     #gérer des trucs comme >, >>, 2>, 2>>, ...
         #changer le flux d'output pour la commande
         #le restaurer ensuiste
@@ -265,11 +236,75 @@
         #faire une commande de flush
         #flush and close at exit
         #si on fait un close, il faut retirer l'event at_exit
+
+############
+### rfid ###
+############
+
+    #adapter l'ensemble du code existant au nouveau shell
+        #in progress
+
+    #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
+        le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
+            afficher un message pour dire que c'est normal
+   
+    #faire un système de gestion des codes d'erreurs
+	    à faire dans executeAPDU
+	    -pouvoir ajouter son propre handler d'erreur dans les modules  
+	    
+	    #!!!! ça existe dans pyscard, reutilisez
+	    
+    #creer de nouveau event: oncardconnect, oncarddisconnect, onreaderconnect, onreaderdisconnect, ...
+        #quand le systeme multi event sera implémenté
+    
+    #la commande wait est pourrie dans pyscard, ça fait friser le raspi
+        #essayer de voir s'il n'y a pas moyen d'en faire une custom moins agressive
+
+    #faire des tests de multi process
+        #lancer deux instances de l'application et essayer de se connecter à la même carte
+            #pyscard est-il thread safe ? ou pcsc?
+
+##### futur work (part 1) ########################################################################################################
+    (threading/event/thread-safe/application-safe/...)
+
+################################
+### Parameter Thread safe    ###
+################################
+
+    Tout les parameter devrait pouvoir être thread safe si necessaire
+        cotnext/generic/environment/...
+
+    Choisir a l'instanciation si thread-safe ?
+    Ou les faire tous thread-safe ?
+
+    Getvalue en thread-safe ?
+    ou just le setValue ?
+    
+    créer un lock/unlock parameter
+        pour pouvoir locker l'objet, faire un getValue, un process, ensuite un setValue et puis unlocker l'objet
         
+    Systeme à double lock? un pour le get et un pour le set ?
+    
+    !!!! Attention, ce méchanisme entre en conflit avec la solution de multithreading deja discuté plus bas dans ce document !!!!
+        risque de deadlock
+        les lock doivent être réalisé au même moment
+        
+    utilisation des lock comme parameter ?
+        créer un parameter special "lock"
+
 #####################
 ### event manager ###
 #####################
-
+    #at startup
+        #load param (la creation des params par defaut doit etre faites avant)
+        #load history
+        #load addon in param file
+        
+    #at exit
+        #save param
+        #save history
+        #flush and close redirected stream
+        
     #event type: onstartup, onexit, onContextChange, ...
     #add event type 
         #juste une string denomant l'event
@@ -376,14 +411,24 @@
             #tous les locks sont connu
             #ils sont classé dans ordre précis
             #on les acquierent toujours dans le même ordre
+            
+        #lock static
+            #exemple l'utilisation d'une fonction à accès unique dans une librairie
+            
+        #lock dynamique
+            #un lecteur de carte, une carte a puce, ...
 
     #XXX    Quid des ressource dynamique necessitant un verrou d'utilisation
         #exemple une connexion vers une carte rfid
     
             
     #quid de l'execution de deux instances de l'application...
+        #objet partagé avec pyro ?
+        #fichier de lock ?
+        #analyse des process en memoire ? (need to be root)
+        #...
 
-##### futur work ########################################################################################################
+##### futur work (part 2) ########################################################################################################
 
 ################
 ### workflow ###
@@ -433,27 +478,6 @@
         #level 2: rien n'est calculé, on execute via le shell
             #on est en niveau de script
             #besoin de l'ensemble du code
-
-############
-### rfid ###
-############
-
-    #adapter l'ensemble du code existant au nouveau shell
-
-    #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
-        le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
-   
-    #faire un système de gestion des codes d'erreurs
-	    à faire dans executeAPDU
-	    -pouvoir ajouter son propre handler d'erreur dans les modules  
-	    
-    #creer de nouveau event: oncardconnect, oncarddisconnect, onreaderconnect, onreaderdisconnect, ...
-    
-    #la commande wait est pourrie dans pyscard, ça fait friser le raspi
-        #essayer de voir s'il n'y a pas moyen d'en faire une sutom moins agressive
-
-    #faire des tests de multi process
-        #lancer deux instances de l'application et essayer de se connecter à la même carte
 
 ###########
 ### ... ###
