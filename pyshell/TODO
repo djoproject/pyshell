@@ -33,6 +33,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     #correct path
     #must exist or not
     #be a file or a directory
+    #readable or not
+    #writtable or not
     #...
 
 -environment
@@ -52,7 +54,10 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     
 #################
 ### stdaddons ###
-#################       
+#################      
+    #gérer les commentaires
+        #voir shell.py
+ 
     #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
         #voir dans les addons rfid
         

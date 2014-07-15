@@ -40,6 +40,7 @@ MAIN_CATEGORY          = "main"
 CONTEXT_NAME           = "context"
 ENVIRONMENT_NAME       = "environment"
 FORBIDEN_SECTION_NAME  = (CONTEXT_NAME, ENVIRONMENT_NAME, ) 
+DEFAULT_SEPARATOR      = ","
 
 def getInstanceType(typ):
     if typ == "string":
@@ -383,7 +384,7 @@ class Parameter(object): #abstract
         return str(self.getValue())
 
 class EnvironmentParameter(Parameter):
-    def __init__(self, value, typ, transient = False, readonly = False, removable = True, sep = ";"):
+    def __init__(self, value, typ, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         Parameter.__init__(self, transient)
         self.readonly  = readonly
         self.removable = removable
@@ -450,7 +451,7 @@ class EnvironmentParameter(Parameter):
         return toret
 
 class GenericParameter(EnvironmentParameter):
-    def __init__(self, value, transient = False, readonly = False, removable = True, sep = ";"):
+    def __init__(self, value, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable, sep)
         
     def getParameterSerializableField(self):

@@ -33,6 +33,10 @@ def setBuzzer(duration=2000):
 
 ## REGISTER ##
 
+#TODO
+    #create a special pro process to print an error if the apdu builder is not build with a piper
+        #indeed, this process will only execute if the proxnroll call is the main one
+
 # MAIN #
 registerSetGlobalPrefix( ("proxnroll", ) )
 registerStopHelpTraversalAt( () )

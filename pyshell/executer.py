@@ -62,16 +62,19 @@ def _parseLine(line, args):
             cmd = cmd.strip(' \t\n\r')
             if len(cmd) == 0 :
                 continue
+            
+            if args is not None:
+                if cmd.startswith("$") and len(cmd) > 1:
+                    if cmd[1:] not in args:
+                        print("Unknown var <"+cmd[1:]+">")
+                        return ()
 
-            if cmd.startswith("$") and len(cmd) > 1:
-                if cmd[1:] not in args:
-                    print("Unknown var <"+cmd[1:]+">")
-                    return ()
+                    finalCmd.extend(args[cmd[1:]])
 
-                finalCmd.extend(args[cmd[1:]])
-
-            elif cmd.startswith("\$"):
-                finalCmd.append(cmd[1:])
+                elif cmd.startswith("\$"):
+                    finalCmd.append(cmd[1:])
+                else:
+                    finalCmd.append(cmd)
             else:
                 finalCmd.append(cmd)
 
@@ -130,9 +133,12 @@ class CommandExecuter():
         #load other addon
         #XXX move to onStartUp event when the event manager will be ready
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
-            print "load addon: "+addonName
-            #TODO laod this addon
-        
+            try:
+                stdaddons.loadAddonFun(addonName, self.params.getParameter("levelTries"))
+            except Exception as ex:
+                print("fail to load addon "+str(addonName)+": "+str(ex))
+                
+            
     def saveHistory(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
             self.params.save()
@@ -256,12 +262,7 @@ class CommandExecuter():
         sys.stdout.flush()
         
     def complete(self,suffix,index):
-        #TODO ça ne marche pas encore genial avec les $vars, voir fichier de bug
-            #le probleme vient de l'autocompletion de readline
-            #pas grand chose que lon puisse faire sans faire un sale hack avec readline
-            #le plus simple serait de desactiver l'autocompletion avec les vars
-    
-        cmdStringList = _parseLine(readline.get_line_buffer(),self.params.getParameter("vars").getValue())
+        cmdStringList = _parseLine(readline.get_line_buffer(),None)
 
         try:
             ## special case, empty line ##
