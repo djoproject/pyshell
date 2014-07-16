@@ -1,4 +1,32 @@
 #############################
+### keystore              ###
+#############################
+    set/unset/get
+    list of byte, at least 1 byte
+        what append if uncomplet byte?
+            for example 12 bits key ?
+            
+    Where to store it?
+        in parameter file ?
+            nop it is a parameter file, not a key store
+        
+        in a new file ?
+            yes, same directory as parameter file
+            create a subdirectory to store everything(history, rc, ...)
+            
+        use a simple properties looks like file
+            hkhgj= 1 2 3
+            dede= 5 8 9 ..
+            ...
+            
+        create argchecker
+        not only addon, utils, add to stdaddon
+        
+        define default key somewhere
+    
+    cypher it
+
+#############################
 ### loader                ###
 #############################
 
@@ -36,6 +64,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     #readable or not
     #writtable or not
     #...
+    
+-key argchecher
 
 -environment
     #just to get the environment variable, not to get a specific variable in it

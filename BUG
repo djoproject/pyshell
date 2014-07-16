@@ -49,3 +49,12 @@ G) si on met un environment parameter avec une value null dans le prototype de l
    
 H) "env add addonToLoad pcsc proxnroll" 
    ne rajoute pas les deux elements dans l'environment existant
+   
+I) autocompletion bug
+    1)write "prox"
+    2) TAB
+    3)write "ca"
+    4) TAB
+    
+    the "ca" is replaced with "a"
+    

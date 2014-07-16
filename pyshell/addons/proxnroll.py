@@ -85,6 +85,26 @@ def encapsulateRedirection(protocolType, timeoutType, datas):
 def encapsulatePartial(protocolType, timeoutType, datas):
     return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
 
+@shellMethod(speed=booleanValueArgChecker("9600", "115200"))
+def setSpeed(speed="9600"):
+    if speed:
+        return ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600()
+    else:
+        return ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200()
+
+@shellMethod(acti=booleanValueArgChecker("a", "b"))
+def setActivation(acti="a"):
+    if acti:
+        return ProxnrollAPDUBuilder.slotControlTCLActivationTypeA()
+    else:
+        return ProxnrollAPDUBuilder.slotControlTCLActivationTypeB()
+        
+@shellMethod(disable=booleanValueArgChecker("next", "every"))
+def setDisable(disable="next"):
+    if disable:
+        return ProxnrollAPDUBuilder.slotControlDisableNextTCL()
+    else:
+        return ProxnrollAPDUBuilder.slotControlDisableEveryTCL
 
 ## REGISTER ##
 
@@ -97,16 +117,11 @@ registerCommand( ( "vendor",),    pre=ProxnrollAPDUBuilder.getDataVendorName, pr
 registerCommand( ( "test",),      pre=test,                                   pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "read",),      pre=read,                                   pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "update",),    pre=update,                                 pro=stopAsMainProcess)
-#TODO registerCommand( ( "readall",), )
 registerCommand( ( "hardwareIdentifier",), pre=ProxnrollAPDUBuilder.getDataHarwareIdentifier, pro=stopAsMainProcess, post=printBytesAsString)
 
 # CALYPSO #
 registerSetTempPrefix( ("calypso",  ) )
-
-#TODO try to merge the two following
-registerCommand( ( "setspeed","9600",),     pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600,                pro=stopAsMainProcess)
-registerCommand( ( "setspeed","115200",),   pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200,              pro=stopAsMainProcess)
-
+registerCommand( ( "setspeed",),            pre=setSpeed,                                                            pro=stopAsMainProcess)
 registerCommand( ( "enabledigestupdate",),  pre=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate,  pro=stopAsMainProcess)
 registerCommand( ( "disabledigestupdate",), pre=ProxnrollAPDUBuilder.configureCalypsoSamDisableInternalDigestUpdate, pro=stopAsMainProcess)
 registerStopHelpTraversalAt( ("calypso",) )
@@ -146,31 +161,16 @@ registerStopHelpTraversalAt( ("control","rffield") )
 
 # T=CL #
 registerSetTempPrefix( ("control","t=cl",  ) )
-registerCommand( ( "deactivation",),    pre=ProxnrollAPDUBuilder.slotControlTCLDeactivation,                           pro=stopAsMainProcess)
-
-#TODO try to merge the two following
-registerCommand( ( "activation","a",),  pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeA,                        pro=stopAsMainProcess)
-registerCommand( ( "activation","b",),  pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeB,                        pro=stopAsMainProcess)
-
-#TODO try to merge the two following
-registerCommand( ( "disable","next",),  pre=ProxnrollAPDUBuilder.slotControlDisableNextTCL,                            pro=stopAsMainProcess)           
-registerCommand( ( "disable","every",), pre=ProxnrollAPDUBuilder.slotControlDisableEveryTCL,                           pro=stopAsMainProcess)
-
-registerCommand( ( "enable",),          pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain,                            pro=stopAsMainProcess)
-registerCommand( ( "reset",),           pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL, pro=stopAsMainProcess)
+registerCommand( ( "deactivation",), pre=ProxnrollAPDUBuilder.slotControlTCLDeactivation,                           pro=stopAsMainProcess)
+registerCommand( ( "activation",),   pre=ProxnrollAPDUBuilder.setActivation,                                        pro=stopAsMainProcess)
+registerCommand( ( "disable",),      pre=setDisable,                                                                pro=stopAsMainProcess)           
+registerCommand( ( "enable",),       pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain,                            pro=stopAsMainProcess)
+registerCommand( ( "reset",),        pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL, pro=stopAsMainProcess)
 registerStopHelpTraversalAt( ("control","t=cl") )
 
 # STROP CONTROL #
 registerSetTempPrefix( ("control", ) )
 registerCommand( ( "stop",), pre=ProxnrollAPDUBuilder.slotControlStop)
-
-# MIFARE CLASSIC #
-registerSetTempPrefix( ("mifare", ) )
-#TODO registerCommand( ( "loadkey",), )
-#TODO registerCommand( ( "authenticate",), )
-#TODO registerCommand( ( "read",), )
-#TODO registerCommand( ( "update",), )
-#registerStopHelpTraversalAt( ("mifare",) )
 
 # ENCAPSULATE # 
 #TODO try to merge these three and add the last param "defaultSW"
@@ -180,25 +180,16 @@ registerCommand( ( "redirection",), pre=encapsulateRedirection, pro=stopAsMainPr
 registerCommand( ( "partial",),     pre=encapsulatePartial,     pro=stopAsMainProcess, post=printBytesAsString)
 registerStopHelpTraversalAt( ("encapsulate",) )
 
+#TODO need key management
+#TODO MIFARE CLASSIC #
+#registerSetTempPrefix( ("mifare", ) )
+#registerCommand( ( "loadkey",), )
+#registerCommand( ( "authenticate",), )
+#registerCommand( ( "read",), )
+#registerCommand( ( "update",), )
+#registerStopHelpTraversalAt( ("mifare",) )
 
-"""def readAllFun(envi):
-    ls = []
-    for i in range(0,0xffff):
-        apdu = ProxnrollAPDUBuilder.readBinary(i)
-        apduAnswer = executeAPDU(envi,apdu)
-        
-        if apduAnswer.sw1 != 0x90 and apduAnswer.sw2 != 0x00:
-            print "%x %x" % (apduAnswer.sw1, apduAnswer.sw2)
-            break
-        
-        ls.append(apduAnswer)
-    return ls
-
-##############################################################################################################
-##############################################################################################################
-##############################################################################################################
-
-
+"""
 typeAB = tokenValueArgChecker({"a":True,"b":False})
 typeVolatile = tokenValueArgChecker({"volatile":True,"nonvolatile":False})
 
@@ -212,6 +203,4 @@ Executer.addCommand(CommandStrings=["proxnroll","mifare","read"],               
 
 Executer.addCommand(CommandStrings=["proxnroll","mifare","update"],                        preProcess=ProxnrollAPDUBuilder.mifareClassifWrite,process=executeAPDU        ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("blockNumber",hexaArgChecker()),("KeyName",stringArgChecker())],defaultLimitChecker(0xFF)))
 
-
-Executer.addCommand(CommandStrings=["proxnroll","readall"],                                process=readAllFun,                                     postProcess=printByteListList)
 """

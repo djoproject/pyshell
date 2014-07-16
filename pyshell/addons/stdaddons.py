@@ -23,7 +23,10 @@ from pyshell.simpleProcess.postProcess import printResultHandler, stringListResu
 from tries.exception import triesException, pathNotExistsTriesException
 import os
 from pyshell.command.exception import engineInterruptionException
+from pyshell.command.command import MultiOutput
 from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter   
+
+## MISC SECTION ##
 
 def exitFun():
     "Exit the program"
@@ -246,6 +249,12 @@ def helpFun(mltries, args=None):
         stringKeys.append(string+"}")
 
     return sorted(stringKeys)
+
+@shellMethod(start = IntegerArgChecker(),
+             stop  = IntegerArgChecker(),
+             step  = IntegerArgChecker())
+def generator(start=0,stop=100,step=1):
+    return MultiOutput(range(start,stop,step))
 
 ### various method to manage parameter ###
 
@@ -621,6 +630,8 @@ def listAddonFun():
             for name in filenames:
                 if name.endswith(".py") and name != "__init__.py":
                     l.append(name[0:-3])
+                    
+                    #TODO add an information about the state of the addon (not loaded/loaded)
 
     return l
 
@@ -737,6 +748,7 @@ registerCommand( ("usage",) ,                         pro=usageFun,     post=pri
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
 registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)
 registerStopHelpTraversalAt( ("?",) )
+registerCommand( ("range",) ,                         pre=generator)
 
 #var
 registerSetTempPrefix( ("var", ) )

@@ -16,28 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-DEFAULT_EVENT_TYPE = ("ON_STARTUP", "AT_EXIT","ON_CONTEXT_CHANGE",)
+EVENT_AT_STARTUP      = 0 #at application launch
+EVENT_AT_EXIT         = 1 #at application exit
+EVENT_AT_ADDON_LOAD   = 2 #at addon load (args=addon name)
+EVENT_AT_ADDON_UNLOAD = 3 #at addon unload (args=addon name)
 
-class eventManager(object):
-    def __init__(self):
-        pass #TODO
-        
-    def createNewEventType(self, eventType):
-        pass #TODO
-        
-    def getEventTypeList(self, eventType):
-        pass #TODO
-        
-    def getActionListForEventType(self, eventType):
-        pass #TODO
-        
-    def addActionForEventType(self, eventType, action):
-        pass #TODO
-        
-    def removeActionOnEventType(self, eventType, actionIndex = 0):
-        pass #TODO
-        
-    def fireActionOnEventType(self, eventType):
-        pass #TODO
-        
+#XXX brainstorming
+    #event avec ou sans argument ?
     
+    #comment sont identifier les events

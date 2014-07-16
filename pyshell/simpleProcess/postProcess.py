@@ -17,7 +17,8 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker  import stringArgChecker,ArgChecker,listArgChecker, IntegerArgChecker
+from pyshell.arg.argchecker import stringArgChecker,ArgChecker,listArgChecker, IntegerArgChecker
+from pyshell.utils.utils import toHexString
 
 @shellMethod(result=listArgChecker(stringArgChecker())  )
 def stringListResultHandler(result):
@@ -52,4 +53,9 @@ def printStringCharResult(string):
 
 @shellMethod(byteList=listArgChecker(IntegerArgChecker(0,255)))
 def printBytesAsString(byteList):
-    print(toHexString(apduAnswer))
+    if len(byteList) == 0:
+        return byteList
+
+    print(toHexString(byteList))
+    
+    return byteList
