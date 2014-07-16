@@ -52,8 +52,22 @@ except ImportError as ie:
     
     raise Exception("Fail to import smartcard : "+str(ie))
 
+@shellMethod(bytes=listArgChecker(IntegerArgChecker(0,255)))
+def printATR(bytes):
+    if bytes == None or not isinstance(bytes,list) or len(bytes) < 1:
+        Executer.printOnShell("The value is not a valid ATR")
+        return
+    
+    atr = ATR(bytes)
+    
+    print atr
+    print
+    atr.dump()
+    print 'T15 supported: ', atr.isT15Supported()
+
 #TODO  
-    #create two variable
+    #create variables
+        #one to store connection
         #one for enable autoload
         #one to check if the context is already loaded  
 
@@ -78,6 +92,9 @@ def loadPCSC():
             print "   HINT : check the os process that manage card reader"
 
 def transmit(data, connection=0):
+
+    #TODO manage every SW here
+
     pass
 
 def connectCard(index=0):
@@ -97,12 +114,16 @@ def getAvailableCard():
 
 def getAvailableReader():
     return readers()
-    
+
+#TODO check in rfidDefault if something must be retrieve
+
 #XXX what about scard data transmit ?
 
 registerSetGlobalPrefix( ("pcsc", ) )
+registerStopHelpTraversalAt( () )
 registerCommand( ("load",) ,           pro=loadPCSC)
 registerCommand( ("reader",) ,         pro=getAvailableReader, post=stringListResultHandler)
+
 
 
 

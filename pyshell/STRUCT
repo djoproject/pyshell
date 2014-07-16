@@ -11,7 +11,7 @@ MULIOUTPUT
 PROCESS
     Type : Callable
     INPUT : 
-    OUTPUT : MULIOUTPUT or DATA
+    OUTPUT : MULTIOUTPUT or DATA
     
 COMMAND
     Type : Object

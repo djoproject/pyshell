@@ -16,10 +16,25 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #quid du status word
+        #on le traite ici ou pas (sinon dans l'addon pcsc) ??
+        
+        #si on le recupere ici, il faut le retirer avant de convertir en string ou autre
+        
+        #si on ne le recupere pas ici, risque de perdre certaines info
+            #le garder et le retirer à chaque fois alors ?
+                #semble être le plus sage
+
+
 from apdu.readers.proxnroll import ProxnrollAPDUBuilder
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+from pyshell.command.exception import engineInterruptionException
+from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
+
+from pcsc import printATR
 
 ## METHOD ##
 _colourTokenChecker = tokenValueArgChecker(ProxnrollAPDUBuilder.ColorSettings)
@@ -31,74 +46,118 @@ def setLight(red, green, yellow_blue = None):
 def setBuzzer(duration=2000):
     return ProxnrollAPDUBuilder.setBuzzerDuration(duration)
 
-## REGISTER ##
+@shellMethod(anything=listArgChecker(ArgChecker()))
+def stopAsMainProcess(anything):
+    raise engineInterruptionException("A proxnroll command can not be directly executed, this command need to be piped into a transmit command",False)
 
-#TODO
-    #create a special pro process to print an error if the apdu builder is not build with a piper
-        #indeed, this process will only execute if the proxnroll call is the main one
+@shellMethod(address=IntegerArgChecker(0,255),
+             expected=IntegerArgChecker(0,255))
+def read(address = 0,expected=0):
+    
+    return ProxnrollAPDUBuilder.readBinary(address,expected)
+
+@shellMethod(address=IntegerArgChecker(0,65535),
+             datas=listArgChecker(IntegerArgChecker(0,255))) #XXX could be pretty to set address to second and set a default value, need parameter binding
+def update(address, datas):
+    return ProxnrollAPDUBuilder.updateBinary(datas, address)
+    
+@shellMethod(expected=IntegerArgChecker(0,255),
+             delay=IntegerArgChecker(0,255),
+             datas=listArgChecker(IntegerArgChecker(0,255)))
+def test(expected=0, delay=0, datas= ()):
+    return ProxnrollAPDUBuilder.test(expected, delay, datas)
+
+@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.protocolType),
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout),
+             datas       =listArgChecker(IntegerArgChecker(0,255)))
+def encapsulateStandard(protocolType, timeoutType, datas):
+    return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
+
+@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.redirection),
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout),
+             datas       =listArgChecker(IntegerArgChecker(0,255)))
+def encapsulateRedirection(protocolType, timeoutType, datas):
+    return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
+
+@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.lastByte),
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout),
+             datas       =listArgChecker(IntegerArgChecker(0,255)))
+def encapsulatePartial(protocolType, timeoutType, datas):
+    return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
+
+
+## REGISTER ##
 
 # MAIN #
 registerSetGlobalPrefix( ("proxnroll", ) )
 registerStopHelpTraversalAt( () )
-registerCommand( ( "setlight",), pre=setLight) 
-registerCommand( ( "setbuzzer",), pre=setBuzzer)
-registerCommand( ( "vendor",), pre=ProxnrollAPDUBuilder.getDataVendorName)
-#TODO registerCommand( ( "test",), )
-#TODO registerCommand( ( "read",), )
-#TODO registerCommand( ( "update",), )
+registerCommand( ( "setlight",),  pre=setLight,                               pro=stopAsMainProcess) 
+registerCommand( ( "setbuzzer",), pre=setBuzzer,                              pro=stopAsMainProcess)
+registerCommand( ( "vendor",),    pre=ProxnrollAPDUBuilder.getDataVendorName, pro=stopAsMainProcess, post=printStringCharResult)
+registerCommand( ( "test",),      pre=test,                                   pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "read",),      pre=read,                                   pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "update",),    pre=update,                                 pro=stopAsMainProcess)
 #TODO registerCommand( ( "readall",), )
+registerCommand( ( "hardwareIdentifier",), pre=ProxnrollAPDUBuilder.getDataHarwareIdentifier, pro=stopAsMainProcess, post=printBytesAsString)
 
 # CALYPSO #
 registerSetTempPrefix( ("calypso",  ) )
-registerCommand( ( "setspeed","9600",),     pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600)
-registerCommand( ( "setspeed","115200",),   pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200)
-registerCommand( ( "enabledigestupdate",),  pre=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate)
-registerCommand( ( "disabledigestupdate",), pre=ProxnrollAPDUBuilder.configureCalypsoSamDisableInternalDigestUpdate)
+
+#TODO try to merge the two following
+registerCommand( ( "setspeed","9600",),     pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed9600,                pro=stopAsMainProcess)
+registerCommand( ( "setspeed","115200",),   pre=ProxnrollAPDUBuilder.configureCalypsoSamSetSpeed115200,              pro=stopAsMainProcess)
+
+registerCommand( ( "enabledigestupdate",),  pre=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate,  pro=stopAsMainProcess)
+registerCommand( ( "disabledigestupdate",), pre=ProxnrollAPDUBuilder.configureCalypsoSamDisableInternalDigestUpdate, pro=stopAsMainProcess)
 registerStopHelpTraversalAt( ("calypso",) )
 
 # PRODUCT #
 registerSetTempPrefix( ("product",  ) )
-#TODO registerCommand( ( "name",), )
-#TODO registerCommand( ( "serialString",), )
-#TODO registerCommand( ( "usbidentifiel",), )
-#TODO registerCommand( ( "version",), )
-#TODO registerCommand( ( "serial",), )
-#registerStopHelpTraversalAt( ("product",) )
+registerCommand( ( "name",),          pre=ProxnrollAPDUBuilder.getDataProductName,          pro=stopAsMainProcess, post=printStringCharResult)
+registerCommand( ( "serialString",),  pre=ProxnrollAPDUBuilder.getDataProductSerialNumber,  pro=stopAsMainProcess, post=printStringCharResult)
+registerCommand( ( "usbidentifier",), pre=ProxnrollAPDUBuilder.getDataProductUSBIdentifier, pro=stopAsMainProcess, post=printStringCharResult)
+registerCommand( ( "version",),       pre=ProxnrollAPDUBuilder.getDataProductVersion,       pro=stopAsMainProcess, post=printStringCharResult)
+registerCommand( ( "serial",),        pre=ProxnrollAPDUBuilder.getDataProductSerialNumber,  pro=stopAsMainProcess, post=printStringCharResult)
+registerStopHelpTraversalAt( ("product",) )
 
 # CARD #
 registerSetTempPrefix( ("card",  ) )
-#TODO registerCommand( ( "serial",), )
-#TODO registerCommand( ( "ats",), )
-#TODO registerCommand( ( "completeIdentifier",), )
-#TODO registerCommand( ( "type",), )
-#TODO registerCommand( ( "shortSerial",), )
-#TODO registerCommand( ( "atr",), )
-#TODO registerCommand( ( "hardwareIdentifier",), )
-#registerStopHelpTraversalAt( ("card",) )
+registerCommand( ( "serial",),             pre=ProxnrollAPDUBuilder.getDataCardSerialNumber,       pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "ats",),                pre=ProxnrollAPDUBuilder.getDataCardATS,                pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "completeIdentifier",), pre=ProxnrollAPDUBuilder.getDataCardCompleteIdentifier, pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "type",),               pre=ProxnrollAPDUBuilder.getDataCardType,               pro=stopAsMainProcess, post=ProxnrollAPDUBuilder.parseDataCardType)
+registerCommand( ( "shortSerial",),        pre=ProxnrollAPDUBuilder.getDataCardShortSerialNumber,  pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "atr",),                pre=ProxnrollAPDUBuilder.getDataCardATR,                pro=stopAsMainProcess, post=printATR)
+registerStopHelpTraversalAt( ("card",) )
 
 # TRACKING #
 registerSetTempPrefix( ("control","tracking",  ) )
-registerCommand( ( "resume",), pre=ProxnrollAPDUBuilder.slotControlResumeCardTracking)
-registerCommand( ( "suspend",), pre=ProxnrollAPDUBuilder.slotControlSuspendCardTracking)
+registerCommand( ( "resume",),  pre=ProxnrollAPDUBuilder.slotControlResumeCardTracking,  pro=stopAsMainProcess)
+registerCommand( ( "suspend",), pre=ProxnrollAPDUBuilder.slotControlSuspendCardTracking, pro=stopAsMainProcess)
 registerStopHelpTraversalAt( ("control",) )
 registerStopHelpTraversalAt( ("control","tracking") )
 
 # RFFIELD #
 registerSetTempPrefix( ("control","rffield",  ) )
-registerCommand( ( "stop",), pre=ProxnrollAPDUBuilder.slotControlStopRFField)
-registerCommand( ( "start",), pre=ProxnrollAPDUBuilder.slotControlStartRFField)
-registerCommand( ( "reset",), pre=ProxnrollAPDUBuilder.slotControlResetRFField)
+registerCommand( ( "stop",),  pre=ProxnrollAPDUBuilder.slotControlStopRFField,  pro=stopAsMainProcess)
+registerCommand( ( "start",), pre=ProxnrollAPDUBuilder.slotControlStartRFField, pro=stopAsMainProcess)
+registerCommand( ( "reset",), pre=ProxnrollAPDUBuilder.slotControlResetRFField, pro=stopAsMainProcess)
 registerStopHelpTraversalAt( ("control","rffield") )
 
 # T=CL #
 registerSetTempPrefix( ("control","t=cl",  ) )
-registerCommand( ( "deactivation",), pre=ProxnrollAPDUBuilder.slotControlTCLDeactivation)
-registerCommand( ( "activation","a",), pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeA)
-registerCommand( ( "activation","b",), pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeB)
-registerCommand( ( "disable","next",), pre=ProxnrollAPDUBuilder.slotControlDisableNextTCL)           
-registerCommand( ( "disable","every",), pre=ProxnrollAPDUBuilder.slotControlDisableEveryTCL)
-registerCommand( ( "enable",), pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain)
-registerCommand( ( "reset",), pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL)
+registerCommand( ( "deactivation",),    pre=ProxnrollAPDUBuilder.slotControlTCLDeactivation,                           pro=stopAsMainProcess)
+
+#TODO try to merge the two following
+registerCommand( ( "activation","a",),  pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeA,                        pro=stopAsMainProcess)
+registerCommand( ( "activation","b",),  pre=ProxnrollAPDUBuilder.slotControlTCLActivationTypeB,                        pro=stopAsMainProcess)
+
+#TODO try to merge the two following
+registerCommand( ( "disable","next",),  pre=ProxnrollAPDUBuilder.slotControlDisableNextTCL,                            pro=stopAsMainProcess)           
+registerCommand( ( "disable","every",), pre=ProxnrollAPDUBuilder.slotControlDisableEveryTCL,                           pro=stopAsMainProcess)
+
+registerCommand( ( "enable",),          pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain,                            pro=stopAsMainProcess)
+registerCommand( ( "reset",),           pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL, pro=stopAsMainProcess)
 registerStopHelpTraversalAt( ("control","t=cl") )
 
 # STROP CONTROL #
@@ -114,11 +173,13 @@ registerSetTempPrefix( ("mifare", ) )
 #registerStopHelpTraversalAt( ("mifare",) )
 
 # ENCAPSULATE # 
+#TODO try to merge these three and add the last param "defaultSW"
 registerSetTempPrefix( ("encapsulate", ) )
-#TODO registerCommand( ( "standard",), )
-#TODO registerCommand( ( "redirection",), )
-#TODO registerCommand( ( "partial",), )
-#registerStopHelpTraversalAt( ("encapsulate",) )
+registerCommand( ( "standard",),    pre=encapsulateStandard,    pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "redirection",), pre=encapsulateRedirection, pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "partial",),     pre=encapsulatePartial,     pro=stopAsMainProcess, post=printBytesAsString)
+registerStopHelpTraversalAt( ("encapsulate",) )
+
 
 """def readAllFun(envi):
     ls = []
@@ -137,77 +198,20 @@ registerSetTempPrefix( ("encapsulate", ) )
 ##############################################################################################################
 ##############################################################################################################
 
-                  
-Executer.addCommand(CommandStrings=["proxnroll","vendor"],                   preProcess=ProxnrollAPDUBuilder.getDataVendorName,process=executeAPDU                                   ,postProcess=resultHandlerAPDUAndConvertDataToString)
-Executer.addCommand(CommandStrings=["proxnroll","product","name"],           preProcess=ProxnrollAPDUBuilder.getDataProductName,process=executeAPDU                                  ,postProcess=resultHandlerAPDUAndConvertDataToString)
-Executer.addCommand(CommandStrings=["proxnroll","product","serialString"],   preProcess=ProxnrollAPDUBuilder.getDataProductSerialNumber,process=executeAPDU                          ,postProcess=resultHandlerAPDUAndConvertDataToString)
-Executer.addCommand(CommandStrings=["proxnroll","product","usbidentifiel"],  preProcess=ProxnrollAPDUBuilder.getDataProductUSBIdentifier,process=executeAPDU                         ,postProcess=resultHandlerAPDUAndConvertDataToString)
-Executer.addCommand(CommandStrings=["proxnroll","product","version"],        preProcess=ProxnrollAPDUBuilder.getDataProductVersion,process=executeAPDU                               ,postProcess=resultHandlerAPDUAndConvertDataToString)
-Executer.addCommand(CommandStrings=["proxnroll","product","serial"],         preProcess=ProxnrollAPDUBuilder.getDataProductSerialNumber,process=executeAPDU   ,postProcess=resultHandlerAPDUAndPrintData)
-
-Executer.addCommand(CommandStrings=["proxnroll","card","serial"],            preProcess=ProxnrollAPDUBuilder.getDataCardSerialNumber,process=executeAPDU                             ,postProcess=resultHandlerAPDUAndPrintData)
-Executer.addCommand(CommandStrings=["proxnroll","card","ats"],               preProcess=ProxnrollAPDUBuilder.getDataCardATS,process=executeAPDU               ,postProcess=resultHandlerAPDUAndPrintData)
-Executer.addCommand(CommandStrings=["proxnroll","card","completeIdentifier"],preProcess=ProxnrollAPDUBuilder.getDataCardCompleteIdentifier,process=executeAPDU,postProcess=resultHandlerAPDUAndPrintData)
-Executer.addCommand(CommandStrings=["proxnroll","card","type"],              preProcess=ProxnrollAPDUBuilder.getDataCardType,process=executeAPDU              ,postProcess=ProxnrollAPDUBuilder.parseDataCardType)
-Executer.addCommand(CommandStrings=["proxnroll","card","shortSerial"],       preProcess=ProxnrollAPDUBuilder.getDataCardShortSerialNumber,process=executeAPDU ,postProcess=resultHandlerAPDUAndPrintData)
-Executer.addCommand(CommandStrings=["proxnroll","card","atr"],               preProcess=ProxnrollAPDUBuilder.getDataCardATR,process=executeAPDU               ,postProcess=printATR) #resultHandlerAPDUAndPrintData
-Executer.addCommand(CommandStrings=["proxnroll","hardwareIdentifier"],       preProcess=ProxnrollAPDUBuilder.getDataHarwareIdentifier,process=executeAPDU     ,postProcess=resultHandlerAPDUAndPrintData)
 
 typeAB = tokenValueArgChecker({"a":True,"b":False})
 typeVolatile = tokenValueArgChecker({"volatile":True,"nonvolatile":False})
+
 Executer.addCommand(CommandStrings=["proxnroll","mifare","loadkey"],                       preProcess=ProxnrollAPDUBuilder.loadKey,process=executeAPDU,                 
 argChecker=DefaultArgsChecker([("KeyIndex",IntegerArgChecker(0,15)),("KeyName",stringArgChecker()),("isTypeA",typeAB),("InVolatile",typeVolatile)],2))
+
 Executer.addCommand(CommandStrings=["proxnroll","mifare","authenticate"],                  preProcess=ProxnrollAPDUBuilder.generalAuthenticate,process=executeAPDU,     
 argChecker=DefaultArgsChecker([("blockNumber",hexaArgChecker(0,0xFF)),("KeyIndex",IntegerArgChecker(0,15)),("isTypeA",typeAB),("InVolatile",typeVolatile)],2))
 
-i = IntegerArgChecker()
-#TODO add the expected argument to readBinary
-Executer.addCommand(CommandStrings=["proxnroll","read"],                                   preProcess=ProxnrollAPDUBuilder.readBinary,process=executeAPDU,                 argChecker=DefaultArgsChecker([("address",i)],0),postProcess=resultHandlerAPDUAndPrintData)
 Executer.addCommand(CommandStrings=["proxnroll","mifare","read"],                          preProcess=ProxnrollAPDUBuilder.mifareClassicRead,process=executeAPDU,          argChecker=DefaultArgsChecker([("blockNumber",hexaArgChecker()),("KeyName",stringArgChecker())],1),postProcess=resultHandlerAPDUAndPrintData)
-Executer.addCommand(CommandStrings=["proxnroll","update"],                                 preProcess=ProxnrollAPDUBuilder.updateBinary,process=executeAPDU,               argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("address",hexaArgChecker(0,0xFFFF))],defaultLimitChecker(0xFF)))
 
-timeoutType = tokenValueArgChecker({"default":ProxnrollAPDUBuilder.timeoutDefault,
-                                    "1ms":ProxnrollAPDUBuilder.timeout1ms,
-                                    "2ms":ProxnrollAPDUBuilder.timeout2ms,
-                                    "4ms":ProxnrollAPDUBuilder.timeout4ms,
-                                    "8ms":ProxnrollAPDUBuilder.timeout8ms,
-                                    "16ms":ProxnrollAPDUBuilder.timeout16ms,
-                                    "32ms":ProxnrollAPDUBuilder.timeout32ms,
-                                    "65ms":ProxnrollAPDUBuilder.timeout65ms,
-                                    "125ms":ProxnrollAPDUBuilder.timeout125ms,
-                                    "250ms":ProxnrollAPDUBuilder.timeout250ms,
-                                    "500ms":ProxnrollAPDUBuilder.timeout500ms,
-                                    "1s":ProxnrollAPDUBuilder.timeout1s,
-                                    "2s":ProxnrollAPDUBuilder.timeout2s,
-                                    "4s":ProxnrollAPDUBuilder.timeout4s})
-                                    
-protocoleType = tokenValueArgChecker({"default":ProxnrollAPDUBuilder.protocolType_ISO14443_TCL,
-                                    "ISO14443A":ProxnrollAPDUBuilder.protocolType_ISO14443A,
-                                    "ISO14443B":ProxnrollAPDUBuilder.protocolType_ISO14443B,
-                                    "ISO15693":ProxnrollAPDUBuilder.protocolType_ISO15693,
-                                    "ISO15693UID":ProxnrollAPDUBuilder.protocolType_ISO15693_WithUID,
-                                    "ISO14443ANOCRC":ProxnrollAPDUBuilder.protocolType_ISO14443A_WithoutCRC,
-                                    "ISO14443BNOCRC":ProxnrollAPDUBuilder.protocolType_ISO14443B_WithoutCRC,
-                                    "ISO15693NOCRC":ProxnrollAPDUBuilder.protocolType_ISO15693_WithoutCRC})
-                                    
-redirectionType = tokenValueArgChecker({"main":ProxnrollAPDUBuilder.redirectionToMainSlot,
-                                        "1":ProxnrollAPDUBuilder.redirectionTo1stSlot,
-                                        "2":ProxnrollAPDUBuilder.redirectionTo2ndSlot,
-                                        "3":ProxnrollAPDUBuilder.redirectionTo3rdSlot,
-                                        "4":ProxnrollAPDUBuilder.redirectionTo4stSlot})
-                                        
-partialType = tokenValueArgChecker({"8":ProxnrollAPDUBuilder.lastByte_Complete_WithoutCRC,
-                                        "1":ProxnrollAPDUBuilder.lastByte_With1bits_WithoutCRC,
-                                        "2":ProxnrollAPDUBuilder.lastByte_With2bits_WithoutCRC,
-                                        "3":ProxnrollAPDUBuilder.lastByte_With3bits_WithoutCRC,
-                                        "4":ProxnrollAPDUBuilder.lastByte_With4bits_WithoutCRC,
-                                        "5":ProxnrollAPDUBuilder.lastByte_With5bits_WithoutCRC,
-                                        "6":ProxnrollAPDUBuilder.lastByte_With6bits_WithoutCRC,
-                                        "7":ProxnrollAPDUBuilder.lastByte_With7bits_WithoutCRC})
-
-Executer.addCommand(CommandStrings=["proxnroll","encapsulate","standard"],                 preProcess=ProxnrollAPDUBuilder.encapsulate,process=executeAPDU               ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("protocolType",protocoleType),("timeoutType",timeoutType)],defaultLimitChecker(0xFF)),postProcess=resultHandlerAPDUAndPrintDataAndSW)
-Executer.addCommand(CommandStrings=["proxnroll","encapsulate","redirection"],              preProcess=ProxnrollAPDUBuilder.encapsulate,process=executeAPDU               ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("protocolType",redirectionType),("timeoutType",timeoutType)],defaultLimitChecker(0xFF)),postProcess=resultHandlerAPDUAndPrintDataAndSW)
-Executer.addCommand(CommandStrings=["proxnroll","encapsulate","partial"],                  preProcess=ProxnrollAPDUBuilder.encapsulate,process=executeAPDU               ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("protocolType",partialType),("timeoutType",timeoutType)],defaultLimitChecker(0xFF)),postProcess=resultHandlerAPDUAndPrintDataAndSW)
 Executer.addCommand(CommandStrings=["proxnroll","mifare","update"],                        preProcess=ProxnrollAPDUBuilder.mifareClassifWrite,process=executeAPDU        ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("blockNumber",hexaArgChecker()),("KeyName",stringArgChecker())],defaultLimitChecker(0xFF)))
+
+
 Executer.addCommand(CommandStrings=["proxnroll","readall"],                                process=readAllFun,                                     postProcess=printByteListList)
 """

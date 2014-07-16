@@ -1,29 +1,39 @@
-from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker  import stringArgChecker,ArgChecker,listArgChecker
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-#@listdecorator("result",stringArgChecker())
-#@environmentdecorator("printer","printer")
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from pyshell.arg.decorator import shellMethod
+from pyshell.arg.argchecker  import stringArgChecker,ArgChecker,listArgChecker, IntegerArgChecker
+
 @shellMethod(result=listArgChecker(stringArgChecker())  )
 def stringListResultHandler(result):
     for i in result:
         print(i)
 
-#@argument("result")
-#@environmentdecorator("printer","printer")
 @shellMethod(result=ArgChecker())
 def printResultHandler(result=None):
     if result != None:
         print(str(result))
 
-#@listdecorator("result",ArgChecker())
-#@environmentdecorator("printer","printer")
 @shellMethod(result=listArgChecker(ArgChecker()))
 def listResultHandler(result):
     for i in result:
         print(str(i))
         
-#@listdecorator("result",ArgChecker())
-#@environmentdecorator("printer","printer")
 @shellMethod(result=listArgChecker(ArgChecker()))
 def listFlatResultHandler(result):
     s = ""
@@ -31,3 +41,15 @@ def listFlatResultHandler(result):
         s += str(i) + " "
     
     print(s)
+
+@shellMethod(string=listArgChecker(IntegerArgChecker(0,255)))
+def printStringCharResult(string):
+    s = ""
+    for char in string:
+        s += chr(char)
+        
+    print(s)
+
+@shellMethod(byteList=listArgChecker(IntegerArgChecker(0,255)))
+def printBytesAsString(byteList):
+    print(toHexString(apduAnswer))

@@ -94,7 +94,7 @@ class CommandExecuter():
         self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("vars", GenericParameter(value={},transient=True,readonly=True, removable=False))
         self.params.setParameter("levelTries", GenericParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
-        self.params.setParameter("debug", ContextParameter(value=(1,2,3,4,5,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=booleanValueArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=stringArgChecker(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
