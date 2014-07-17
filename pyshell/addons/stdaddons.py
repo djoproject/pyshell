@@ -252,10 +252,15 @@ def helpFun(mltries, args=None):
 
 @shellMethod(start = IntegerArgChecker(),
              stop  = IntegerArgChecker(),
-             step  = IntegerArgChecker())
-def generator(start=0,stop=100,step=1):
-    return MultiOutput(range(start,stop,step))
-
+             step  = IntegerArgChecker(),
+             multiOutput = booleanValueArgChecker())
+def generator(start=0,stop=100,step=1, multiOutput = True):
+    "generate a list of integer"
+    if multiOutput:
+        return MultiOutput(range(start,stop,step))
+    else:
+        return range(start,stop,step)
+        
 ### various method to manage parameter ###
 
 def _getChecker(valueType):

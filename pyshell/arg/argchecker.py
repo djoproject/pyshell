@@ -1,34 +1,82 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#TODO
+    #hasdefault, getdefault, ... peuvent egalement balancer des exceptions
+        #ça pourrait être interessant d'avoir également un argNumber
+            #NON car si on joue avec les hasDefault, getDefault, c'est qu'il n'y a pas/plus de string token pour ces archecker là
+                #juste besoin de l'arg name de destination
+        
+    #en plus de l'argNumber, cela pourrait être interessant d'avoir le argName de destination
+
+
 from exception import *
 from tries import tries
 from tries.exception import ambiguousPathException
 import collections # for collections.Hashable
 from math import log
+import os
+
+ARGCHECKER_TYPENAME                 = "ArgChecker"
+STRINGCHECKER_TYPENAME              = "String"
+INTEGERCHECKER_TYPENAME             = "Integer"
+LIMITEDINTEGERCHECKER_TYPENAME      = "Limited integer"
+HEXACHECKER_TYPENAME                = "Hexadecimal"
+BINARYCHECKER_TYPENAME              = "Binary"
+FILEPATHCHECKER_TYPENAME            = "filePath"
+LISTCHECKER_TYPENAME                = "List"
+DEFAULTVALUE_TYPENAME               = "Default"
+ENVIRONMENTDYNAMICCHECKER_TYPENAME  = "Environment dynamic"
+CONTEXTDYNAMICCHECKER_TYPENAME      = "Context dynamic"
+ENVIRONMENTCHECKER_TYPENAME         = "Environment"
+CONTEXTCHECKER_TYPENAME             = "Context"
+PARAMETERDYNAMICCHECKER_TYPENAME    = "Parameter dynamic"
+PARAMETERCHECKER_TYPENAME           = "Parameter"
+COMPLETEENVIRONMENTCHECKER_TYPENAME = "Complete Environment"
+ENGINECHECKER_TYPENAME              = "Engine"
+FLOATCHECKER_TYPENAME               = "Float"
+BOOLEANCHECKER_TYPENAME             = "Boolean"
+TOKENCHECKER_TYPENAME               = "Token"
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################
 ###############################################################################################
 
 class ArgChecker(object):
-    def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True):
+    def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True, typeName = ARGCHECKER_TYPENAME):
+        self.typeName    = typeName
+        
         if minimumSize != None:
             if type(minimumSize) != int:
-                raise argInitializationException("(ArgChecker) Minimum size must be an integer")
+                raise argInitializationException("("+self.typeName+") Minimum size must be an integer, got type <"+str(type(minimumSize))+"> with the following value <"+str(minimumSize)+">")
                 
             if minimumSize < 0:
-                raise argInitializationException("(ArgChecker) Minimum size must be a positive value")
+                raise argInitializationException("("+self.typeName+") Minimum size must be a positive value, got <"+str(minimumSize)+">")
         
         if maximumSize != None:
             if type(maximumSize) != int:
-                raise argInitializationException("(ArgChecker) Maximum size must be an integer") 
+                raise argInitializationException("("+self.typeName+") Maximum size must be an integer, got type <"+str(type(maximumSize))+"> with the following value <"+str(maximumSize)+">") 
         
             if maximumSize < 0:
-                raise argInitializationException("(ArgChecker) Maximum size must be a positive value") 
+                raise argInitializationException("("+self.typeName+") Maximum size must be a positive value, got <"+str(maximumSize)+">") 
     
         if minimumSize != None and maximumSize != None and maximumSize < minimumSize:
-            raise argInitializationException("(ArgChecker) Maximum size can not be smaller than Minimum size") 
+            raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximumSize)+"> can not be smaller than Minimum size <"+str(minimumSize)+">") 
     
         self.minimumSize = minimumSize
         self.maximumSize = maximumSize
@@ -36,7 +84,7 @@ class ArgChecker(object):
         self.default     = None
         self.showInUsage = showInUsage
         self.engine      = None
-    
+        
     def isVariableSize(self):
         return (self.minimumSize == self.maximumSize == None) or self.minimumSize != self.maximumSize
     
@@ -52,7 +100,7 @@ class ArgChecker(object):
         
     def getDefaultValue(self):
         if not self.hasDefaultValue():
-            raise argException("(ArgChecker) there is no default value")
+            self._raiseArgException("there is no default value")
     
         return self.default
         
@@ -75,21 +123,37 @@ class ArgChecker(object):
     def setEngine(self, engine):
         self.engine = engine
         
+    def _raiseIfEnvIsNotAvailable(self, argNumber=None):
+        if self.engine is None:
+            self._raiseArgException("can not get Environment, no engine linked to this argument instance", argNumber)
+        
+        if not hasattr(self.engine,"getEnv"):
+            self._raiseArgException("can not get Environment, linked engine does not have a method to get the environment", argNumber)
+            
+        if self.engine.getEnv() == None:
+            self._raiseArgException("can not get Environment, no environment linked to the engine", argNumber)
+    
+    def _isEnvAvailable(self):
+        return not (self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None)
+        
+    def _raiseArgException(self, message, argNumber=None):
+        raise argException("("+self.typeName+") Argument %s: "%("" if argNumber == None else str(argNumber)+str(self.minimum)) + message)
+    
 class stringArgChecker(ArgChecker):
-    def __init__(self):
-        ArgChecker.__init__(self,1,1,True)
+    def __init__(self, typeName = STRINGCHECKER_TYPENAME):
+        ArgChecker.__init__(self,1,1,True, typeName)
 
     def getValue(self, value,argNumber=None):
         value = ArgChecker.getValue(self, value,argNumber)
 
         if value is None:
-            raise argException("(String) Argument %s: the string arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
+            self._raiseArgException("the string arg can't be None", argNumber)
 
         if type(value) != str and type(value) != unicode:
             if hasattr(value, "__str__"):
                 return str(value)
         
-            raise argException("(String) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
+            self._raiseArgException("this value <"+str(value)+"> is not a valid string, got type <"+str(type(value))+">", argNumber)
     
         return value
     
@@ -97,11 +161,8 @@ class stringArgChecker(ArgChecker):
         return "<string>"
 
 class IntegerArgChecker(ArgChecker):
-    def __init__(self, minimum=None, maximum=None):
-        ArgChecker.__init__(self,1,1,True)
-        
-        if not hasattr(self, "completeType"):
-            self.completeType  = "Integer"
+    def __init__(self, minimum=None, maximum=None, typeName=INTEGERCHECKER_TYPENAME):
+        ArgChecker.__init__(self,1,1,True,typeName)
         
         if not hasattr(self, "shortType"):
             self.shortType     = "int"
@@ -110,13 +171,13 @@ class IntegerArgChecker(ArgChecker):
             self.bases = [10, 16, 2]
         
         if minimum != None and type(minimum) != int and type(minimum) != float:
-            raise argInitializationException("("+self.completeType+") Minimum must be an integer or None")
+            raise argInitializationException("("+self.typeName+") Minimum must be an integer or None, got <"+str(type(minimum))+">")
             
         if maximum != None and type(maximum) != int and type(maximum) != float:
-            raise argInitializationException("("+self.completeType+") Maximum must be an integer or None")
+            raise argInitializationException("("+self.typeName+") Maximum must be an integer or None, got <"+str(type(maximum))+">")
             
         if minimum != None and maximum != None and maximum < minimum:
-            raise argInitializationException("("+self.completeType+") Maximum can not be smaller than Minimum")
+            raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximum)+"> can not be smaller than Minimum size <"+str(minimum)+">")
         
         self.minimum = minimum
         self.maximum = maximum
@@ -125,7 +186,7 @@ class IntegerArgChecker(ArgChecker):
         value = ArgChecker.getValue(self, value,argNumber)
     
         if value == None:
-            raise argException("("+self.completeType+") Argument %s: the "%("" if argNumber == None else str(argNumber)+" ")+self.completeType.lower()+" arg can't be None")
+            self._raiseArgException("the "+self.completeType.lower()+" arg can't be None", argNumber)
         
         castedValue = None
         if type(value) == int or type(value) == float or type(value) == bool:
@@ -139,15 +200,15 @@ class IntegerArgChecker(ArgChecker):
                     continue
 
         if castedValue == None:
-            raise argException("("+self.completeType+") Argument %s: this arg is not a valid "%("" if argNumber == None else str(argNumber))+self.completeType.lower()+" or hexadecimal")
+            self._raiseArgException("this arg is not a valid "+self.completeType.lower()+" or hexadecimal, got <"+str(value)+">", argNumber)
 
         if self.minimum != None:
             if castedValue < self.minimum:
-                raise argException("("+self.completeType+") Argument %s: the lowest value must be bigger or equal than "%("" if argNumber == None else str(argNumber)+str(self.minimum)))
+                self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) +">, got <"+str(value)+">", argNumber)
                 
         if self.maximum != None:
             if castedValue > self.maximum:
-                raise argException("("+self.completeType+") Argument %s: the biggest value must be lower or equal than "%("" if argNumber == None else str(argNumber)+str(self.maximum)))
+                self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+">, got <"+str(value)+">", argNumber)
 
         return castedValue
             
@@ -164,59 +225,53 @@ class IntegerArgChecker(ArgChecker):
 class LimitedInteger(IntegerArgChecker):
     def __init__(self, amountOfBit=8, signed = False):
         if amountOfBit < 8:
-            raise argInitializationException("(Limited integer) the amount of bit must at least be 8, got <"+str(amountOfBit)+">")
+            raise argInitializationException("("+LIMITEDINTEGERCHECKER_TYPENAME+") the amount of bit must at least be 8, got <"+str(amountOfBit)+">")
     
         if log(amountOfBit, 2)%1 != 0:
-            raise argInitializationException("(Limited integer) only powers of 2 are allowed, 8, 16, 32, 64, ..., got <"+str(amountOfBit)+">")
+            raise argInitializationException("("+LIMITEDINTEGERCHECKER_TYPENAME+") only powers of 2 are allowed, 8, 16, 32, 64, ..., got <"+str(amountOfBit)+">")
 
         if signed:
-            IntegerArgChecker.__init__(self, -(2**(amountOfBit-1)), (2**(amountOfBit-1))-1)
+            IntegerArgChecker.__init__(self, -(2**(amountOfBit-1)), (2**(amountOfBit-1))-1, True, LIMITEDINTEGERCHECKER_TYPENAME)
         else:
-            IntegerArgChecker.__init__(self, 0x0, (2**amountOfBit) -1)
+            IntegerArgChecker.__init__(self, 0x0, (2**amountOfBit) -1, True, LIMITEDINTEGERCHECKER_TYPENAME)
 
 class hexaArgChecker(IntegerArgChecker):
     def __init__(self, minimum=None, maximum=None):
         self.bases = [16]
-        self.completeType  = "Hexadecimal"
         self.shortType     = "hex"
-        IntegerArgChecker.__init__(self, minimum,maximum)
+        IntegerArgChecker.__init__(self, minimum,maximum, True, HEXACHECKER_TYPENAME)
         
 class binaryArgChecker(IntegerArgChecker):
     def __init__(self, minimum=None, maximum=None):
         self.bases = [2]
-        self.completeType  = "Binary"
         self.shortType     = "bin"
-        IntegerArgChecker.__init__(self, minimum,maximum)
+        IntegerArgChecker.__init__(self, minimum,maximum, True, BINARYCHECKER_TYPENAME)
 
 class tokenValueArgChecker(stringArgChecker):
-    def __init__(self, tokenDict):
-        super(tokenValueArgChecker,self).__init__()
+    def __init__(self, tokenDict, typename=TOKENCHECKER_TYPENAME):
+        stringArgChecker.__init__(self, typename)
         if not isinstance(tokenDict, dict):
-            raise argInitializationException("(Token) tokenDict must be a dictionary")
+            raise argInitializationException("("+self.typeName+") tokenDict must be a dictionary, got <"+str(type(tokenDict))+">")
         
         self.localtries = tries()
         for k,v in tokenDict.iteritems():
             #key must be non empty string, value can be anything
             if type(k) != str and type(k) != unicode:
-                raise argInitializationException("(Token) a key in the dictionary is not a string: <"+str(k)+">")
+                raise argInitializationException("("+self.typeName+") a key in the dictionary is not a string: <"+str(k)+">, type: <"+str(type(k))+">")
 
             self.localtries.insert(k,v)
     
     def getValue(self, value,argNumber=None):
         value = super(tokenValueArgChecker,self).getValue(value,argNumber)
-        
-        #must be a string #XXX already check in string parent
-        #if type(value) != str and type(value) != unicode:
-        #    raise argException("(Token) Argument %s: this value <"%("" if argNumber == None else str(argNumber)+" ")+str(value)+"> is not a valid string")
-        
+
         try:
             node = self.localtries.search(value)
             if node == None:
-                raise argException("(Token) Argument %s: this arg is not an existing token"%("" if argNumber == None else str(argNumber)+" ")+", valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")")
+                self._raiseArgException("this arg <"+str(value)+"> is not an existing token, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber)
             return node.value
             
         except ambiguousPathException:
-            raise argException("(Token) Argument %s: this arg is ambiguous"%("" if argNumber == None else str(argNumber)+" ")+", valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")")
+            self._raiseArgException("this arg <"+str(value)+"> is ambiguous, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber)
         
     def getUsage(self):
         return "("+ ("|".join(self.localtries.getKeyList())) + ")"
@@ -230,7 +285,7 @@ class booleanValueArgChecker(tokenValueArgChecker):
             FalseName = "false"
     
         #the constructor of tokenValueArgChecker will check if every keys are 
-        tokenValueArgChecker.__init__(self,{TrueName:True,FalseName:False})
+        tokenValueArgChecker.__init__(self,{TrueName:True,FalseName:False}, BOOLEANCHECKER_TYPENAME)
         self.TrueName = TrueName
         self.FalseName = FalseName
     
@@ -247,16 +302,17 @@ class booleanValueArgChecker(tokenValueArgChecker):
     
 class floatTokenArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
+        ArgChecker.__init__(self,1,1,True, FLOATCHECKER_TYPENAME)
+    
         if minimum != None and type(minimum) != float and type(minimum) != int:
-            raise argInitializationException("(Float) Minimum must be a float or None")
+            raise argInitializationException("("+self.typeName+") Minimum must be a float or None, got <"+str(type(minimum))+">")
             
         if maximum != None and type(maximum) != float and type(maximum) != int:
-            raise argInitializationException("(Float) Maximum must be a float or None")
+            raise argInitializationException("("+self.typeName+") Maximum must be a float or None, got <"+str(type(maximum))+">")
             
         if minimum != None and maximum != None and maximum < minimum:
-            raise argInitializationException("(Float) Maximum can not be smaller than Minimum")
+            raise argInitializationException("("+self.typeName+") Maximum <"+str(maximum)+"> can not be smaller than Minimum <"+str(minimum)+">")
     
-        ArgChecker.__init__(self,1,1,True)
         self.minimum = minimum
         self.maximum = maximum
     
@@ -264,20 +320,20 @@ class floatTokenArgChecker(ArgChecker):
         value = ArgChecker.getValue(self, value,argNumber)
     
         if value == None:
-            raise argException("(Float) Argument %s: the float arg can't be None"%("" if argNumber == None else str(argNumber)+" "))
+            self._raiseArgException("the float arg can't be None", argNumber)
         
         try:
             castedValue = float(value)
         except ValueError:
-            raise argException("(Float) Argument %s: this arg is not a valid float or hexadecimal"%("" if argNumber == None else str(argNumber)+" "))
+            self._raiseArgException("this arg is not a valid float or hexadecimal, got <"+str(value)+">", argNumber)
                 
         if self.minimum != None:
             if castedValue < self.minimum:
-                raise argException("(Float) Argument %s: the lowest value must be bigger or equal than "%("" if argNumber == None else str(argNumber)+" ")+str(self.minimum))
+                self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) + ">, got <"+str(value)+">", argNumber)
                 
         if self.maximum != None:
             if castedValue > self.maximum:
-                raise argException("(Float) Argument %s: the biggest value must be lower or equal than "%("" if argNumber == None else str(argNumber)+" ")+str(self.maximum))
+                self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+ ">, got <"+str(value)+">", argNumber)
 
         return castedValue    
         
@@ -293,7 +349,7 @@ class floatTokenArgChecker(ArgChecker):
 
 class engineChecker(ArgChecker):
     def __init__(self):
-        ArgChecker.__init__(self,0,0,False)
+        ArgChecker.__init__(self,0,0,False, ENGINECHECKER_TYPENAME)
         
     def getValue(self,value,argNumber=None):
         return self.engine
@@ -313,27 +369,25 @@ class engineChecker(ArgChecker):
     def erraseDefaultValue(self):
         pass
 
+##
+
 class completeEnvironmentChecker(ArgChecker):
     def __init__(self):
-        ArgChecker.__init__(self,0,0,False)
+        ArgChecker.__init__(self,0,0,False, COMPLETEENVIRONMENTCHECKER_TYPENAME)
         
     def getValue(self,value,argNumber=None):
-        if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#n not isinstance(self.engine.getEnv(), ParameterManager):
-            raise argException("(Environment) Environment is not available")
-    
+        self._raiseIfEnvIsNotAvailable(argNumber)
         return self.engine.getEnv()
         
     def usage(self):
         return ""
         
     def getDefaultValue(self):
-        if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#n not isinstance(self.engine.getEnv(), ParameterManager):
-            raise argException("(Environment) Environment is not available")
-    
+        self._raiseIfEnvIsNotAvailable()
         return self.engine.getEnv()
         
     def hasDefaultValue(self):
-        return not(self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None)#n not isinstance(self.engine.getEnv(), ParameterManager)
+        return self._isEnvAvailable()#n not isinstance(self.engine.getEnv(), ParameterManager)
         
     def setDefaultValue(self,value):
         pass
@@ -342,22 +396,21 @@ class completeEnvironmentChecker(ArgChecker):
         pass
 
 class parameterChecker(ArgChecker):
-    def __init__(self,keyname, parent = None):
+    def __init__(self,keyname, parent = None, typeName = PARAMETERCHECKER_TYPENAME):
+        ArgChecker.__init__(self,0,0,False, typeName)
+        
         if keyname == None or (type(keyname) != str and type(keyname) != unicode) or not isinstance(keyname, collections.Hashable):
-            raise argInitializationException("(Environment) keyname must be hashable string")
-
-        ArgChecker.__init__(self,0,0,False)
+            raise argInitializationException("("+self.typeName+") keyname must be hashable string, got <"+str(keyname)+">")
+        
         self.keyname = keyname
         self.parent = None
     
     def getValue(self,value,argNumber=None):
-        if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#n not isinstance(self.engine.getEnv(), ParameterManager):
-            raise argException("(Environment) Environment is not available")
-    
+        self._raiseIfEnvIsNotAvailable(argNumber)
         env = self.engine.getEnv()
 
         if not env.hasParameter(self.keyname, self.parent):#self.keyname not in self.engine.getEnv():
-            raise argException("(Environment) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
+            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber)
     
         return env.getParameter(self.keyname, self.parent) #self.engine.getEnv()[self.keyname][0]
         
@@ -365,15 +418,11 @@ class parameterChecker(ArgChecker):
         return ""
         
     def getDefaultValue(self):
-        if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#n not isinstance(self.engine.getEnv(), ParameterManager):
-            raise argException("(Environment) Environment is not available")
-    
+        self._raiseIfEnvIsNotAvailable()
         return self.engine.getEnv().getParameter(self.keyname, self.parent)#self.engine.getEnv()[self.keyname][0]
         
     def hasDefaultValue(self):
-        if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#n not isinstance(self.engine.getEnv(), ParameterManager):
-            raise argException("(Environment) Environment is not available")
-    
+        self._raiseIfEnvIsNotAvailable()
         return self.engine.getEnv().hasParameter(self.keyname, self.parent)#self.keyname not in self.engine.getEnv()
         
     def setDefaultValue(self,value):
@@ -383,21 +432,19 @@ class parameterChecker(ArgChecker):
         pass
 
 class parameterDynamicChecker(ArgChecker):
-    def __init__(self, parent = None):
-        ArgChecker.__init__(self,1,1,False)
+    def __init__(self, parent = None, typeName = PARAMETERDYNAMICCHECKER_TYPENAME):
+        ArgChecker.__init__(self,1,1,False, typeName)
         self.parent = parent
     
     def getValue(self,value,argNumber=None):
-        if self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None:#not isinstance(self.engine.getEnv(), ParameterManager):
-            raise argException("(EnvironmentDynamic) Environment is not available")
-    
+        self._raiseIfEnvIsNotAvailable(argNumber)
         if not isinstance(value, collections.Hashable):
-            raise argException("(EnvironmentDynamic) keyname must be hashable")
+            self._raiseArgException("keyname must be hashable, got <"+str(value)+">", argNumber)
         
         env = self.engine.getEnv()
 
         if not self.engine.getEnv().hasParameter(value, self.parent): #value not in self.engine.getEnv():
-            raise argException("(EnvironmentDynamic) environment %s: the key <"%("" if argNumber == None else str(argNumber)+" ")+self.keyname+"> is not available but needed")
+            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber)
     
         return self.engine.getEnv().getParameter(self.keyname, self.parent) #self.engine.getEnv()[value][0]
     
@@ -412,23 +459,23 @@ class parameterDynamicChecker(ArgChecker):
 
 class contextParameterChecker(parameterChecker):
     def __init__(self, keyname):
-        contextParameterChecker.__init__(self, keyname, "context")
+        parameterChecker.__init__(self, keyname, "context", CONTEXTCHECKER_TYPENAME)
 
 class environmentParameterChecker(parameterChecker):
     def __init__(self, keyname):
-        contextParameterChecker.__init__(self, keyname, "context")
+        parameterChecker.__init__(self, keyname, "context", ENVIRONMENTCHECKER_TYPENAME)
 
 class contextParameterDynamicChecker(parameterDynamicChecker):
     def __init__(self):
-        contextParameterChecker.__init__(self, "context")
+        parameterDynamicChecker.__init__(self, "context", CONTEXTDYNAMICCHECKER_TYPENAME)
 
 class environmentParameterDynamicChecker(parameterDynamicChecker):
     def __init__(self):
-        contextParameterChecker.__init__(self, "context")
+        parameterDynamicChecker.__init__(self, "context", ENVIRONMENTDYNAMICCHECKER_TYPENAME)
 
 class defaultValueChecker(ArgChecker):
     def __init__(self,value):
-        ArgChecker.__init__(self,0,0,False)
+        ArgChecker.__init__(self,0,0,False, DEFAULTVALUE_TYPENAME)
         self.setDefaultValue(value)
     
     def setDefaultValue(self,value):
@@ -441,30 +488,41 @@ class defaultValueChecker(ArgChecker):
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
         if not isinstance(checker, ArgChecker) or isinstance(checker, listArgChecker):
-            raise argInitializationException("(List) checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got <"+str(checker)+">")
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got <"+str(type(checker))+">")
 
         #checker must have a fixed size
         if checker.minimumSize != checker.maximumSize or checker.minimumSize == None or checker.minimumSize == 0:
-            raise argInitializationException("(list) checker must have a fixed size bigger than zero")
+
+            if checker.minimumSize is None:
+                checkerSize = "]-Inf,"
+            else:
+                checkerSize = "["+str(checker.minimumSize)+","
+                
+            if checker.maximumSize is None:
+                checkerSize += "+Inf["
+            else:
+                checkerSize += str(checker.maximumSize)+"]"
+        
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") checker must have a fixed size bigger than zero, got this sizer : "+checkerSize)
     
         if minimumSize != None and (minimumSize % checker.minimumSize)  != 0:
-            raise argInitializationException("(list) the minimum size of the list is not a multiple of the checker size")
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") the minimum size of the list <"+str(minimumSize)+"> is not a multiple of the checker size <"+str(checker.minimumSize)+">")
             
         if maximumSize != None and (maximumSize % checker.minimumSize)  != 0:
-            raise argInitializationException("(list) the maximum size of the list is not a multiple of the checker size")
-
-        ArgChecker.__init__(self,minimumSize,maximumSize, True)
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") the maximum size of the list <"+str(maximumSize)+"> is not a multiple of the checker size <"+str(checker.minimumSize)+">")
+        
+        ArgChecker.__init__(self,minimumSize,maximumSize, True, LISTCHECKER_TYPENAME)
         self.checker = checker
     
     def getValue(self,values,argNumber=None):    
         #check if it's a list
         if not hasattr(values, "__iter__"):#if not isinstance(values,list):
-            raise argException("(List) Argument %s: this arg is not a valid list"%("" if argNumber == None else str(argNumber)+" "))
+            self._raiseArgException("this arg is not a valid list, not iterable",argNumber)
         
         #len(values) must always be a multiple of self.checker.minimumSize
             #even if there is to much data, it is a sign of anomalies
         if (len(values) % self.checker.minimumSize)  != 0:
-            raise argException("(list) the size of the value list is not a multiple of the checker size")
+            self._raiseArgException("the size of the value list <"+str(len(values))+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">",argNumber)
         
         #check the minimal size
         addAtEnd = []
@@ -474,7 +532,7 @@ class listArgChecker(ArgChecker):
                 #build the missing part with the default value
                 addAtEnd = ((self.minimumSize - len(values)) / self.checker.minimumSize) * [self.checker.getDefaultValue()]
             else:
-                raise argException("(List) Argument %s:"%("" if argNumber == None else str(argNumber)+" ")+" need at least "+str(self.minimumSize)+" items, got "+str(len(values)) )
+                self._raiseArgException("need at least "+str(self.minimumSize))+" items, got "+str(len(values),argNumber)
         
         #build range limite and manage max size
         if self.maximumSize != None:
@@ -515,8 +573,8 @@ class listArgChecker(ArgChecker):
     
         if self.checker.hasDefaultValue():
             return [self.checker.getDefaultValue()] * self.minimumSize
-    
-        raise argException("(List) getDefaultValue, there is no default value")
+        
+        self._raiseArgException("getDefaultValue, there is no default value")
         
     def hasDefaultValue(self):
         return self.hasDefault or self.minimumSize == None or self.checker.hasDefaultValue()
@@ -560,4 +618,95 @@ class listArgChecker(ArgChecker):
                     
     def __str__(self):
         return "listArgChecker : "+str(self.checker)
+        
+class filePathArgChecker(stringArgChecker):
+    def __init__(self, exist=None, readable=None, writtable=None, isFile=None):
+        stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME)
+    
+        if exist != None and type(exist) != bool:
+            raise argInitializationException("("+self.typeName+") exist must be None or a boolean, got <"+str(type(exist))+">")
+            
+        if readable != None and type(readable) != bool:
+            raise argInitializationException("("+self.typeName+") readable must be None or a boolean, got <"+str(type(readable))+">")
+            
+        if writtable != None and type(writtable) != bool:
+            raise argInitializationException("("+self.typeName+") writtable must be None or a boolean, got <"+str(type(writtable))+">")
+            
+        self.exist     = exist
+        self.readable  = readable
+        self.writtable = writtable
+
+    def getValue(self, value,argNumber=None):
+        path = stringArgChecker.getValue(self, value,argNumber)
+
+        fileExist = None
+        
+        #TODO isFile
+        
+        #exist
+        if self.exist is not None:
+            fileExist = os.access(path, os.F_OK)
+            
+            if self.exist and not fileExist:
+                self._raiseArgException("keyname must be hashable, got <"+str(value)+">",argNumber)
+                
+            if not self.exist and fileExist:
+                pass #raise file does not exist and must
+                
+        #readable
+        if self.readable is not None:
+            if fileExist is None:
+                fileExist = os.access(path, os.F_OK)
+                
+            if not fileExist:
+                pass #raise, not exist and must be readable
+            
+            readable = os.access(path, os.R_OK)
+            
+            if self.readable and not readable:
+                pass #no read access to this file and need it
+            
+            if not self.readable and readable:
+                pass #read access available and don't wanted
+        
+        #writtable
+        if self.writtable is not None:
+            #XXX return False if path does not exist...
+            writtable = os.access(path, os.W_OK)
+            
+            if self.writtable and not writtable:
+                pass #no writtable access to this file and need it
+            
+            if not self.writtable and writtable:
+                pass #writtable access available and don't wanted
+        
+        return value
+    
+    def getUsage(self):
+        return "<file_path>"
+        
+class keyStoreTranslatorArgChecker(stringArgChecker):
+    def __init__(self, keySize = None, byteKey=True):
+        stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME)
+        
+        if keySize != None:
+            if type(keySize) != int:
+                raise argInitializationException("("+self.typeName+") keySize must be an integer, got <"+str(type(keySize))+">")
+                
+            if type(keySize) < 0:
+                raise argInitializationException("("+self.typeName+") keySize must be bigger than 0, got <"+str(tkeySize)+">")
+        
+        if byteKey == None or type(byteKey) != bool:
+            raise argInitializationException("("+self.typeName+") byteKey must be a boolean, got <"+str(type(byteKey))+">")
+            
+        self.byteKey = byteKey
+        
+    def getValue(self, value,argNumber=None):
+        value = stringArgChecker.getValue(self, value,argNumber)
+
+        #TODO
+        self._raiseArgException("Key store is not yet implemented", argNumber)
+        
+        return value
+        
         

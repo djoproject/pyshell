@@ -162,7 +162,7 @@ registerStopHelpTraversalAt( ("control","rffield") )
 # T=CL #
 registerSetTempPrefix( ("control","t=cl",  ) )
 registerCommand( ( "deactivation",), pre=ProxnrollAPDUBuilder.slotControlTCLDeactivation,                           pro=stopAsMainProcess)
-registerCommand( ( "activation",),   pre=ProxnrollAPDUBuilder.setActivation,                                        pro=stopAsMainProcess)
+registerCommand( ( "activation",),   pre=setActivation,                                                             pro=stopAsMainProcess)
 registerCommand( ( "disable",),      pre=setDisable,                                                                pro=stopAsMainProcess)           
 registerCommand( ( "enable",),       pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain,                            pro=stopAsMainProcess)
 registerCommand( ( "reset",),        pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL, pro=stopAsMainProcess)
@@ -180,7 +180,7 @@ registerCommand( ( "redirection",), pre=encapsulateRedirection, pro=stopAsMainPr
 registerCommand( ( "partial",),     pre=encapsulatePartial,     pro=stopAsMainProcess, post=printBytesAsString)
 registerStopHelpTraversalAt( ("encapsulate",) )
 
-#TODO need key management
+#TODO need key store
 #TODO MIFARE CLASSIC #
 #registerSetTempPrefix( ("mifare", ) )
 #registerCommand( ( "loadkey",), )

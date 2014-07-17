@@ -23,6 +23,8 @@
         not only addon, utils, add to stdaddon
         
         define default key somewhere
+        
+        byte or bit ?
     
     cypher it
 
@@ -67,10 +69,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     
 -key argchecher
 
--environment
-    #just to get the environment variable, not to get a specific variable in it
-    #because it's boring to get the engine var, then the env var...
-    
 -string
     min size
 
@@ -93,7 +91,12 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         
         #être capable de faire un diff byte sur deux sources de byte differente
             #avec des jolie couleur en mode bisounours
-        
+            #voir ansi color code
+
+#################
+### ALIAS     ###
+#################
+
 	#alias pointant sur 1..n commande(s)
 	    append alias NAME cmd+args
 	    remove alias NAME
@@ -241,6 +244,8 @@ les vars ne sont jamais que des genericParameter en mode transient et en mode li
     #thread safe
         #select/get context must be thread safe
             #one lock for each contexte
+            
+        #see futur work
                 
 #########################################################################################################################
 
