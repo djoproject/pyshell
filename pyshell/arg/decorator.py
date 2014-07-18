@@ -62,7 +62,7 @@ class funAnalyser(object):
 
     def setCheckerDefault(self, argname,checker):
         if self.has_default(argname):
-            checker.setDefaultValue(self.get_default(argname))
+            checker.setDefaultValue(self.get_default(argname), argname)
 
         return checker
 

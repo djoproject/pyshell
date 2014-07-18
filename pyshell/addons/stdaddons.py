@@ -419,7 +419,7 @@ def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=
     checker = _getChecker(valueType)
     
     #check value
-    value = checker.getValue(value)
+    value = checker.getValue(value, None, "Environment "+key)
     env.setParameter(key, EnvironmentParameter(value, checker),ENVIRONMENT_NAME)
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
@@ -439,7 +439,7 @@ def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, en
     checker = listArgChecker(_getChecker(valueType),1)
     
     #check value
-    value = checker.getValue(values)
+    value = checker.getValue(values, None, "Environment "+key)
     env.setParameter(key, EnvironmentParameter(value, checker),ENVIRONMENT_NAME)
 
 @shellMethod(key=stringArgChecker(),
@@ -509,7 +509,7 @@ def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=No
     checker = listArgChecker(_getChecker(valueType),1)
     
     #check value
-    value = checker.getValue(values)
+    value = checker.getValue(values, None, "Context "+key)
     env.setParameter(key, ContextParameter(value, checker),CONTEXT_NAME)
 
 @shellMethod(key=stringArgChecker(),

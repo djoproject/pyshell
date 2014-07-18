@@ -25,16 +25,19 @@
         #si on ne le recupere pas ici, risque de perdre certaines info
             #le garder et le retirer à chaque fois alors ?
                 #semble être le plus sage
+                
+    #after a read, return the data extracted
+        #maybe we want to use them after the prox post process
 
 
 from apdu.readers.proxnroll import ProxnrollAPDUBuilder
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
 from pyshell.command.exception import engineInterruptionException
 from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
 
-from pcsc import printATR
+from pcsc import printATR #FIXME create a dependancy... 
 
 ## METHOD ##
 _colourTokenChecker = tokenValueArgChecker(ProxnrollAPDUBuilder.ColorSettings)
@@ -61,26 +64,26 @@ def read(address = 0,expected=0):
 def update(address, datas):
     return ProxnrollAPDUBuilder.updateBinary(datas, address)
     
-@shellMethod(expected=IntegerArgChecker(0,255),
-             delay=IntegerArgChecker(0,255),
+@shellMethod(expected=IntegerArgChecker(0,255), #FIXME should be facultative, wait dashParam
+             delay=IntegerArgChecker(0,255), #FIXME should be facultative, wait dashParam
              datas=listArgChecker(IntegerArgChecker(0,255)))
 def test(expected=0, delay=0, datas= ()):
     return ProxnrollAPDUBuilder.test(expected, delay, datas)
 
-@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.protocolType),
-             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout),
+@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.protocolType), #FIXME should be facultative, wait dashParam
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout), #FIXME should be facultative, wait dashParam
              datas       =listArgChecker(IntegerArgChecker(0,255)))
 def encapsulateStandard(protocolType, timeoutType, datas):
     return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
 
-@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.redirection),
-             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout),
+@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.redirection), #FIXME should be facultative, wait dashParam
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout), #FIXME should be facultative, wait dashParam
              datas       =listArgChecker(IntegerArgChecker(0,255)))
 def encapsulateRedirection(protocolType, timeoutType, datas):
     return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
 
-@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.lastByte),
-             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout),
+@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.lastByte), #FIXME should be facultative, wait dashParam
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout), #FIXME should be facultative, wait dashParam
              datas       =listArgChecker(IntegerArgChecker(0,255)))
 def encapsulatePartial(protocolType, timeoutType, datas):
     return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
@@ -105,6 +108,32 @@ def setDisable(disable="next"):
         return ProxnrollAPDUBuilder.slotControlDisableNextTCL()
     else:
         return ProxnrollAPDUBuilder.slotControlDisableEveryTCL
+
+
+@shellMethod(KeyIndex=IntegerArgChecker(0,15),
+             Key=keyStoreTranslatorArgChecker(6),
+             isTypeA=booleanValueArgChecker("a","b"),
+             InVolatile=booleanValueArgChecker("volatile", "notvolatile"))
+def mifareLoadKey(KeyIndex, Key, isTypeA="a", InVolatile="volatile"):
+    return ProxnrollAPDUBuilder.loadKey(KeyIndex, Key, isTypeA, InVolatile)
+
+@shellMethod(blockNumber=IntegerArgChecker(0,0xff),
+             KeyIndex=IntegerArgChecker(0,15),
+             isTypeA=booleanValueArgChecker("a","b"),
+             InVolatile=booleanValueArgChecker("volatile", "notvolatile"))
+def mifareAuthenticate(blockNumber, KeyIndex, isTypeA="a", InVolatile="volatile"):
+    return ProxnrollAPDUBuilder.generalAuthenticate(blockNumber, KeyIndex, isTypeA, InVolatile)
+
+@shellMethod(blockNumber=IntegerArgChecker(0,0xff),
+             Key=keyStoreTranslatorArgChecker(6))
+def mifareRead(blockNumber, Key=None):
+    return ProxnrollAPDUBuilder.mifareClassicRead(blockNumber, Key)
+
+@shellMethod(blockNumber=IntegerArgChecker(0,0xff),
+             Key=keyStoreTranslatorArgChecker(6), #FIXME should be at the end of the mehtod prototype ans called with parameter 
+             datas=listArgChecker(IntegerArgChecker(0,255)))
+def mifareUpdate(blockNumber, Key, datas): #FIXME Key could be None
+    return ProxnrollAPDUBuilder.mifareClassifWrite(blockNumber, Key,datas)
 
 ## REGISTER ##
 
@@ -180,27 +209,12 @@ registerCommand( ( "redirection",), pre=encapsulateRedirection, pro=stopAsMainPr
 registerCommand( ( "partial",),     pre=encapsulatePartial,     pro=stopAsMainProcess, post=printBytesAsString)
 registerStopHelpTraversalAt( ("encapsulate",) )
 
-#TODO need key store
-#TODO MIFARE CLASSIC #
-#registerSetTempPrefix( ("mifare", ) )
-#registerCommand( ( "loadkey",), )
-#registerCommand( ( "authenticate",), )
-#registerCommand( ( "read",), )
-#registerCommand( ( "update",), )
-#registerStopHelpTraversalAt( ("mifare",) )
+# MIFARE #
+registerSetTempPrefix( ("mifare", ) )
+registerCommand( ( "loadkey",),      pre=mifareLoadKey,      pro=stopAsMainProcess)
+registerCommand( ( "authenticate",), pre=mifareAuthenticate, pro=stopAsMainProcess)
+registerCommand( ( "read",),         pre=mifareRead,         pro=stopAsMainProcess, post=printBytesAsString)
+registerCommand( ( "update",),       pre=mifareUpdate,       pro=stopAsMainProcess)
+registerStopHelpTraversalAt( ("mifare",) )
 
-"""
-typeAB = tokenValueArgChecker({"a":True,"b":False})
-typeVolatile = tokenValueArgChecker({"volatile":True,"nonvolatile":False})
 
-Executer.addCommand(CommandStrings=["proxnroll","mifare","loadkey"],                       preProcess=ProxnrollAPDUBuilder.loadKey,process=executeAPDU,                 
-argChecker=DefaultArgsChecker([("KeyIndex",IntegerArgChecker(0,15)),("KeyName",stringArgChecker()),("isTypeA",typeAB),("InVolatile",typeVolatile)],2))
-
-Executer.addCommand(CommandStrings=["proxnroll","mifare","authenticate"],                  preProcess=ProxnrollAPDUBuilder.generalAuthenticate,process=executeAPDU,     
-argChecker=DefaultArgsChecker([("blockNumber",hexaArgChecker(0,0xFF)),("KeyIndex",IntegerArgChecker(0,15)),("isTypeA",typeAB),("InVolatile",typeVolatile)],2))
-
-Executer.addCommand(CommandStrings=["proxnroll","mifare","read"],                          preProcess=ProxnrollAPDUBuilder.mifareClassicRead,process=executeAPDU,          argChecker=DefaultArgsChecker([("blockNumber",hexaArgChecker()),("KeyName",stringArgChecker())],1),postProcess=resultHandlerAPDUAndPrintData)
-
-Executer.addCommand(CommandStrings=["proxnroll","mifare","update"],                        preProcess=ProxnrollAPDUBuilder.mifareClassifWrite,process=executeAPDU        ,argChecker=InfiniteArgsChecker("datas",hexaArgChecker(),[("blockNumber",hexaArgChecker()),("KeyName",stringArgChecker())],defaultLimitChecker(0xFF)))
-
-"""

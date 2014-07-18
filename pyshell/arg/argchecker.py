@@ -16,15 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #hasdefault, getdefault, ... peuvent egalement balancer des exceptions
-        #ça pourrait être interessant d'avoir également un argNumber
-            #NON car si on joue avec les hasDefault, getDefault, c'est qu'il n'y a pas/plus de string token pour ces archecker là
-                #juste besoin de l'arg name de destination
-        
-    #en plus de l'argNumber, cela pourrait être interessant d'avoir le argName de destination
-
-
 from exception import *
 from tries import tries
 from tries.exception import ambiguousPathException
@@ -92,29 +83,29 @@ class ArgChecker(object):
         return self.minimumSize != None and self.minimumSize > 0
         #return not (self.minimumSize == self.maximumSize == 0)
         
-    def getValue(self,value,argNumber=None):
-        return value #XXX override it if needed
+    def getValue(self,value,argNumber=None, argNameToBind=None):
+        return value
         
     def getUsage(self):
         return "<any>"
         
-    def getDefaultValue(self):
-        if not self.hasDefaultValue():
+    def getDefaultValue(self, argNameToBind=None):
+        if not self.hasDefaultValue(argNameToBind):
             self._raiseArgException("there is no default value")
     
         return self.default
         
-    def hasDefaultValue(self):
+    def hasDefaultValue(self, argNameToBind=None):
         return self.hasDefault
         
-    def setDefaultValue(self,value):
+    def setDefaultValue(self,value, argNameToBind=None):
         self.hasDefault = True
         
         if value == None:
             self.default = None
             return
             
-        self.default = self.getValue(value) #will convert the value if needed
+        self.default = self.getValue(value, None,argNameToBind) #will convert the value if needed
         
     def erraseDefaultValue(self):
         self.hasDefault = False
@@ -123,37 +114,51 @@ class ArgChecker(object):
     def setEngine(self, engine):
         self.engine = engine
         
-    def _raiseIfEnvIsNotAvailable(self, argNumber=None):
+    def _raiseIfEnvIsNotAvailable(self, argNumber=None, argNameToBind=None):
         if self.engine is None:
-            self._raiseArgException("can not get Environment, no engine linked to this argument instance", argNumber)
+            self._raiseArgException("can not get Environment, no engine linked to this argument instance", argNumber, argNameToBind)
         
         if not hasattr(self.engine,"getEnv"):
-            self._raiseArgException("can not get Environment, linked engine does not have a method to get the environment", argNumber)
+            self._raiseArgException("can not get Environment, linked engine does not have a method to get the environment", argNumber, argNameToBind)
             
         if self.engine.getEnv() == None:
-            self._raiseArgException("can not get Environment, no environment linked to the engine", argNumber)
+            self._raiseArgException("can not get Environment, no environment linked to the engine", argNumber, argNameToBind)
     
     def _isEnvAvailable(self):
         return not (self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None)
         
-    def _raiseArgException(self, message, argNumber=None):
-        raise argException("("+self.typeName+") Argument %s: "%("" if argNumber == None else str(argNumber)+str(self.minimum)) + message)
+    def _raiseArgException(self, message, argNumber=None, argNameToBind=None):
+        prefix = ""
+        
+        if argNumber is not None:
+            prefix += "Token <"+str(argNumber)+">"
+            
+        if argNameToBind is not None:
+            if len(prefix) > 0:
+                prefix += " "
+        
+            prefix += "at argument <"+str(argNameToBind)+">"
+            
+        if len(prefix) > 0:
+            prefix += ": "
+            
+        raise argException("("+self.typeName+") "+ prefix + message)
     
 class stringArgChecker(ArgChecker):
     def __init__(self, typeName = STRINGCHECKER_TYPENAME):
         ArgChecker.__init__(self,1,1,True, typeName)
 
-    def getValue(self, value,argNumber=None):
-        value = ArgChecker.getValue(self, value,argNumber)
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
 
         if value is None:
-            self._raiseArgException("the string arg can't be None", argNumber)
+            self._raiseArgException("the string arg can't be None", argNumber, argNameToBind)
 
         if type(value) != str and type(value) != unicode:
             if hasattr(value, "__str__"):
                 return str(value)
         
-            self._raiseArgException("this value <"+str(value)+"> is not a valid string, got type <"+str(type(value))+">", argNumber)
+            self._raiseArgException("this value <"+str(value)+"> is not a valid string, got type <"+str(type(value))+">", argNumber, argNameToBind)
     
         return value
     
@@ -182,11 +187,11 @@ class IntegerArgChecker(ArgChecker):
         self.minimum = minimum
         self.maximum = maximum
 
-    def getValue(self, value,argNumber=None):
-        value = ArgChecker.getValue(self, value,argNumber)
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
     
         if value == None:
-            self._raiseArgException("the "+self.completeType.lower()+" arg can't be None", argNumber)
+            self._raiseArgException("the "+self.completeType.lower()+" arg can't be None", argNumber, argNameToBind)
         
         castedValue = None
         if type(value) == int or type(value) == float or type(value) == bool:
@@ -200,15 +205,15 @@ class IntegerArgChecker(ArgChecker):
                     continue
 
         if castedValue == None:
-            self._raiseArgException("this arg is not a valid "+self.completeType.lower()+" or hexadecimal, got <"+str(value)+">", argNumber)
+            self._raiseArgException("this arg is not a valid "+self.completeType.lower()+" or hexadecimal, got <"+str(value)+">", argNumber, argNameToBind)
 
         if self.minimum != None:
             if castedValue < self.minimum:
-                self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) +">, got <"+str(value)+">", argNumber)
+                self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) +">, got <"+str(value)+">", argNumber, argNameToBind)
                 
         if self.maximum != None:
             if castedValue > self.maximum:
-                self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+">, got <"+str(value)+">", argNumber)
+                self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+">, got <"+str(value)+">", argNumber, argNameToBind)
 
         return castedValue
             
@@ -261,17 +266,17 @@ class tokenValueArgChecker(stringArgChecker):
 
             self.localtries.insert(k,v)
     
-    def getValue(self, value,argNumber=None):
-        value = super(tokenValueArgChecker,self).getValue(value,argNumber)
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        value = stringArgChecker.getValue(self, value,argNumber,argNameToBind)
 
         try:
             node = self.localtries.search(value)
             if node == None:
-                self._raiseArgException("this arg <"+str(value)+"> is not an existing token, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber)
+                self._raiseArgException("this arg <"+str(value)+"> is not an existing token, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
             return node.value
             
         except ambiguousPathException:
-            self._raiseArgException("this arg <"+str(value)+"> is ambiguous, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber)
+            self._raiseArgException("this arg <"+str(value)+"> is ambiguous, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
         
     def getUsage(self):
         return "("+ ("|".join(self.localtries.getKeyList())) + ")"
@@ -289,7 +294,7 @@ class booleanValueArgChecker(tokenValueArgChecker):
         self.TrueName = TrueName
         self.FalseName = FalseName
     
-    def getValue(self,value,argNumber=None):
+    def getValue(self,value,argNumber=None, argNameToBind=None):
         if type(value) == bool:
             if value:
                 value = self.TrueName
@@ -298,7 +303,7 @@ class booleanValueArgChecker(tokenValueArgChecker):
         else:
             value = str(value).lower()
 
-        return tokenValueArgChecker.getValue(self,value,argNumber)
+        return tokenValueArgChecker.getValue(self,value,argNumber,argNameToBind)
     
 class floatTokenArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
@@ -316,24 +321,24 @@ class floatTokenArgChecker(ArgChecker):
         self.minimum = minimum
         self.maximum = maximum
     
-    def getValue(self, value,argNumber=None):
-        value = ArgChecker.getValue(self, value,argNumber)
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
     
         if value == None:
-            self._raiseArgException("the float arg can't be None", argNumber)
+            self._raiseArgException("the float arg can't be None", argNumber, argNameToBind)
         
         try:
             castedValue = float(value)
         except ValueError:
-            self._raiseArgException("this arg is not a valid float or hexadecimal, got <"+str(value)+">", argNumber)
+            self._raiseArgException("this arg is not a valid float or hexadecimal, got <"+str(value)+">", argNumber, argNameToBind)
                 
         if self.minimum != None:
             if castedValue < self.minimum:
-                self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) + ">, got <"+str(value)+">", argNumber)
+                self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) + ">, got <"+str(value)+">", argNumber, argNameToBind)
                 
         if self.maximum != None:
             if castedValue > self.maximum:
-                self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+ ">, got <"+str(value)+">", argNumber)
+                self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+ ">, got <"+str(value)+">", argNumber, argNameToBind)
 
         return castedValue    
         
@@ -351,45 +356,43 @@ class engineChecker(ArgChecker):
     def __init__(self):
         ArgChecker.__init__(self,0,0,False, ENGINECHECKER_TYPENAME)
         
-    def getValue(self,value,argNumber=None):
+    def getValue(self,value,argNumber=None, argNameToBind=None):
         return self.engine
         
     def usage(self):
         return ""
         
-    def getDefaultValue(self):
+    def getDefaultValue(self, argNameToBind=None):
         return self.engine
         
-    def hasDefaultValue(self):
+    def hasDefaultValue(self, argNameToBind=None):
         return True
         
-    def setDefaultValue(self,value):
+    def setDefaultValue(self,value, argNameToBind=None):
         pass
         
     def erraseDefaultValue(self):
         pass
 
-##
-
 class completeEnvironmentChecker(ArgChecker):
     def __init__(self):
         ArgChecker.__init__(self,0,0,False, COMPLETEENVIRONMENTCHECKER_TYPENAME)
         
-    def getValue(self,value,argNumber=None):
-        self._raiseIfEnvIsNotAvailable(argNumber)
+    def getValue(self,value,argNumber=None, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
         return self.engine.getEnv()
         
     def usage(self):
         return ""
         
-    def getDefaultValue(self):
-        self._raiseIfEnvIsNotAvailable()
+    def getDefaultValue(self, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(None, argNameToBind)
         return self.engine.getEnv()
         
-    def hasDefaultValue(self):
+    def hasDefaultValue(self, argNameToBind=None):
         return self._isEnvAvailable()#n not isinstance(self.engine.getEnv(), ParameterManager)
         
-    def setDefaultValue(self,value):
+    def setDefaultValue(self,value, argNameToBind=None):
         pass
         
     def erraseDefaultValue(self):
@@ -405,27 +408,27 @@ class parameterChecker(ArgChecker):
         self.keyname = keyname
         self.parent = None
     
-    def getValue(self,value,argNumber=None):
-        self._raiseIfEnvIsNotAvailable(argNumber)
+    def getValue(self,value,argNumber=None, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
         env = self.engine.getEnv()
 
         if not env.hasParameter(self.keyname, self.parent):#self.keyname not in self.engine.getEnv():
-            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber)
+            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber, argNameToBind)
     
         return env.getParameter(self.keyname, self.parent) #self.engine.getEnv()[self.keyname][0]
         
     def usage(self):
         return ""
         
-    def getDefaultValue(self):
-        self._raiseIfEnvIsNotAvailable()
+    def getDefaultValue(self, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(None, argNameToBind)
         return self.engine.getEnv().getParameter(self.keyname, self.parent)#self.engine.getEnv()[self.keyname][0]
         
-    def hasDefaultValue(self):
-        self._raiseIfEnvIsNotAvailable()
+    def hasDefaultValue(self, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(None, argNameToBind)
         return self.engine.getEnv().hasParameter(self.keyname, self.parent)#self.keyname not in self.engine.getEnv()
         
-    def setDefaultValue(self,value):
+    def setDefaultValue(self,value, argNameToBind=None):
         pass
         
     def erraseDefaultValue(self):
@@ -436,22 +439,22 @@ class parameterDynamicChecker(ArgChecker):
         ArgChecker.__init__(self,1,1,False, typeName)
         self.parent = parent
     
-    def getValue(self,value,argNumber=None):
-        self._raiseIfEnvIsNotAvailable(argNumber)
+    def getValue(self,value,argNumber=None, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
         if not isinstance(value, collections.Hashable):
-            self._raiseArgException("keyname must be hashable, got <"+str(value)+">", argNumber)
+            self._raiseArgException("keyname must be hashable, got <"+str(value)+">", argNumber, argNameToBind)
         
         env = self.engine.getEnv()
 
         if not self.engine.getEnv().hasParameter(value, self.parent): #value not in self.engine.getEnv():
-            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber)
+            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber, argNameToBind)
     
         return self.engine.getEnv().getParameter(self.keyname, self.parent) #self.engine.getEnv()[value][0]
     
-    def hasDefaultValue(self):
+    def hasDefaultValue(self, argNameToBind=None):
         return False
         
-    def setDefaultValue(self,value):
+    def setDefaultValue(self,value, argNameToBind=None):
         pass
         
     def erraseDefaultValue(self):
@@ -478,12 +481,12 @@ class defaultValueChecker(ArgChecker):
         ArgChecker.__init__(self,0,0,False, DEFAULTVALUE_TYPENAME)
         self.setDefaultValue(value)
     
-    def setDefaultValue(self,value):
+    def setDefaultValue(self,value, argNameToBind=None):
         self.hasDefault = True
         self.default = value #no check on the value...
     
-    def getValue(self,value,argNumber=None):
-        return self.getDefaultValue()
+    def getValue(self,value,argNumber=None, argNameToBind=None):
+        return self.getDefaultValue(argNameToBind)
 
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
@@ -514,25 +517,25 @@ class listArgChecker(ArgChecker):
         ArgChecker.__init__(self,minimumSize,maximumSize, True, LISTCHECKER_TYPENAME)
         self.checker = checker
     
-    def getValue(self,values,argNumber=None):    
+    def getValue(self,values,argNumber=None, argNameToBind=None):    
         #check if it's a list
         if not hasattr(values, "__iter__"):#if not isinstance(values,list):
-            self._raiseArgException("this arg is not a valid list, not iterable",argNumber)
+            self._raiseArgException("this arg is not a valid list, not iterable",argNumber, argNameToBind)
         
         #len(values) must always be a multiple of self.checker.minimumSize
             #even if there is to much data, it is a sign of anomalies
         if (len(values) % self.checker.minimumSize)  != 0:
-            self._raiseArgException("the size of the value list <"+str(len(values))+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">",argNumber)
+            self._raiseArgException("the size of the value list <"+str(len(values))+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">",argNumber, argNameToBind)
         
         #check the minimal size
         addAtEnd = []
         if self.minimumSize != None and len(values) < self.minimumSize:            
             #checker has default value ?
-            if self.checker.hasDefaultValue():
+            if self.checker.hasDefaultValue(argNameToBind):
                 #build the missing part with the default value
-                addAtEnd = ((self.minimumSize - len(values)) / self.checker.minimumSize) * [self.checker.getDefaultValue()]
+                addAtEnd = ((self.minimumSize - len(values)) / self.checker.minimumSize) * [self.checker.getDefaultValue(argNameToBind)]
             else:
-                self._raiseArgException("need at least "+str(self.minimumSize))+" items, got "+str(len(values),argNumber)
+                self._raiseArgException("need at least "+str(self.minimumSize))+" items, got "+str(len(values),argNumber, argNameToBind)
         
         #build range limite and manage max size
         if self.maximumSize != None:
@@ -548,36 +551,36 @@ class listArgChecker(ArgChecker):
         if argNumber != None:
             for i in range(0,msize, self.checker.minimumSize):
                 if self.checker.minimumSize == 1:
-                    ret.append(self.checker.getValue(values[i],argNumber))
+                    ret.append(self.checker.getValue(values[i],argNumber, argNameToBind))
                 else:
-                    ret.append(self.checker.getValue(values[i:i+self.checker.minimumSize],argNumber))
+                    ret.append(self.checker.getValue(values[i:i+self.checker.minimumSize],argNumber, argNameToBind))
                     
                 argNumber += 1
         else:
             for i in range(0,msize, self.checker.minimumSize):
                 if self.checker.minimumSize == 1:
-                    ret.append(self.checker.getValue(values[i]))
+                    ret.append(self.checker.getValue(values[i], None, argNameToBind))
                 else:
-                    ret.append(self.checker.getValue(values[i:i+self.checker.minimumSize]))
+                    ret.append(self.checker.getValue(values[i:i+self.checker.minimumSize], None, argNameToBind))
         
         #add the missing part
         ret.extend(addAtEnd)
         return ret 
     
-    def getDefaultValue(self):
+    def getDefaultValue(self,argNameToBind=None):
         if self.hasDefault:
             return self.default
     
         if self.minimumSize == None:
             return []
     
-        if self.checker.hasDefaultValue():
-            return [self.checker.getDefaultValue()] * self.minimumSize
+        if self.checker.hasDefaultValue(argNameToBind):
+            return [self.checker.getDefaultValue(argNameToBind)] * self.minimumSize
         
-        self._raiseArgException("getDefaultValue, there is no default value")
+        self._raiseArgException("getDefaultValue, there is no default value", None, argNameToBind)
         
-    def hasDefaultValue(self):
-        return self.hasDefault or self.minimumSize == None or self.checker.hasDefaultValue()
+    def hasDefaultValue(self,argNameToBind=None):
+        return self.hasDefault or self.minimumSize == None or self.checker.hasDefaultValue(argNameToBind)
     
     def getUsage(self):
         if self.minimumSize == None :
@@ -620,66 +623,114 @@ class listArgChecker(ArgChecker):
         return "listArgChecker : "+str(self.checker)
         
 class filePathArgChecker(stringArgChecker):
+    #just check a path, no operation are executed here, it is the job of the addon to perform change
+
     def __init__(self, exist=None, readable=None, writtable=None, isFile=None):
         stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME)
     
-        if exist != None and type(exist) != bool:
+        if exist is not None and type(exist) != bool:
             raise argInitializationException("("+self.typeName+") exist must be None or a boolean, got <"+str(type(exist))+">")
             
-        if readable != None and type(readable) != bool:
+        if readable is not None and type(readable) != bool:
             raise argInitializationException("("+self.typeName+") readable must be None or a boolean, got <"+str(type(readable))+">")
             
-        if writtable != None and type(writtable) != bool:
+        if writtable is not None and type(writtable) != bool:
             raise argInitializationException("("+self.typeName+") writtable must be None or a boolean, got <"+str(type(writtable))+">")
-            
+        
+        if isFile is not None and type(isFile) != bool:
+            raise argInitializationException("("+self.typeName+") isFile must be None or a boolean, got <"+str(type(isFile))+">")
+        
         self.exist     = exist
         self.readable  = readable
         self.writtable = writtable
+        self.isFile    = isFile
 
-    def getValue(self, value,argNumber=None):
-        path = stringArgChecker.getValue(self, value,argNumber)
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        path = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
+    
+        #prepare path
+        path = os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 
         fileExist = None
-        
-        #TODO isFile
-        
+
         #exist
         if self.exist is not None:
             fileExist = os.access(path, os.F_OK)
             
             if self.exist and not fileExist:
-                self._raiseArgException("keyname must be hashable, got <"+str(value)+">",argNumber)
+                self._raiseArgException("Path <"+str(path)+"> does not exist and must exist",argNumber, argNameToBind)
                 
             if not self.exist and fileExist:
-                pass #raise file does not exist and must
+                self._raiseArgException("Path <"+str(path)+"> exists and must not exist",argNumber, argNameToBind)
+        
+        #isFile
+        if self.isFile is not None:
+            if fileExist is None:
+                fileExist = os.access(path, os.F_OK)
+            
+            if fileExist:
+                isFile = os.isfile(path)
                 
+                if self.isFile and not isFile:
+                    self._raiseArgException("Path <"+str(path)+"> is a directory and must be a file",argNumber, argNameToBind)
+                    
+                if not self.isFile and isFile:
+                    self._raiseArgException("Path <"+str(path)+"> is a file and must be a directory",argNumber, argNameToBind)
+            #else: #if not exist, do not care, no way to know if it is a file or a directory
+        
         #readable
         if self.readable is not None:
             if fileExist is None:
                 fileExist = os.access(path, os.F_OK)
                 
             if not fileExist:
-                pass #raise, not exist and must be readable
+                self._raiseArgException("Path <"+str(path)+"> does not exist and so it is not readable",argNumber, argNameToBind)
             
             readable = os.access(path, os.R_OK)
             
             if self.readable and not readable:
-                pass #no read access to this file and need it
+                self._raiseArgException("Path <"+str(path)+"> is not readable and must be readable",argNumber, argNameToBind)
             
             if not self.readable and readable:
-                pass #read access available and don't wanted
+                self._raiseArgException("Path <"+str(path)+"> is readable and must not be readable",argNumber, argNameToBind)
         
         #writtable
         if self.writtable is not None:
-            #XXX return False if path does not exist...
-            writtable = os.access(path, os.W_OK)
+            if fileExist is None:
+                fileExist = os.access(path, os.F_OK)
             
-            if self.writtable and not writtable:
-                pass #no writtable access to this file and need it
-            
-            if not self.writtable and writtable:
-                pass #writtable access available and don't wanted
+            if not fileExist:
+                #first existing parent must be writtable
+                curentPath = path
+                parentPath = os.path.abspath(os.path.join(curentPath, os.pardir))
+                while not os.path.samefile(parentPath, curentPath): #until we reach the root
+                    #this parent exists ?
+                    if os.access(parentPath, os.F_OK):
+                        #do we have write access on it ?
+                        if not os.access(parentPath, os.W_OK):
+                            #no writing access to the first existing directory, go to else clause of the loop
+                            curentPath = parentPath
+                            continue 
+                        
+                        #we have writing access, break the boucle
+                        break
+                    
+                    #go to a upper parent
+                    curentPath = parentPath
+                    parentPath = os.path.abspath(os.path.join(curentPath, os.pardir))
+                else:
+                    self._raiseArgException("Path <"+str(path)+"> does not exist and the first existing parent directory <"+str(parentPath)+"> is not writtable",argNumber, argNameToBind)
+                    
+            else:
+                writtable = os.access(path, os.W_OK)#return False if path does not exist...
+                
+                if self.writtable and not writtable:
+                    self._raiseArgException("Path <"+str(path)+"> is not writtable and must be writtable",argNumber, argNameToBind)
+                
+                if not self.writtable and writtable:
+                    self._raiseArgException("Path <"+str(path)+"> is writtable and must not be writtable",argNumber, argNameToBind)
         
+        #don't open a file, because not sure the addon will close it...        
         return value
     
     def getUsage(self):
@@ -701,11 +752,11 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
             
         self.byteKey = byteKey
         
-    def getValue(self, value,argNumber=None):
-        value = stringArgChecker.getValue(self, value,argNumber)
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
 
         #TODO
-        self._raiseArgException("Key store is not yet implemented", argNumber)
+        self._raiseArgException("Key store is not yet implemented", argNumber, argNameToBind)
         
         return value
         

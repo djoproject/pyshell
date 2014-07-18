@@ -249,7 +249,7 @@ class Loader(object):
                 for v in value:
                     if v not in context.value:
                         try:
-                            context.value.append( context.typ.checker.getValue(v) )
+                            context.value.append( context.typ.checker.getValue(v,None,"Context "+contextKey) )
                         except argException as argE:
                             errorList.append("fail to add value <"+str(v)+"> in context <"+contextKey+"> beacause: "+str(argE))
             else:

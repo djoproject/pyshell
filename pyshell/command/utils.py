@@ -32,7 +32,7 @@ class dashParamParser(object):
                 #if yes, set to true
     
         #compute param
-        self.paramFound[name] = checker.getValue(self.argCollectedForParam)
+        self.paramFound[name] = checker.getValue(self.argCollectedForParam,None,name)
         
         #flush variable
         self.lastParamFound = None

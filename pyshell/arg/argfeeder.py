@@ -74,7 +74,7 @@ class ArgFeeder(ArgsChecker):
             #is there a maximum limit?
             if checker.maximumSize == None:
                 #No max limit, it consumes all remaining data
-                ret[name] = checker.getValue(argsList[dataIndex:],dataIndex)
+                ret[name] = checker.getValue(argsList[dataIndex:],dataIndex, name)
                 dataIndex = len(argsList) #will not stop the loop but will notify that every data has been consumed
             else:
                 #special case: checker only need one item? (most common case)
@@ -83,7 +83,7 @@ class ArgFeeder(ArgsChecker):
                 else:
                     value = argsList[dataIndex:(dataIndex+checker.maximumSize)]
                     
-                ret[name] = checker.getValue(value,dataIndex)
+                ret[name] = checker.getValue(value,dataIndex, name)
                 dataIndex += checker.maximumSize
 
             argCheckerIndex += 1
@@ -94,8 +94,8 @@ class ArgFeeder(ArgsChecker):
             (name,checker) = items_list[i]
             checker.setEngine(engine)
 
-            if checker.hasDefaultValue():
-                ret[name] = checker.getDefaultValue()
+            if checker.hasDefaultValue(name):
+                ret[name] = checker.getDefaultValue(name)
             else:
                 raise argException("(ArgFeeder) some arguments aren't bounded, missing data : <"+name+">")
 
@@ -113,7 +113,7 @@ class ArgFeeder(ArgsChecker):
             if not checker.showInUsage:
                 continue
         
-            if checker.hasDefaultValue() and not firstMandatory:
+            if checker.hasDefaultValue(name) and not firstMandatory:
                 ret += "["
                 firstMandatory = True
             
