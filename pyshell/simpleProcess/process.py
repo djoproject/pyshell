@@ -11,10 +11,7 @@ def exitFun():
     "Exit the program"
     exit()
 
-#@listdecorator("args",stringArgChecker())
-#@environmentdecorator("envi","envi")
-
-@shellMethod(envi=environmentChecker("envi",environment),args=listArgChecker(stringArgChecker()))
+@shellMethod(envi=environmentChecker("envi",environment),args=defaultInstanceArgChecker.getStringArgCheckerInstance()))
 def helperFun(envi,args):
     "print the help"
     #TODO
@@ -36,10 +33,7 @@ def helperFun(envi,args):
         if dico[k].showInHelp:
             print "   "+str(k)+ " : " + str(dico[k].helpMessage)
 
-#@listdecorator("args",stringArgChecker(),1)
-#@environmentdecorator("envi","envi")
-
-@shellMethod(envi=environmentChecker("envi",environment),args=listArgChecker(stringArgChecker(),1))
+@shellMethod(envi=environmentChecker("envi",environment),args=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance(),1))
 def usageFun(envi,args):
     "print the usage of a fonction"
     
@@ -74,7 +68,7 @@ def listEnvFun(envi):
 #@string("name")
 #@environmentdecorator("executer","executer") 
 
-@shellMethod(executer=environmentChecker("executer",environment),name=stringArgChecker())
+@shellMethod(executer=environmentChecker("executer",environment),name=defaultInstanceArgChecker.getStringArgCheckerInstance())
 def loadAddonFun(name,executer):
     "load an external shell addon"
     
@@ -120,7 +114,7 @@ def echo16(args):
 
 #@listdecorator("args",IntegerArgChecker())
 
-@shellMethod(args=listArgChecker(IntegerArgChecker()))       
+@shellMethod(args=listArgChecker(defaultInstanceArgChecker.getIntegerArgCheckerInstance()))       
 def intToAscii(args):
     #print args
     "echo all the args into chars"

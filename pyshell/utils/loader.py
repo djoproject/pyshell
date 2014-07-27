@@ -20,7 +20,7 @@ from pyshell.command.command import MultiCommand, UniCommand
 from exception import LoadException
 from tries.exception import triesException
 import inspect
-from pyshell.utils.parameter import CONTEXT_NAME, ENVIRONMENT_NAME, FORBIDEN_SECTION_NAME, EnvironmentParameter, GenericParameter, ContextParameter
+from pyshell.utils.parameter import CONTEXT_NAME, ENVIRONMENT_NAME, FORBIDEN_SECTION_NAME, EnvironmentParameter, ContextParameter
 from pyshell.utils.exception import ParameterException
 from pyshell.arg.exception import argException
 from pyshell.arg.argchecker import ArgChecker
@@ -355,12 +355,12 @@ class Loader(object):
         for paramKey, value, noErrorIfKeyExist, override, parent in self.params:
             if parameterManager.hasParameter(paramKey,parent):
                 if override:
-                    parameterManager.setParameter(paramKey, GenericParameter(value),parent)
+                    parameterManager.setParameter(paramKey, EnvironmentParameter(value),parent)
                 elif not noErrorIfKeyExist:
                     print("fail to create parameter <"+paramKey+">, already exists and override not allowed")
 
             else:
-                parameterManager.setParameter(paramKey, GenericParameter(value),parent)
+                parameterManager.setParameter(paramKey, EnvironmentParameter(value),parent)
 
         #print error list
         for error in errorList:

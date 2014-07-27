@@ -16,9 +16,22 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
 from exception import ParameterException
 import os, sys
+
+#TODO
+    #context/env manager ?
+        #how to manage concurrency?
+
+    #faire le loading et le parsing directement dans les class (context, env, ...)
+        #deux method static
+            #-isParsable(section)
+            #-parse(section):
+                #cree juste une instance vide puis appelle sa methode _innerParse
+        #une method dynamic
+            #_innerParse(self, section)
+                #appelle les methode _innerParse du parent puis parse les champs locaux
 
 try:
     pyrev = sys.version_info.major
@@ -30,11 +43,6 @@ if pyrev == 2:
 else:
     import configparser as ConfigParser
 
-#TODO
-    #context/env manager ?
-        #how to manage concurrency?
-
-
 DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
 MAIN_CATEGORY          = "main"
 CONTEXT_NAME           = "context"
@@ -44,13 +52,13 @@ DEFAULT_SEPARATOR      = ","
 
 def getInstanceType(typ):
     if typ == "string":
-        return stringArgChecker()
+        return defaultInstanceArgChecker.getStringArgCheckerInstance()
     elif typ == "int":
-        return IntegerArgChecker()
+        return defaultInstanceArgChecker.getIntegerArgCheckerInstance()
     elif typ == "bool":
-        return booleanValueArgChecker()
+        return defaultInstanceArgChecker.getbooleanValueArgCheckerInstance()
     elif typ == "float":
-        return floatTokenArgChecker()
+        return defaultInstanceArgChecker.getFloatTokenArgCheckerInstance()
     else:
         return ArgChecker()
 
@@ -98,6 +106,10 @@ class ParameterManager(object):
     def load(self):
         if self.filePath is None:
             return
+
+        #TODO basculer le parsing dans les class de parameter
+            #faire une methode de detection
+            #et une methode de parsing
     
         #load params
         config = None
@@ -228,7 +240,7 @@ class ParameterManager(object):
                             self.params[section][option].setValue(config.get(section, option))
                             continue        
                             
-                    self.params[section][option] = GenericParameter(value=config.get(section, option))
+                    self.params[section][option] = EnvironmentParameter(value=config.get(section, option))
         
         #manage errorList
         for error in errorList:
@@ -304,8 +316,8 @@ class ParameterManager(object):
         ## GENERIC ##
         else:
             #is generic instance 
-            if not isinstance(param, GenericParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of GenericParameter was expected, got "+str(type(param)))
+            if not isinstance(param, EnvironmentParameter):
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of EnvironmentParameter was expected, got "+str(type(param)))
         
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME
             for forbidenName in FORBIDEN_SECTION_NAME:
@@ -384,13 +396,13 @@ class Parameter(object): #abstract
         return str(self.getValue())
 
 class EnvironmentParameter(Parameter):
-    def __init__(self, value, typ, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
+    def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         Parameter.__init__(self, transient)
         self.readonly  = readonly
         self.removable = removable
 
         #typ must be argChecker
-        if not isinstance(typ,ArgChecker):
+        if typ is not None and not isinstance(typ,ArgChecker):
             raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
 
         self.isListType = isinstance(typ, listArgChecker)
@@ -418,7 +430,10 @@ class EnvironmentParameter(Parameter):
         self._setValue(value)
 
     def _setValue(self,value):
-        self.value = self.typ.getValue(value)
+        if self.typ is None:
+            self.value = value
+        else:
+            self.value = self.typ.getValue(value)
 
     def isReadOnly(self):
         return self.readonly
@@ -440,25 +455,15 @@ class EnvironmentParameter(Parameter):
         if self.isListType:
             #toret["listType"] = str(True)
             toret["separator"] = self.sep
-            toret["type"]     = getTypeFromInstance(self.typ.checker)
+            if self.typ is not None:
+                toret["type"]     = getTypeFromInstance(self.typ.checker)
             toret["value"]    = self.sep.join(str(x) for x in self.value) #concat on ascii unit separator character
 
         else:
             #toret["listType"] = str(False)
-            toret["type"]     = getTypeFromInstance(self.typ)
+            if self.typ is not None:
+                toret["type"]     = getTypeFromInstance(self.typ)
             toret["value"]    = str(self.value)
-
-        return toret
-
-class GenericParameter(EnvironmentParameter):
-    def __init__(self, value, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
-        EnvironmentParameter.__init__(self, value, ArgChecker(), transient, readonly, removable, sep)
-        
-    def getParameterSerializableField(self):
-        toret = EnvironmentParameter.getParameterSerializableField(self)
-        
-        if "type" in toret:
-            del toret["type"]
 
         return toret
 

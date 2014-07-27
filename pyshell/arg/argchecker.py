@@ -16,13 +16,19 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #faire un getInstance pour chaque checker
+        #une fois créé il ne changent pas, autant les réutiliser
+
 from exception import *
 from tries import tries
 from tries.exception import ambiguousPathException
 import collections # for collections.Hashable
 from math import log
 import os
+from threading import Lock
 
+#string argchecker definition
 ARGCHECKER_TYPENAME                 = "ArgChecker"
 STRINGCHECKER_TYPENAME              = "String"
 INTEGERCHECKER_TYPENAME             = "Integer"
@@ -43,6 +49,65 @@ ENGINECHECKER_TYPENAME              = "Engine"
 FLOATCHECKER_TYPENAME               = "Float"
 BOOLEANCHECKER_TYPENAME             = "Boolean"
 TOKENCHECKER_TYPENAME               = "Token"
+
+#TODO default instance (en dernier)
+class defaultInstanceArgChecker(object):
+    _lock = Lock()
+    ARGCHECKER        = None
+    STRINGARGCHECKER  = None
+    INTEGERARGCHECKER = None
+    BOOLEANCHECKER    = None
+    FLOATCHECKER      = None
+    #TODO continuer avec les autres checker
+
+    #TODO remplacer dans le code(en dernier)
+    @staticmethod
+    def getArgCheckerInstance():
+        if defaultInstanceArgChecker.ARGCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.ARGCHECKER == None:
+                    defaultInstanceArgChecker.ARGCHECKER = ArgChecker()
+
+        return defaultInstanceArgChecker.ARGCHECKER
+
+    @staticmethod
+    def getStringArgCheckerInstance():
+        if defaultInstanceArgChecker.STRINGARGCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.STRINGARGCHECKER == None:
+                    defaultInstanceArgChecker.STRINGARGCHECKER = stringArgChecker()
+
+        return defaultInstanceArgChecker.STRINGARGCHECKER
+
+    @staticmethod
+    def getIntegerArgCheckerInstance():
+        if defaultInstanceArgChecker.INTEGERARGCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.INTEGERARGCHECKER == None:
+                    defaultInstanceArgChecker.INTEGERARGCHECKER = IntegerArgChecker()
+
+        return defaultInstanceArgChecker.INTEGERARGCHECKER
+
+    @staticmethod
+    def getbooleanValueArgCheckerInstance():
+        if defaultInstanceArgChecker.BOOLEANCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.BOOLEANCHECKER == None:
+                    defaultInstanceArgChecker.BOOLEANCHECKER = booleanValueArgChecker()
+
+        return defaultInstanceArgChecker.BOOLEANCHECKER
+
+    @staticmethod
+    def getFloatTokenArgCheckerInstance():
+        if defaultInstanceArgChecker.FLOATCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.FLOATCHECKER == None:
+                    defaultInstanceArgChecker.FLOATCHECKER = floatTokenArgChecker()
+
+        return defaultInstanceArgChecker.BOOLEANCHECKER
+
+    #TODO continuer a créer des getinstance
+
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################

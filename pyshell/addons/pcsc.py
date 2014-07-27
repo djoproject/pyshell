@@ -18,7 +18,7 @@
 
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker, ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, parameterChecker, completeEnvironmentChecker
 from pyshell.simpleProcess.postProcess import stringListResultHandler
 
 try:
@@ -65,12 +65,6 @@ def printATR(bytes):
     atr.dump()
     print 'T15 supported: ', atr.isT15Supported()
 
-#TODO  
-    #create variables
-        #one to store connection
-        #one for enable autoload
-        #one to check if the context is already loaded  
-
 def loadPCSC():
     #not already called in an import ?
     try:
@@ -91,26 +85,49 @@ def loadPCSC():
         else:
             print "   HINT : check the os process that manage card reader"
 
+
+@shellMethod(data=listArgChecker(IntegerArgChecker(0,255)))#,
+             #connection= defaultInstanceArgChecker.getIntegerArgCheckerInstance()) #FIXME DashPAram
 def transmit(data, connection=0):
 
     #TODO manage every SW here
 
     pass
 
+@shellMethod(index=defaultInstanceArgChecker.getIntegerArgCheckerInstance())
 def connectCard(index=0):
-    pass
+    pass #TODO
 
+@shellMethod(index=IntegerArgChecker(0))
 def connectReader(index=0):
-    pass
-    
+    r = readers()
+
+    if len(r) == 0:
+        raise engineInterruptionException("no reader available", True)
+
+    if index >= len(r):
+        raise engineInterruptionException("too big index, maximum value allowed is <"+str(len(r)-1)+">, get <"+str(index)+">", True)
+
+    reader = r[index]
+        
+    try:
+        connection = reader.createConnection()
+        connection.connect()#create a connection to the card
+
+        #TODO store the connexion
+
+    except Exception as e:
+        raise engineInterruptionException("fail to create a connexion to the reader <"+str(reader)+">", True)
+
+@shellMethod(index=defaultInstanceArgChecker.getIntegerArgCheckerInstance())
 def disconnect(index=0):
-    pass
+    pass #TODO 
 
 def getConnected():
-    pass
+    pass #TODO
 
 def getAvailableCard():
-    pass
+    pass #TODO
 
 def getAvailableReader():
     return readers()
@@ -118,6 +135,18 @@ def getAvailableReader():
 #TODO check in rfidDefault if something must be retrieve
 
 #XXX what about scard data transmit ?
+
+## register ENVIRONMENT ##
+
+#TODO  
+    #create variables
+        #one to store connection
+            #need transient
+        #one for enable autoload
+registerSetEnvironmentValue(envKey="autoload", value=True, typ = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), noErrorIfKeyExist = True, override = False, subLoaderName = "pcsc")
+registerSetEnvironmentValue(envKey="contextready", value=False, typ = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), noErrorIfKeyExist = True, override = True, subLoaderName = "pcsc")
+
+## register METHOD ##
 
 registerSetGlobalPrefix( ("pcsc", ) )
 registerStopHelpTraversalAt( () )

@@ -33,7 +33,7 @@
 from apdu.readers.proxnroll import ProxnrollAPDUBuilder
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
+from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
 from pyshell.command.exception import engineInterruptionException
 from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
 

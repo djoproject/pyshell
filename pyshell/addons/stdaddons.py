@@ -18,13 +18,16 @@
 
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, stringArgChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker, ArgChecker,listArgChecker, engineChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
 from tries.exception import triesException, pathNotExistsTriesException
 import os
 from pyshell.command.exception import engineInterruptionException
 from pyshell.command.command import MultiOutput
-from pyshell.utils.parameter import GenericParameter, CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter   
+from pyshell.utils.parameter import CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter   
+
+#TODO
+    #split into several sub addon
 
 ## MISC SECTION ##
 
@@ -55,7 +58,7 @@ def echo16(args):
 
     return s
 
-@shellMethod(args=listArgChecker(IntegerArgChecker()))
+@shellMethod(args=listArgChecker(defaultInstanceArgChecker.getIntegerArgCheckerInstance()))
 def intToAscii(args):
     "echo all the args into chars"
     s = ""
@@ -250,10 +253,10 @@ def helpFun(mltries, args=None):
 
     return sorted(stringKeys)
 
-@shellMethod(start = IntegerArgChecker(),
-             stop  = IntegerArgChecker(),
-             step  = IntegerArgChecker(),
-             multiOutput = booleanValueArgChecker())
+@shellMethod(start = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
+             stop  = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
+             step  = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
+             multiOutput = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance())
 def generator(start=0,stop=100,step=1, multiOutput = True):
     "generate a list of integer"
     if multiOutput:
@@ -265,13 +268,13 @@ def generator(start=0,stop=100,step=1, multiOutput = True):
 
 def _getChecker(valueType):
     if valueType == "string":
-        return stringArgChecker()
+        return defaultInstanceArgChecker.getStringArgCheckerInstance()
     elif valueType == "integer":
-        return IntegerArgChecker()
+        return defaultInstanceArgChecker.getIntegerArgCheckerInstance()
     elif valueType == "boolean":
-        return booleanValueArgChecker()
+        return defaultInstanceArgChecker.getbooleanValueArgCheckerInstance()
     elif valueType == "float":
-        return floatTokenArgChecker()
+        return defaultInstanceArgChecker.getFloatTokenArgCheckerInstance()
     
     raise engineInterruptionException("Unknow value type", True)
 
@@ -290,11 +293,14 @@ def _getChecker(valueType):
         
     #print in log
 
+    #!!!! MERGE environment and parameter !!!
+        #the difference between both is difficult to understand
+
 ### parameter ###
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters=completeEnvironmentChecker(),
-             parent=stringArgChecker())
+             parent=defaultInstanceArgChecker.getStringArgCheckerInstance())
 def removeParameterValues(key, parameters, parent=None):
     "remove a value from the Parameter"
 
@@ -303,9 +309,9 @@ def removeParameterValues(key, parameters, parent=None):
 
     parameters.unsetParameter(key, parent)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              env=completeEnvironmentChecker(),
-             parent=stringArgChecker())
+             parent=defaultInstanceArgChecker.getStringArgCheckerInstance())
 def getParameterValues(key, env, parent=None): 
     "get a value from the environment"
     
@@ -314,17 +320,17 @@ def getParameterValues(key, env, parent=None):
 
     return env.getParameter(key, parent).getValue()
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker(),1),
-             #FIXME parent=stringArgChecker(),
+             #FIXME parent=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter=completeEnvironmentChecker())
 def setParameterValue(key, values, parent = None, parameter = None):
     "assign a value to a parameter"
-    parameter.setParameter(key,GenericParameter(', '.join(str(x) for x in values)), parent)
+    parameter.setParameter(key,EnvironmentParameter(', '.join(str(x) for x in values)), parent)
 
 @shellMethod(parameter=completeEnvironmentChecker(),
-             parent=stringArgChecker(),
-             key=stringArgChecker())
+             parent=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             key=defaultInstanceArgChecker.getStringArgCheckerInstance())
 def listParameter(parameter, parent=None, key=None, printParent = True):
     "list every parameter sorted by the parent name"
     if parent != None:
@@ -374,19 +380,19 @@ def saveParameter(parameter):
     
 ### env management ###
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters=completeEnvironmentChecker())
 def removeEnvironmentContextValues(key, parameters):
     "remove an environment parameter"
     removeParameterValues(key, parameters, ENVIRONMENT_NAME)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              env=completeEnvironmentChecker())
 def getEnvironmentValues(key, env):
     "get an environment parameter value" 
     return getParameterValues(key, env, ENVIRONMENT_NAME)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker(),1),
              env=completeEnvironmentChecker())
 def setEnvironmentValuesFun(key, values, env):
@@ -403,9 +409,9 @@ def setEnvironmentValuesFun(key, values, env):
         envParam.setValue(values[0])
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}),
-             key=stringArgChecker(),
+             key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              value=ArgChecker(),
-             noErrorIfExists=booleanValueArgChecker(),
+             noErrorIfExists=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              env=completeEnvironmentChecker())
 def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=None): 
     "create an environment parameter value" 
@@ -423,9 +429,9 @@ def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, env=
     env.setParameter(key, EnvironmentParameter(value, checker),ENVIRONMENT_NAME)
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
-             key=stringArgChecker(),
+             key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker()),
-             #FIXME noErrorIfExists=booleanValueArgChecker(),
+             #FIXME noErrorIfExists=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              env=completeEnvironmentChecker())
 def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
     "create an environment parameter value list" 
@@ -442,7 +448,7 @@ def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, en
     value = checker.getValue(values, None, "Environment "+key)
     env.setParameter(key, EnvironmentParameter(value, checker),ENVIRONMENT_NAME)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker()),
              env=completeEnvironmentChecker())
 def addEnvironmentValuesFun(key, values, env):
@@ -461,26 +467,26 @@ def addEnvironmentValuesFun(key, values, env):
     envParam.setValue(values)
 
 @shellMethod(parameter=completeEnvironmentChecker(),
-             key=stringArgChecker())
+             key=defaultInstanceArgChecker.getStringArgCheckerInstance())
 def listEnvFun(parameter, key=None):
     "list all the environment variable"
     return listParameter(parameter, ENVIRONMENT_NAME, key, False)
 
 ### context management ###
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters=completeEnvironmentChecker())
 def removeContextValues(key, parameters):
     "remove a context parameter"
     removeParameterValues(key, parameters, CONTEXT_NAME)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              env=completeEnvironmentChecker())
 def getContextValues(key, env): 
     "get a context parameter value" 
     return getParameterValues(key, env, CONTEXT_NAME)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker(),1),
              env=completeEnvironmentChecker())
 def setContextValuesFun(key, values, env):
@@ -493,9 +499,9 @@ def setContextValuesFun(key, values, env):
     envParam.setValue(values)
 
 @shellMethod(valueType=tokenValueArgChecker({"string":"string", "integer":"integer", "boolean":"boolean", "float":"float"}), 
-             key=stringArgChecker(),
+             key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker()),
-             #FIXME noErrorIfExists=booleanValueArgChecker(),
+             #FIXME noErrorIfExists=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              env=completeEnvironmentChecker())
 def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=None): 
     "create a context parameter value list"
@@ -512,7 +518,7 @@ def createContextValuesFun(valueType, key, values, noErrorIfExists=False, env=No
     value = checker.getValue(values, None, "Context "+key)
     env.setParameter(key, ContextParameter(value, checker),CONTEXT_NAME)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker()),
              env=completeEnvironmentChecker())
 def addContextValuesFun(key, values, env):
@@ -526,7 +532,7 @@ def addContextValuesFun(key, values, env):
     envParam.setValue(values)
 
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              value=ArgChecker(),
              context=completeEnvironmentChecker())
 def selectValue(key, value, context):
@@ -537,8 +543,8 @@ def selectValue(key, value, context):
     envParam = context.getParameter(key, CONTEXT_NAME)
     envParam.setIndexValue(value)
     
-@shellMethod(key=stringArgChecker(),
-             index=IntegerArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             index=defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
              context=completeEnvironmentChecker())
 def selectValueIndex(key, index, context):
     "select the value index for the current context"
@@ -548,7 +554,7 @@ def selectValueIndex(key, index, context):
     envParam = context.getParameter(key, CONTEXT_NAME)
     envParam.setIndex(index)
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              context=completeEnvironmentChecker())
 def getSelectedContextValue(key, context):
     "get the selected value for the current context"
@@ -559,7 +565,7 @@ def getSelectedContextValue(key, context):
 
     return envParam.getSelectedValue()
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              context=completeEnvironmentChecker())
 def getSelectedContextIndex(key, context):
     "get the selected value index for the current context"
@@ -571,21 +577,21 @@ def getSelectedContextIndex(key, context):
     return envParam.getIndex()
 
 @shellMethod(parameter=completeEnvironmentChecker(),
-             key=stringArgChecker())
+             key=defaultInstanceArgChecker.getStringArgCheckerInstance())
 def listContext(parameter, key=None):
     "list all the context variable"
     return listParameter(parameter, CONTEXT_NAME, key, False)
 
 ### var management ###
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values=listArgChecker(ArgChecker(),1),
              _vars=parameterChecker("vars"))
 def setVar(key, values, _vars):
     "assign a value to a var"
     _vars.getValue()[key] = values
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              _vars=parameterChecker("vars"))
 def getVar(key, _vars):
     "get the value of a var"
@@ -594,7 +600,7 @@ def getVar(key, _vars):
 
     return _vars.getValue()[key]
 
-@shellMethod(key=stringArgChecker(),
+@shellMethod(key=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              _vars=parameterChecker("vars"))
 def unsetVar(key, _vars):
     "unset a var"
@@ -640,7 +646,9 @@ def listAddonFun():
 
     return l
 
-@shellMethod(name=stringArgChecker(), subAddon=stringArgChecker(), levelTries=parameterChecker("levelTries"))
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             levelTries=parameterChecker("levelTries"))
 def loadAddonFun(name, levelTries, subAddon = None):
     "load an external shell addon"
     toLoad = "pyshell.addons."+str(name)

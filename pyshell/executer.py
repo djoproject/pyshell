@@ -32,9 +32,9 @@ from tries.exception import triesException, pathNotExistsTriesException
 from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
-from arg.argchecker import booleanValueArgChecker, stringArgChecker, IntegerArgChecker, listArgChecker
+from arg.argchecker import defaultInstanceArgChecker, listArgChecker
 from addons import stdaddons
-from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, GenericParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
+from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
 
 class writer :
     def __init__(self, out):
@@ -91,14 +91,17 @@ class CommandExecuter():
         self.params = ParameterManager(paramFile)
 
         #init original params
-        self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("vars", GenericParameter(value={},transient=True,readonly=True, removable=False))
-        self.params.setParameter("levelTries", GenericParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
-        self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=IntegerArgChecker(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=stringArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=booleanValueArgChecker(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=stringArgChecker(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("addonToLoad", EnvironmentParameter(value=(), typ=listArgChecker(stringArgChecker()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
+        self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
+        self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        
+        #TODO use pathchecker
+        self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        
+        self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("addonToLoad", EnvironmentParameter(value=(), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
         #try to load parameter file
         try:
