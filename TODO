@@ -2,7 +2,7 @@
 ### keystore              ###
 #############################
     set/unset/get
-    list of byte, at least 1 byte
+    list of byte, at least 1 byte ?
         what append if uncomplet byte?
             for example 12 bits key ?
             
@@ -19,7 +19,8 @@
             dede= 5 8 9 ..
             ...
             
-        create argchecker
+        complete KeyArgchecker
+        
         not only addon, utils, add to stdaddon
         
         define default key somewhere

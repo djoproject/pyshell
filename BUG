@@ -58,3 +58,6 @@ I) autocompletion bug
     
     the "ca" is replaced with "a"
     
+J) aucun message d'erreur n'est affiché quand certains arguments ne sont pas consommé
+
+

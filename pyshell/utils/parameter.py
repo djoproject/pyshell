@@ -121,6 +121,8 @@ class ParameterManager(object):
                 print("(ParameterManager) loadFile, fail to read parameter file : "+str(ex))
                 return
         else:
+            #TODO executer ce statement uniquement s'il y a au moins 1 parametres
+        
             #if no parameter file, try to create it, then return
             try:
                 self.save()
