@@ -22,4 +22,4 @@ rm -rf ./*
 git clone https://github.com/djo938/supershell.git || quit "Failed to retrieve supershell source code from github"
 rm -rf ../pyshell
 mv ./supershell/* ../
-quit "success to install/update"
+quit "success to install/update, use exec.sh to start the shell"
