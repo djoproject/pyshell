@@ -33,7 +33,7 @@ from command.exception import *
 from command.engine import engineV3
 from arg.exception import *
 from arg.argchecker import defaultInstanceArgChecker, listArgChecker
-from addons import stdaddons
+from addons import addon
 from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
 
 class writer :
@@ -101,7 +101,7 @@ class CommandExecuter():
         
         self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("addonToLoad", EnvironmentParameter(value=(), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("addonToLoad", EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
         #try to load parameter file
         try:
@@ -124,7 +124,7 @@ class CommandExecuter():
             
         #try to load standard shell function
         try:
-            stdaddons._loader[None]._load(self.params.getParameter("levelTries").getValue())
+            addon._loader[None]._load(self.params.getParameter("levelTries").getValue())
         except Exception as ex:
             print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
         
@@ -137,7 +137,7 @@ class CommandExecuter():
         #XXX move to onStartUp event when the event manager will be ready
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
             try:
-                stdaddons.loadAddonFun(addonName, self.params.getParameter("levelTries"))
+                addon.loadAddonFun(addonName, self.params.getParameter("levelTries"))
             except Exception as ex:
                 print("fail to load addon "+str(addonName)+": "+str(ex))
                 

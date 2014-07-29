@@ -18,7 +18,7 @@
 
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import defaultInstanceArgChecker, ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, parameterChecker, completeEnvironmentChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
 from pyshell.simpleProcess.postProcess import stringListResultHandler
 
 try:
@@ -51,6 +51,8 @@ except ImportError as ie:
             #yeah but why this occured each times with macos ???
     
     raise Exception("Fail to import smartcard : "+str(ie))
+
+## FUNCTION SECTION ##
 
 @shellMethod(bytes=listArgChecker(IntegerArgChecker(0,255)))
 def printATR(bytes):

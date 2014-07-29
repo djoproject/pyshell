@@ -33,13 +33,14 @@
 from apdu.readers.proxnroll import ProxnrollAPDUBuilder
 from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker,listArgChecker, IntegerArgChecker, engineChecker, parameterChecker, tokenValueArgChecker, completeEnvironmentChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, tokenValueArgChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
 from pyshell.command.exception import engineInterruptionException
 from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
 
 from pcsc import printATR #FIXME create a dependancy... 
 
-## METHOD ##
+## FUNCTION SECTION ##
+
 _colourTokenChecker = tokenValueArgChecker(ProxnrollAPDUBuilder.ColorSettings)
 @shellMethod(red = _colourTokenChecker, green=_colourTokenChecker, yellow_blue=_colourTokenChecker)
 def setLight(red, green, yellow_blue = None):
@@ -49,7 +50,7 @@ def setLight(red, green, yellow_blue = None):
 def setBuzzer(duration=2000):
     return ProxnrollAPDUBuilder.setBuzzerDuration(duration)
 
-@shellMethod(anything=listArgChecker(ArgChecker()))
+@shellMethod(anything=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def stopAsMainProcess(anything):
     raise engineInterruptionException("A proxnroll command can not be directly executed, this command need to be piped into a transmit command",False)
 

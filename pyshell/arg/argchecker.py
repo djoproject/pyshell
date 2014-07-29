@@ -50,7 +50,6 @@ FLOATCHECKER_TYPENAME               = "Float"
 BOOLEANCHECKER_TYPENAME             = "Boolean"
 TOKENCHECKER_TYPENAME               = "Token"
 
-#TODO default instance (en dernier)
 class defaultInstanceArgChecker(object):
     _lock = Lock()
     ARGCHECKER        = None
@@ -58,9 +57,8 @@ class defaultInstanceArgChecker(object):
     INTEGERARGCHECKER = None
     BOOLEANCHECKER    = None
     FLOATCHECKER      = None
-    #TODO continuer avec les autres checker
+    ENVCHECKER        = None
 
-    #TODO remplacer dans le code(en dernier)
     @staticmethod
     def getArgCheckerInstance():
         if defaultInstanceArgChecker.ARGCHECKER == None:
@@ -104,10 +102,16 @@ class defaultInstanceArgChecker(object):
                 if defaultInstanceArgChecker.FLOATCHECKER == None:
                     defaultInstanceArgChecker.FLOATCHECKER = floatTokenArgChecker()
 
-        return defaultInstanceArgChecker.BOOLEANCHECKER
+        return defaultInstanceArgChecker.FLOATCHECKER
 
-    #TODO continuer a créer des getinstance
+    @staticmethod
+    def getCompleteEnvironmentChecker():
+        if defaultInstanceArgChecker.ENVCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.ENVCHECKER == None:
+                    defaultInstanceArgChecker.ENVCHECKER = completeEnvironmentChecker()
 
+        return defaultInstanceArgChecker.ENVCHECKER
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################

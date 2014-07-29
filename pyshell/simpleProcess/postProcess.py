@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import defaultInstanceArgChecker,ArgChecker,listArgChecker, IntegerArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker
 from pyshell.utils.utils import toHexString
 
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance())  )
@@ -25,17 +25,17 @@ def stringListResultHandler(result):
     for i in result:
         print(i)
 
-@shellMethod(result=ArgChecker())
+@shellMethod(result=defaultInstanceArgChecker.getArgCheckerInstance())
 def printResultHandler(result=None):
     if result != None:
         print(str(result))
 
-@shellMethod(result=listArgChecker(ArgChecker()))
+@shellMethod(result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def listResultHandler(result):
     for i in result:
         print(str(i))
         
-@shellMethod(result=listArgChecker(ArgChecker()))
+@shellMethod(result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def listFlatResultHandler(result):
     s = ""
     for i in result:
