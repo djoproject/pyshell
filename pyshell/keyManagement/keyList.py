@@ -1,6 +1,0 @@
-#
-#
-# OFFLINE key set
-#
-keys = {}
-
