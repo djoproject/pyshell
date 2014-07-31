@@ -31,7 +31,7 @@
 
 
 from apdu.readers.proxnroll import ProxnrollAPDUBuilder
-from pyshell.utils.loader import *
+from pyshell.loader.command import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix, registerSetTempPrefix
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, tokenValueArgChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
 from pyshell.command.exception import engineInterruptionException

@@ -124,7 +124,7 @@ class CommandExecuter():
             
         #try to load standard shell function
         try:
-            addon._loader[None]._load(self.params.getParameter("levelTries").getValue())
+            addon._loaders.load(self.params)
         except Exception as ex:
             print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
         
@@ -137,9 +137,9 @@ class CommandExecuter():
         #XXX move to onStartUp event when the event manager will be ready
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
             try:
-                addon.loadAddonFun(addonName, self.params.getParameter("levelTries"))
+                addon.loadAddonFun(addonName, self.params)
             except Exception as ex:
-                print("fail to load addon "+str(addonName)+": "+str(ex))
+                print("fail to load addon <"+str(addonName)+">: "+str(ex))
                 
             
     def saveHistory(self):

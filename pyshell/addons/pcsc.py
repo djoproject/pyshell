@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.loader import *
+from pyshell.loader.command import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
 from pyshell.simpleProcess.postProcess import stringListResultHandler
@@ -145,8 +145,8 @@ def getAvailableReader():
         #one to store connection
             #need transient
         #one for enable autoload
-registerSetEnvironmentValue(envKey="autoload", value=True, typ = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), noErrorIfKeyExist = True, override = False, subLoaderName = "pcsc")
-registerSetEnvironmentValue(envKey="contextready", value=False, typ = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), noErrorIfKeyExist = True, override = True, subLoaderName = "pcsc")
+#registerSetEnvironmentValue(envKey="autoload", value=True, typ = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), noErrorIfKeyExist = True, override = False, subLoaderName = "pcsc")
+#registerSetEnvironmentValue(envKey="contextready", value=False, typ = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), noErrorIfKeyExist = True, override = True, subLoaderName = "pcsc")
 
 ## register METHOD ##
 

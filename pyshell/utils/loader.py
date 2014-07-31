@@ -18,7 +18,7 @@
 
 #TODO delete this file as soon as the global loader system will be finished
 
-from pyshell.command.command import MultiCommand, UniCommand
+"""from pyshell.command.command import MultiCommand, UniCommand
 from exception import LoadException
 from tries.exception import triesException
 import inspect
@@ -397,5 +397,5 @@ class Loader(object):
     
         self.cmdDict[name] = (prefix, cmd,)
         
-        
+        """
         

@@ -16,13 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class LoadException(Exception):
-    def __init__(self,value):
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
-
 class ParameterException(Exception):
     def __init__(self,value):
         self.value = value

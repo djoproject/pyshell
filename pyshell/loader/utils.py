@@ -16,56 +16,75 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import inspect
+from exceptions import RegisterException
+
 def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, subLoaderName = None):
-    frm = inspect.stack()[moduleLevel]
+    frm = inspect.stack()[3]
     mod = inspect.getmodule(frm[0])
+
+    #print inspect.stack()[3]
 
     #init loaders dictionnary
     loadersDict = None
     if hasattr(mod,"_loaders"):
         loadersDict = mod._loaders
+        
+        #must be an instance of GlobalLoader
+        if not isinstance(loadersDict,GlobalLoader):
+            raise RegisterException("(loader) getAndInitCallerModule, the stored loader in the module <"+str(mod)+"> is not an instance of GlobalLoader, get <"+str(type(loadersDict))+">")
+        
     else:
-        loadersDict = {}
+        loadersDict = GlobalLoader()
         mod._loaders = loadersDict
-    
-    #the current loader already exists ?
-    if callerLoaderKey not in loadersDict:
-        loadersDict[callerLoaderKey] = {}
-
-    #subloader already exist ?
-    if subLoaderName in loadersDict[callerLoaderKey]:
-        return loadersDict[callerLoaderKey][subLoaderName]
-
-    loader = callerLoaderClassDefinition()
-    loadersDict[callerLoaderKey][subLoaderName] = loader
-    return loader
-
-def _local_getAndInitCallerModule(subLoaderName = None)
-    return getAndInitCallerModule(DefaultLoader.__module__+"."+DefaultLoader.__name__,DefaultLoader, 3, subLoaderName)
-
-def registerDependOnAddon(name, subLoaderName = None):
-    if type(name) != str and type(name) != unicode:
-        raise LoadException("(Loader) registerDependOnAddon, only string or unicode addon name are allowed")
-
-    loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.dep.append(name)
+        
+    return mod._loaders.getLoader(callerLoaderKey, callerLoaderClassDefinition, subLoaderName)
 
 class AbstractLoader(object):
-    def load(self, parameterManager):
+    def load(self, parameterManager, subLoaderName = None):
         pass #TO OVERRIDE
 
-    def unload(self, parameterManager):
+    def unload(self, parameterManager, subLoaderName = None):
         pass #TO OVERRIDE
         
-    def reload(self, parameterManager):
+    def reload(self, parameterManager, subLoaderName = None):
         pass #TO OVERRIDE
 
-class DefaultLoader(AbstractLoader):
+class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
-        self.dep = []
+        self.subloader = {}
         
-    def load(self, parameterManager):
-        pass #TODO raise if a dependancies is not satisfied
+    def getLoader(self, loaderName, classDefinition, subLoaderName = None):
+        if loaderName not in self.subloader:
+            self.subloader[loaderName] = {}
+            
+        if subLoaderName not in self.subloader[loaderName]:
+            self.subloader[loaderName][subLoaderName] = classDefinition()
+            
+        return self.subloader[loaderName][subLoaderName]
+        
+    def load(self, parameterManager, subLoaderName = None):
+        for loaderName, subLoaderDic in self.subloader.items():
+            if subLoaderName in subLoaderDic:
+            
+                #TODO catch exception, and regroup in a listException
+                subLoaderDic[subLoaderName].load(parameterManager)
+
+    def unload(self, parameterManager, subLoaderName = None):
+        for loaderName, subLoaderDic in self.subloader.items():
+            if subLoaderName in subLoaderDic:
+            
+                #TODO catch exception, and regroup in a listException
+                subLoaderDic[subLoaderName].unload(parameterManager)
+        
+    def reload(self, parameterManager, subLoaderName = None):
+        for loaderName, subLoaderDic in self.subloader.items():
+            if subLoaderName in subLoaderDic:
+                
+                #TODO catch exception, and regroup in a listException
+                subLoaderDic[subLoaderName].reload(parameterManager)
+
+
     
         

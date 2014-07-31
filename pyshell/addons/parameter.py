@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.loader import *
+from pyshell.loader.command import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import engineInterruptionException
 from pyshell.utils.parameter import CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter 

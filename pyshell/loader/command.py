@@ -17,50 +17,55 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from utils import getAndInitCallerModule, AbstractLoader
+from pyshell.command.command import MultiCommand, UniCommand
+from exceptions import RegisterException
+
+def _local_getAndInitCallerModule(subLoaderName = None):
+    return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)
 
 def _raiseIfInvalidKeyList(keyList, methName):
     if not hasattr(keyList,"__iter__"):
-        raise LoadException("(Loader) "+methName+", keyList is not iterable")
+        raise RegisterException("(Loader) "+methName+", keyList is not iterable")
 
     for key in keyList:
         if type(key) != str and type(key) != unicode:
-            raise LoadException("(Loader) "+methName+", only string or unicode key are allowed")
+            raise RegisterException("(Loader) "+methName+", only string or unicode key are allowed")
 
         if len(key) == 0:
-            raise LoadException("(Loader) "+methName+", empty key is not allowed")
+            raise RegisterException("(Loader) "+methName+", empty key is not allowed")
 
 def registerSetGlobalPrefix(keyList, subLoaderName = None):
     _raiseIfInvalidKeyList(keyList, "registerSetGlobalPrefix")
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.prefix = keyList
 
 def registerSetTempPrefix(keyList, subLoaderName = None):
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerSetTempPrefix")
 
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.TempPrefix = keyList
     
 def registerResetTempPrefix(subLoaderName = None):
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.TempPrefix = None
 
 def registerAnInstanciatedCommand(keyList, cmd, subLoaderName = None):
     #must be a multiCmd
     if not isinstance(cmd, MultiCommand):
-        raise LoadException("(Loader) addInstanciatedCommand, cmd must be an instance of MultiCommand")
+        raise RegisterException("(Loader) addInstanciatedCommand, cmd must be an instance of MultiCommand")
 
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerAnInstanciatedCommand")
 
-    loader = _getAndInitCallerModule(subLoaderName)
-    loader._addCmd(" ".join(keyList), keyList, cmd)
+    loader = _local_getAndInitCallerModule(subLoaderName)
+    loader.addCmd(" ".join(keyList), keyList, cmd)
     return cmd
 
 def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, subLoaderName = None):
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerCommand")
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     
     if loader.TempPrefix != None:
         name = " ".join(loader.TempPrefix) + " " + " ".join(keyList)
@@ -69,11 +74,11 @@ def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, subLo
         
     cmd = UniCommand(name, pre,pro,post, showInHelp)
     
-    loader._addCmd(name, keyList, cmd)
+    loader.addCmd(name, keyList, cmd)
     return cmd
 
 def registerCreateMultiCommand(keyList, showInHelp=True, subLoaderName = None):
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
 
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerCreateMultiCommand")
@@ -84,18 +89,18 @@ def registerCreateMultiCommand(keyList, showInHelp=True, subLoaderName = None):
         name = " ".join(keyList)
     
     cmd = MultiCommand(name, showInHelp)
-    loader._addCmd(name, keyList, cmd)
+    loader.addCmd(name, keyList, cmd)
 
     return cmd
 
 def registerStopHelpTraversalAt(keyList,subLoaderName = None):
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
 
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerCreateMultiCommand")
     loader.stoplist.append(keyList)
     
-class Loader(AbstractLoader):
+class CommandLoader(AbstractLoader):
     def __init__(self, prefix=()):
         AbstractLoader.__init__(self)
     
@@ -104,7 +109,15 @@ class Loader(AbstractLoader):
         self.TempPrefix = None
         self.stoplist   = []
     
-    def load(self, mltries, parameterManager= None):
+    def load(self, parameterManager):
+    
+        if not parameterManager.hasParameter("levelTries"):
+            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")    
+            
+        mltries = parameterManager.getParameter("levelTries").getValue()
+    
+        #TODO don't print error message here, group the error in a listException
+    
         #add command
         for k,v in self.cmdDict.iteritems():
             keyList, cmd = v
@@ -125,9 +138,14 @@ class Loader(AbstractLoader):
             except triesException as te:
                 print "fail to disable traversal for key list <"+str(" ".join(stop))+"> in multi tries: "+str(te)
 
-        self._loadParams(parameterManager)
-
-    def unload(self, mltries):
+    def unload(self, parameterManager):
+        if not parameterManager.hasParameter("levelTries"):
+            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")    
+            
+        mltries = parameterManager.getParameter("levelTries").getValue()
+    
+        #TODO don't print error message here, group the error in a listException
+    
         for k,v in self.cmdDict.iteritems():
             keyList, cmd = v
             key = list(self.prefix)
@@ -138,7 +156,12 @@ class Loader(AbstractLoader):
             except triesException as te:
                 print("fail to remove key <"+str(" ".join(key))+"> in multi tries: "+str(te))
         
-    def reload(self, mltries):
+    def reload(self,parameterManager):
+        if not parameterManager.hasParameter("levelTries"):
+            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")    
+            
+        mltries = parameterManager.getParameter("levelTries").getValue()
+    
         self.unload(mltries)
         self.load(mltries)
         

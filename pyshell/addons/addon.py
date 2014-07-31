@@ -16,11 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.loader import *
+#from pyshell.utils.loader import *
+from pyshell.loader.command import registerSetTempPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.arg.decorator import shellMethod
 import os
 from pyshell.simpleProcess.postProcess import stringListResultHandler
-from pyshell.arg.argchecker import defaultInstanceArgChecker, parameterChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker, completeEnvironmentChecker
 
 ### addon ###
 
@@ -54,8 +55,8 @@ def listAddonFun():
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
              subAddon=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
-             levelTries=parameterChecker("levelTries"))
-def loadAddonFun(name, levelTries, subAddon = None):
+             parameters=completeEnvironmentChecker())
+def loadAddonFun(name, parameters, subAddon = None):
     "load an external shell addon"
     toLoad = "pyshell.addons."+str(name)
 
@@ -63,20 +64,22 @@ def loadAddonFun(name, levelTries, subAddon = None):
         subAddon = None
 
     try:
-        mod = __import__(toLoad,fromlist=["_loader"])
+        mod = __import__(toLoad,fromlist=["_loaders"])
         
-        if not hasattr(mod, "_loader"):
+        if not hasattr(mod, "_loaders"):
             print("invalid addon, no loader found.  don't forget to register at least one command in the addon")
         
-        if subAddon not in mod._loader:
+        mod._loaders.load(parameters, subAddon)
+        
+        """if subAddon not in mod._loaders:
             print("sub addon does not exist in the addon <"+str(name)+">")
         
-        mod._loader[None]._load(levelTries.getValue())
+        mod._loaders[None]._load(levelTries.getValue())"""
         print "   "+toLoad+" loaded !"  
     except ImportError as ie:
-        print "import error in <"+name+"> loading : "+str(ie)
+        print "import error in <"+str(name)+"> loading : "+str(ie)
     except NameError as ne:
-        print "name error in <"+name+"> loading : "+str(ne)
+        print "name error in <"+str(name)+"> loading : "+str(ne)
 
 def unloadAddon():
     "unload an addon"
