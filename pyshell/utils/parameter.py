@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
-from exception import ParameterException
+from exception import ParameterException, ParameterLoadingException
 import os, sys
 
 #TODO
@@ -25,6 +25,8 @@ import os, sys
         #how to manage concurrency?
 
     #faire le loading et le parsing directement dans les class (context, env, ...)
+        #le save est deja dans les methods
+    
         #deux method static
             #-isParsable(section)
             #-parse(section):
@@ -45,12 +47,15 @@ else:
 
 DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
 MAIN_CATEGORY          = "main"
+PARAMETER_NAME         = "parameter"
 CONTEXT_NAME           = "context"
 ENVIRONMENT_NAME       = "environment"
-FORBIDEN_SECTION_NAME  = (CONTEXT_NAME, ENVIRONMENT_NAME, ) 
 DEFAULT_SEPARATOR      = ","
+FORBIDEN_SECTION_NAME  = [CONTEXT_NAME,ENVIRONMENT_NAME]
 
-def getInstanceType(typ):
+#XXX FORBIDEN_SECTION_NAME is difined at the end of this module XXX
+
+def getInstanceType(typ): #TODO use dico
     if typ == "string":
         return defaultInstanceArgChecker.getStringArgCheckerInstance()
     elif typ == "int":
@@ -62,7 +67,7 @@ def getInstanceType(typ):
     else:
         return ArgChecker()
 
-def getTypeFromInstance(instance):
+def getTypeFromInstance(instance): #TODO use dico
     if isinstance(instance, booleanValueArgChecker):
         return "bool"
     elif isinstance(instance, stringArgChecker):
@@ -133,98 +138,84 @@ class ParameterManager(object):
         #read and parse, for each section
         errorList = []
         for section in config.sections():
-
-            #advanced section (context or env)
-            if config.has_option(section, "value"):
-
+            specialSectionClassToUse = None
+            for specialSectionClass in RESOLVE_SPECIAL_SECTION_ORDER:
+                if not specialSectionClass.isParsable(config, section):
+                    continue
+                    
+                specialSectionClassToUse = specialSectionClass
+                break
+                
+            if specialSectionClassToUse != None:
                 #a parent category with a similar name can not already exist
                 if section in self.params:
-                    errorList.append("Section <"+str(section)+">, a parent category with this name already exist, can not create a context or environment with this name")
+                    errorList.append("Section <"+str(section)+">, a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name")
                     continue
-
-                value = config.get(section, "value")
-
-                #is it context type ?
-                contextDefined = False
-                if config.has_option(section, "defaultIndex"):
-                    contextDefined = True
-                    defaultIndex = _getInt(config, section, "defaultIndex", 0)
-                
-                readonly       = _getBool(config, section, "readonly", False)
-                removable      = _getBool(config, section, "removable", False)
-
-                #manage type
-                if config.has_option(section, "type"):
-                    typ = getInstanceType(config.get(section, "type"))
-                else:
-                    typ = ArgChecker()
-
-                #has a separator? is a list ?
-                isAList = False
-                if config.has_option(section, "separator"):
-                    isAList = True
-                    sep = config.get(section, "separator")
+        
+                #TODO parse
+        
+                if section in self.params[specialSectionClassToUse.getStaticName()]:
+                    try:
+                        #TODO setValue will not always be available ? 
                     
-                    if sep == None or (type(sep) != str and type(sep) != unicode):
-                        errorList.append("Section <"+str(section)+">, separator must be a string, get "+str(type(sep)))
-                        continue
+                        self.params[specialSectionClassToUse.getStaticName()][section].setValue(value)
+                    except Exception as ex:
+                        errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
                         
-                    if len(sep) != 1:
-                        errorList.append("Section <"+str(section)+">, separator must have a length of 1, get <"+str(len(sep))+">")
-                        continue
-
-                if isAList:
-                    value = value.strip()
-                    if len(value) == 0:
-                        value = ()
-                    else:
-                        value = value.split(sep)
-
-                ### CONTEXT ###
-                if contextDefined:
-                    if section in self.params[CONTEXT_NAME]:
-                        context = self.params[CONTEXT_NAME][section]
-                        try:
-                            context.setValue(value)
-                        except Exception as ex:
-                            errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
-                    else:
-                        if isAList:
-                            typ = listArgChecker(typ)
-
-                        try:
-                            context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable, sep)
-                        except Exception as ex:
-                            errorList.append("(ParameterManager) loadFile, fail to create new context <"+str(section)+"> : "+str(ex))
-                            continue
-
-                        self.params[CONTEXT_NAME][section] = context
-
-                    #manage selected index
-                    transientIndex = not config.has_option(section, "index")
-                    index = _getInt(config, section, "index", 0)
-                    context.setIndex(index)
-                    context.setTransientIndex(transientIndex)
-                
-                ### ENVIRONMENT ###
                 else:
-                    #manage existing
-                    if section in self.params[ENVIRONMENT_NAME]:
-                        try:
-                            self.params[ENVIRONMENT_NAME][section].setValue(value)
-                        except Exception as ex:
-                            errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
-                            
-                    else:
-                        if isAList:
-                            typ = listArgChecker(typ)
-                        
-                        try:
-                            self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable, sep)
-                        except Exception as ex:
-                            errorList.append("(ParameterManager) loadFile, fail to create new environment <"+str(section)+"> : "+str(ex))
-                            continue
+                    if isAList:
+                        typ = listArgChecker(typ)
+                    
+                    try:
+                        #TODO create an instance
+                    
+                        self.params[specialSectionClassToUse.getStaticName()][section] = None #TODO
+                    except Exception as ex:
+                        errorList.append("(ParameterManager) loadFile, fail to create new environment <"+str(section)+"> : "+str(ex))
+                        continue
+        
+############################################################### TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+"""            #TODO identify a forbiden type (if exist)
+                #take the most specific
+                
 
+                #manage existing ENVIRONMENT_NAME
+                if section in self.params[ENVIRONMENT_NAME]:
+                    try:
+                        self.params[ENVIRONMENT_NAME][section].setValue(value)
+                    except Exception as ex:
+                        errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
+                        
+                else:
+                    if isAList:
+                        typ = listArgChecker(typ)
+                    
+                    try:
+                        self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable, sep)
+                    except Exception as ex:
+                        errorList.append("(ParameterManager) loadFile, fail to create new environment <"+str(section)+"> : "+str(ex))
+                        continue
+
+                #manage existing CONTEXT_NAME
+                if section in self.params[CONTEXT_NAME]:
+                    context = self.params[CONTEXT_NAME][section]
+                    try:
+                        context.setValue(value)
+                    except Exception as ex:
+                        errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
+                else:
+                    if isAList:
+                        typ = listArgChecker(typ)
+
+                    try:
+                        context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable, sep)
+                    except Exception as ex:
+                        errorList.append("(ParameterManager) loadFile, fail to create new context <"+str(section)+"> : "+str(ex))
+                        continue
+
+                    self.params[CONTEXT_NAME][section] = context"""
+
+############################################################### TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
             ### GENERIC ### 
             else:
                 if section in FORBIDEN_SECTION_NAME:
@@ -295,6 +286,9 @@ class ParameterManager(object):
         if parent == None:
             parent = MAIN_CATEGORY
         
+        #TODO move these test to staticMethod in parameter class
+            #not necessary need to move to staticmethod but it should be possible to convert this part to a generic part
+        
         ## CONTEXT ##
         if parent == CONTEXT_NAME:
             #is context instance
@@ -303,17 +297,17 @@ class ParameterManager(object):
             
             #name can't be an existing section name
             if name in self.params:
-                raise ParameterException("(ParameterManager) setContext, invalid context name, a similar generic environment already has this name")
+                raise ParameterException("(ParameterManager) setParameter, invalid context name, a similar generic environment already has this name")
         
         ## ENVIRONMENT ##
         elif parent == ENVIRONMENT_NAME:
             #is environment instance
             if not isinstance(param, EnvironmentParameter):# or isinstance(environment, GenericParameter):
-                raise ParameterException("(ParameterManager) setEnvironement, invalid environment, an instance of EnvironmentParameter was expected, got "+str(type(param)))
+                raise ParameterException("(ParameterManager) setParameter, invalid environment, an instance of EnvironmentParameter was expected, got "+str(type(param)))
 
             #name can't be an existing section name
             if name in self.params:
-                raise ParameterException("(ParameterManager) setEnvironement, invalid environment name, a similar generic environment already has this name")
+                raise ParameterException("(ParameterManager) setParameter, invalid environment name, a similar generic environment already has this name")
         
         ## GENERIC ##
         else:
@@ -396,6 +390,18 @@ class Parameter(object): #abstract
 
     def __repr__(self):
         return str(self.getValue())
+        
+    @staticmethod
+    def isParsable(config, section):
+        return True
+        
+    @staticmethod
+    def parse(config, section):
+        return {}
+    
+    @staticmethod
+    def getStaticName():
+        return PARAMETER_NAME
 
 class EnvironmentParameter(Parameter):
     def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
@@ -468,6 +474,52 @@ class EnvironmentParameter(Parameter):
             toret["value"]    = str(self.value)
 
         return toret
+        
+    @staticmethod
+    def isParsable(config, section):
+        return Parameter.isParsable(config, section) and config.has_option(section, "value")
+        
+    @staticmethod
+    def parse(config,section):
+        dic = {}
+
+        value            = config.get(section, "value")
+        dic["readonly"]  = _getBool(config, section, "readonly", False)
+        dic["removable"] = _getBool(config, section, "removable", False)
+
+        #manage type
+        if config.has_option(section, "type"):
+            dic["typ"] = getInstanceType(config.get(section, "type"))
+        else:
+            dic["typ"] = ArgChecker()
+
+        #has a separator? is a list ?
+        if config.has_option(section, "separator"):
+            sep = config.get(section, "separator")
+            
+            if sep == None or (type(sep) != str and type(sep) != unicode):
+                raise ParameterLoadingException("(EnvironmentParameter) parse, section <"+str(section)+">, separator must be a string, get "+str(type(sep)))
+                
+            if len(sep) != 1:
+                raise ParameterLoadingException("(EnvironmentParameter) parse, section <"+str(section)+">, separator must have a length of 1, get <"+str(len(sep))+">")
+        
+            value = value.strip()
+            if len(value) == 0:
+                dic["value"] = ()
+            else:
+                dic["value"] = value.split(sep)
+            
+            dic["sep"] = sep
+            dic["typ"] = listArgChecker(dic["typ"])
+        else:
+            dic["value"] = value
+       
+        dic["transient"] = False
+        return dic
+        
+    @staticmethod
+    def getStaticName():
+        return ENVIRONMENT_NAME
 
 class ContextParameter(EnvironmentParameter):
     def __init__(self, value, typ, transient = False, transientIndex = False, defaultIndex = 0, readonly = False, removable = True):
@@ -535,5 +587,34 @@ class ContextParameter(EnvironmentParameter):
         
     def reset(self):
         self.index = self.defaultIndex
+
+    @staticmethod
+    def isParsable(config, section):
+        return EnvironmentParameter.isParsable(config, section) and config.has_option(section, "defaultIndex")
+        
+    @staticmethod
+    def parse(config, section):
+        dic = EnvironmentParameter.parse(config, section)
+    
+        #is it context type ?
+        dic["defaultIndex"] = _getInt(config, section, "defaultIndex", 0)
+            
+        #manage selected index
+        if config.has_option(section, "index"):
+            dic["transientIndex"] = True
+        else:
+            dic["transientIndex"] = False
+            index = _getInt(config, section, "index", 0)
+            
+        return dic
+        
+    @staticmethod
+    def getStaticName():
+        return CONTEXT_NAME
+            
+RESOLVE_SPECIAL_SECTION_ORDER = [ContextParameter, EnvironmentParameter]
+
+
+
 
 

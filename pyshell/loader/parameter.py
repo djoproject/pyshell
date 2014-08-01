@@ -18,6 +18,9 @@
 
 from utils import getAndInitCallerModule, AbstractLoader
 
+def _local_getAndInitCallerModule(subLoaderName = None)
+    return getAndInitCallerModule(ParamaterLoader.__module__+"."+ParamaterLoader.__name__,ParamaterLoader, 3, subLoaderName)
+
 def registerAddValueToContext(contextKey, value, typ = None, subLoaderName = None):
     #test key
     if type(contextKey) != str and type(contextKey) != unicode:
@@ -27,7 +30,7 @@ def registerAddValueToContext(contextKey, value, typ = None, subLoaderName = Non
     if typ != None and not isinstance(typ, ArgChecker):
         raise LoadException("(Loader) registerSetParameterValue, type must be None or an instance of ArgChecker")
 
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.context.append( (contextKey, value, typ) )
     
 def registerAddValueToEnvironment(envKey, value, typ = None, subLoaderName = None):
@@ -39,7 +42,7 @@ def registerAddValueToEnvironment(envKey, value, typ = None, subLoaderName = Non
     if typ != None and not isinstance(typ, ArgChecker):
         raise LoadException("(Loader) registerAddValueToEnvironment, type must be None or an instance of ArgChecker")
 
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.env.append( (envKey, value, typ) )
     
 def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = False, override = False, subLoaderName = None):
@@ -51,7 +54,7 @@ def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = F
     if typ != None and not isinstance(typ, ArgChecker):
         raise LoadException("(Loader) registerSetEnvironmentValue, type must be None or an instance of ArgChecker")
 
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.env_set.append( (envKey, value, typ, noErrorIfKeyExist, override) )
     
 def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, override = False, parent = None, subLoaderName = None):
@@ -69,11 +72,11 @@ def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, overri
         raise LoadException("(Loader) registerSetParameterValue, fail to convert value to string")
 
     #append
-    loader = _getAndInitCallerModule(subLoaderName)
+    loader = _local_getAndInitCallerModule(subLoaderName)
     loader.params.append( (paramKey, value, noErrorIfKeyExist, override, parent) )
     
     
-class Loader(AbstractLoader):
+class ParamaterLoader(AbstractLoader):
     def __init__(self, prefix=()):
         self.context    = [] 
         self.env        = [] 

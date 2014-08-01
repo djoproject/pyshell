@@ -29,12 +29,13 @@ from tries import multiLevelTries
 from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
-from command.exception import *
-from command.engine import engineV3
-from arg.exception import *
-from arg.argchecker import defaultInstanceArgChecker, listArgChecker
-from addons import addon
-from utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.command.exception import *
+from pyshell.command.engine import engineV3
+from pyshell.arg.exception import *
+from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker
+from pyshell.addons import addon
+from pyshell.utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.keystore import KeyStore
 
 class writer :
     def __init__(self, out):
@@ -94,6 +95,7 @@ class CommandExecuter():
         self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
         self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
+        self.params.setParameter("keyStore", EnvironmentParameter(value=KeyStore(),transient=True,readonly=True, removable=False))
         self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         
         #TODO use pathchecker

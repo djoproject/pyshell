@@ -19,6 +19,10 @@
 from utils import getAndInitCallerModule, AbstractLoader
 from exceptions import RegisterException
 
+#TODO
+    #need to have the list of already loaded addons
+        #and/or the subaddons part
+
 def _local_getAndInitCallerModule(subLoaderName = None)
     return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, 3, subLoaderName)
     

@@ -112,7 +112,8 @@ class CommandLoader(AbstractLoader):
     def load(self, parameterManager):
     
         if not parameterManager.hasParameter("levelTries"):
-            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")    
+            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
+            return    
             
         mltries = parameterManager.getParameter("levelTries").getValue()
     
@@ -140,7 +141,8 @@ class CommandLoader(AbstractLoader):
 
     def unload(self, parameterManager):
         if not parameterManager.hasParameter("levelTries"):
-            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")    
+            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
+            return
             
         mltries = parameterManager.getParameter("levelTries").getValue()
     
@@ -155,15 +157,6 @@ class CommandLoader(AbstractLoader):
                 mltries.remove(key)
             except triesException as te:
                 print("fail to remove key <"+str(" ".join(key))+"> in multi tries: "+str(te))
-        
-    def reload(self,parameterManager):
-        if not parameterManager.hasParameter("levelTries"):
-            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")    
-            
-        mltries = parameterManager.getParameter("levelTries").getValue()
-    
-        self.unload(mltries)
-        self.load(mltries)
         
     def addCmd(self, name, keyList, cmd):
         if self.TempPrefix != None:

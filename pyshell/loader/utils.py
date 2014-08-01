@@ -17,7 +17,12 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import inspect
-from exceptions import RegisterException
+from exceptions import RegisterException, ListOfLoadException
+
+#TODO catch and manage ListOfLoadException somewhere
+    #in executer
+    #in addon addon
+    #... (don't think there is other place)
 
 def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, subLoaderName = None):
     frm = inspect.stack()[3]
@@ -48,7 +53,8 @@ class AbstractLoader(object):
         pass #TO OVERRIDE
         
     def reload(self, parameterManager, subLoaderName = None):
-        pass #TO OVERRIDE
+        self.unload(parameterManager, subLoaderName)
+        self.load(parameterManager, subLoaderName)
 
 class GlobalLoader(AbstractLoader):
     def __init__(self):
@@ -65,26 +71,49 @@ class GlobalLoader(AbstractLoader):
         return self.subloader[loaderName][subLoaderName]
         
     def load(self, parameterManager, subLoaderName = None):
+        exception = ListOfLoadException()
+    
         for loaderName, subLoaderDic in self.subloader.items():
             if subLoaderName in subLoaderDic:
-            
-                #TODO catch exception, and regroup in a listException
-                subLoaderDic[subLoaderName].load(parameterManager)
+                try:
+                    subLoaderDic[subLoaderName].load(parameterManager)
+                except LoadException as le:
+                    exception.addException(le)
+                except ListOfLoadException as lle:
+                    exception.addException(lle)
+                    
+        if exception.isThrowable():
+            raise exception
 
     def unload(self, parameterManager, subLoaderName = None):
+        exception = ListOfLoadException()
+    
         for loaderName, subLoaderDic in self.subloader.items():
             if subLoaderName in subLoaderDic:
-            
-                #TODO catch exception, and regroup in a listException
-                subLoaderDic[subLoaderName].unload(parameterManager)
+                try:
+                    subLoaderDic[subLoaderName].unload(parameterManager)
+                except LoadException as le:
+                    exception.addException(le)
+                except ListOfLoadException as lle:
+                    exception.addException(lle)
+        
+        if exception.isThrowable():
+            raise exception
         
     def reload(self, parameterManager, subLoaderName = None):
+        exception = ListOfLoadException()
+    
         for loaderName, subLoaderDic in self.subloader.items():
             if subLoaderName in subLoaderDic:
-                
-                #TODO catch exception, and regroup in a listException
-                subLoaderDic[subLoaderName].reload(parameterManager)
+                try:
+                    subLoaderDic[subLoaderName].reload(parameterManager)
+                except LoadException as le:
+                    exception.addException(le)
+                except ListOfLoadException as lle:
+                    exception.addException(lle)
 
+        if exception.isThrowable():
+            raise exception
 
     
         

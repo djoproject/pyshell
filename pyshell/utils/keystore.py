@@ -18,6 +18,12 @@
 
 from tries import tries
 from tries.exception import ambiguousPathException
+import sys
+
+try:
+    pyrev = sys.version_info.major
+except AttributeError:
+    pyrev = sys.version_info[0]
 
 if pyrev == 2:
     import ConfigParser 
@@ -83,12 +89,17 @@ class KeyStore(object):
             raise Exception("(KeyStore) hasKey, Ambiguous key name", ape)
         
     def setKey(self, keyname, keyString):
+        self.setKeyInstance(keyname, Key.parseAndCreateInstance(keyString))
+    
+    def setKeyInstance(self, keyname, instance):
+        #TODO instance must be a key instance
+    
         node = self.tries.search(keyname,True)
         if node is none:
-            self.tries.insert(keyname, Key.parseAndCreateInstance(keyString))
+            self.tries.insert(keyname, instance)
         else:
-            self.tries.update(keyname, Key.parseAndCreateInstance(keyString))
-        
+            self.tries.update(keyname, instance)
+    
     def getKey(self, keyNamePrefix):
         try:
             node = self.tries.search(keyNamePrefix)
