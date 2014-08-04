@@ -31,8 +31,9 @@ else:
     import configparser as ConfigParser
     
 
-KEYTYPE_HEXA = 0
-KEYTYPE_BIT  = 1
+KEYTYPE_HEXA  = 0
+KEYTYPE_BIT   = 1
+KEYTYPE_EMPTY = 2
 KEYSTORE_SECTION_NAME = "keystore"
 
 class KeyStore(object):
@@ -92,7 +93,8 @@ class KeyStore(object):
         self.setKeyInstance(keyname, Key.parseAndCreateInstance(keyString))
     
     def setKeyInstance(self, keyname, instance):
-        #TODO instance must be a key instance
+        if not isinstance(instance, Key):
+            raise Exception("(KeyStore) setKeyInstance, invalid key instance, expect Key instance, got <"+str(type(instance))+">")
     
         node = self.tries.search(keyname,True)
         if node is none:
@@ -127,28 +129,63 @@ class KeyStore(object):
         return self.tries.getKeyList(prefix)
         
 class Key(object):
-    def __init__(self, key, keyType = KEYTYPE_HEXA):
+    def __init__(self, key):
         #must be a string or a unicode
+        if type(key) != str and type(key) != unicode:
+            raise Exception("(KeyStore) __init__, invalid key, expect a string, got <"+str(type(key))+">")
+        
+        key = key.lower()
         
         #must start with 0x or 0b
+        if len(key) > 0 
+            if not key.startswith("0x") and not key.startswith("0b"):
+                raise Exception("(KeyStore) __init__, invalid key, expect a string started with \"0b\" or \"0x\", current string starts with <"+key[:2]+">")
+            
+            if key.startswith("0x"):
+                try:
+                    int(key,16)
+                except ValueError as ve:
+                    pass #TODO raise
+                    
+                self.keytype = KEYTYPE_HEXA
+                    
+            else:# if key.startswith("0b"):
+                try:
+                    int(key,2)
+                except ValueError as ve:
+                    pass #TODO raise
+                    
+                self.keytype = KEYTYPE_BIT
+            
+            self.key = key[2:]
+        else:
+            self.keytype = KEYTYPE_EMPTY
+            self.key = key
         
-        #must be one big token or hexa byte token or bit token
-    
-        pass #TODO
         
     def __str__(self):
+        pass #TODO the original string, for example 0xe45e6e
+        
+    def __repr__(self):
+        pass #TODO the representation, for example 0xe4e56e4 (Hexa Key, size = 5 bytes) 
+    
+    def getBits(start=0,end=None,paddingEnable=True):
         pass #TODO
         
-    def getType():
-        return self.type
+    def getBytes(start=0,end=None,paddingEnable=True):
+        pass #TODO
     
+    def getKeyType():
+        return self.keytype
+        
+    def getKeySize():
+        return len(self.key)
+    
+    #TODO remove me and replace me with constructor code
     @staticmethod
     def parseAndCreateInstance(keyString):
-        pass #TODO
+        return Key(keyString)
         
-    #TODO faire des méthodes pour 
-        #récupérer la taille
-        #une partie de la clé, avec ou sans padding
-        #...
+    
     
     
