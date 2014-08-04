@@ -17,6 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
+from pyshell.utils.exception import ListOfException
 from exception import ParameterException, ParameterLoadingException
 import os, sys
 
@@ -24,16 +25,9 @@ import os, sys
     #context/env manager ?
         #how to manage concurrency?
 
-    #faire le loading et le parsing directement dans les class (context, env, ...)
-        #le save est deja dans les methods
+    #SEVERE catch new exception from load
     
-        #deux method static
-            #-isParsable(section)
-            #-parse(section):
-                #cree juste une instance vide puis appelle sa methode _innerParse
-        #une method dynamic
-            #_innerParse(self, section)
-                #appelle les methode _innerParse du parent puis parse les champs locaux
+    #SEVERE see TODO in the code
 
 try:
     pyrev = sys.version_info.major
@@ -51,23 +45,23 @@ PARAMETER_NAME         = "parameter"
 CONTEXT_NAME           = "context"
 ENVIRONMENT_NAME       = "environment"
 DEFAULT_SEPARATOR      = ","
-FORBIDEN_SECTION_NAME  = [CONTEXT_NAME,ENVIRONMENT_NAME]
+
+INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
+                          "int"   : defaultInstanceArgChecker.getIntegerArgCheckerInstance,
+                          "bool"  : defaultInstanceArgChecker.getbooleanValueArgCheckerInstance,
+                          "float" : defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}
 
 #XXX FORBIDEN_SECTION_NAME is difined at the end of this module XXX
 
-def getInstanceType(typ): #TODO use dico
-    if typ == "string":
-        return defaultInstanceArgChecker.getStringArgCheckerInstance()
-    elif typ == "int":
-        return defaultInstanceArgChecker.getIntegerArgCheckerInstance()
-    elif typ == "bool":
-        return defaultInstanceArgChecker.getbooleanValueArgCheckerInstance()
-    elif typ == "float":
-        return defaultInstanceArgChecker.getFloatTokenArgCheckerInstance()
+def getInstanceType(typ):
+    if typ in INSTANCE_TYPE:
+        return INSTANCE_TYPE[typ]()
     else:
         return ArgChecker()
 
-def getTypeFromInstance(instance): #TODO use dico
+def getTypeFromInstance(instance):
+    #XXX can't use a dico here because the order is significant
+    
     if isinstance(instance, booleanValueArgChecker):
         return "bool"
     elif isinstance(instance, stringArgChecker):
@@ -85,7 +79,7 @@ def _getInt(config, section, option, defaultValue):
         try:
             ret = int(config.get(section, option))
         except ValueError as ve:
-            print("(ParameterManager) _getInt, fail to load <"+option+"> for section <"+str(section)+"> : "+str(ve))
+            raise ParameterLoadingException("(ParameterManager) _getInt, fail to load <"+option+"> for section <"+str(section)+"> : "+str(ve))
 
     return ret
 
@@ -99,7 +93,6 @@ def _getBool(config, section, option, defaultValue):
             ret = False
 
     return ret
-    
 
 class ParameterManager(object):
     def __init__(self, filePath = None):
@@ -111,10 +104,6 @@ class ParameterManager(object):
     def load(self):
         if self.filePath is None:
             return
-
-        #TODO basculer le parsing dans les class de parameter
-            #faire une methode de detection
-            #et une methode de parsing
     
         #load params
         config = None
@@ -123,20 +112,26 @@ class ParameterManager(object):
             try:
                 config.read(self.filePath)
             except Exception as ex:
-                print("(ParameterManager) loadFile, fail to read parameter file : "+str(ex))
+                raise ParameterLoadingException("(ParameterManager) load, fail to read parameter file : "+str(ex))
                 return
         else:
-            #TODO executer ce statement uniquement s'il y a au moins 1 parametres
         
-            #if no parameter file, try to create it, then return
-            try:
-                self.save()
-            except Exception as ex:
-                print("(ParameterManager) loadFile, parameter file does not exist, fail to create it"+str(ex))
-            return
+            emptyParameter = True
+            for k,v in self.params:
+                if len(self.params[k]) > 0:
+                    emptyParameter = False
+                    break
+            
+            if not emptyParameter:
+                #if no parameter file, try to create it, then return
+                try:
+                    self.save()
+                except Exception as ex:
+                    raise ParameterLoadingException("(ParameterManager) load, parameter file does not exist, fail to create it"+str(ex))
+                return
 
         #read and parse, for each section
-        errorList = []
+        errorList = ListOfException()
         for section in config.sections():
             specialSectionClassToUse = None
             for specialSectionClass in RESOLVE_SPECIAL_SECTION_ORDER:
@@ -145,81 +140,40 @@ class ParameterManager(object):
                     
                 specialSectionClassToUse = specialSectionClass
                 break
-                
             if specialSectionClassToUse != None:
-                #a parent category with a similar name can not already exist
+            
+                #a parent category with a similar name can not already exist (because of the structure of the parameter file)
                 if section in self.params:
-                    errorList.append("Section <"+str(section)+">, a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name")
+                    errorList.addException(LoadException("Section <"+str(section)+">, a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
                     continue
-        
-                #TODO parse
-        
+                
+                #try to parse the parameter
+                try:
+                    argument_dico = specialSectionClassToUse.parse(config, section)
+                except AbstractListableException as ale:
+                    errorList.addException(ale)
+                    continue
+                
                 if section in self.params[specialSectionClassToUse.getStaticName()]:
                     try:
-                        #TODO setValue will not always be available ? 
-                    
-                        self.params[specialSectionClassToUse.getStaticName()][section].setValue(value)
+                        self.params[specialSectionClassToUse.getStaticName()][section].setFromFile(argument_dico)
                     except Exception as ex:
-                        errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
+                        errorList.addException(LoadException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
                         
                 else:
-                    if isAList:
-                        typ = listArgChecker(typ)
-                    
                     try:
-                        #TODO create an instance
+                        #TODO will not work, because field in argument_dico does not match with context/environment contructor
                     
-                        self.params[specialSectionClassToUse.getStaticName()][section] = None #TODO
+                        self.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
                     except Exception as ex:
-                        errorList.append("(ParameterManager) loadFile, fail to create new environment <"+str(section)+"> : "+str(ex))
+                        errorList.addException(LoadException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
                         continue
         
-############################################################### TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-"""            #TODO identify a forbiden type (if exist)
-                #take the most specific
-                
-
-                #manage existing ENVIRONMENT_NAME
-                if section in self.params[ENVIRONMENT_NAME]:
-                    try:
-                        self.params[ENVIRONMENT_NAME][section].setValue(value)
-                    except Exception as ex:
-                        errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
-                        
-                else:
-                    if isAList:
-                        typ = listArgChecker(typ)
-                    
-                    try:
-                        self.params[ENVIRONMENT_NAME][section] = EnvironmentParameter(config.get(section, "value"), typ,False, readonly, removable, sep)
-                    except Exception as ex:
-                        errorList.append("(ParameterManager) loadFile, fail to create new environment <"+str(section)+"> : "+str(ex))
-                        continue
-
-                #manage existing CONTEXT_NAME
-                if section in self.params[CONTEXT_NAME]:
-                    context = self.params[CONTEXT_NAME][section]
-                    try:
-                        context.setValue(value)
-                    except Exception as ex:
-                        errorList.append("(ParameterManager) loadFile, fail to set value on context <"+str(section)+"> : "+str(ex))
-                else:
-                    if isAList:
-                        typ = listArgChecker(typ)
-
-                    try:
-                        context = ContextParameter(value, typ, False, False, defaultIndex, readonly, removable, sep)
-                    except Exception as ex:
-                        errorList.append("(ParameterManager) loadFile, fail to create new context <"+str(section)+"> : "+str(ex))
-                        continue
-
-                    self.params[CONTEXT_NAME][section] = context"""
-
-############################################################### TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
             ### GENERIC ### 
             else:
                 if section in FORBIDEN_SECTION_NAME:
-                    errorList.append("(ParameterManager) loadFile, parent section name <"+str(section)+"> not allowed")
+                    
+                    errorList.addException(LoadException( "(ParameterManager) load, parent section name <"+str(section)+"> not allowed"))
                     continue
             
                 #if section in 
@@ -236,8 +190,8 @@ class ParameterManager(object):
                     self.params[section][option] = EnvironmentParameter(value=config.get(section, option))
         
         #manage errorList
-        for error in errorList:
-            print(error)
+        if errorList.isThrowable():
+            raise errorList
 
     def save(self):
         if self.filePath is None:
@@ -286,30 +240,14 @@ class ParameterManager(object):
         if parent == None:
             parent = MAIN_CATEGORY
         
-        #TODO move these test to staticMethod in parameter class
-            #not necessary need to move to staticmethod but it should be possible to convert this part to a generic part
-        
-        ## CONTEXT ##
-        if parent == CONTEXT_NAME:
+        if parent in FORBIDEN_SECTION_NAME:
             #is context instance
-            if not isinstance(param, ContextParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid context, an instance of ContextParameter was expected, got "+str(type(param)))
+            if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
             
             #name can't be an existing section name
             if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid context name, a similar generic environment already has this name")
-        
-        ## ENVIRONMENT ##
-        elif parent == ENVIRONMENT_NAME:
-            #is environment instance
-            if not isinstance(param, EnvironmentParameter):# or isinstance(environment, GenericParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid environment, an instance of EnvironmentParameter was expected, got "+str(type(param)))
-
-            #name can't be an existing section name
-            if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid environment name, a similar generic environment already has this name")
-        
-        ## GENERIC ##
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name <"+str(name)+">, a similar generic environment already has this name")
         else:
             #is generic instance 
             if not isinstance(param, EnvironmentParameter):
@@ -377,13 +315,13 @@ class Parameter(object): #abstract
         return self.transient
 
     def isReadOnly(self):
-        return False
+        return False 
 
     def isRemovable(self):
         return self.transient
         
     def getParameterSerializableField(self):
-        return {}
+        return {} #TO OVERRIDE
 
     def __str__(self):
         return str(self.getValue())
@@ -393,15 +331,18 @@ class Parameter(object): #abstract
         
     @staticmethod
     def isParsable(config, section):
-        return True
+        return True #TO OVERRIDE
         
     @staticmethod
     def parse(config, section):
-        return {}
+        return {} #TO OVERRIDE
     
     @staticmethod
     def getStaticName():
-        return PARAMETER_NAME
+        return PARAMETER_NAME #TO OVERRIDE
+        
+    def setFromFile(self,valuesDictionary):
+        pass #TO OVERRIDE
 
 class EnvironmentParameter(Parameter):
     def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
@@ -520,6 +461,19 @@ class EnvironmentParameter(Parameter):
     @staticmethod
     def getStaticName():
         return ENVIRONMENT_NAME
+        
+    def setFromFile(self,valuesDictionary):
+        Parameter.setFromFile(self, valuesDictionary)
+        
+        if "value" in valuesDictionary:
+            self._setValue(valuesDictionary["value"])
+            
+        if "readonly" in valuesDictionary:
+            self.setReadOnly(valuesDictionary["readonly"])
+            
+        if "removable" in valuesDictionary:
+            self.setRemovable(valuesDictionary["removable"])
+            
 
 class ContextParameter(EnvironmentParameter):
     def __init__(self, value, typ, transient = False, transientIndex = False, defaultIndex = 0, readonly = False, removable = True):
@@ -536,7 +490,7 @@ class ContextParameter(EnvironmentParameter):
         try:
             self.value[index]
         except IndexError:
-            raise Exception("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
+            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
         except TypeError:
             raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
             
@@ -546,7 +500,7 @@ class ContextParameter(EnvironmentParameter):
         try:
             self.index = self.value.index(self.typ.checker.getValue(value))
         except IndexError:
-            raise Exception("(ContextParameter) setIndexValue, invalid index value")
+            raise ParameterException("(ContextParameter) setIndexValue, invalid index value")
         except TypeError:
             raise ParameterException("(ContextParameter) setIndexValue, invalid index value, the value must exist in the context")
             
@@ -566,7 +520,7 @@ class ContextParameter(EnvironmentParameter):
         try:
             self.value[defaultIndex]
         except IndexError:
-            raise Exception("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
+            raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
         except TypeError:
             raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
             
@@ -601,19 +555,32 @@ class ContextParameter(EnvironmentParameter):
             
         #manage selected index
         if config.has_option(section, "index"):
-            dic["transientIndex"] = True
-        else:
             dic["transientIndex"] = False
-            index = _getInt(config, section, "index", 0)
+            dic["index"] = _getInt(config, section, "index", 0)
+        else:
+            dic["transientIndex"] = True
             
         return dic
         
     @staticmethod
     def getStaticName():
         return CONTEXT_NAME
+        
+    def setFromFile(self,valuesDictionary):
+        EnvironmentParameter.setFromFile(self, valuesDictionary)
+        
+        if "defaultIndex" in valuesDictionary:
+            self.setDefaultIndex(valuesDictionary["defaultIndex"])
             
-RESOLVE_SPECIAL_SECTION_ORDER = [ContextParameter, EnvironmentParameter]
+        if "transientIndex" in valuesDictionary:
+            self.setTransientIndex(valuesDictionary["transientIndex"])
+            
+        if "index" in valuesDictionary:
+            self.setIndex(valuesDictionary["index"])
 
+RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]
+FORBIDEN_SECTION_NAME            = {CONTEXT_NAME:ContextParameter,
+                                    ENVIRONMENT_NAME:EnvironmentParameter}
 
 
 

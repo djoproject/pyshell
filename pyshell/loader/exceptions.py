@@ -16,6 +16,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.utils.exception import AbstractListableException
+
 class RegisterException(Exception):
     def __init__(self,value):
         self.value = value
@@ -23,29 +25,11 @@ class RegisterException(Exception):
     def __str__(self):
         return str(self.value)
 
-class LoadException(Exception):
+class LoadException(AbstractListableException):
     def __init__(self,value):
         self.value = value
 
     def __str__(self):
         return str(self.value)
-        
-class ListOfLoadException(Exception):
-    def __init__(self):
-        self.exceptions = []
 
-    def addException(exception):
-        #TODO must be an instance of LoadException
-    
-        self.exceptions.append(exception)
 
-    def addExceptions(exceptions):
-        #TODO must be an instance of ListOfLoadException
-    
-        pass #TODO
-
-    def isThrowable(self):
-        return len(self.exceptions) > 0
-
-    def __str__(self):
-        return str(self.value)

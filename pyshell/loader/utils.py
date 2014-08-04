@@ -17,7 +17,8 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import inspect
-from exceptions import RegisterException, ListOfLoadException
+from exceptions import RegisterException
+from pyshell.utils.exception import ListOfException
 
 #TODO catch and manage ListOfLoadException somewhere
     #in executer
@@ -71,46 +72,41 @@ class GlobalLoader(AbstractLoader):
         return self.subloader[loaderName][subLoaderName]
         
     def load(self, parameterManager, subLoaderName = None):
-        exception = ListOfLoadException()
+        exception = ListOfException()
     
         for loaderName, subLoaderDic in self.subloader.items():
             if subLoaderName in subLoaderDic:
                 try:
                     subLoaderDic[subLoaderName].load(parameterManager)
-                except LoadException as le:
-                    exception.addException(le)
-                except ListOfLoadException as lle:
-                    exception.addException(lle)
+                except AbstractListableException as ale:
+                    exception.addException(ale)
                     
         if exception.isThrowable():
             raise exception
 
     def unload(self, parameterManager, subLoaderName = None):
-        exception = ListOfLoadException()
+        exception = ListOfException()
     
         for loaderName, subLoaderDic in self.subloader.items():
             if subLoaderName in subLoaderDic:
                 try:
                     subLoaderDic[subLoaderName].unload(parameterManager)
-                except LoadException as le:
-                    exception.addException(le)
-                except ListOfLoadException as lle:
-                    exception.addException(lle)
+                except AbstractListableException as ale:
+                    exception.addException(ale)
         
         if exception.isThrowable():
             raise exception
         
     def reload(self, parameterManager, subLoaderName = None):
-        exception = ListOfLoadException()
+        exception = ListOfException()
     
         for loaderName, subLoaderDic in self.subloader.items():
             if subLoaderName in subLoaderDic:
                 try:
                     subLoaderDic[subLoaderName].reload(parameterManager)
-                except LoadException as le:
-                    exception.addException(le)
-                except ListOfLoadException as lle:
-                    exception.addException(lle)
+                except AbstractListableException as ale:
+                    exception.addException(ale)
+
 
         if exception.isThrowable():
             raise exception

@@ -23,9 +23,36 @@ class ParameterException(Exception):
     def __str__(self):
         return str(self.value)
         
-class ParameterLoadingException(Exception):
+class AbstractListableException(Exception):
     def __init__(self,value):
         self.value = value
 
     def __str__(self):
         return str(self.value)
+
+class ListOfException(AbstractListableException):
+    def __init__(self):
+        self.exceptions = []
+
+    def addException(self,exception):
+        if isinstance(exception, ListOfException):
+            self.exceptions.extend(exception)
+        elif isinstance(exception, AbstractListableException):
+            self.exceptions.append(exception)
+        else:
+            raise Exception("(ListOfException) addException, can only store exception of type AbstractListableException or ListOfException, got <"+str(type(exception))+">")
+        
+    def isThrowable(self):
+        return len(self.exceptions) > 0
+
+    def __str__(self):
+        return str(self.value)
+        
+class ParameterLoadingException(AbstractListableException):
+    def __init__(self,value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+        
+        
