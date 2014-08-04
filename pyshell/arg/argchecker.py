@@ -49,6 +49,7 @@ ENGINECHECKER_TYPENAME              = "Engine"
 FLOATCHECKER_TYPENAME               = "Float"
 BOOLEANCHECKER_TYPENAME             = "Boolean"
 TOKENCHECKER_TYPENAME               = "Token"
+KEYCHECKER_TYPENAME                 = "Key"
 
 class defaultInstanceArgChecker(object):
     _lock = Lock()
@@ -235,7 +236,7 @@ class stringArgChecker(ArgChecker):
         return "<string>"
 
 class IntegerArgChecker(ArgChecker):
-    def __init__(self, minimum=None, maximum=None, typeName=INTEGERCHECKER_TYPENAME):
+    def __init__(self, minimum=None, maximum=None,showInUsage=True, typeName=INTEGERCHECKER_TYPENAME):
         ArgChecker.__init__(self,1,1,True,typeName)
         
         if not hasattr(self, "shortType"):
@@ -807,7 +808,7 @@ class filePathArgChecker(stringArgChecker):
         
 class keyStoreTranslatorArgChecker(stringArgChecker):
     def __init__(self, keySize = None, byteKey=True):
-        stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME)
+        stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME) #TODO remplacer le typename
         
         if keySize != None:
             if type(keySize) != int:
@@ -828,5 +829,23 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         self._raiseArgException("Key store is not yet implemented", argNumber, argNameToBind)
         
         return value
+
+    def getUsage(self):
+        return "<key name>"
+
+class KeyArgChecker(IntegerArgChecker):
+    def __init__(self):
+        self.bases = [2,16]
+        self.shortType     = "key"
+        IntegerArgChecker.__init__(self, 0,None, True, KEYCHECKER_TYPENAME)
         
-        
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        intvalue = IntegerArgChecker.getValue(self, value,argNumber, argNameToBind)
+
+        #TODO
+        return Key(value)
+
+    def getUsage(self):
+        return "<key>"
+
+

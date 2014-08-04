@@ -30,10 +30,6 @@ if pyrev == 2:
 else:
     import configparser as ConfigParser
     
-
-KEYTYPE_HEXA  = 0
-KEYTYPE_BIT   = 1
-KEYTYPE_EMPTY = 2
 KEYSTORE_SECTION_NAME = "keystore"
 
 class KeyStore(object):
@@ -127,41 +123,21 @@ class KeyStore(object):
         
     def getKeyList(self, prefix = ""):
         return self.tries.getKeyList(prefix)
-        
+
+KEYTYPE_HEXA  = 0
+KEYTYPE_BIT   = 1
+#KEYTYPE_EMPTY = 2
+ALLOWED_TYPE  = [KEYTYPE_HEXA, KEYTYPE_BIT]#, KEYTYPE_EMPTY]
+
 class Key(object):
-    def __init__(self, key):
-        #must be a string or a unicode
-        if type(key) != str and type(key) != unicode:
-            raise Exception("(KeyStore) __init__, invalid key, expect a string, got <"+str(type(key))+">")
-        
-        key = key.lower()
-        
-        #must start with 0x or 0b
-        if len(key) > 0 
-            if not key.startswith("0x") and not key.startswith("0b"):
-                raise Exception("(KeyStore) __init__, invalid key, expect a string started with \"0b\" or \"0x\", current string starts with <"+key[:2]+">")
-            
-            if key.startswith("0x"):
-                try:
-                    int(key,16)
-                except ValueError as ve:
-                    pass #TODO raise
-                    
-                self.keytype = KEYTYPE_HEXA
-                    
-            else:# if key.startswith("0b"):
-                try:
-                    int(key,2)
-                except ValueError as ve:
-                    pass #TODO raise
-                    
-                self.keytype = KEYTYPE_BIT
-            
-            self.key = key[2:]
-        else:
-            self.keytype = KEYTYPE_EMPTY
-            self.key = key
-        
+    def __init__(self, key, keytype, keysize = None):
+        #key doit être une valeur entiere
+
+        #keytype doit être un des types cités
+
+        #keysize doit englober le contenu de la key
+
+        pass #TODO
         
     def __str__(self):
         pass #TODO the original string, for example 0xe45e6e
