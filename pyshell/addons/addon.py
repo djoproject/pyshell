@@ -78,8 +78,11 @@ def loadAddonFun(name, parameters, subAddon = None):
         print "   "+toLoad+" loaded !"  
     except ImportError as ie:
         print "import error in <"+str(name)+"> loading : "+str(ie)
+        #TODO also managed debug context here (print stacktrace, etc.)
+        
     except NameError as ne:
         print "name error in <"+str(name)+"> loading : "+str(ne)
+        #TODO also managed debug context here (print stacktrace, etc.)
 
 def unloadAddon():
     "unload an addon"

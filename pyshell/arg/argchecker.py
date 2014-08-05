@@ -27,6 +27,7 @@ import collections # for collections.Hashable
 from math import log
 import os
 from threading import Lock
+from pyshell.utils.keystore import Key
 
 #string argchecker definition
 ARGCHECKER_TYPENAME                 = "ArgChecker"
@@ -59,6 +60,7 @@ class defaultInstanceArgChecker(object):
     BOOLEANCHECKER    = None
     FLOATCHECKER      = None
     ENVCHECKER        = None
+    KEYCHECKER        = None
 
     @staticmethod
     def getArgCheckerInstance():
@@ -113,6 +115,16 @@ class defaultInstanceArgChecker(object):
                     defaultInstanceArgChecker.ENVCHECKER = completeEnvironmentChecker()
 
         return defaultInstanceArgChecker.ENVCHECKER
+        
+    
+    @staticmethod
+    def getKeyChecker():
+        if defaultInstanceArgChecker.KEYCHECKER == None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.KEYCHECKER == None:
+                    defaultInstanceArgChecker.KEYCHECKER = KeyArgChecker()
+
+        return defaultInstanceArgChecker.KEYCHECKER
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################
@@ -476,7 +488,10 @@ class parameterChecker(ArgChecker):
             raise argInitializationException("("+self.typeName+") keyname must be hashable string, got <"+str(keyname)+">")
         
         self.keyname = keyname
-        self.parent = None
+        
+        #TODO check on parent
+        
+        self.parent = parent
     
     def getValue(self,value,argNumber=None, argNameToBind=None):
         self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)

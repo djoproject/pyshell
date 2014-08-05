@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
-from pyshell.utils.exception import ListOfException
+from pyshell.utils.exception import ListOfException, AbstractListableException
 from exception import ParameterException, ParameterLoadingException
 import os, sys
 

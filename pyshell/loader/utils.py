@@ -18,7 +18,7 @@
 
 import inspect
 from exceptions import RegisterException
-from pyshell.utils.exception import ListOfException
+from pyshell.utils.exception import ListOfException, AbstractListableException
 
 #TODO catch and manage ListOfLoadException somewhere
     #in executer

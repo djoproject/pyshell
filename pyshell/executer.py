@@ -35,7 +35,7 @@ from pyshell.arg.exception import *
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker
 from pyshell.addons import addon
 from pyshell.utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.keystore import KeyStore
+from pyshell.utils.keystore import KeyStore, DEFAULT_KEYSTORE_FILE
 
 class writer :
     def __init__(self, out):
@@ -105,6 +105,12 @@ class CommandExecuter():
         self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("addonToLoad", EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
+        #TODO be able to use a path for the keystore file
+            #but problem it is a property of another parameter
+                #how to be able to manage the path in the both
+                    #as parameter
+                    #and property of parameter
+        
         #try to load parameter file
         try:
             self.params.load()
@@ -147,6 +153,8 @@ class CommandExecuter():
     def saveHistory(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
             self.params.save()
+            
+        #TODO save keystore
         
     #
     #

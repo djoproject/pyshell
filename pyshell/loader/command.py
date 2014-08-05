@@ -19,6 +19,7 @@
 from utils import getAndInitCallerModule, AbstractLoader
 from pyshell.command.command import MultiCommand, UniCommand
 from exceptions import RegisterException
+from tries.exception import triesException
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)

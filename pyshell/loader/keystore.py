@@ -62,6 +62,6 @@ class KeyStoreLoader(AbstractLoader):
             keyStore.unsetKey(keyName)
         
 def registerKey(keyName, keyString, override = True, subLoaderName = None):
-    keyInstance          = Key.parseAndCreateInstance(keyString)
+    keyInstance          = Key(keyString)
     loader               = _local_getAndInitCallerModule(subLoaderName)
     loader.keys[keyName] = (keyInstance, override,)
