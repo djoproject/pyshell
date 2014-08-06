@@ -350,6 +350,7 @@ def listContext(parameter, key=None):
              _vars  = parameterChecker("vars"))
 def setVar(key, values, _vars):
     "assign a value to a var"
+    #TODO parameter.setParameter(key,EnvironmentParameter(value=values,typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient=True), "__vars__")
     _vars.getValue()[key] = values
 
 @shellMethod(key   = defaultInstanceArgChecker.getStringArgCheckerInstance(),

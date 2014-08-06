@@ -29,6 +29,7 @@ from pyshell.loader.keystore           import registerKey
              keyInstance = defaultInstanceArgChecker.getKeyChecker(),
              keyStore    = parameterChecker(KEYSTORE_SECTION_NAME))
 def setKey(keyName, keyInstance, keyStore = None):
+    "set a key"
     keyStore.getValue().setKeyInstance(keyName, keyInstance)
 
 @shellMethod(key      = defaultInstanceArgChecker.getKeyTranslatorChecker(),
@@ -36,10 +37,12 @@ def setKey(keyName, keyInstance, keyStore = None):
              end      = IntegerArgChecker(),
              keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def getKey(key, start=0, end=None, keyStore=None):
+    "get a key"
     return key.getKey(start, end)
 
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def listKey(keyStore=None):
+    "list available key in the keystore"
     toRet = []
     
     for k in keyStore.getValue().getKeyList():
@@ -50,18 +53,22 @@ def listKey(keyStore=None):
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def unsetKey(keyName, keyStore=None):
+    "remove a key from the keystore"
     keyStore.getValue().unsetKey()
     
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def cleanKeyStore(keyStore=None):
+    "remove every keys from the keystore"
     keyStore.getValue().removeAll()
     
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def saveKeyStore(keyStore=None):
+    "save keystore from file"
     keyStore.getValue().save()
 
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def loadKeyStore(keyStore=None):
+    "load keystore from file"
     keyStore.getValue().load()
 
 ## REGISTER PART ##
