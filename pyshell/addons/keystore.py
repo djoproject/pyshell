@@ -16,30 +16,29 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.decorator  import shellMethod
-from pyshell.arg.argchecker import defaultInstanceArgChecker, parameterChecker
+from pyshell.arg.decorator             import shellMethod
+from pyshell.arg.argchecker            import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker
 from pyshell.simpleProcess.postProcess import listFlatResultHandler, stringListResultHandler
-from pyshell.loader.command import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
+from pyshell.loader.command            import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
+from pyshell.utils.keystore            import KEYSTORE_SECTION_NAME
+from pyshell.loader.keystore           import registerKey
 
 ## DECLARATION PART ##
 
-@shellMethod(keyName   = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+@shellMethod(keyName     = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              keyInstance = defaultInstanceArgChecker.getKeyChecker(),
-             keyStore  = parameterChecker("keyStore"))
+             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME))
 def setKey(keyName, keyInstance, keyStore = None):
     keyStore.getValue().setKeyInstance(keyName, keyInstance)
 
-@shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             start    = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             end      = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             keyStore = parameterChecker("keyStore"))
-def getKey(keyName, start=0, end=None, keyStore=None):
-    if not keyStore.getValue().hasKey(keyName):
-        raise Exception("unknow key name: <"+str(keyName)+">")
-        
-    return keyStore.getValue().getKey(keyName).getKey(start, end)
+@shellMethod(key      = defaultInstanceArgChecker.getKeyTranslatorChecker(),
+             start    = IntegerArgChecker(),
+             end      = IntegerArgChecker(),
+             keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+def getKey(key, start=0, end=None, keyStore=None):
+    return key.getKey(start, end)
 
-@shellMethod(keyStore = parameterChecker("keyStore"))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def listKey(keyStore=None):
     toRet = []
     
@@ -49,19 +48,19 @@ def listKey(keyStore=None):
     return toRet
 
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             keyStore = parameterChecker("keyStore"))
+             keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def unsetKey(keyName, keyStore=None):
     keyStore.getValue().unsetKey()
     
-@shellMethod(keyStore = parameterChecker("keyStore"))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def cleanKeyStore(keyStore=None):
     keyStore.getValue().removeAll()
     
-@shellMethod(keyStore = parameterChecker("keyStore"))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def saveKeyStore(keyStore=None):
     keyStore.getValue().save()
 
-@shellMethod(keyStore = parameterChecker("keyStore"))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def loadKeyStore(keyStore=None):
     keyStore.getValue().load()
 
@@ -76,6 +75,7 @@ registerCommand( ("save",) ,                   pro=saveKeyStore)
 registerCommand( ("load",) ,                   pro=loadKeyStore)
 registerCommand( ("clean",) ,                  pro=cleanKeyStore)
 registerStopHelpTraversalAt( () )
+registerKey("test", "0x00112233445566778899aabbccddeeff")
 
 
 

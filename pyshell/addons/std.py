@@ -21,7 +21,7 @@ from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiOutput
 from tries.exception import triesException
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
-from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, parameterChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
 
 ## FUNCTION SECTION ##
 
@@ -64,7 +64,8 @@ def intToAscii(args):
 
     return s
     
-@shellMethod(args=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), mltries=parameterChecker("levelTries"))
+@shellMethod(args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), 
+             mltries = parameterChecker("levelTries"))
 def usageFun(args, mltries):
     "print the usage of a fonction"
     
@@ -94,7 +95,8 @@ def usageFun(args, mltries):
     cmd = searchResult.getLastTokenFoundValue()
     return cmd.usage()
 
-@shellMethod(mltries=parameterChecker("levelTries"), args=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(mltries = parameterChecker("levelTries"), 
+             args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def helpFun(mltries, args=None):
     "print the help"
 
@@ -247,10 +249,10 @@ def helpFun(mltries, args=None):
 
     return sorted(stringKeys)
 
-@shellMethod(start = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             stop  = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             step  = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             multiOutput = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance())
+@shellMethod(start       = IntegerArgChecker(),
+             stop        = IntegerArgChecker(),
+             step        = IntegerArgChecker(),
+             multiOutput = booleanValueArgChecker())
 def generator(start=0,stop=100,step=1, multiOutput = True):
     "generate a list of integer"
     if multiOutput:

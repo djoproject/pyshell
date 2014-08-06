@@ -30,12 +30,13 @@ from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
 from pyshell.command.exception import *
-from pyshell.command.engine import engineV3
-from pyshell.arg.exception import *
-from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker
-from pyshell.addons import addon
-from pyshell.utils.parameter import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.keystore import KeyStore, DEFAULT_KEYSTORE_FILE
+from pyshell.command.engine    import engineV3
+from pyshell.arg.exception     import *
+from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker
+from pyshell.addons            import addon
+from pyshell.utils.parameter   import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.keystore    import KeyStore, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME
+from pyshell.utils.exception   import ListOfException
 
 class writer :
     def __init__(self, out):
@@ -95,21 +96,23 @@ class CommandExecuter():
         self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
         self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
-        self.params.setParameter("keyStore", EnvironmentParameter(value=KeyStore(),transient=True,readonly=True, removable=False))
+        
+        self.keystore = KeyStore()
+        self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=self.keystore,transient=True,readonly=True, removable=False)) 
+        self.params.setParameter("saveKeys", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("keystoreFile", EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        #TODO associate keystore path
+            #be able to use a path for the keystore file
+                #but problem it is a property of another parameter
+                    #how to be able to manage the path in the both
+                        #as parameter
+                        #and property of parameter
         self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         
-        #TODO use pathchecker
-        self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        
+        self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("addonToLoad", EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        
-        #TODO be able to use a path for the keystore file
-            #but problem it is a property of another parameter
-                #how to be able to manage the path in the both
-                    #as parameter
-                    #and property of parameter
         
         #try to load parameter file
         try:
@@ -119,6 +122,7 @@ class CommandExecuter():
 
         #save at exit
         atexit.register(self.saveHistory)
+        atexit.register(self.saveKeyStore)
 
         #load and manage history file
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
@@ -129,10 +133,17 @@ class CommandExecuter():
 
             #save history file at exit
             atexit.register(readline.write_history_file, self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
-            
+        
+        
         #try to load standard shell function
         try:
             addon._loaders.load(self.params)
+        except ListOfException as loe:
+            if len(loe.exceptions) > 0:
+                print("LOADING FATAL ERROR:")
+                for e in loe.exceptions:
+                    print("    "+str(e))
+                
         except Exception as ex:
             print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
         
@@ -146,15 +157,21 @@ class CommandExecuter():
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
             try:
                 addon.loadAddonFun(addonName, self.params)
+            except ListOfException as loe:
+                if len(loe.exceptions) > 0:
+                    print("fail to load addon <"+str(addonName)+">: ")
+                    for e in loe.exceptions:
+                        print("    "+str(e))
             except Exception as ex:
                 print("fail to load addon <"+str(addonName)+">: "+str(ex))
                 
-            
     def saveHistory(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
             self.params.save()
             
-        #TODO save keystore
+    def saveKeyStore(self):
+        if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
+            self.keystore.save()
         
     #
     #

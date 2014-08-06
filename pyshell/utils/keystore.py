@@ -16,10 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tries import tries
-from tries.exception import ambiguousPathException
+from tries                   import tries
+from tries.exception         import ambiguousPathException
 import sys,os
-from math import log
+from math                    import log
 
 try:
     pyrev = sys.version_info.major
@@ -35,13 +35,13 @@ KEYSTORE_SECTION_NAME = "keystore"
 DEFAULT_KEYSTORE_FILE = os.path.join(os.path.expanduser("~"), ".pyshell_keystore")
 
 class KeyStore(object):
-    def __init__(self, filePath = None):
+    def __init__(self,filePath = None):
         self.filePath = filePath
         self.tries = tries()
         
     def load(self):
         #if no path, no load
-        if filePath == None:
+        if self.filePath == None:
             return
         
         #if no file, no load
@@ -69,7 +69,7 @@ class KeyStore(object):
                 print("(KeyStore) load, fail to load key <"+str(keyName)+"> : "+str(ex))
         
     def save(self):
-        if filePath is None:
+        if self.filePath is None:
             return
         
         config = ConfigParser.RawConfigParser()
@@ -182,7 +182,7 @@ class Key(object):
         else:
             return "0b"+self.key+" ( BinaryKey, size="+str(self.keySize)+" bit(s) )"
     
-    def getKey(self,start,end,paddingEnable=True):
+    def getKey(self,start,end=None,paddingEnable=True):
         if end != None and end < start:
             return ()
         
@@ -202,12 +202,12 @@ class Key(object):
 
             keyPart = []
             if self.keyType == Key.KEYTYPE_HEXA:
-                for b in self.key[start*2:limit*2]:
-                    keyPart.append(int(b[start*2:start*2+2]))
+                #for b in self.key[start*2:limit*2]:
+                for index in range(start*2, limit*2, 2):
+                    keyPart.append(int(self.key[index:index+2], 16))
             else:
                 for b in self.key[start:limit]:
-                    keyPart.append(int(b))
-
+                    keyPart.append(int(b, 2))
         #padding part
         if paddingEnable:
             paddingLength = (end - max(start,self.keySize) - 1)

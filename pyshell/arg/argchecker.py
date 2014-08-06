@@ -16,10 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #faire un getInstance pour chaque checker
-        #une fois créé il ne changent pas, autant les réutiliser
-
 from exception import *
 from tries import tries
 from tries.exception import ambiguousPathException
@@ -27,7 +23,7 @@ import collections # for collections.Hashable
 from math import log
 import os
 from threading import Lock
-from pyshell.utils.keystore import Key
+from pyshell.utils.keystore import Key, KEYSTORE_SECTION_NAME
 
 #string argchecker definition
 ARGCHECKER_TYPENAME                 = "ArgChecker"
@@ -51,80 +47,70 @@ FLOATCHECKER_TYPENAME               = "Float"
 BOOLEANCHECKER_TYPENAME             = "Boolean"
 TOKENCHECKER_TYPENAME               = "Token"
 KEYCHECKER_TYPENAME                 = "Key"
+KEYTRANSLATORCHECKER_TYPENAME       = "KeyTranslator"
 
 class defaultInstanceArgChecker(object):
     _lock = Lock()
-    ARGCHECKER        = None
-    STRINGARGCHECKER  = None
-    INTEGERARGCHECKER = None
-    BOOLEANCHECKER    = None
-    FLOATCHECKER      = None
-    ENVCHECKER        = None
-    KEYCHECKER        = None
+    ARGCHECKER           = None
+    STRINGARGCHECKER     = None
+    INTEGERARGCHECKER    = None
+    BOOLEANCHECKER       = None
+    FLOATCHECKER         = None
+    ENVCHECKER           = None
+    KEYCHECKER           = None
+    KEYTRANSLATORCHECKER = None
+    
+    DEFAULTCHECKER_DICO  ={ARGCHECKER_TYPENAME          :None,
+                           STRINGCHECKER_TYPENAME       :None,
+                           INTEGERCHECKER_TYPENAME      :None,
+                           BOOLEANCHECKER_TYPENAME      :None,
+                           FLOATCHECKER_TYPENAME        :None,
+                           ENVIRONMENTCHECKER_TYPENAME  :None,
+                           KEYCHECKER_TYPENAME          :None,
+                           KEYTRANSLATORCHECKER_TYPENAME:None}
+
+    @staticmethod
+    def _getCheckerInstance(key, classdef):
+        if defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key] is None:
+            with defaultInstanceArgChecker._lock:
+                if defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key] is None:
+                    defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key] = classdef()
+                    defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key].setDefaultValueEnable(False)
+
+        return defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key]
 
     @staticmethod
     def getArgCheckerInstance():
-        if defaultInstanceArgChecker.ARGCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.ARGCHECKER == None:
-                    defaultInstanceArgChecker.ARGCHECKER = ArgChecker()
-
-        return defaultInstanceArgChecker.ARGCHECKER
-
+        return defaultInstanceArgChecker._getCheckerInstance(ARGCHECKER_TYPENAME, ArgChecker)
+    
     @staticmethod
     def getStringArgCheckerInstance():
-        if defaultInstanceArgChecker.STRINGARGCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.STRINGARGCHECKER == None:
-                    defaultInstanceArgChecker.STRINGARGCHECKER = stringArgChecker()
-
-        return defaultInstanceArgChecker.STRINGARGCHECKER
+        return defaultInstanceArgChecker._getCheckerInstance(STRINGCHECKER_TYPENAME, stringArgChecker)
 
     @staticmethod
     def getIntegerArgCheckerInstance():
-        if defaultInstanceArgChecker.INTEGERARGCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.INTEGERARGCHECKER == None:
-                    defaultInstanceArgChecker.INTEGERARGCHECKER = IntegerArgChecker()
-
-        return defaultInstanceArgChecker.INTEGERARGCHECKER
+        return defaultInstanceArgChecker._getCheckerInstance(INTEGERCHECKER_TYPENAME, IntegerArgChecker)
 
     @staticmethod
     def getbooleanValueArgCheckerInstance():
-        if defaultInstanceArgChecker.BOOLEANCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.BOOLEANCHECKER == None:
-                    defaultInstanceArgChecker.BOOLEANCHECKER = booleanValueArgChecker()
-
-        return defaultInstanceArgChecker.BOOLEANCHECKER
-
+        return defaultInstanceArgChecker._getCheckerInstance(BOOLEANCHECKER_TYPENAME, booleanValueArgChecker)
+        
     @staticmethod
     def getFloatTokenArgCheckerInstance():
-        if defaultInstanceArgChecker.FLOATCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.FLOATCHECKER == None:
-                    defaultInstanceArgChecker.FLOATCHECKER = floatTokenArgChecker()
-
-        return defaultInstanceArgChecker.FLOATCHECKER
+        return defaultInstanceArgChecker._getCheckerInstance(FLOATCHECKER_TYPENAME, floatTokenArgChecker)
 
     @staticmethod
     def getCompleteEnvironmentChecker():
-        if defaultInstanceArgChecker.ENVCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.ENVCHECKER == None:
-                    defaultInstanceArgChecker.ENVCHECKER = completeEnvironmentChecker()
-
-        return defaultInstanceArgChecker.ENVCHECKER
-        
+        return defaultInstanceArgChecker._getCheckerInstance(ENVIRONMENTCHECKER_TYPENAME, completeEnvironmentChecker)        
     
     @staticmethod
     def getKeyChecker():
-        if defaultInstanceArgChecker.KEYCHECKER == None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.KEYCHECKER == None:
-                    defaultInstanceArgChecker.KEYCHECKER = KeyArgChecker()
+        return defaultInstanceArgChecker._getCheckerInstance(KEYCHECKER_TYPENAME, KeyArgChecker)
+    
+    @staticmethod
+    def getKeyTranslatorChecker():
+        return defaultInstanceArgChecker._getCheckerInstance(KEYTRANSLATORCHECKER_TYPENAME, keyStoreTranslatorArgChecker)
 
-        return defaultInstanceArgChecker.KEYCHECKER
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################
@@ -151,12 +137,13 @@ class ArgChecker(object):
         if minimumSize != None and maximumSize != None and maximumSize < minimumSize:
             raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximumSize)+"> can not be smaller than Minimum size <"+str(minimumSize)+">") 
     
-        self.minimumSize = minimumSize
-        self.maximumSize = maximumSize
-        self.hasDefault  = False
-        self.default     = None
-        self.showInUsage = showInUsage
-        self.engine      = None
+        self.minimumSize         = minimumSize
+        self.maximumSize         = maximumSize
+        self.defaultValueEnabled = True
+        self.hasDefault          = False
+        self.default             = None
+        self.showInUsage         = showInUsage
+        self.engine              = None
         
     def isVariableSize(self):
         return (self.minimumSize == self.maximumSize == None) or self.minimumSize != self.maximumSize
@@ -178,9 +165,15 @@ class ArgChecker(object):
         return self.default
         
     def hasDefaultValue(self, argNameToBind=None):
+        if not self.defaultValueEnabled:
+            return False
+        
         return self.hasDefault
         
     def setDefaultValue(self,value, argNameToBind=None):
+        if not self.defaultValueEnabled:
+            raise argInitializationException("("+self.typeName+") default value is not allowed with this kind of checker, probably because it is a default instance checker") 
+    
         self.hasDefault = True
         
         if value == None:
@@ -188,7 +181,10 @@ class ArgChecker(object):
             return
             
         self.default = self.getValue(value, None,argNameToBind) #will convert the value if needed
-        
+    
+    def setDefaultValueEnable(self, state):
+        self.defaultValueEnabled = state
+    
     def erraseDefaultValue(self):
         self.hasDefault = False
         self.default = None
@@ -273,7 +269,7 @@ class IntegerArgChecker(ArgChecker):
         value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
     
         if value == None:
-            self._raiseArgException("the "+self.completeType.lower()+" arg can't be None", argNumber, argNameToBind)
+            self._raiseArgException("the "+self.typeName.lower()+" arg can't be None", argNumber, argNameToBind)
         
         castedValue = None
         if type(value) == int or type(value) == float or type(value) == bool:
@@ -287,7 +283,9 @@ class IntegerArgChecker(ArgChecker):
                     continue
 
         if castedValue == None:
-            self._raiseArgException("this arg is not a valid "+self.completeType.lower()+" or hexadecimal, got <"+str(value)+">", argNumber, argNameToBind)
+            self._raiseArgException("this arg is not a valid "+self.typeName.lower()+", got <"+str(value)+">", argNumber, argNameToBind)
+
+            #TODO list the allowed base
 
         if self.minimum != None:
             if castedValue < self.minimum:
@@ -484,12 +482,13 @@ class parameterChecker(ArgChecker):
     def __init__(self,keyname, parent = None, typeName = PARAMETERCHECKER_TYPENAME):
         ArgChecker.__init__(self,0,0,False, typeName)
         
-        if keyname == None or (type(keyname) != str and type(keyname) != unicode) or not isinstance(keyname, collections.Hashable):
+        if keyname is None or (type(keyname) != str and type(keyname) != unicode) or not isinstance(keyname, collections.Hashable):
             raise argInitializationException("("+self.typeName+") keyname must be hashable string, got <"+str(keyname)+">")
         
         self.keyname = keyname
         
-        #TODO check on parent
+        if parent is not None and (  (type(parent) != str and type(parent) != unicode) or not isinstance(parent, collections.Hashable) ):
+            raise argInitializationException("("+self.typeName+") parent must be hashable string, got <"+str(parent)+">")
         
         self.parent = parent
     
@@ -754,7 +753,7 @@ class filePathArgChecker(stringArgChecker):
                 fileExist = os.access(path, os.F_OK)
             
             if fileExist:
-                isFile = os.isfile(path)
+                isFile = os.path.isfile(path)
                 
                 if self.isFile and not isFile:
                     self._raiseArgException("Path <"+str(path)+"> is a directory and must be a file",argNumber, argNameToBind)
@@ -769,16 +768,18 @@ class filePathArgChecker(stringArgChecker):
                 fileExist = os.access(path, os.F_OK)
                 
             if not fileExist:
-                self._raiseArgException("Path <"+str(path)+"> does not exist and so it is not readable",argNumber, argNameToBind)
+                if self.exist is not None and self.exist:
+                    self._raiseArgException("Path <"+str(path)+"> does not exist and so it is not readable",argNumber, argNameToBind)
             
-            readable = os.access(path, os.R_OK)
+            else:
+                readable = os.access(path, os.R_OK)
+                
+                if self.readable and not readable:
+                    self._raiseArgException("Path <"+str(path)+"> is not readable and must be readable",argNumber, argNameToBind)
+                
+                if not self.readable and readable:
+                    self._raiseArgException("Path <"+str(path)+"> is readable and must not be readable",argNumber, argNameToBind)
             
-            if self.readable and not readable:
-                self._raiseArgException("Path <"+str(path)+"> is not readable and must be readable",argNumber, argNameToBind)
-            
-            if not self.readable and readable:
-                self._raiseArgException("Path <"+str(path)+"> is readable and must not be readable",argNumber, argNameToBind)
-        
         #writtable
         if self.writtable is not None:
             if fileExist is None:
@@ -823,7 +824,7 @@ class filePathArgChecker(stringArgChecker):
         
 class keyStoreTranslatorArgChecker(stringArgChecker):
     def __init__(self, keySize = None, byteKey=True):
-        stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME) #TODO remplacer le typename
+        stringArgChecker.__init__(self, KEYTRANSLATORCHECKER_TYPENAME)
         
         if keySize != None:
             if type(keySize) != int:
@@ -838,12 +839,19 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         self.byteKey = byteKey
         
     def getValue(self, value,argNumber=None, argNameToBind=None):
+        self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
+        env = self.engine.getEnv()
         value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
 
-        #TODO
-        self._raiseArgException("Key store is not yet implemented", argNumber, argNameToBind)
+        if not self.engine.getEnv().hasParameter(KEYSTORE_SECTION_NAME):
+            self._raiseArgException("the key <"+str(KEYSTORE_SECTION_NAME)+"> is not available in parameters but is needed to get key <"+str(value)+">", argNumber, argNameToBind)
+
+        keystore = self.engine.getEnv().getParameter(KEYSTORE_SECTION_NAME).getValue()
         
-        return value
+        if not keystore.hasKey(value):
+            self._raiseArgException("unknown key <"+str(value)+">", argNumber, argNameToBind)
+            
+        return keystore.getKey(value)
 
     def getUsage(self):
         return "<key name>"
@@ -857,9 +865,11 @@ class KeyArgChecker(IntegerArgChecker):
     def getValue(self, value,argNumber=None, argNameToBind=None):
         intvalue = IntegerArgChecker.getValue(self, value,argNumber, argNameToBind)
 
-        #TODO
-        return Key(value)
-
+        try:
+            return Key(value)
+        except Exception as e:
+            self._raiseArgException("Fail to resolve key: "+str(e), argNumber, argNameToBind)
+        
     def getUsage(self):
         return "<key>"
 

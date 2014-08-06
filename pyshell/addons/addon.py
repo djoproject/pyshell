@@ -21,7 +21,7 @@ from pyshell.loader.command import registerSetTempPrefix, registerCommand, regis
 from pyshell.arg.decorator import shellMethod
 import os
 from pyshell.simpleProcess.postProcess import stringListResultHandler
-from pyshell.arg.argchecker import defaultInstanceArgChecker, completeEnvironmentChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker
 
 ### addon ###
 
@@ -54,7 +54,7 @@ def listAddonFun():
     return l
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
-             subAddon=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=stringArgChecker(), 
              parameters=completeEnvironmentChecker())
 def loadAddonFun(name, parameters, subAddon = None):
     "load an external shell addon"

@@ -46,7 +46,14 @@ class ListOfException(AbstractListableException):
         return len(self.exceptions) > 0
 
     def __str__(self):
-        return str(self.value)
+        if len(self.exceptions) == 0:
+            return "no error, this exception shouldn't be throwed"
+
+        to_ret = ""
+        for e in self.exceptions:
+            to_ret += str(e)+"\n"
+            
+        return to_ret
         
 class ParameterLoadingException(AbstractListableException):
     def __init__(self,value):

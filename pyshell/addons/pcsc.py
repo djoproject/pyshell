@@ -96,7 +96,7 @@ def transmit(data, connection=0):
 
     pass
 
-@shellMethod(index=defaultInstanceArgChecker.getIntegerArgCheckerInstance())
+@shellMethod(index=IntegerArgChecker())
 def connectCard(index=0):
     pass #TODO
 
@@ -121,7 +121,7 @@ def connectReader(index=0):
     except Exception as e:
         raise engineInterruptionException("fail to create a connexion to the reader <"+str(reader)+">", True)
 
-@shellMethod(index=defaultInstanceArgChecker.getIntegerArgCheckerInstance())
+@shellMethod(index=IntegerArgChecker())
 def disconnect(index=0):
     pass #TODO 
 

@@ -18,21 +18,20 @@
 
 from utils                   import getAndInitCallerModule, AbstractLoader
 from exceptions              import LoadException
-from pyshell.utils.keystore  import Key,KeyStore
+from pyshell.utils.keystore  import Key, KeyStore, KEYSTORE_SECTION_NAME
 from pyshell.utils.parameter import EnvironmentParameter
 
-KEYSTORE_PARAMETER_KEY = "keyStore"
 LOADING_METHOD_NAME    = "load"
 UNLOADING_METHOD_NAME  = "unload"
 
-def _local_getAndInitCallerModule(subLoaderName = None)
+def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(KeyStoreLoader.__module__+"."+KeyStoreLoader.__name__,KeyStoreLoader, 3, subLoaderName)
 
 def _initAndGetKeyStore(parameterManager, methName):
-    if not parameterManager.hasParameter(KEYSTORE_PARAMETER_KEY):
+    if not parameterManager.hasParameter(KEYSTORE_SECTION_NAME):
         raise LoadException("(KeyStoreLoader) "+str(methName)+", fail to load keys because parameter has not a keyStore item") 
             
-    keyStore = parameterManager.getParameter(KEYSTORE_PARAMETER_KEY).getValue()
+    keyStore = parameterManager.getParameter(KEYSTORE_SECTION_NAME).getValue()
     
     if not isinstance(keyStore, KeyStore):
         raise LoadException("(KeyStoreLoader) "+str(methName)+", the keyStore item retrieved from parameters is not a valid instance of KeyStore, got <"+str(type(keyStore))+">")
