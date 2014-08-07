@@ -129,7 +129,7 @@ def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=F
 
     #check value
     value = checker.getValue(values, None, str(parent).title()+" "+key)
-    parameters.setParameter(key, classDef(value, checker),CONTEXT_NAME)
+    parameters.setParameter(key, classDef(value, checker),parent)
     
 #################################### parameter #################################### 
 
@@ -198,7 +198,7 @@ def setEnvironmentValuesFun(key, values, parameters):
              parameters      = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, parameters=None): 
     "create an environment parameter value" 
-    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_NAME, noErrorIfExists, parameters, False)
+    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_NAME, noErrorIfExists, parameters, False)
 
 @shellMethod(valueType  = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
                                                "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 

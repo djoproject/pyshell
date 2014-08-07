@@ -22,6 +22,7 @@ from exception import ParameterException, ParameterLoadingException
 import os, sys
 
 #TODO
+
     #context/env manager ?
         #how to manage concurrency?
 
@@ -144,7 +145,7 @@ class ParameterManager(object):
             
                 #a parent category with a similar name can not already exist (because of the structure of the parameter file)
                 if section in self.params:
-                    errorList.addException(LoadException("Section <"+str(section)+">, a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
+                    errorList.addException(ParameterLoadingException("Section <"+str(section)+">, a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
                     continue
                 
                 #try to parse the parameter
@@ -158,7 +159,7 @@ class ParameterManager(object):
                     try:
                         self.params[specialSectionClassToUse.getStaticName()][section].setFromFile(argument_dico)
                     except Exception as ex:
-                        errorList.addException(LoadException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
+                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
                         
                 else:
                     try:
@@ -166,14 +167,14 @@ class ParameterManager(object):
                     
                         self.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
                     except Exception as ex:
-                        errorList.addException(LoadException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
+                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
                         continue
         
             ### GENERIC ### 
             else:
                 if section in FORBIDEN_SECTION_NAME:
                     
-                    errorList.addException(LoadException( "(ParameterManager) load, parent section name <"+str(section)+"> not allowed"))
+                    errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name <"+str(section)+"> not allowed"))
                     continue
             
                 #if section in 
@@ -476,7 +477,7 @@ class EnvironmentParameter(Parameter):
             
 
 class ContextParameter(EnvironmentParameter):
-    def __init__(self, value, typ, transient = False, transientIndex = False, defaultIndex = 0, readonly = False, removable = True):
+    def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True, sep=","):
 
         if not isinstance(typ,listArgChecker):
             typ = listArgChecker(typ)
@@ -485,14 +486,19 @@ class ContextParameter(EnvironmentParameter):
         self.index = defaultIndex
         self.defaultIndex = defaultIndex
         self.transientIndex = transientIndex
+        
+        #TODO manage sep and index from parameter
+
+    #TODO if setValue and index outOfRange, set defaultIndex or len-1
+        #override setValue and manage it
 
     def setIndex(self, index):
         try:
             self.value[index]
         except IndexError:
-            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
+            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
         except TypeError:
-            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(index))
+            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
             
         self.index = index
 
@@ -520,9 +526,9 @@ class ContextParameter(EnvironmentParameter):
         try:
             self.value[defaultIndex]
         except IndexError:
-            raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
+            raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(defaultIndex))
         except TypeError:
-            raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+"was expected, got "+str(defaultIndex))
+            raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(defaultIndex))
             
         self.defaultIndex = defaultIndex
         
@@ -577,6 +583,8 @@ class ContextParameter(EnvironmentParameter):
             
         if "index" in valuesDictionary:
             self.setIndex(valuesDictionary["index"])
+        else:
+            pass #TODO try to set default index or len-1 or 0 or ... ?
 
 RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]
 FORBIDEN_SECTION_NAME            = {CONTEXT_NAME:ContextParameter,
