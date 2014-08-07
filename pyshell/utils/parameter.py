@@ -245,9 +245,9 @@ class ParameterManager(object):
             if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
                 raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
             
-            #name can't be an existing section name
+            #name can't be an existing section name (because of the struct of the file)
             if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name <"+str(name)+">, a similar generic environment already has this name")
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name <"+str(name)+">, a similar item already has this name")
         else:
             #is generic instance 
             if not isinstance(param, EnvironmentParameter):

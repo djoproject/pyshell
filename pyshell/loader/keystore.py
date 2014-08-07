@@ -61,6 +61,10 @@ class KeyStoreLoader(AbstractLoader):
             keyStore.unsetKey(keyName)
         
 def registerKey(keyName, keyString, override = True, subLoaderName = None):
+    #TODO manage transient key
     keyInstance          = Key(keyString)
     loader               = _local_getAndInitCallerModule(subLoaderName)
     loader.keys[keyName] = (keyInstance, override,)
+    
+    
+    

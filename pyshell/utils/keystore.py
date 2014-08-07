@@ -75,7 +75,11 @@ class KeyStore(object):
         config = ConfigParser.RawConfigParser()
         
         for k,v in self.tries.getKeyValue().items():
+            #TODO manage transient
+        
             config.set(KEYSTORE_SECTION_NAME, k, str(v))
+            
+        #TODO don't save if empty
             
         with open(self.filePath, 'wb') as configfile:
             config.write(configfile)
@@ -133,7 +137,7 @@ class Key(object):
     KEYTYPE_HEXA  = 0
     KEYTYPE_BIT   = 1
 
-    def __init__(self, keyString):
+    def __init__(self, keyString, transient=True):
         #is it a string ?
         if type(keyString) != str and type(keyString) != unicode:
             raise Exception("(Key) __init__, invalid key string, expected a string, got <"+str(type(keyString))+">")
@@ -170,6 +174,9 @@ class Key(object):
         else:
             raise Exception("(Key) __init__, invalid key string, must start with 0x or 0b, got <"+keyString+">")
 
+        #TODO transient should be a boolean 
+        self.transient = transient
+
     def __str__(self):
         if self.keyType == Key.KEYTYPE_HEXA:
             return "0x"+self.key
@@ -178,9 +185,9 @@ class Key(object):
         
     def __repr__(self):
         if self.keyType == Key.KEYTYPE_HEXA:
-            return "0x"+self.key+" ( HexaKey, size="+str(self.keySize)+" byte(s) )"
+            return "0x"+self.key+" ( HexaKey, size="+str(self.keySize)+" byte(s), transient="+str(self.transient)+" )"
         else:
-            return "0b"+self.key+" ( BinaryKey, size="+str(self.keySize)+" bit(s) )"
+            return "0b"+self.key+" ( BinaryKey, size="+str(self.keySize)+" bit(s), transient="+str(self.transient)+" )"
     
     def getKey(self,start,end=None,paddingEnable=True):
         if end != None and end < start:

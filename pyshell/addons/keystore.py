@@ -28,6 +28,7 @@ from pyshell.loader.keystore           import registerKey
 @shellMethod(keyName     = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              keyInstance = defaultInstanceArgChecker.getKeyChecker(),
              keyStore    = parameterChecker(KEYSTORE_SECTION_NAME))
+             #TODO manage transient key
 def setKey(keyName, keyInstance, keyStore = None):
     "set a key"
     keyStore.getValue().setKeyInstance(keyName, keyInstance)

@@ -238,8 +238,13 @@ class CommandExecuter():
                 print("Normal execution abort, reason: "+str(eien.value))
         except argException as ae:
             print("Error in parsing argument: "+str(ae.value))
+        except ListOfException as loe:
+            if len(loe.exceptions) > 0:
+                print("List of exception:")
+                for e in loe.exceptions:
+                    print("    "+str(e))
         except Exception as e:
-            print("Unknown error: "+str(e))
+            print(str(e))
 
         #print stack trace if debug is enabled
         if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
