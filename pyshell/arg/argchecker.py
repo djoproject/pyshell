@@ -283,9 +283,13 @@ class IntegerArgChecker(ArgChecker):
                     continue
 
         if castedValue == None:
-            self._raiseArgException("this arg is not a valid "+self.typeName.lower()+", got <"+str(value)+">", argNumber, argNameToBind)
-
-            #TODO list the allowed base
+            
+            if len(self.bases) == 1:
+                message = "Only a number in base <"+str(self.bases[0])+" is allowed>"
+            else:
+                message = "Only a number in bases <"+", ".join(str(x) for x in list_of_ints)+" is allowed>"
+        
+            self._raiseArgException("this arg is not a valid "+self.typeName.lower()+", got <"+str(value)+">. "+message, argNumber, argNameToBind)
 
         if self.minimum != None:
             if castedValue < self.minimum:
@@ -823,7 +827,7 @@ class filePathArgChecker(stringArgChecker):
         return "<file_path>"
         
 class keyStoreTranslatorArgChecker(stringArgChecker):
-    def __init__(self, keySize = None, byteKey=True):
+    def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
         stringArgChecker.__init__(self, KEYTRANSLATORCHECKER_TYPENAME)
         
         if keySize != None:
@@ -833,10 +837,15 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
             if type(keySize) < 0:
                 raise argInitializationException("("+self.typeName+") keySize must be bigger than 0, got <"+str(tkeySize)+">")
         
+        if allowdifferentKeySize == None or type(allowdifferentKeySize) != bool:
+            raise argInitializationException("("+self.typeName+") allowdifferentKeySize must be a boolean, got <"+str(type(allowdifferentKeySize))+">")
+        
         if byteKey == None or type(byteKey) != bool:
             raise argInitializationException("("+self.typeName+") byteKey must be a boolean, got <"+str(type(byteKey))+">")
-            
-        self.byteKey = byteKey
+        
+        self.allowdifferentKeySize = allowdifferentKeySize
+        self.keySize               = keySize
+        self.byteKey               = byteKey
         
     def getValue(self, value,argNumber=None, argNameToBind=None):
         self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
@@ -850,8 +859,27 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         
         if not keystore.hasKey(value):
             self._raiseArgException("unknown key <"+str(value)+">", argNumber, argNameToBind)
-            
-        return keystore.getKey(value)
+        
+        keyInstance = keystore.getKey(value)
+        
+        #check type
+        if self.byteKey != None:
+            if self.byteKey and keyInstance.getKeyType() !=  Key.KEYTYPE_HEXA:
+                self._raiseArgException("the key <"+str(value)+"> is a bit key and the process need a byte key", argNumber, argNameToBind)
+                
+            if not self.byteKey and keyInstance.getKeyType() !=  Key.KEYTYPE_BIT:
+                self._raiseArgException("the key <"+str(value)+"> is a byte key and the process need a bit key", argNumber, argNameToBind)
+        
+        #check size
+        if self.keySize != None and not self.allowdifferentKeySize and keyInstance.getKeySize() < self.keySize:
+            if Key.KEYTYPE_HEXA == keyInstance.getKeyType():
+                keytype = "byte(s)"
+            else:
+                keytype = "bit(s)"
+                
+            self._raiseArgException("too short key <"+str(value)+">, need a key of at least <"+str(self.keySize)+" "+keytype+", got a <"+str(keyInstance.getKeySize())+"> "+keytype+" key", argNumber, argNameToBind)
+        
+        return keyInstance
 
     def getUsage(self):
         return "<key name>"

@@ -16,10 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
+from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
 from pyshell.utils.exception import ListOfException, AbstractListableException
-from exception import ParameterException, ParameterLoadingException
+from exception               import ParameterException, ParameterLoadingException
+from valuable                import Valuable
 import os, sys
+
 
 #TODO
     #context/env manager ?
@@ -292,7 +294,7 @@ class ParameterManager(object):
         if len(self.params[parent]) == 0:
             del self.params[parent] 
 
-class Parameter(object): #abstract
+class Parameter(Valuable): #abstract
     def __init__(self, transient = False):
         self.transient = transient
 

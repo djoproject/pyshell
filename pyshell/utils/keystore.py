@@ -20,6 +20,7 @@ from tries                   import tries
 from tries.exception         import ambiguousPathException
 import sys,os
 from math                    import log
+from valuable                import Valuable
 
 try:
     pyrev = sys.version_info.major
@@ -36,6 +37,9 @@ DEFAULT_KEYSTORE_FILE = os.path.join(os.path.expanduser("~"), ".pyshell_keystore
 
 class KeyStore(object):
     def __init__(self,filePath = None):
+        if filePath != None and not isinstance(filePath,Valuable):
+            raise Exception("(KeyStore) __init__, filePath must be a Valuable object")
+    
         self.filePath = filePath
         self.tries = tries()
         
@@ -45,21 +49,21 @@ class KeyStore(object):
             return
         
         #if no file, no load
-        if not os.path.exists(self.filePath):
-            print("(KeyStore) load, file <"+str(self.filePath)+"> does not exist")
+        if not os.path.exists(self.filePath.getValue()):
+            print("(KeyStore) load, file <"+str(self.filePath.getValue())+"> does not exist")
             return
         
         #try to load the keystore
         config = ConfigParser.RawConfigParser()
         try:
-            config.read(self.filePath)
+            config.read(self.filePath.getValue())
         except Exception as ex:
-            print("(KeyStore) load, fail to read parameter file <"+str(self.filePath)+"> : "+str(ex))
+            print("(KeyStore) load, fail to read parameter file <"+str(self.filePath.getValue())+"> : "+str(ex))
             return
         
         #main section available ?
         if not config.has_section(KEYSTORE_SECTION_NAME):
-            print("(KeyStore) load, config file <"+str(self.filePath)+"> is valid but does not hold keystore section")
+            print("(KeyStore) load, config file <"+str(self.filePath.getValue())+"> is valid but does not hold keystore section")
             return
             
         for keyName in config.options(KEYSTORE_SECTION_NAME):
@@ -73,6 +77,7 @@ class KeyStore(object):
             return
         
         config = ConfigParser.RawConfigParser()
+        config.add_section(KEYSTORE_SECTION_NAME)
         
         keyCount = 0
         for k,v in self.tries.getKeyValue().items():
@@ -85,7 +90,7 @@ class KeyStore(object):
         if keyCount == 0:
             return
             
-        with open(self.filePath, 'wb') as configfile:
+        with open(self.filePath.getValue(), 'wb') as configfile:
             config.write(configfile)
     
     def hasKey(self, keyNamePrefix):

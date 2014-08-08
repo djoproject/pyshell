@@ -96,19 +96,12 @@ class CommandExecuter():
         self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
         self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
-        
-        self.keystore = KeyStore()
+        keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
+        self.params.setParameter("keystoreFile", keyStorePath, ENVIRONMENT_NAME)
+        self.keystore = KeyStore(keyStorePath)
         self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=self.keystore,transient=True,readonly=True, removable=False)) 
         self.params.setParameter("saveKeys", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("keystoreFile", EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        #TODO associate keystore path
-            #be able to use a path for the keystore file
-                #but problem it is a property of another parameter
-                    #how to be able to manage the path in the both
-                        #as parameter
-                        #and property of parameter
         self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        
         self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
@@ -134,6 +127,7 @@ class CommandExecuter():
             #save history file at exit
             atexit.register(readline.write_history_file, self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
         
+        #TODO try to load keystore
         
         #try to load standard shell function
         try:
