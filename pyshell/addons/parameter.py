@@ -23,30 +23,46 @@ from pyshell.utils.parameter           import CONTEXT_NAME, ENVIRONMENT_NAME, En
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker
 
-#TODO
-    #-create setter/getter for parameter settings (transient/readonly/...)
-    
-    #reset params
-        #load from default
-    
-    #unset/reset params from addons
-        
-    #print in log
-
+#TODO   
     #!!!! MERGE environment and parameter !!!
         #the difference between both is difficult to understand
+
+    #a list everything command
 
 ## FUNCTION SECTION ##
 
 #################################### GENERIC METHOD ####################################
 
-def addValuesFun(key, values, parameters, parent):
-    "add values to an environment parameter list"
-     
-    if not parameters.hasParameter(key, parent):
-        raise Exception("Unknow "+str(parent)+" key <"+str(key)+">")
+def setProperties(key, propertyName, propertyValue, parameters, parent):
+    param = getParameter(key, parameters, parent)
+    
+    if propertyName == "readonly":
+        param.setReadOnly(propertyValue)
+    elif propertyName == "removable":
+        param.setRemovable(propertyValue)
+    elif propertyName == "transient":
+        param.setTransient(propertyValue)
+    elif propertyName == "index_transient":
+        param.setTransientIndex(propertyValue)
+    else:
+        raise Exception("Unknown property <"+str(propertyName)+">, one of these was expected: readonly/removable/transient/index_transient")
 
-    param = parameters.getParameter(key, parent)
+def getProperties(key, propertyName, parameters, parent):
+    param = getParameter(key, parameters, parent)
+    
+    if propertyName == "readonly":
+        param.isReadOnly()
+    elif propertyName == "removable":
+        param.isRemovable()
+    elif propertyName == "transient":
+        param.isTransient()
+    elif propertyName == "index_transient":
+        param.isTransientIndex()
+    else:
+        raise Exception("Unknown property <"+str(propertyName)+">, one of these was expected: readonly/removable/transient/index_transient")
+
+def addValuesFun(key, values, parameters, parent):
+    param = getParameter(key, parameters, parent)
 
     if not isinstance(param.typ, listArgChecker):
         raise Exception("This "+str(parent)+" parameter has not a list checker, can not add value")
@@ -62,8 +78,6 @@ def getParameter(key,parameters,parent=None):
     return parameters.getParameter(key, parent)
     
 def removeParameter(key, parameters, parent=None):
-    "remove a value from the Parameter"
-
     if not parameters.hasParameter(key, parent):
         return #no job to do
 
@@ -83,7 +97,7 @@ def listParameter(parameter, parent=None, key=None, printParent = True):
             if key not in parameter.params[parent]:
                 raise Exception("unknown key <"+str(key)+"> in parent <"+str(parent)+">") 
     
-            return (str(parent)+"."+str(key)+" : \""+str(parameter.params[parent][key])+"\"",)
+            return (str(parent)+"."+str(key)+" : \""+repr(parameter.params[parent][key])+"\"",)
     
         keys = (parent,)
     else:
@@ -96,9 +110,9 @@ def listParameter(parameter, parent=None, key=None, printParent = True):
 
         for subk,subv in parameter.params[k].items():
             if printParent:
-                to_ret.append("    "+subk+" : \""+str(subv)+"\"")
+                to_ret.append("    "+subk+" : \""+repr(subv)+"\"")
             else:
-                to_ret.append(subk+" : \""+str(subv)+"\"")
+                to_ret.append(subk+" : \""+repr(subv)+"\"")
             
     return to_ret
 
@@ -225,6 +239,23 @@ def addEnvironmentValuesFun(key, values, parameters):
 def listEnvFun(parameter, key=None):
     "list all the environment variable"
     return listParameter(parameter, ENVIRONMENT_NAME, key, False)
+    
+@shellMethod(key           = stringArgChecker(),
+             propertyName  = tokenValueArgChecker({"readonly":"readonly",
+                                                   "removable":"removable",
+                                                   "transient":"transient"}),
+             propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def setEnvironmentProperties(key, propertyName, propertyValue, parameter):
+    setProperties(key, propertyName, propertyValue, parameter, ENVIRONMENT_NAME)
+    
+@shellMethod(key           = stringArgChecker(),
+             propertyName  = tokenValueArgChecker({"readonly":"readonly",
+                                                   "removable":"removable",
+                                                   "transient":"transient"}),
+             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def getEnvironmentProperties(key, propertyName, parameter):
+    getProperties(key, propertyName, parameter, ENVIRONMENT_NAME)
 
 #################################### context management #################################### 
 
@@ -298,6 +329,25 @@ def getSelectedContextIndex(key, parameter):
 def listContext(parameter, key=None):
     "list all the context variable"
     return listParameter(parameter, CONTEXT_NAME, key, False)
+    
+@shellMethod(key           = stringArgChecker(),
+             propertyName  = tokenValueArgChecker({"readonly":"readonly",
+                                                   "removable":"removable",
+                                                   "transient":"transient",
+                                                   "index_transient":"index_transient"}),
+             propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def setContextProperties(key, propertyName, propertyValue, parameter):
+    setProperties(key, propertyName, propertyValue, parameter, CONTEXT_NAME)
+    
+@shellMethod(key           = stringArgChecker(),
+             propertyName  = tokenValueArgChecker({"readonly":"readonly",
+                                                   "removable":"removable",
+                                                   "transient":"transient",
+                                                   "index_transient":"index_transient"}),
+             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def getContextProperties(key, propertyName, parameter):
+    return getProperties(key, propertyName , parameter, CONTEXT_NAME)
 
 #################################### var management #################################### 
 
@@ -348,6 +398,8 @@ registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=prin
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
 registerCommand( ("list",) ,               pre=listContext, pro=stringListResultHandler)
+registerCommand( ("properties","get") ,    pro=setContextProperties)
+registerCommand( ("properties","set"),     pro=getContextProperties)
 registerStopHelpTraversalAt( ("context",) )
 
 #parameter   
@@ -358,7 +410,7 @@ registerCommand( ("set",) ,              post=setParameterValue)
 registerCommand( ("list",) ,             pre=listParameter, pro=stringListResultHandler)
 registerStopHelpTraversalAt( ("parameter",) )
 
-#env
+#env 
 registerSetTempPrefix( ("environment", ) )
 registerCommand( ("list",) ,           pro=listEnvFun,   post=stringListResultHandler)
 registerCommand( ("create","single",), post=createEnvironmentValueFun)
@@ -369,5 +421,7 @@ registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
 registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
 registerCommand( ("load",) ,           pro=loadParameter)
 registerCommand( ("save",) ,           pro=saveParameter)
-registerStopHelpTraversalAt( ("environment",) )    
+registerCommand( ("properties","get"), pro=setEnvironmentProperties) 
+registerCommand( ("properties","set"), pro=getEnvironmentProperties) 
+registerStopHelpTraversalAt( ("environment",) )     
     

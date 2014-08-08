@@ -36,6 +36,8 @@ from pyshell.arg.argchecker import defaultInstanceArgChecker, completeEnvironmen
         #withou adding a prefix
     
     #load/unload param from addons
+    
+    #be able to only load/reload/unload a specific part of a module, only parameters for example
 
 ## FUNCTION SECTION ##
 

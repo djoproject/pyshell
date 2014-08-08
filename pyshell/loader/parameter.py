@@ -44,7 +44,9 @@ def registerAddValueToEnvironment(envKey, value, typ = None, subLoaderName = Non
 
     loader = _local_getAndInitCallerModule(subLoaderName)
     loader.env.append( (envKey, value, typ) )
-    
+
+#TODO for the two following one, value should be an instance of env/cont/parameter
+
 def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = False, override = False, subLoaderName = None):
     ##test key
     if type(envKey) != str and type(envKey) != unicode:
@@ -74,7 +76,12 @@ def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, overri
     #append
     loader = _local_getAndInitCallerModule(subLoaderName)
     loader.params.append( (paramKey, value, noErrorIfKeyExist, override, parent) )
-    
+
+#TODO create a setContext
+    #only the addValueToContext is not enought
+
+#TODO register properties (?)
+    #need the end of brainstorming in addon.parameter
     
 class ParamaterLoader(AbstractLoader):
     def __init__(self, prefix=()):
@@ -87,6 +94,8 @@ class ParamaterLoader(AbstractLoader):
 
         #TODO chaque appel a parameterManager peut déclencher une exception ParameterException, les catcher !!!
             #les appels au sous object aussi, context, env, ...
+
+        #TODO does it still work ?
 
         if parameterManager == None:
             return

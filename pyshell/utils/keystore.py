@@ -74,12 +74,16 @@ class KeyStore(object):
         
         config = ConfigParser.RawConfigParser()
         
+        keyCount = 0
         for k,v in self.tries.getKeyValue().items():
-            #TODO manage transient
+            if v.transient:
+                continue
         
             config.set(KEYSTORE_SECTION_NAME, k, str(v))
+            keyCount+= 1
             
-        #TODO don't save if empty
+        if keyCount == 0:
+            return
             
         with open(self.filePath, 'wb') as configfile:
             config.write(configfile)
@@ -174,9 +178,14 @@ class Key(object):
         else:
             raise Exception("(Key) __init__, invalid key string, must start with 0x or 0b, got <"+keyString+">")
 
-        #TODO transient should be a boolean 
-        self.transient = transient
-
+        self.setTransient(transient)
+    
+    def setTransient(self, state):
+        if type(state) != bool:
+            raise Exception("(Key) setTransient, expected a bool type as state, got <"+str(type(state))+">")
+    
+        self.transient = state
+    
     def __str__(self):
         if self.keyType == Key.KEYTYPE_HEXA:
             return "0x"+self.key

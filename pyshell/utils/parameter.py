@@ -22,14 +22,9 @@ from exception import ParameterException, ParameterLoadingException
 import os, sys
 
 #TODO
-
     #context/env manager ?
         #how to manage concurrency?
-
-    #SEVERE catch new exception from load
     
-    #SEVERE see TODO in the code
-
 try:
     pyrev = sys.version_info.major
 except AttributeError:
@@ -163,8 +158,6 @@ class ParameterManager(object):
                         
                 else:
                     try:
-                        #TODO will not work, because field in argument_dico does not match with context/environment contructor
-                    
                         self.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
                     except Exception as ex:
                         errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
@@ -348,8 +341,8 @@ class Parameter(object): #abstract
 class EnvironmentParameter(Parameter):
     def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         Parameter.__init__(self, transient)
-        self.readonly  = readonly
-        self.removable = removable
+        self.setReadOnly(readonly)
+        self.setRemovable(removable)
 
         #typ must be argChecker
         if typ is not None and not isinstance(typ,ArgChecker):
@@ -358,7 +351,6 @@ class EnvironmentParameter(Parameter):
         self.isListType = isinstance(typ, listArgChecker)
         self.setListSeparator(sep)
         self.typ = typ
-        self.value = None
         self._setValue(value)
 
     def setListSeparator(self, sep):
@@ -392,9 +384,15 @@ class EnvironmentParameter(Parameter):
         return self.removable
 
     def setReadOnly(self, state):
+        if type(state) != bool:
+            raise ParameterException("(EnvironmentParameter) setReadOnly, expected a bool type as state, got <"+str(type(state))+">")
+            
         self.readonly = state
 
     def setRemovable(self, state):
+        if type(state) != bool:
+            raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got <"+str(type(state))+">")
+            
         self.removable = state
 
     def getParameterSerializableField(self):
@@ -475,22 +473,27 @@ class EnvironmentParameter(Parameter):
         if "removable" in valuesDictionary:
             self.setRemovable(valuesDictionary["removable"])
             
+    #TODO __str__, __repr__
+            
 
 class ContextParameter(EnvironmentParameter):
     def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True, sep=","):
 
         if not isinstance(typ,listArgChecker):
-            typ = listArgChecker(typ)
-
-        EnvironmentParameter.__init__(self, value, typ, transient, readonly, removable)
-        self.index = defaultIndex
-        self.defaultIndex = defaultIndex
-        self.transientIndex = transientIndex
+            typ = listArgChecker(typ,1)
         
-        #TODO manage sep and index from parameter
-
-    #TODO if setValue and index outOfRange, set defaultIndex or len-1
-        #override setValue and manage it
+        self.defaultIndex = 0
+        self.index = 0
+        
+        EnvironmentParameter.__init__(self, value, typ, transient, readonly, removable, sep)
+        self.tryToSetDefaultIndex(defaultIndex)
+        self.tryToSetIndex(index)
+        self.setTransientIndex(transientIndex)
+                
+    def _setValue(self,value):
+        EnvironmentParameter._setValue(self,value)
+        self.tryToSetDefaultIndex(self.defaultIndex)
+        self.tryToSetIndex(self.index)
 
     def setIndex(self, index):
         try:
@@ -501,6 +504,18 @@ class ContextParameter(EnvironmentParameter):
             raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
             
         self.index = index
+        
+    def tryToSetIndex(self, index):
+        try:
+            self.value[index]
+            self.index = index
+            return
+        except IndexError:
+            pass
+        except TypeError:
+            pass
+            
+        self.index = self.defaultIndex
 
     def setIndexValue(self,value):
         try:
@@ -516,10 +531,13 @@ class ContextParameter(EnvironmentParameter):
     def getSelectedValue(self):
         return self.value[self.index]
         
-    def setTransientIndex(self,transientIndex):
-        self.transientIndex = transientIndex
+    def setTransientIndex(self,state):
+        if type(state) != bool:
+            raise ParameterException("(ContextParameter) setTransientIndex, expected a bool type as state, got <"+str(type(state))+">")
+            
+        self.transientIndex = state
         
-    def getTransientIndex(self):
+    def isTransientIndex(self):
         return self.transientIndex
         
     def setDefaultIndex(self,defaultIndex):
@@ -531,6 +549,18 @@ class ContextParameter(EnvironmentParameter):
             raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(defaultIndex))
             
         self.defaultIndex = defaultIndex
+        
+    def tryToSetDefaultIndex(self,defaultIndex):
+        try:
+            self.value[defaultIndex]
+            self.defaultIndex = defaultIndex
+            return
+        except IndexError:
+            pass
+        except TypeError:
+            pass
+            
+        self.defaultIndex = 0
         
     def getDefaultIndex(self):
         return self.defaultIndex
@@ -584,7 +614,9 @@ class ContextParameter(EnvironmentParameter):
         if "index" in valuesDictionary:
             self.setIndex(valuesDictionary["index"])
         else:
-            pass #TODO try to set default index or len-1 or 0 or ... ?
+            self.setIndex(self.defaultIndex)
+            
+    #TODO __str__, __repr__
 
 RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]
 FORBIDEN_SECTION_NAME            = {CONTEXT_NAME:ContextParameter,

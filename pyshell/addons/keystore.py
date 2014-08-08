@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.decorator             import shellMethod
-from pyshell.arg.argchecker            import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker
+from pyshell.arg.argchecker            import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
 from pyshell.simpleProcess.postProcess import listFlatResultHandler, stringListResultHandler
 from pyshell.loader.command            import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.utils.keystore            import KEYSTORE_SECTION_NAME
@@ -27,10 +27,11 @@ from pyshell.loader.keystore           import registerKey
 
 @shellMethod(keyName     = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              keyInstance = defaultInstanceArgChecker.getKeyChecker(),
-             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME))
-             #TODO manage transient key
-def setKey(keyName, keyInstance, keyStore = None):
+             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME),
+             transient   = booleanValueArgChecker())
+def setKey(keyName, keyInstance, keyStore = None, transient=False):
     "set a key"
+    keyInstance.setTransient(transient)
     keyStore.getValue().setKeyInstance(keyName, keyInstance)
 
 @shellMethod(key      = defaultInstanceArgChecker.getKeyTranslatorChecker(),
@@ -55,7 +56,7 @@ def listKey(keyStore=None):
              keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def unsetKey(keyName, keyStore=None):
     "remove a key from the keystore"
-    keyStore.getValue().unsetKey()
+    keyStore.getValue().unsetKey(keyName)
     
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
 def cleanKeyStore(keyStore=None):
@@ -71,6 +72,11 @@ def saveKeyStore(keyStore=None):
 def loadKeyStore(keyStore=None):
     "load keystore from file"
     keyStore.getValue().load()
+
+@shellMethod(key   = defaultInstanceArgChecker.getKeyTranslatorChecker(),
+             state = booleanValueArgChecker())
+def setTransient(key, state):
+    key.setTransient(state)
 
 ## REGISTER PART ##
 
