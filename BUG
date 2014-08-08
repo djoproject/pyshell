@@ -59,7 +59,5 @@ I) autocompletion bug
     the "ca" is replaced with "a"
     
 J) aucun message d'erreur n'est affiché quand certains arguments ne sont pas consommé
-
-K) il est possible d'executer la command "addon load" sans argument
-    selon sa shellMethod definition, ça ne devrait pas être possible...
-
+    
+    

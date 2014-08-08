@@ -51,13 +51,13 @@ def getProperties(key, propertyName, parameters, parent):
     param = getParameter(key, parameters, parent)
     
     if propertyName == "readonly":
-        param.isReadOnly()
+        return param.isReadOnly()
     elif propertyName == "removable":
-        param.isRemovable()
+        return param.isRemovable()
     elif propertyName == "transient":
-        param.isTransient()
+        return param.isTransient()
     elif propertyName == "index_transient":
-        param.isTransientIndex()
+        return param.isTransientIndex()
     else:
         raise Exception("Unknown property <"+str(propertyName)+">, one of these was expected: readonly/removable/transient/index_transient")
 
@@ -255,7 +255,7 @@ def setEnvironmentProperties(key, propertyName, propertyValue, parameter):
                                                    "transient":"transient"}),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getEnvironmentProperties(key, propertyName, parameter):
-    getProperties(key, propertyName, parameter, ENVIRONMENT_NAME)
+    return getProperties(key, propertyName, parameter, ENVIRONMENT_NAME)
 
 #################################### context management #################################### 
 
@@ -398,8 +398,8 @@ registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=prin
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
 registerCommand( ("list",) ,               pre=listContext, pro=stringListResultHandler)
-registerCommand( ("properties","get") ,    pro=setContextProperties)
-registerCommand( ("properties","set"),     pro=getContextProperties)
+registerCommand( ("properties","set") ,    pro=setContextProperties)
+registerCommand( ("properties","get"),     pre=getContextProperties, pro=printResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
 #parameter   
@@ -421,7 +421,7 @@ registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
 registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
 registerCommand( ("load",) ,           pro=loadParameter)
 registerCommand( ("save",) ,           pro=saveParameter)
-registerCommand( ("properties","get"), pro=setEnvironmentProperties) 
-registerCommand( ("properties","set"), pro=getEnvironmentProperties) 
+registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
+registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=printResultHandler) 
 registerStopHelpTraversalAt( ("environment",) )     
     
