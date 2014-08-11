@@ -30,6 +30,9 @@ from pyshell.arg.argchecker import defaultInstanceArgChecker, completeEnvironmen
     #reload addon
     #list addon
         #print loaded or not loaded addon
+            #and sub addon
+            #and addon type
+            #and ...
     #manage multi src addon
     #in load addon
         #if addon have . in its path, just try to load it like that

@@ -68,7 +68,7 @@ class KeyStore(object):
             
         for keyName in config.options(KEYSTORE_SECTION_NAME):
             try:
-                self.tries.insert(keyName, Key(config.get(KEYSTORE_SECTION_NAME, keyName)))
+                self.tries.insert(keyName, Key(config.get(KEYSTORE_SECTION_NAME, keyName), transient=False))
             except Exception as ex:
                 print("(KeyStore) load, fail to load key <"+str(keyName)+"> : "+str(ex))
         
@@ -86,8 +86,8 @@ class KeyStore(object):
         
             config.set(KEYSTORE_SECTION_NAME, k, str(v))
             keyCount+= 1
-            
-        if keyCount == 0:
+        
+        if keyCount == 0 and not os.path.exists(self.filePath.getValue()):
             return
             
         with open(self.filePath.getValue(), 'wb') as configfile:
@@ -237,10 +237,10 @@ class Key(object):
         
         return keyPart 
         
-    def getKeyType():
+    def getKeyType(self):
         return self.keyType
         
-    def getKeySize():
+    def getKeySize(self):
         return self.keySize      
     
     

@@ -17,48 +17,58 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from utils import getAndInitCallerModule, AbstractLoader
+from pyshell.utils.parameter import EnvironmentParameter, ContextParameter
 
 def _local_getAndInitCallerModule(subLoaderName = None)
     return getAndInitCallerModule(ParamaterLoader.__module__+"."+ParamaterLoader.__name__,ParamaterLoader, 3, subLoaderName)
 
-def registerAddValueToContext(contextKey, value, typ = None, subLoaderName = None):
+def registerAddValueToContext(contextKey, value, subLoaderName = None):
     #test key
     if type(contextKey) != str and type(contextKey) != unicode:
         raise LoadException("(Loader) registerSetParameterValue, only string or unicode key are allowed")
 
-    #check typ si different de None
-    if typ != None and not isinstance(typ, ArgChecker):
-        raise LoadException("(Loader) registerSetParameterValue, type must be None or an instance of ArgChecker")
-
     loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.context.append( (contextKey, value, typ) )
+    loader.valueToAddToContext.append( (contextKey, value, ) )
     
-def registerAddValueToEnvironment(envKey, value, typ = None, subLoaderName = None):
+def registerAddValueToEnvironment(envKey, value, subLoaderName = None):
     #test key
     if type(envKey) != str and type(envKey) != unicode:
         raise LoadException("(Loader) registerAddValueToEnvironment, only string or unicode key are allowed")
 
-    #check typ si different de None
-    if typ != None and not isinstance(typ, ArgChecker):
-        raise LoadException("(Loader) registerAddValueToEnvironment, type must be None or an instance of ArgChecker")
-
     loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.env.append( (envKey, value, typ) )
+    loader.valueToAddToEnv.append( (envKey, value,) )
 
-#TODO for the two following one, value should be an instance of env/cont/parameter
-
-def registerSetEnvironmentValue(envKey, value, typ = None, noErrorIfKeyExist = False, override = False, subLoaderName = None):
+def registerSetEnvironment(envKey, env, noErrorIfKeyExist = False, override = False, subLoaderName = None):
     ##test key
     if type(envKey) != str and type(envKey) != unicode:
         raise LoadException("(Loader) registerSetEnvironmentValue, only string or unicode key are allowed")
 
     #check typ si different de None
-    if typ != None and not isinstance(typ, ArgChecker):
-        raise LoadException("(Loader) registerSetEnvironmentValue, type must be None or an instance of ArgChecker")
+    if not isinstance(env, EnvironmentParameter):
+        raise LoadException("(Loader) registerSetEnvironmentValue, env must be an instance of EnvironmentParameter")
 
     loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.env_set.append( (envKey, value, typ, noErrorIfKeyExist, override) )
+    loader.env.append( (envKey, env, noErrorIfKeyExist, override) )
     
+def registerSetContext(contextKey, context, noErrorIfKeyExist = False, override = False, subLoaderName = None):
+    ##test key
+    if type(contextKey) != str and type(contextKey) != unicode:
+        raise LoadException("(Loader) registerSetEnvironmentValue, only string or unicode key are allowed")
+
+    #check typ si different de None
+    if not isinstance(context, ContextParameter):
+        raise LoadException("(Loader) registerSetEnvironmentValue, env must be an instance of EnvironmentParameter")
+
+    loader = _local_getAndInitCallerModule(subLoaderName)
+    loader.context.append( (contextKey, context, noErrorIfKeyExist, override) )
+
+
+
+#TODO for the following one, value should be an instance of parameter
+    #so an instance ov env ? or just a string
+
+#TODO register properties (?)
+    #need the end of brainstorming in addon.parameter
 def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, override = False, parent = None, subLoaderName = None):
     #test key
     if type(paramKey) != str and type(paramKey) != unicode:
@@ -77,20 +87,20 @@ def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, overri
     loader = _local_getAndInitCallerModule(subLoaderName)
     loader.params.append( (paramKey, value, noErrorIfKeyExist, override, parent) )
 
-#TODO create a setContext
-    #only the addValueToContext is not enought
 
-#TODO register properties (?)
-    #need the end of brainstorming in addon.parameter
     
 class ParamaterLoader(AbstractLoader):
     def __init__(self, prefix=()):
-        self.context    = [] 
-        self.env        = [] 
-        self.env_set    = [] 
-        self.params     = [] 
+        self.valueToAddToContext = [] #TODO load/unload
+        self.valueToAddToEnv     = [] #TODO load/unload
+    
+        self.context    = [] #TODO refactor load/unload
+        self.env        = [] #TODO refactor load/unload
+        
+        #self.params     = [] #TODO ??? wait
         
     def load(self, parameterManager = None):
+        #TODO refactor
 
         #TODO chaque appel a parameterManager peut déclencher une exception ParameterException, les catcher !!!
             #les appels au sous object aussi, context, env, ...
@@ -234,7 +244,7 @@ class ParamaterLoader(AbstractLoader):
     def unload(self, mltries):
         pass #TODO
         
-    def _reload(self, mltries):
+    def reload(self, mltries):
         self.unload(mltries)
         self.load(mltries)
         

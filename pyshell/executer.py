@@ -107,28 +107,17 @@ class CommandExecuter():
         self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("addonToLoad", EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
+        #redirect output
+        real_out    = sys.stdout
+        self.writer = writer(real_out)
+        sys.stdout  = self.writer
+        
         #try to load parameter file
         try:
             self.params.load()
         except Exception as ex:
             print "Fail to load parameters file: "+str(ex)
 
-        #save at exit
-        atexit.register(self.saveHistory)
-        atexit.register(self.saveKeyStore)
-
-        #load and manage history file
-        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
-            try:
-                readline.read_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
-            except IOError:
-                pass
-
-            #save history file at exit
-            atexit.register(readline.write_history_file, self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
-        
-        #TODO try to load keystore
-        
         #try to load standard shell function
         try:
             addon._loaders.load(self.params)
@@ -137,17 +126,27 @@ class CommandExecuter():
                 print("LOADING FATAL ERROR:")
                 for e in loe.exceptions:
                     print("    "+str(e))
-                
         except Exception as ex:
             print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
+
+        #load and manage history file
+        #FIXME move on start'up
+        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
+            try:
+                readline.read_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
+            except IOError:
+                pass
         
-        #redirect output
-        real_out    = sys.stdout
-        self.writer = writer(real_out)
-        sys.stdout  = self.writer
+        #try to load keystore
+        #FIXME move on start'up
+        if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
+            try:
+                self.keystore.load()
+            except Exception as ex:
+                print "Fail to load keystore file: "+str(ex)
         
         #load other addon
-        #XXX move to onStartUp event when the event manager will be ready
+        #FIXME move to onStartUp event when the event manager will be ready
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
             try:
                 addon.loadAddonFun(addonName, self.params)
@@ -159,7 +158,17 @@ class CommandExecuter():
             except Exception as ex:
                 print("fail to load addon <"+str(addonName)+">: "+str(ex))
                 
+        #save at exit
+        #FIXME move to atExit when the event manager will be ready
+        atexit.register(self.saveParams)
+        atexit.register(self.saveKeyStore)
+        atexit.register(self.saveHistory)
+    
     def saveHistory(self):
+        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
+            readline.write_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
+    
+    def saveParams(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
             self.params.save()
             
