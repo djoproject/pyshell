@@ -129,6 +129,12 @@ class MultiCommand(list):
         self.append( (cmd,useArgs,True,) )
     
     def usage(self):
+        #TODO should not return the usage of one of the default pre/pro/post process of a basic cmd (see implementation at the beginning of the file)
+            #should return the first custom pre/pro/post process of the command
+            #make some test
+                #normaly only the case if we use addStaticCommand or addDynamicCommand
+                #normaly no problem with addProcess
+    
         if self.usageBuilder == None :
             return self.name+": no args needed"
         else:

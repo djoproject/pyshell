@@ -475,7 +475,8 @@ class EnvironmentParameter(Parameter):
         if "removable" in valuesDictionary:
             self.setRemovable(valuesDictionary["removable"])
             
-    #TODO __str__, __repr__
+    def __repr__(self):
+        return "Environment, value:"+str(self.value)
             
 
 class ContextParameter(EnvironmentParameter):
@@ -618,7 +619,36 @@ class ContextParameter(EnvironmentParameter):
         else:
             self.setIndex(self.defaultIndex)
             
-    #TODO __str__, __repr__
+    def __repr__(self):
+        return "Context, available values: "+str(self.value)+", selected index: "+str(self.index)+", selected value: "+str(self.value[self.index])
+    
+    def __str__(self):
+        return str(self.value[self.index])
+        
+class VarParameter(EnvironmentParameter):
+    def __init__(self,value):
+        #if hasattr(value,"__iter__" and value != str and value != unicode:
+        #    value = ' '.join(str(x) for x in value)
+    
+        EnvironmentParameter.__init__(self,value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True):
+        
+        #TODO manage the store in one string line
+            #replace every space in every string with '\x20' on the save
+            #and don't forget to convert it in the opposite way at the load
+    
+    def toFile(self):
+        pass #TODO
+    
+    #XXX should be static ?
+    def fromFile(self, content):
+        pass #TODO
+    
+    """def setValue(self, value):
+        if hasattr(value,"__iter__" and value != str and value != unicode:
+            value = ' '.join(str(x) for x in value)
+            
+        EnvironmentParameter.setValue(self, value)"""
+        
 
 RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]
 FORBIDEN_SECTION_NAME            = {CONTEXT_NAME:ContextParameter,

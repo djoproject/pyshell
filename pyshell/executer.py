@@ -94,7 +94,12 @@ class CommandExecuter():
 
         #init original params
         self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        
+        #TODO store keystore/leveltries in env
+        
+        #TODO update "vars" to ... (remove it)
         self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
+        
         self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
         keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
         self.params.setParameter("keystoreFile", keyStorePath, ENVIRONMENT_NAME)
@@ -182,6 +187,7 @@ class CommandExecuter():
     #
     def executeCommand(self,cmd):
         ### STEP 1: split 
+        #TODO update vars, if exist use it, otherelse, put a None value or something like that
         cmdStringList = _parseLine(cmd,self.params.getParameter("vars").getValue())
 
         #if empty list after parsing, nothing to execute
@@ -264,7 +270,9 @@ class CommandExecuter():
             readline.parse_and_bind("tab: complete")
 
         readline.set_completer(self.complete)
-
+        
+        #TODO set context to shell
+        
         #mainloop
         while True:
             #read prompt
@@ -374,6 +382,8 @@ class CommandExecuter():
 
     def executeFile(self,filename):
         shellOnExit = False
+        
+        #TODO set context script
         
         try:
             with open(filename, 'wb') as f:

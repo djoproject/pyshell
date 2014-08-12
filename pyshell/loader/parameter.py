@@ -21,12 +21,14 @@
         #si on ajoute une valeur qui existe deja
         #lorsqu'on unload, on ne devrait pas la retirer
         #impliquerai d'avoir un etat du loadeur par rapport a son chargement
+        
+        
+from exceptions              import LoadException
+from utils                   import getAndInitCallerModule, AbstractLoader
+from pyshell.utils.parameter import EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.arg.argchecker  import defaultInstanceArgChecker
 
-from utils import getAndInitCallerModule, AbstractLoader
-from pyshell.utils.parameter import EnvironmentParameter, ContextParameter
-from exception import LoadException
-
-def _local_getAndInitCallerModule(subLoaderName = None)
+def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(ParamaterLoader.__module__+"."+ParamaterLoader.__name__,ParamaterLoader, 3, subLoaderName)
 
 def registerAddValuesToContext(contextKey, value, subLoaderName = None):
@@ -69,47 +71,62 @@ def registerSetContext(contextKey, context, noErrorIfKeyExist = False, override 
     loader = _local_getAndInitCallerModule(subLoaderName)
     loader.valueToSet.append( (contextKey, context, noErrorIfKeyExist, override,CONTEXT_NAME,) )
 
+def registerSetVar(varKey, stringValue, noErrorIfKeyExist = False, override = False, parent = None, subLoaderName = None):
+    ##test key
+    if type(varKey) != str and type(varKey) != unicode:
+        raise LoadException("(Loader) registerSetVar, only string or unicode key are allowed")
 
-
-#TODO for the following one, value should be an instance of parameter
-    #so an instance ov env ? or just a string
-        #just a string and convert it to env in the register
-
-#TODO register properties (?)
-    #need the end of brainstorming in addon.parameter
-"""def registerSetParameterValue(paramKey, value, noErrorIfKeyExist = False, override = False, parent = None, subLoaderName = None):
-    #test key
-    if type(paramKey) != str and type(paramKey) != unicode:
-        raise LoadException("(Loader) registerSetParameterValue, only string or unicode key are allowed")
-
+    #check parent
     if parent != None and parent in FORBIDEN_SECTION_NAME:
-        raise LoadException("(Loader) registerSetParameterValue, <"+str(parent)+"> is not an allowed parent name")
+        raise LoadException("(Loader) registerSetVar, <"+str(parent)+"> is not an allowed parent name")
+    
+    parameter = VarParameter(stringValue)
 
-    #test value
-    try:
-        value = str(value)
-    except Exception as ex:
-        raise LoadException("(Loader) registerSetParameterValue, fail to convert value to string")
-
-    #append
     loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.params.append( (paramKey, value, noErrorIfKeyExist, override, parent) )"""
-
-
+    loader.valueToSet.append( (varKey, parameter, noErrorIfKeyExist, override,parent,) )
     
 class ParamaterLoader(AbstractLoader):
     def __init__(self, prefix=()):
-        self.valueToAddTo = [] #TODO unload
-        self.valueToSet   = [] #TODO unload
-        
-        #self.params     = [] #TODO ??? wait
-        
-    def _addValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
-        if not parameterManager.hasParameter(contextKey,CONTEXT_NAME):
+        self.valueToAddTo = []
+        self.valueToSet   = []
+
+    def _removeValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
+        if not parameterManager.hasParameter(keyName,CONTEXT_NAME):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(valueToAdd)+"> to "+str(parentName)+" <"+str(keyName)+">: unknow key name"))
             return
         
-        envObject = parameterManager.getParameter(contextKey, parentName)
+        envObject = parameterManager.getParameter(keyName, parentName)
+
+        if not isinstance(envObject.typ, listArgChecker):
+            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(valueToAdd)+"> to "+str(parentName)+" <"+str(keyName)+">: not a list parameter"))
+            return
+
+        #value must be a list
+        if not hasattr(value, "__iter__"):
+            value = (value,)
+
+        #object is readonly ?
+        if envObject.isReadOnly():
+            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(valueToAdd)+"> to "+str(parentName)+" <"+str(keyName)+">: object is readonly"))
+        
+        #check values
+        for v in value:
+            if v not in envObject.value:
+                listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(v)+"> to "+str(parentName)+" <"+str(keyName)+">: value does not exist"))
+                continue
+
+            #remove value
+            envObject.value.remove(v)
+
+        #force to rebuilt index
+        envObject.setIndex(envObject.index)
+
+    def _addValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
+        if not parameterManager.hasParameter(keyName,CONTEXT_NAME):
+            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(valueToAdd)+"> to "+str(parentName)+" <"+str(keyName)+">: unknow key name"))
+            return
+        
+        envObject = parameterManager.getParameter(keyName, parentName)
 
         if not isinstance(envObject.typ, listArgChecker):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(valueToAdd)+"> to "+str(parentName)+" <"+str(keyName)+">: not a list parameter"))
@@ -126,13 +143,13 @@ class ParamaterLoader(AbstractLoader):
         #check values
         ValuesToAdd = []
         for v in value:
-            if v in context.value:
+            if v in envObject.value:
                 listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(v)+"> to "+str(parentName)+" <"+str(keyName)+">: value already exists"))
                 continue
 
             #check value validity
             try:
-                context.typ.checker.getValue(v,None,"Context "+contextKey)
+                envObject.typ.checker.getValue(v,None,"Context "+keyName)
             except argException as argE:
                 listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(valueToAdd)+"> to "+str(parentName)+" <"+str(keyName)+">: invalid value type, "+str(argE)))
                 continue
@@ -148,6 +165,16 @@ class ParamaterLoader(AbstractLoader):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(v)+"> to "+str(parentName)+" <"+str(keyName)+">: invalid values, "+str(argE)))
         except ParameterException as pe:
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value <"+str(v)+"> to "+str(parentName)+" <"+str(keyName)+">: "+str(pe)))
+    
+    def _unsetValueTo(self, parameterManager, keyName, parentName, listOfExceptions):
+        if not parameterManager.hasParameter(keyName, ENVIRONMENT_NAME):
+            listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset "+str(parentName)+" value with key <"+str(keyName)+">: key does not exist"))
+            return
+        
+        try:
+            parameterManager.unsetParameter(keyName, parentName)
+        except ParameterException as pe:
+            listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset "+str(parentName)+" value with key <"+str(keyName)+">: "+str(pe)))
     
     def _setValueTo(self, parameterManager, keyName, value, noErrorIfKeyExist, override, parentName, listOfExceptions):
         if parameterManager.hasParameter(keyName, ENVIRONMENT_NAME) and not override:
@@ -166,37 +193,34 @@ class ParamaterLoader(AbstractLoader):
             return
 
         exceptions = ListOfException()
-        #errorList = []
 
-        ## ADD VALUE TO CONTEXT/ENV ##
+        #add value
         for contextKey, value, parent in self.valueToAddTo:
             self._addValueTo(parameterManager, contextKey, value, parent, exceptions)
 
+        #set value
         for key, instance, noErrorIfKeyExist, override,ENVIRONMENT_NAME in self.valueToSet:
             self._setValueTo(parameterManager, key, instance, noErrorIfKeyExist, override,ENVIRONMENT_NAME, exceptions)
 
-######################
-
-        #TODO
-        """## SET PARAMS ##
-        for paramKey, value, noErrorIfKeyExist, override, parent in self.params:
-            if parameterManager.hasParameter(paramKey,parent):
-                if override:
-                    parameterManager.setParameter(paramKey, EnvironmentParameter(value),parent)
-                elif not noErrorIfKeyExist:
-                    print("fail to create parameter <"+paramKey+">, already exists and override not allowed")
-
-            else:
-                parameterManager.setParameter(paramKey, EnvironmentParameter(value),parent)"""
-
-        #print error list
+        #raise error list
         if exceptions.isThrowable():
             raise exceptions
 
-    def unload(self, mltries):
-        #TODO remove values added
-        
-        #TODO remove object set
-    
-        pass #TODO        
+    def unload(self, parameterManager = None):
+        if parameterManager == None:
+            return
+
+        exceptions = ListOfException()
+
+        #remove values added
+        for contextKey, value, parent in self.valueToAddTo:
+            self._removeValueTo(parameterManager, contextKey, value, parent, exceptions)
+
+        #remove object set
+        for key, instance, noErrorIfKeyExist, override,ENVIRONMENT_NAME in self.valueToSet:
+            self._unsetValueTo(parameterManager, key,ENVIRONMENT_NAME, exceptions)
+
+        #raise error list
+        if exceptions.isThrowable():
+            raise exceptions       
 
