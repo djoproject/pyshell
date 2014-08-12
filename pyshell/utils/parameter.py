@@ -630,7 +630,7 @@ class VarParameter(EnvironmentParameter):
         #if hasattr(value,"__iter__" and value != str and value != unicode:
         #    value = ' '.join(str(x) for x in value)
     
-        EnvironmentParameter.__init__(self,value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True):
+        EnvironmentParameter.__init__(self,value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True)
         
         #TODO manage the store in one string line
             #replace every space in every string with '\x20' on the save
