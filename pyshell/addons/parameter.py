@@ -18,32 +18,9 @@
 
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator             import shellMethod
-#from pyshell.command.exception         import engineInterruptionException
-from pyshell.utils.parameter           import CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter, PropertyParameter
+from pyshell.utils.parameter           import CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker
-
-#TODO   
-    #!!!! MERGE environment and parameter !!!
-        #the difference between both is difficult to understand
-
-        #BETTER IDEA: merge simple parameter and args
-            #args become persistent, always
-            #parameter become list always
-            #type = list(anyarg)
-            #readonly = False
-            #removalbe = true
-            #transient = False
-            
-            #PRBLM to solve
-                #manage token separator
-                
-            #PRBLM manage parent
-                #with arg binding, as soon as it will be available
-                #store them in main for the moment
-                
-
-    #a list everything command
 
 ## FUNCTION SECTION ##
 
@@ -161,51 +138,6 @@ def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=F
     value = checker.getValue(values, None, str(parent).title()+" "+key)
     parameters.setParameter(key, classDef(value, checker),parent)
     
-#################################### parameter #################################### 
-
-    #TODO rename to "properties" ?
-        #key/val pair
-        #single val
-            #but concate multiple value with empty space
-            
-        #a properties by definition is a updatable and removable not transient string
-        
-        #what about list ?
-            #be coherent with property register in the loader
-
-"""@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             parent     = stringArgChecker())
-def removeProperty(key, parameters, parent=None):
-    "remove a property"
-    
-    #TODO parent must be different of forbidden name
-    
-    removeParameter(key, parameters, parent)
-
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             parent     = stringArgChecker())
-def getProperty(key, parameters, parent=None): 
-    "get a property"
-    
-    #TODO parent must be different of forbidden name
-    
-    return getParameter(key, parameters, parent).getValue()
-
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
-             #FIXME parent=stringArgChecker(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setProperty(key, values, parent = None, parameter = None):
-    "assign a value to a property"
-    
-    #TODO parent must be different of forbidden name
-    
-    parameter.setParameter(key,PropertyParameter(values), parent)
-    
-#TODO make a list to list everything except forbidden"""
-
 #################################### env management#################################### 
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -389,6 +321,11 @@ def getContextProperties(key, propertyName, parameter):
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setVar(key, values, parameter, parent=None):
     "assign a value to a var"
+
+    #parent must be different of forbidden name
+    if parent in FORBIDEN_SECTION_NAME:
+        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+
     parameter.setParameter(key,VarParameter(values), parent)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -396,6 +333,11 @@ def setVar(key, values, parameter, parent=None):
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getVar(key, parameter, parent=None):
     "get the value of a var"
+
+    #parent must be different of forbidden name
+    if parent in FORBIDEN_SECTION_NAME:
+        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+
     return getParameter(key, parameter, parent).getValue()
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -403,6 +345,11 @@ def getVar(key, parameter, parent=None):
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def unsetVar(key, parameter, parent=None):
     "unset a var"
+
+    #parent must be different of forbidden name
+    if parent in FORBIDEN_SECTION_NAME:
+        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+
     removeParameter(key, parameter, parent)
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
@@ -410,6 +357,11 @@ def unsetVar(key, parameter, parent=None):
              parent    = stringArgChecker())
 def listVar(parameter, key=None, parent=None):
     "list every existing var"
+
+    #parent must be different of forbidden name
+    if parent in FORBIDEN_SECTION_NAME:
+        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+
     return listParameter(parameter, parent, key, False)
 
 #################################### REGISTER SECTION #################################### 
@@ -438,14 +390,6 @@ registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=printResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
-#parameter   
-#registerSetTempPrefix( ("property", ) )
-#registerCommand( ("unset",) ,            pro=removeProperty)
-#registerCommand( ("get",) ,              pre=getProperty, pro=printResultHandler)
-#registerCommand( ("set",) ,              post=setProperty)
-#registerCommand( ("list",) ,             pre=listParameter, pro=stringListResultHandler)
-#registerStopHelpTraversalAt( ("property",) )
-
 #env 
 registerSetTempPrefix( ("environment", ) )
 registerCommand( ("list",) ,           pro=listEnvFun,   post=stringListResultHandler)
@@ -454,10 +398,15 @@ registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
 registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
 registerCommand( ("unset",) ,          pro=removeEnvironmentContextValues)
 registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
-registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
-registerCommand( ("load",) ,           pro=loadParameter)
 registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
 registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=printResultHandler) 
-registerStopHelpTraversalAt( ("environment",) )     
+registerStopHelpTraversalAt( ("environment",) ) 
+
+#parameter
+registerSetTempPrefix( ("parameter", ) )
+registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
+registerCommand( ("load",) ,           pro=loadParameter)
+registerCommand( ("list",) ,            pro=listParameter, post=stringListResultHandler)
+registerStopHelpTraversalAt( ("parameter",) )
     
