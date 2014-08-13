@@ -16,6 +16,13 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #-add argument
+        #-d start as daemon
+        #-l loop daemon
+        
+    #manage daemon system
+
 #system library
 import readline
 import os
@@ -34,9 +41,10 @@ from pyshell.command.engine    import engineV3
 from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker
 from pyshell.addons            import addon
-from pyshell.utils.parameter   import ParameterManager, DEFAULT_PARAMETER_FILE, EnvironmentParameter, ContextParameter, CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.keystore    import KeyStore, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME
+from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter
+from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException
+from pyshell.utils.constants   import DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
 
 class writer :
     def __init__(self, out):
@@ -93,24 +101,22 @@ class CommandExecuter():
         self.params = ParameterManager(paramFile)
 
         #init original params
-        self.params.setParameter("prompt", EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        
-        #TODO store keystore/leveltries in env
-        
+        self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+
         #TODO update "vars" to ... (remove it?)
-        self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
+        self.params.setParameter("vars",                EnvironmentParameter(value={},transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
         
-        self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
+        self.params.setParameter("levelTries",          EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
         keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
-        self.params.setParameter("keystoreFile", keyStorePath, ENVIRONMENT_NAME)
+        self.params.setParameter("keystoreFile",        keyStorePath, ENVIRONMENT_NAME)
         self.keystore = KeyStore(keyStorePath)
-        self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=self.keystore,transient=True,readonly=True, removable=False)) 
-        self.params.setParameter("saveKeys", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("debug", ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("historyFile", EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("useHistory", EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("execution", ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("addonToLoad", EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=self.keystore,transient=True,readonly=True, removable=False), ENVIRONMENT_NAME) 
+        self.params.setParameter("saveKeys",            EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("debug",               ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("execution",           ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
         #redirect output
         real_out    = sys.stdout
@@ -200,7 +206,7 @@ class CommandExecuter():
             #search the command with advanced seach
             searchResult = None
             try:
-                searchResult = self.params.getParameter("levelTries").getValue().advancedSearch(finalCmd, False)
+                searchResult = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().advancedSearch(finalCmd, False)
             except triesException as te:
                 print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
                 return False
@@ -271,7 +277,7 @@ class CommandExecuter():
 
         readline.set_completer(self.complete)
         
-        #TODO set context to shell
+        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue("shell")
         
         #mainloop
         while True:
@@ -315,7 +321,7 @@ class CommandExecuter():
                 #only print root tokens
             if len(cmdStringList) == 0:
                 fullline = ()
-                dic = self.params.getParameter("levelTries").getValue().buildDictionnary(fullline, True, True, False)
+                dic = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().buildDictionnary(fullline, True, True, False)
 
                 toret = {}
                 for k in dic.keys():
@@ -328,7 +334,7 @@ class CommandExecuter():
             fullline = cmdStringList[-1]
 
             ## manage ambiguity ##
-            advancedResult = self.params.getParameter("levelTries").getValue().advancedSearch(fullline, False)
+            advancedResult = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().advancedSearch(fullline, False)
             if advancedResult.isAmbiguous():
                 tokenIndex = len(advancedResult.existingPath) - 1
 
@@ -345,7 +351,7 @@ class CommandExecuter():
                     keys.append(tmp)
             else:
                 try:
-                    dic = self.params.getParameter("levelTries").getValue().buildDictionnary(fullline, True, True, False)
+                    dic = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().buildDictionnary(fullline, True, True, False)
                 except pathNotExistsTriesException as pnete:
                     return None
 
@@ -382,8 +388,7 @@ class CommandExecuter():
 
     def executeFile(self,filename):
         shellOnExit = False
-        
-        #TODO set context script
+        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue("script")
         
         try:
             with open(filename, 'wb') as f:

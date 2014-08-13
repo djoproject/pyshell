@@ -16,10 +16,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils import getAndInitCallerModule, AbstractLoader
+from utils                   import getAndInitCallerModule, AbstractLoader
 from pyshell.command.command import MultiCommand, UniCommand
-from exceptions import RegisterException
-from tries.exception import triesException
+from exceptions              import RegisterException
+from tries.exception         import triesException
+from pyshell.utils.constants import ENVIRONMENT_NAME
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)
@@ -112,11 +113,11 @@ class CommandLoader(AbstractLoader):
     
     def load(self, parameterManager):
     
-        if not parameterManager.hasParameter("levelTries"):
+        if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
             print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             return    
             
-        mltries = parameterManager.getParameter("levelTries").getValue()
+        mltries = parameterManager.getParameter("levelTries", ENVIRONMENT_NAME).getValue()
     
         #TODO don't print error message here, group the error in a listException
     
@@ -141,11 +142,11 @@ class CommandLoader(AbstractLoader):
                 print "fail to disable traversal for key list <"+str(" ".join(stop))+"> in multi tries: "+str(te)
 
     def unload(self, parameterManager):
-        if not parameterManager.hasParameter("levelTries"):
+        if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
             print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             return
             
-        mltries = parameterManager.getParameter("levelTries").getValue()
+        mltries = parameterManager.getParameter("levelTries", ENVIRONMENT_NAME).getValue()
     
         #TODO don't print error message here, group the error in a listException
     

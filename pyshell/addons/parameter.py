@@ -18,9 +18,10 @@
 
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator             import shellMethod
-from pyshell.utils.parameter           import CONTEXT_NAME, ENVIRONMENT_NAME, EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
+from pyshell.utils.parameter           import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker
+from pyshell.utils.constants           import CONTEXT_NAME, ENVIRONMENT_NAME
 
 ## FUNCTION SECTION ##
 

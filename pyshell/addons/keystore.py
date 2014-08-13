@@ -20,14 +20,14 @@ from pyshell.arg.decorator             import shellMethod
 from pyshell.arg.argchecker            import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
 from pyshell.simpleProcess.postProcess import listFlatResultHandler, stringListResultHandler
 from pyshell.loader.command            import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
-from pyshell.utils.keystore            import KEYSTORE_SECTION_NAME
 from pyshell.loader.keystore           import registerKey
+from pyshell.utils.constants           import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
 
 ## DECLARATION PART ##
 
 @shellMethod(keyName     = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              keyInstance = defaultInstanceArgChecker.getKeyChecker(),
-             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME),
+             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME),
              transient   = booleanValueArgChecker())
 def setKey(keyName, keyInstance, keyStore = None, transient=False):
     "set a key"
@@ -37,12 +37,12 @@ def setKey(keyName, keyInstance, keyStore = None, transient=False):
 @shellMethod(key      = defaultInstanceArgChecker.getKeyTranslatorChecker(),
              start    = IntegerArgChecker(),
              end      = IntegerArgChecker(),
-             keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def getKey(key, start=0, end=None, keyStore=None):
     "get a key"
     return key.getKey(start, end)
 
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def listKey(keyStore=None):
     "list available key in the keystore"
     toRet = []
@@ -53,22 +53,22 @@ def listKey(keyStore=None):
     return toRet
 
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def unsetKey(keyName, keyStore=None):
     "remove a key from the keystore"
     keyStore.getValue().unsetKey(keyName)
     
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def cleanKeyStore(keyStore=None):
     "remove every keys from the keystore"
     keyStore.getValue().removeAll()
     
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def saveKeyStore(keyStore=None):
     "save keystore from file"
     keyStore.getValue().save()
 
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def loadKeyStore(keyStore=None):
     "load keystore from file"
     keyStore.getValue().load()

@@ -16,14 +16,15 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from exception import *
-from tries import tries
-from tries.exception import ambiguousPathException
+from exception               import *
+from tries                   import tries
+from tries.exception         import ambiguousPathException
 import collections # for collections.Hashable
-from math import log
+from math                    import log
 import os
-from threading import Lock
-from pyshell.utils.keystore import Key, KEYSTORE_SECTION_NAME
+from threading               import Lock
+from pyshell.utils.keystore  import Key
+from pyshell.utils.constants import ENVIRONMENT_NAME, KEYSTORE_SECTION_NAME
 
 #string argchecker definition
 ARGCHECKER_TYPENAME                 = "ArgChecker"
@@ -852,10 +853,10 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         env = self.engine.getEnv()
         value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
 
-        if not self.engine.getEnv().hasParameter(KEYSTORE_SECTION_NAME):
-            self._raiseArgException("the key <"+str(KEYSTORE_SECTION_NAME)+"> is not available in parameters but is needed to get key <"+str(value)+">", argNumber, argNameToBind)
+        if not self.engine.getEnv().hasParameter(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME):
+            self._raiseArgException("the key <"+str(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME)+"> is not available in parameters but is needed to get key <"+str(value)+">", argNumber, argNameToBind)
 
-        keystore = self.engine.getEnv().getParameter(KEYSTORE_SECTION_NAME).getValue()
+        keystore = self.engine.getEnv().getParameter(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME).getValue()
         
         if not keystore.hasKey(value):
             self._raiseArgException("unknown key <"+str(value)+">", argNumber, argNameToBind)

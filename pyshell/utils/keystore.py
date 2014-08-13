@@ -21,6 +21,7 @@ from tries.exception         import ambiguousPathException
 import sys,os
 from math                    import log
 from valuable                import Valuable
+from pyshell.utils.constants import KEYSTORE_SECTION_NAME
 
 try:
     pyrev = sys.version_info.major
@@ -31,9 +32,6 @@ if pyrev == 2:
     import ConfigParser 
 else:
     import configparser as ConfigParser
-    
-KEYSTORE_SECTION_NAME = "keystore"
-DEFAULT_KEYSTORE_FILE = os.path.join(os.path.expanduser("~"), ".pyshell_keystore")
 
 class KeyStore(object):
     def __init__(self,filePath = None):

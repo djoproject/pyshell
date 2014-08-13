@@ -16,12 +16,13 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.command import registerStopHelpTraversalAt, registerCommand
-from pyshell.arg.decorator import shellMethod
-from pyshell.command.command import MultiOutput
-from tries.exception import triesException
+from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand
+from pyshell.arg.decorator             import shellMethod
+from pyshell.command.command           import MultiOutput
+from tries.exception                   import triesException
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
-from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
+from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
+from pyshell.utils.constants           import ENVIRONMENT_NAME
 
 ## FUNCTION SECTION ##
 
@@ -65,7 +66,7 @@ def intToAscii(args):
     return s
     
 @shellMethod(args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), 
-             mltries = parameterChecker("levelTries"))
+             mltries = parameterChecker("levelTries", ENVIRONMENT_NAME))
 def usageFun(args, mltries):
     "print the usage of a fonction"
     
@@ -95,7 +96,7 @@ def usageFun(args, mltries):
     cmd = searchResult.getLastTokenFoundValue()
     return cmd.usage()
 
-@shellMethod(mltries = parameterChecker("levelTries"), 
+@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME), 
              args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def helpFun(mltries, args=None):
     "print the help"

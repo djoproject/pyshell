@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject,net>
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -15,3 +15,15 @@
 
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+
+KEYSTORE_SECTION_NAME  = "keystore"
+DEFAULT_KEYSTORE_FILE  = os.path.join(os.path.expanduser("~"), ".pyshell_keystore")
+
+CONTEXT_NAME           = "context"
+ENVIRONMENT_NAME       = "environment"
+DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
+MAIN_CATEGORY          = "main"
+PARAMETER_NAME         = "parameter"
+DEFAULT_SEPARATOR      = ","

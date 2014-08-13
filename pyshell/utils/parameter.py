@@ -21,7 +21,7 @@ from pyshell.utils.exception import ListOfException, AbstractListableException
 from exception               import ParameterException, ParameterLoadingException
 from valuable                import Valuable
 import os, sys
-
+from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
 
 #TODO
     #context/env manager ?
@@ -36,13 +36,6 @@ if pyrev == 2:
     import ConfigParser 
 else:
     import configparser as ConfigParser
-
-DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
-MAIN_CATEGORY          = "main"
-PARAMETER_NAME         = "parameter"
-CONTEXT_NAME           = "context"
-ENVIRONMENT_NAME       = "environment"
-DEFAULT_SEPARATOR      = ","
 
 INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
                           "int"   : defaultInstanceArgChecker.getIntegerArgCheckerInstance,
@@ -248,8 +241,8 @@ class ParameterManager(object):
                 raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name <"+str(name)+">, a similar item already has this name")
         else:
             #is generic instance 
-            if not isinstance(param, EnvironmentParameter): #TODO must be VarParameter, wait update in executer
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of EnvironmentParameter was expected, got "+str(type(param)))
+            if not isinstance(param, VarParameter):
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param)))
         
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME
             for forbidenName in FORBIDEN_SECTION_NAME:
@@ -654,7 +647,7 @@ class VarParameter(EnvironmentParameter):
         EnvironmentParameter.__init__(self,parsed_value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True)    
     
     def __str__(self):
-        to_ret = []
+        to_ret = ""
         
         for v in self.value:
             to_ret += str(v)+" "
