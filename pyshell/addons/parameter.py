@@ -399,14 +399,15 @@ registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
 registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
 registerCommand( ("unset",) ,          pro=removeEnvironmentContextValues)
 registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
-registerCommand( ("save",) ,           pro=saveParameter)
+registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
+
 registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
 registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=printResultHandler) 
 registerStopHelpTraversalAt( ("environment",) ) 
 
 #parameter
 registerSetTempPrefix( ("parameter", ) )
-registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
+registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("load",) ,           pro=loadParameter)
 registerCommand( ("list",) ,            pro=listParameter, post=stringListResultHandler)
 registerStopHelpTraversalAt( ("parameter",) )
