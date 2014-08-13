@@ -194,7 +194,7 @@ class CommandExecuter():
     def executeCommand(self,cmd):
         ### STEP 1: split 
         #TODO update vars, if exist use it, otherelse, put a None value or something like that
-        cmdStringList = _parseLine(cmd,self.params.getParameter("vars").getValue())
+        cmdStringList = _parseLine(cmd,self.params.getParameter("vars", ENVIRONMENT_NAME).getValue())
 
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
