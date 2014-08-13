@@ -168,7 +168,6 @@ class ParameterManager(object):
             ### GENERIC ### 
             else:
                 if section in FORBIDEN_SECTION_NAME:
-                    
                     errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name <"+str(section)+"> not allowed"))
                     continue
             
@@ -178,12 +177,14 @@ class ParameterManager(object):
                     if section not in self.params:
                         self.params[section] = {}
                     
-                    if option in self.params[section]:
+                    self.params[section][option] = VarParameter(config.get(section, option))
+                    
+                    """if option in self.params[section]:
                         if isinstance(self.params[section][option], Parameter):
                             self.params[section][option].setValue(config.get(section, option))
                             continue        
                             
-                    self.params[section][option] = EnvironmentParameter(value=config.get(section, option))
+                    self.params[section][option] = EnvironmentParameter(value=config.get(section, option))"""
         
         #manage errorList
         if errorList.isThrowable():
@@ -206,10 +207,11 @@ class ParameterManager(object):
                 if isinstance(childValue, Parameter):
                     if childValue.isTransient():
                         continue
-                
+                """
                     value = str(childValue.getValue())
-                else:
-                    value = str(childValue)
+                else:"""
+                
+                value = str(childValue)
             
                 if not config.has_section(parent):
                     config.add_section(parent)
@@ -246,7 +248,7 @@ class ParameterManager(object):
                 raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name <"+str(name)+">, a similar item already has this name")
         else:
             #is generic instance 
-            if not isinstance(param, EnvironmentParameter):
+            if not isinstance(param, EnvironmentParameter): #TODO must be VarParameter, wait update in executer
                 raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of EnvironmentParameter was expected, got "+str(type(param)))
         
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME
@@ -627,27 +629,37 @@ class ContextParameter(EnvironmentParameter):
         
 class VarParameter(EnvironmentParameter):
     def __init__(self,value):
-        #if hasattr(value,"__iter__" and value != str and value != unicode:
-        #    value = ' '.join(str(x) for x in value)
-    
-        EnvironmentParameter.__init__(self,value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True)
+        tmp_value_parsed = [value]
+        parsed_value = []
         
-        #TODO manage the store in one string line
-            #replace every space in every string with '\x20' on the save
-            #and don't forget to convert it in the opposite way at the load
-    
-    def toFile(self):
-        pass #TODO
-    
-    #XXX should be static ?
-    def fromFile(self, content):
-        pass #TODO
-    
-    """def setValue(self, value):
-        if hasattr(value,"__iter__" and value != str and value != unicode:
-            value = ' '.join(str(x) for x in value)
+        while len(tmp_value_parsed) > 0:
+            value_to_parse = tmp_value_parsed
+            tmp_value_parsed = []
             
-        EnvironmentParameter.setValue(self, value)"""
+            for v in value_to_parse:
+                if type(v) == str or type(v) == unicode:
+                    v = v.strip()
+                    
+                    for subv in v.split(" "):
+                        if len(subv) == 0:
+                            continue
+                    
+                        parsed_value.append(v)
+                        
+                elif hasattr(v, "__iter__"):
+                    tmp_value_parsed.extend(v)
+                else:
+                    tmp_value_parsed.append(str(v))
+
+        EnvironmentParameter.__init__(self,parsed_value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True)    
+    
+    def __str__(self):
+        to_ret = []
+        
+        for v in self.value:
+            to_ret += str(v)+" "
+            
+        return to_ret
         
 
 RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]

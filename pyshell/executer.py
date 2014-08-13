@@ -97,7 +97,7 @@ class CommandExecuter():
         
         #TODO store keystore/leveltries in env
         
-        #TODO update "vars" to ... (remove it)
+        #TODO update "vars" to ... (remove it?)
         self.params.setParameter("vars", EnvironmentParameter(value={},transient=True,readonly=True, removable=False))
         
         self.params.setParameter("levelTries", EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False))
