@@ -19,7 +19,8 @@
 #TODO
     #-add argument
         #-d start as daemon
-        #-l loop daemon
+            #by default, a daemon must be a loop
+            #think to a system able to stop it easily          
         
     #manage daemon system
 

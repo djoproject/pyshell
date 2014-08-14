@@ -80,7 +80,7 @@ def removeParameter(key, parameters, parent=None):
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              parent    = stringArgChecker(),
              key       = stringArgChecker())
-def listParameter(parameter, parent=None, key=None, printParent = True):
+def listParameter(parameter, parent=None, key=None, printParent = True, allParentExcept = ()):
     "list every parameter sorted by the parent name"
     if parent != None:
         if parent not in parameter.params:
@@ -99,6 +99,9 @@ def listParameter(parameter, parent=None, key=None, printParent = True):
     
     to_ret = []
     for k in keys:
+        if k in allParentExcept:
+            continue
+    
         if printParent:
             to_ret.append(k)
 
@@ -363,7 +366,7 @@ def listVar(parameter, key=None, parent=None):
     if parent in FORBIDEN_SECTION_NAME:
         raise Exception("parent <"+str(parent)+"> can not be used in var system")
 
-    return listParameter(parameter, parent, key, False)
+    return listParameter(parameter, parent, key, True, FORBIDEN_SECTION_NAME.keys())
 
 #################################### REGISTER SECTION #################################### 
 

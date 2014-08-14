@@ -26,6 +26,11 @@ from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGOR
 #TODO
     #context/env manager ?
         #how to manage concurrency?
+        
+    #convert parent dico and subelement dico in tries
+        #and manage every consequences
+        
+    #split context/envir/variabl in separate data structure
     
 try:
     pyrev = sys.version_info.major
@@ -632,12 +637,13 @@ class VarParameter(EnvironmentParameter):
             for v in value_to_parse:
                 if type(v) == str or type(v) == unicode:
                     v = v.strip()
-                    
-                    for subv in v.split(" "):
+                    v = v.split(" ")
+
+                    for subv in v:
                         if len(subv) == 0:
                             continue
                     
-                        parsed_value.append(v)
+                        parsed_value.append(subv)
                         
                 elif hasattr(v, "__iter__"):
                     tmp_value_parsed.extend(v)
@@ -653,7 +659,9 @@ class VarParameter(EnvironmentParameter):
             to_ret += str(v)+" "
             
         return to_ret
-        
+    
+    def __repr__(self):
+        return "Variable, value:"+str(self.value)
 
 RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]
 FORBIDEN_SECTION_NAME            = {CONTEXT_NAME:ContextParameter,
