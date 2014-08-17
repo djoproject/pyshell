@@ -17,44 +17,49 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #from pyshell.utils.loader import *
-from pyshell.loader.command import registerSetTempPrefix, registerCommand, registerStopHelpTraversalAt
-from pyshell.arg.decorator import shellMethod
+from pyshell.loader.command            import registerSetTempPrefix, registerCommand, registerStopHelpTraversalAt
+from pyshell.loader.parameter          import registerSetEnvironment
+from pyshell.arg.decorator             import shellMethod
 import os
 from pyshell.simpleProcess.postProcess import stringListResultHandler
-from pyshell.arg.argchecker import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker
+from pyshell.arg.argchecker            import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker
+from pyshell.utils.parameter           import EnvironmentParameter
+from pyshell.utils.constants           import ENVIRONMENT_NAME
+
+ADDONLIST_KEY = "loader_addon"
+ADDON_PREFIX  = "pyshell.addons."
 
 ### addon ###
 
 #TODO
-    #unload addon
-    #reload addon
-    #list addon
-        #print loaded or not loaded addon
-            #and sub addon
-            #and addon type
-            #and ...
-    #manage multi src addon
-    #in load addon
-        #if addon have . in its path, just try to load it like that
-        #withou adding a prefix
-    
-    #load/unload param from addons
-    
-    #be able to only load/reload/unload a specific part of a module, only parameters for example
+    #be able to only reload (and only reload, because different parts are linkend and can't be loaded single) a specific part of a module, only parameters for example
+    #subaddon name must be part of the key in addon_dico
+    #print subbadon loaded in list process
+    #manage multi src addon, addon from the outside of "addon" directory
 
 ## FUNCTION SECTION ##
 
-def listAddonFun():
+@shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY))
+def listAddonFun(addon_dico):
     "list the available addons"
     
+    addon_dico = addon_dico.getValue()
+
     l = []
     if os.path.exists("./pyshell/addons/"):
         for dirname, dirnames, filenames in os.walk('./pyshell/addons/'):
             for name in filenames:
                 if name.endswith(".py") and name != "__init__.py":
-                    l.append(name[0:-3])
-                    
-                    #TODO add an information about the state of the addon (not loaded/loaded)
+                    name = ADDON_PREFIX + name[0:-3]
+
+                    if name in addon_dico:
+                        l.append(name+" LOADED")
+                    else:
+                        l.append(name+" NOT LOADED")
+
+    #TODO manage external addon
+        #just print them as loaded
+        #they are in addon_dico but not in filenames
 
     return l
 
@@ -62,46 +67,73 @@ def listAddonFun():
              subAddon=stringArgChecker(), 
              parameters=completeEnvironmentChecker())
 def loadAddonFun(name, parameters, subAddon = None):
-    "load an external shell addon"
-    toLoad = "pyshell.addons."+str(name)
+    "load a internal shell addon, just use the name of the module, no need to use the absolute name"
+    toLoad = ADDON_PREFIX+str(name)
 
-    if subAddon == "":
-        subAddon = None
+    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+        raise Exception("no addon list defined")
+
+    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+
+    if toLoad in addon_dico:
+        raise Exception("already loaded addon")
 
     try:
         mod = __import__(toLoad,fromlist=["_loaders"])
-        
-        if not hasattr(mod, "_loaders"):
-            print("invalid addon, no loader found.  don't forget to register at least one command in the addon")
-        
-        mod._loaders.load(parameters, subAddon)
-        
-        """if subAddon not in mod._loaders:
-            print("sub addon does not exist in the addon <"+str(name)+">")
-        
-        mod._loaders[None]._load(levelTries.getValue())"""
-        print "   "+toLoad+" loaded !"  
     except ImportError as ie:
-        print "import error in <"+str(name)+"> loading : "+str(ie)
-        #TODO also managed debug context here (print stacktrace, etc.)
-        
-    except NameError as ne:
-        print "name error in <"+str(name)+"> loading : "+str(ne)
-        #TODO also managed debug context here (print stacktrace, etc.)
+        raise Exception("fail to load addon, reason: "+str(ie))
 
-def unloadAddon():
+    if not hasattr(mod, "_loaders"):
+        raise Exception("invalid addon, no loader found.  don't forget to register at least one command in the addon")
+
+    addon_dico[toLoad] = mod
+    mod._loaders.load(parameters, subAddon)
+
+    print "   "+toLoad+" loaded !" 
+
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=stringArgChecker(), 
+             parameters=completeEnvironmentChecker())
+def unloadAddon(name, parameters, subAddon = None):
     "unload an addon"
-    
-    pass #TODO
 
-def reloadAddon():
+    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+        raise Exception("no addon list defined")
+
+    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+    
+    if name not in addon_dico:
+        raise Exception("unknown addon <"+str(name)+">")
+    
+    addon_dico[name].unload(parameters, subAddon)
+    del addon_dico[name]
+
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=stringArgChecker(), 
+             parameters=completeEnvironmentChecker())
+def reloadAddon(name, parameters, subAddon = None):
     "reload an addon"
 
-    pass #TODO
+    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+        raise Exception("no addon list defined")
+
+    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+    
+    if name not in addon_dico:
+        raise Exception("unknown addon <"+str(name)+">")
+    
+    addon_dico[name].reload(parameters, subAddon)
+
+def importExternal():
+    pass #TODO import module from outside
 
 ### REGISTER SECTION ###
+
+registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
 
 registerSetTempPrefix( ("addon", ) )
 registerCommand( ("list",) ,                  pro=listAddonFun, post=stringListResultHandler)
 registerCommand( ("load",) ,                  pro=loadAddonFun)
+registerCommand( ("unload",) ,                pro=unloadAddon)
+registerCommand( ("reload",) ,                pro=reloadAddon)
 registerStopHelpTraversalAt( ("addon",) )

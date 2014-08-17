@@ -24,7 +24,7 @@ from math                    import log
 import os
 from threading               import Lock
 from pyshell.utils.keystore  import Key
-from pyshell.utils.constants import ENVIRONMENT_NAME, KEYSTORE_SECTION_NAME
+from pyshell.utils.constants import ENVIRONMENT_NAME, CONTEXT_NAME, KEYSTORE_SECTION_NAME
 
 #string argchecker definition
 ARGCHECKER_TYPENAME                 = "ArgChecker"
@@ -551,19 +551,19 @@ class parameterDynamicChecker(ArgChecker):
 
 class contextParameterChecker(parameterChecker):
     def __init__(self, keyname):
-        parameterChecker.__init__(self, keyname, "context", CONTEXTCHECKER_TYPENAME)
+        parameterChecker.__init__(self, keyname, CONTEXT_NAME, CONTEXTCHECKER_TYPENAME)
 
 class environmentParameterChecker(parameterChecker):
     def __init__(self, keyname):
-        parameterChecker.__init__(self, keyname, "context", ENVIRONMENTCHECKER_TYPENAME)
+        parameterChecker.__init__(self, keyname, ENVIRONMENT_NAME, ENVIRONMENTCHECKER_TYPENAME)
 
 class contextParameterDynamicChecker(parameterDynamicChecker):
     def __init__(self):
-        parameterDynamicChecker.__init__(self, "context", CONTEXTDYNAMICCHECKER_TYPENAME)
+        parameterDynamicChecker.__init__(self, CONTEXT_NAME, CONTEXTDYNAMICCHECKER_TYPENAME)
 
 class environmentParameterDynamicChecker(parameterDynamicChecker):
     def __init__(self):
-        parameterDynamicChecker.__init__(self, "context", ENVIRONMENTDYNAMICCHECKER_TYPENAME)
+        parameterDynamicChecker.__init__(self, ENVIRONMENT_NAME, ENVIRONMENTDYNAMICCHECKER_TYPENAME)
 
 class defaultValueChecker(ArgChecker):
     def __init__(self,value):

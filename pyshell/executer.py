@@ -141,6 +141,9 @@ class CommandExecuter():
         except Exception as ex:
             print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
 
+            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+                traceback.print_exc()
+
         #load and manage history file
         #FIXME move on start'up
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
@@ -169,6 +172,9 @@ class CommandExecuter():
                         print("    "+str(e))
             except Exception as ex:
                 print("fail to load addon <"+str(addonName)+">: "+str(ex))
+
+                if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+                    traceback.print_exc()
                 
         #save at exit
         #FIXME move to atExit when the event manager will be ready
