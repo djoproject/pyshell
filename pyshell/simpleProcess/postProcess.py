@@ -59,3 +59,43 @@ def printBytesAsString(byteList):
     print(toHexString(byteList))
     
     return byteList
+
+@shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def printColumn(listOfLine):
+    #compute size
+    size = {}
+    for line in listOfLine:
+        if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
+            if 0 not in size:
+                size[0] = len(str(line)) + 1
+            else:
+                size[0] = max(size[0],len(str(line)) + 1)
+        else:
+            for index in range(0,len(line)):
+                if index not in size:
+                    size[index] = len(str(line[index])) + 1
+                else:
+                    size[index] = max(size[index], len(str(line[index]))+1 )
+    
+    #print table
+    for line in listOfLine:
+        if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
+            padding = size[0] - len(str(line))
+            if len(size) == 1:
+                print(str(line))
+            else:
+                print(str(line) + " "*padding)
+        else:
+            line_to_print = ""
+            for index in range(0,len(line)):
+                padding = size[index] - len(str(line[index]))
+                
+                #no padding on last column
+                if index == len(size) - 1:
+                    line_to_print += str(line[index])
+                else:
+                    line_to_print += str(line[index]) + " "*padding
+                
+            print line_to_print
+     
+    

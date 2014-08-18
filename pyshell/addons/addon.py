@@ -21,10 +21,11 @@ from pyshell.loader.command            import registerSetTempPrefix, registerCom
 from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.arg.decorator             import shellMethod
 import os
-from pyshell.simpleProcess.postProcess import stringListResultHandler
-from pyshell.arg.argchecker            import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker
+from pyshell.simpleProcess.postProcess import printColumn
+from pyshell.arg.argchecker            import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.constants           import ENVIRONMENT_NAME
+from pyshell.utils.coloration          import green, orange
 
 ADDONLIST_KEY = "loader_addon"
 ADDON_PREFIX  = "pyshell.addons."
@@ -33,63 +34,53 @@ ADDON_PREFIX  = "pyshell.addons."
 
 #TODO
     #be able to only reload (and only reload, because different parts are linkend and can't be loaded single) a specific part of a module, only parameters for example
+    
     #subaddon name must be part of the key in addon_dico
+    
     #print subbadon loaded in list process
-    #manage multi src addon, addon from the outside of "addon" directory
+    
+    #reload must import the file again, no ?
 
 ## FUNCTION SECTION ##
 
-@shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY))
-def listAddonFun(addon_dico):
+def _noColor(text):
+    return text
+
+@shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY),
+             execution_context = contextParameterChecker("execution"))
+def listAddonFun(addon_dico, execution_context):
     "list the available addons"
     
     addon_dico = addon_dico.getValue()
+    
+    if execution_context.getSelectedValue() == "shell":
+        colorfunLoaded = green
+        colorfunNotLoaded = orange
+    else:
+        colorfunLoaded = _noColor
+        colorfunNotLoaded = _noColor
 
     l = []
+    local_addon = set()
     if os.path.exists("./pyshell/addons/"):
         for dirname, dirnames, filenames in os.walk('./pyshell/addons/'):
             for name in filenames:
                 if name.endswith(".py") and name != "__init__.py":
+                    
                     name = ADDON_PREFIX + name[0:-3]
+                    local_addon.add(name)
 
                     if name in addon_dico:
-                        l.append(name+" LOADED")
+                        l.append( (name, colorfunLoaded("LOADED"),) )
                     else:
-                        l.append(name+" NOT LOADED")
+                        l.append( (name,colorfunNotLoaded("NOT LOADED"), ) )
 
-    #TODO manage external addon
-        #just print them as loaded
-        #they are in addon_dico but not in filenames
+    external_loaded = set(addon_dico.keys()) - local_addon
+    
+    for external in external_loaded:
+        l.append( (external, colorfunLoaded(" LOADED"), ) )
 
     return l
-
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
-             subAddon=stringArgChecker(), 
-             parameters=completeEnvironmentChecker())
-def loadAddonFun(name, parameters, subAddon = None):
-    "load a internal shell addon, just use the name of the module, no need to use the absolute name"
-    toLoad = ADDON_PREFIX+str(name)
-
-    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
-        raise Exception("no addon list defined")
-
-    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
-
-    if toLoad in addon_dico:
-        raise Exception("already loaded addon")
-
-    try:
-        mod = __import__(toLoad,fromlist=["_loaders"])
-    except ImportError as ie:
-        raise Exception("fail to load addon, reason: "+str(ie))
-
-    if not hasattr(mod, "_loaders"):
-        raise Exception("invalid addon, no loader found.  don't forget to register at least one command in the addon")
-
-    addon_dico[toLoad] = mod
-    mod._loaders.load(parameters, subAddon)
-
-    print "   "+toLoad+" loaded !" 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
              subAddon=stringArgChecker(), 
@@ -124,16 +115,49 @@ def reloadAddon(name, parameters, subAddon = None):
     
     addon_dico[name].reload(parameters, subAddon)
 
-def importExternal():
-    pass #TODO import module from outside
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=stringArgChecker(), 
+             parameters=completeEnvironmentChecker())
+def loadAddonFun(name, parameters, subAddon = None):
+    "load a internal shell addon, just use the name of the module, no need to use the absolute name"
+    toLoad = ADDON_PREFIX+str(name)
+    importExternal(toLoad, parameters, subAddon = None)
+
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=stringArgChecker(), 
+             parameters=completeEnvironmentChecker())
+def importExternal(name, parameters, subAddon = None):
+    "load an external addon, use the absolute name of the package to load"
+
+    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+        raise Exception("no addon list defined")
+
+    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+
+    if name in addon_dico:
+        raise Exception("already loaded addon")
+
+    try:
+        mod = __import__(name,fromlist=["_loaders"])
+    except ImportError as ie:
+        raise Exception("fail to load addon, reason: "+str(ie))
+
+    if not hasattr(mod, "_loaders"):
+        raise Exception("invalid addon, no loader found.  don't forget to register at least one command in the addon")
+
+    addon_dico[name] = mod
+    mod._loaders.load(parameters, subAddon)
+
+    print "   "+name+" loaded !" 
 
 ### REGISTER SECTION ###
 
 registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
 
 registerSetTempPrefix( ("addon", ) )
-registerCommand( ("list",) ,                  pro=listAddonFun, post=stringListResultHandler)
+registerCommand( ("list",) ,                  pro=listAddonFun, post=printColumn)
 registerCommand( ("load",) ,                  pro=loadAddonFun)
 registerCommand( ("unload",) ,                pro=unloadAddon)
 registerCommand( ("reload",) ,                pro=reloadAddon)
+registerCommand( ("import",) ,                pro=importExternal)
 registerStopHelpTraversalAt( ("addon",) )

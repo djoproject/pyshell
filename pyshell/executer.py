@@ -266,7 +266,7 @@ class CommandExecuter():
                 for e in loe.exceptions:
                     print("    "+str(e))
         except Exception as e:
-            print(str(e))
+            print('\033[91m' + str(e) + '\033[0m')
 
         #print stack trace if debug is enabled
         if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:

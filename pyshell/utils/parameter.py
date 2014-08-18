@@ -28,9 +28,11 @@ from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGOR
         #how to manage concurrency?
         
     #convert parent dico and subelement dico in tries
-        #and manage every consequences
+        #and manage every consequences (ambiguity)
         
     #split context/envir/variabl in separate data structure
+        #no need to store them in the same dico
+        #store in three separate files ?
     
 try:
     pyrev = sys.version_info.major

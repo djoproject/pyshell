@@ -19,7 +19,7 @@
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator             import shellMethod
 from pyshell.utils.parameter           import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
-from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler
+from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler,printColumn
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker
 from pyshell.utils.constants           import CONTEXT_NAME, ENVIRONMENT_NAME
 
@@ -98,18 +98,32 @@ def listParameter(parameter, parent=None, key=None, printParent = True, allParen
         keys = parameter.params.keys()
     
     to_ret = []
+    firstKey = True
     for k in keys:
         if k in allParentExcept:
             continue
     
         if printParent:
-            to_ret.append(k)
+            #empty line before title
+            if firstKey:
+                firstKey = False
+            else:
+                to_ret.append( () )
+                
+            to_ret.append( (k,) )
 
         for subk,subv in parameter.params[k].items():
+            rep = repr(subv)
+            
+            #TODO got shell size (if shell), and set the limit in place of 100
+            if len(rep) > 100:
+                rep = rep[:97] + "..."
+        
             if printParent:
-                to_ret.append("    "+subk+" : \""+repr(subv)+"\"")
+                to_ret.append( ("    "+subk, ": \""+rep+"\"", ) )
             else:
-                to_ret.append(subk+" : \""+repr(subv)+"\"")
+                to_ret.append( (subk, ": \""+rep+"\"", ) )
+
             
     return to_ret
 
@@ -375,7 +389,7 @@ registerSetTempPrefix( ("var", ) )
 registerCommand( ("set",) ,                    post=setVar)
 registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetVar)
-registerCommand( ("list",) ,                   pre=listVar, pro=stringListResultHandler)
+registerCommand( ("list",) ,                   pre=listVar, pro=printColumn)
 registerStopHelpTraversalAt( ("var",) )
 
 #context
@@ -389,14 +403,14 @@ registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=prin
 registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
-registerCommand( ("list",) ,               pre=listContext, pro=stringListResultHandler)
+registerCommand( ("list",) ,               pre=listContext, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=printResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
 #env 
 registerSetTempPrefix( ("environment", ) )
-registerCommand( ("list",) ,           pro=listEnvFun,   post=stringListResultHandler)
+registerCommand( ("list",) ,           pro=listEnvFun,   post=printColumn )
 registerCommand( ("create","single",), post=createEnvironmentValueFun)
 registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
 registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
@@ -412,6 +426,6 @@ registerStopHelpTraversalAt( ("environment",) )
 registerSetTempPrefix( ("parameter", ) )
 registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("load",) ,           pro=loadParameter)
-registerCommand( ("list",) ,            pro=listParameter, post=stringListResultHandler)
+registerCommand( ("list",) ,            pro=listParameter, post=printColumn)
 registerStopHelpTraversalAt( ("parameter",) )
     
