@@ -18,8 +18,8 @@
 
 from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
 from pyshell.utils.exception import ListOfException, AbstractListableException
-from exception               import ParameterException, ParameterLoadingException
-from valuable                import Valuable
+from pyshell.utils.exception import ParameterException, ParameterLoadingException
+from pyshell.utils.valuable  import Valuable
 import os, sys
 from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
 
@@ -77,7 +77,7 @@ def _getInt(config, section, option, defaultValue):
         try:
             ret = int(config.get(section, option))
         except ValueError as ve:
-            raise ParameterLoadingException("(ParameterManager) _getInt, fail to load <"+option+"> for section <"+str(section)+"> : "+str(ve))
+            raise ParameterLoadingException("(ParameterManager) _getInt, fail to load '"+option+"' for section '"+str(section)+"' : "+str(ve))
 
     return ret
 
@@ -142,7 +142,7 @@ class ParameterManager(object):
             
                 #a parent category with a similar name can not already exist (because of the structure of the parameter file)
                 if section in self.params:
-                    errorList.addException(ParameterLoadingException("Section <"+str(section)+">, a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
+                    errorList.addException(ParameterLoadingException("Section '"+str(section)+"', a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
                     continue
                 
                 #try to parse the parameter
@@ -156,19 +156,19 @@ class ParameterManager(object):
                     try:
                         self.params[specialSectionClassToUse.getStaticName()][section].setFromFile(argument_dico)
                     except Exception as ex:
-                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
+                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
                         
                 else:
                     try:
                         self.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
                     except Exception as ex:
-                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" <"+str(section)+"> : "+str(ex)))
+                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
                         continue
         
             ### GENERIC ### 
             else:
                 if section in FORBIDEN_SECTION_NAME:
-                    errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name <"+str(section)+"> not allowed"))
+                    errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name '"+str(section)+"' not allowed"))
                     continue
             
                 #if section in 
@@ -245,7 +245,7 @@ class ParameterManager(object):
             
             #name can't be an existing section name (because of the struct of the file)
             if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name <"+str(name)+">, a similar item already has this name")
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name '"+str(name)+"', a similar item already has this name")
         else:
             #is generic instance 
             if not isinstance(param, VarParameter):
@@ -254,7 +254,7 @@ class ParameterManager(object):
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME
             for forbidenName in FORBIDEN_SECTION_NAME:
                 if name in self.params[forbidenName]:
-                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name <"+name+">, a similar <"+forbidenName+"> object already has this name")
+                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name")
             
         if parent not in self.params:
             self.params[parent] = {}
@@ -271,7 +271,7 @@ class ParameterManager(object):
 
         #name exists ?
         if name not in self.params[parent]:
-            raise ParameterException("(ParameterManager) getParameter, parameter name <"+str(name)+">  does not exist")
+            raise ParameterException("(ParameterManager) getParameter, parameter name '"+str(name)+"'  does not exist")
 
         return self.params[parent][name]
 
@@ -286,7 +286,7 @@ class ParameterManager(object):
             parent = MAIN_CATEGORY
 
         if parent not in self.params or name not in self.params[parent]:
-            raise ParameterException("(ParameterManager) unsetParameter, parameter name <"+str(name)+">  does not exist")
+            raise ParameterException("(ParameterManager) unsetParameter, parameter name '"+str(name)+"'  does not exist")
 
         if not self.params[parent][name].isRemovable():
             raise ParameterException("(ParameterManager) setParameter, this parameter is not removable")
@@ -389,13 +389,13 @@ class EnvironmentParameter(Parameter):
 
     def setReadOnly(self, state):
         if type(state) != bool:
-            raise ParameterException("(EnvironmentParameter) setReadOnly, expected a bool type as state, got <"+str(type(state))+">")
+            raise ParameterException("(EnvironmentParameter) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.readonly = state
 
     def setRemovable(self, state):
         if type(state) != bool:
-            raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got <"+str(type(state))+">")
+            raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.removable = state
 
@@ -442,10 +442,10 @@ class EnvironmentParameter(Parameter):
             sep = config.get(section, "separator")
             
             if sep == None or (type(sep) != str and type(sep) != unicode):
-                raise ParameterLoadingException("(EnvironmentParameter) parse, section <"+str(section)+">, separator must be a string, get "+str(type(sep)))
+                raise ParameterLoadingException("(EnvironmentParameter) parse, section '"+str(section)+"', separator must be a string, get '"+str(type(sep))+"'")
                 
             if len(sep) != 1:
-                raise ParameterLoadingException("(EnvironmentParameter) parse, section <"+str(section)+">, separator must have a length of 1, get <"+str(len(sep))+">")
+                raise ParameterLoadingException("(EnvironmentParameter) parse, section '"+str(section)+"', separator must have a length of 1, get <"+str(len(sep))+">")
         
             value = value.strip()
             if len(value) == 0:
@@ -538,7 +538,7 @@ class ContextParameter(EnvironmentParameter):
         
     def setTransientIndex(self,state):
         if type(state) != bool:
-            raise ParameterException("(ContextParameter) setTransientIndex, expected a bool type as state, got <"+str(type(state))+">")
+            raise ParameterException("(ContextParameter) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.transientIndex = state
         

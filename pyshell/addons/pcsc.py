@@ -16,22 +16,22 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.command import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
-from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
+from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
+from pyshell.arg.decorator             import shellMethod
+from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
 from pyshell.simpleProcess.postProcess import stringListResultHandler
 
 try:
-    from smartcard.System import readers
+    from smartcard.System                 import readers
     from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
-    from smartcard.ReaderMonitoring import ReaderMonitor, ReaderObserver
-    from smartcard.CardMonitoring import CardMonitor, CardObserver
-    from smartcard.CardConnection import CardConnection
-    from smartcard.ATR import ATR
-    from smartcard.pcsc.PCSCContext import PCSCContext
-    from smartcard.pcsc.PCSCExceptions import EstablishContextException
+    from smartcard.ReaderMonitoring       import ReaderMonitor, ReaderObserver
+    from smartcard.CardMonitoring         import CardMonitor, CardObserver
+    from smartcard.CardConnection         import CardConnection
+    from smartcard.ATR                    import ATR
+    from smartcard.pcsc.PCSCContext       import PCSCContext
+    from smartcard.pcsc.PCSCExceptions    import EstablishContextException
 
-    from smartcard.sw.ErrorCheckingChain import ErrorCheckingChain
+    from smartcard.sw.ErrorCheckingChain    import ErrorCheckingChain
     from smartcard.sw.ISO7816_4ErrorChecker import ISO7816_4ErrorChecker
     from smartcard.sw.ISO7816_8ErrorChecker import ISO7816_8ErrorChecker
     from smartcard.sw.ISO7816_9ErrorChecker import ISO7816_9ErrorChecker
@@ -119,7 +119,7 @@ def connectReader(index=0):
         #TODO store the connexion
 
     except Exception as e:
-        raise engineInterruptionException("fail to create a connexion to the reader <"+str(reader)+">", True)
+        raise engineInterruptionException("fail to create a connexion to the reader '"+str(reader)+"'", True)
 
 @shellMethod(index=IntegerArgChecker())
 def disconnect(index=0):

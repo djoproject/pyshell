@@ -16,11 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils                   import getAndInitCallerModule, AbstractLoader
-from pyshell.command.command import MultiCommand, UniCommand
-from exceptions              import RegisterException
-from tries.exception         import triesException
-from pyshell.utils.constants import ENVIRONMENT_NAME
+from tries.exception          import triesException
+
+from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
+from pyshell.command.command  import MultiCommand, UniCommand
+from pyshell.loader.exception import RegisterException
+from pyshell.utils.constants  import ENVIRONMENT_NAME
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)
@@ -129,7 +130,7 @@ class CommandLoader(AbstractLoader):
             try:
                 mltries.insert(key, cmd)
             except triesException as te:
-                print "fail to insert key <"+str(" ".join(key))+"> in multi tries: "+str(te)
+                print "fail to insert key '"+str(" ".join(key))+"' in multi tries: "+str(te)
 
         #stop traversal
         for stop in self.stoplist:
@@ -139,7 +140,7 @@ class CommandLoader(AbstractLoader):
             try:
                 mltries.setStopTraversal(key, True)
             except triesException as te:
-                print "fail to disable traversal for key list <"+str(" ".join(stop))+"> in multi tries: "+str(te)
+                print "fail to disable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)
 
     def unload(self, parameterManager):
         if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
@@ -158,7 +159,7 @@ class CommandLoader(AbstractLoader):
             try:
                 mltries.remove(key)
             except triesException as te:
-                print("fail to remove key <"+str(" ".join(key))+"> in multi tries: "+str(te))
+                print("fail to remove key '"+str(" ".join(key))+"' in multi tries: "+str(te))
         
     def addCmd(self, name, keyList, cmd):
         if self.TempPrefix != None:

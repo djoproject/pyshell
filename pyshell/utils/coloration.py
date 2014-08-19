@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-HEADER  = '\033[95m'
+MAUVE  = '\033[95m'
 BLUE    = '\033[94m'
 GREEN   = '\033[92m'
 ORANGE  = '\033[93m'
@@ -36,5 +36,7 @@ def orange(text):
     return ORANGE+text+ENDC
     
 def mauve(text):
-    return HEADER+text+ENDC
+    return MAUVE+text+ENDC
 
+def nocolor(text):
+    return text

@@ -16,11 +16,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils                   import getAndInitCallerModule, AbstractLoader
-from exceptions              import LoadException
-from pyshell.utils.keystore  import Key, KeyStore
-from pyshell.utils.parameter import EnvironmentParameter
-from pyshell.utils.constants import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
+from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
+from pyshell.loader.exception import LoadException
+from pyshell.utils.keystore   import Key, KeyStore
+from pyshell.utils.parameter  import EnvironmentParameter
+from pyshell.utils.constants  import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
 
 LOADING_METHOD_NAME    = "load"
 UNLOADING_METHOD_NAME  = "unload"
@@ -35,7 +35,7 @@ def _initAndGetKeyStore(parameterManager, methName):
     keyStore = parameterManager.getParameter(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME).getValue()
     
     if not isinstance(keyStore, KeyStore):
-        raise LoadException("(KeyStoreLoader) "+str(methName)+", the keyStore item retrieved from parameters is not a valid instance of KeyStore, got <"+str(type(keyStore))+">")
+        raise LoadException("(KeyStoreLoader) "+str(methName)+", the keyStore item retrieved from parameters is not a valid instance of KeyStore, got '"+str(type(keyStore))+"'")
         
     return keyStore
 

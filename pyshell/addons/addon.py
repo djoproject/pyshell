@@ -20,7 +20,7 @@
 from pyshell.loader.command            import registerSetTempPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.arg.decorator             import shellMethod
-import os
+import os, sys
 from pyshell.simpleProcess.postProcess import printColumn
 from pyshell.arg.argchecker            import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter           import EnvironmentParameter
@@ -94,7 +94,7 @@ def unloadAddon(name, parameters, subAddon = None):
     addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
     
     if name not in addon_dico:
-        raise Exception("unknown addon <"+str(name)+">")
+        raise Exception("unknown addon '"+str(name)+"'")
     
     addon_dico[name].unload(parameters, subAddon)
     del addon_dico[name]
@@ -111,7 +111,7 @@ def reloadAddon(name, parameters, subAddon = None):
     addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
     
     if name not in addon_dico:
-        raise Exception("unknown addon <"+str(name)+">")
+        raise Exception("unknown addon '"+str(name)+"'")
     
     addon_dico[name].reload(parameters, subAddon)
 
@@ -152,7 +152,7 @@ def importExternal(name, parameters, subAddon = None):
 
 ### REGISTER SECTION ###
 
-registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
+registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {"pyshell.addons.addon":sys.modules[__name__]}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
 
 registerSetTempPrefix( ("addon", ) )
 registerCommand( ("list",) ,                  pro=listAddonFun, post=printColumn)

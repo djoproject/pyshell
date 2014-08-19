@@ -1,13 +1,28 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
     from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
 else:
     from collections import OrderedDict 
     
-from exception import *
+from pyshell.arg.exception import *
 
 ###############################################################################################
 ##### ArgsChecker #############################################################################
@@ -69,7 +84,7 @@ class ArgFeeder(ArgsChecker):
                         break 
                     else:
                         #there are data but not enough
-                        raise argException("(ArgFeeder) not enough data for the argument <"+name+">")
+                        raise argException("(ArgFeeder) not enough data for the argument '"+name+"'")
             
             #is there a maximum limit?
             if checker.maximumSize == None:
@@ -97,7 +112,7 @@ class ArgFeeder(ArgsChecker):
             if checker.hasDefaultValue(name):
                 ret[name] = checker.getDefaultValue(name)
             else:
-                raise argException("(ArgFeeder) some arguments aren't bounded, missing data : <"+name+">")
+                raise argException("(ArgFeeder) some arguments aren't bounded, missing data : '"+name+"'")
 
         #don't care about unused data in argsList, if every parameter are binded, we are happy :)
 

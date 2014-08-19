@@ -16,8 +16,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils import getAndInitCallerModule, AbstractLoader
-from exceptions import RegisterException
+from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
+from pyshell.loader.exception import RegisterException
 
 #TODO
     #need to have the list of already loaded addons

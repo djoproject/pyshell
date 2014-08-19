@@ -46,6 +46,7 @@ from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, Co
 from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.constants   import DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.coloration  import red, orange, nocolor
 
 class writer :
     def __init__(self, out):
@@ -77,7 +78,7 @@ def _parseLine(line, args):
             if args is not None:
                 if cmd.startswith("$") and len(cmd) > 1:
                     if cmd[1:] not in args:
-                        print("Unknown var <"+cmd[1:]+">")
+                        print("Unknown var '"+cmd[1:]+"'")
                         return ()
 
                     finalCmd.extend(args[cmd[1:]])
@@ -138,8 +139,8 @@ class CommandExecuter():
                 print("LOADING FATAL ERROR:")
                 for e in loe.exceptions:
                     print("    "+str(e))
-        except Exception as ex:
-            print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
+        #except Exception as ex:
+        #    print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
 
             if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
                 traceback.print_exc()
@@ -167,11 +168,11 @@ class CommandExecuter():
                 addon.loadAddonFun(addonName, self.params)
             except ListOfException as loe:
                 if len(loe.exceptions) > 0:
-                    print("fail to load addon <"+str(addonName)+">: ")
+                    print("fail to load addon '"+str(addonName)+"': ")
                     for e in loe.exceptions:
                         print("    "+str(e))
             except Exception as ex:
-                print("fail to load addon <"+str(addonName)+">: "+str(ex))
+                print("fail to load addon '"+str(addonName)+"': "+str(ex))
 
                 if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
                     traceback.print_exc()
@@ -199,7 +200,8 @@ class CommandExecuter():
     # @return, true if no severe error or correct process, false if severe error
     #
     def executeCommand(self,cmd):
-        ### STEP 1: split 
+        ## init, parse and check the string list ##
+        
         #TODO update vars, if exist use it, otherelse, put a None value or something like that
         cmdStringList = _parseLine(cmd,self.params.getParameter("vars", ENVIRONMENT_NAME).getValue())
 
@@ -207,6 +209,15 @@ class CommandExecuter():
         if len(cmdStringList) == 0:
             return False
 
+        #define console coloration function
+        if self.params.getParameter("execution",CONTEXT_NAME).getSelectedValue() == "shell":
+            _severe = red
+            _warning = orange
+        else:
+            _severe = nocolor
+            _warning = nocolor
+
+        ## look after command in tries ##
         rawCommandList = []   
         rawArgList     = []
         for finalCmd in cmdStringList:            
@@ -215,7 +226,7 @@ class CommandExecuter():
             try:
                 searchResult = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().advancedSearch(finalCmd, False)
             except triesException as te:
-                print "failed to find the command <"+str(finalCmd)+">, reason: "+str(te)
+                print(_warning("failed to find the command '"+str(finalCmd)+"', reason: "+str(te)))
                 return False
             
             if searchResult.isAmbiguous():                    
@@ -223,17 +234,17 @@ class CommandExecuter():
                 tries = searchResult.existingPath[tokenIndex][1].localTries
                 keylist = tries.getKeyList(finalCmd[tokenIndex])
 
-                print("ambiguity on command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[tokenIndex])+">, possible value: "+ ", ".join(keylist))
+                print(_warning("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist)))
 
                 return False
             elif not searchResult.isAvalueOnTheLastTokenFound():
                 if searchResult.getTokenFoundCount() == len(finalCmd):
-                    print("uncomplete command <"+" ".join(finalCmd)+">, type <help "+" ".join(finalCmd)+"> to get the next available parts of this command")
+                    print(_warning("uncomplete command '"+" ".join(finalCmd)+"', type 'help "+" ".join(finalCmd)+"' to get the next available parts of this command"))
                 else:
                     if len(finalCmd) == 1:
-                        print("unknown command <"+" ".join(finalCmd)+">, type <help> to get the list of commands")
+                        print(_warning("unknown command '"+" ".join(finalCmd)+"', type 'help' to get the list of commands"))
                     else:
-                        print("unknown command <"+" ".join(finalCmd)+">, token <"+str(finalCmd[searchResult.getTokenFoundCount()])+"> is unknown, type <help> to get the list of commands")
+                        print(_warning("unknown command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands"))
                 
                 return False
 
@@ -241,32 +252,32 @@ class CommandExecuter():
             rawCommandList.append(searchResult.getLastTokenFoundValue())
             rawArgList.append(searchResult.getNotFoundTokenList())
         
-        #execute the engine object
+        ## execute the engine object ##
         try:
             engine = engineV3(rawCommandList, rawArgList, self.params)
             engine.execute()
             return True
             
         except executionInitException as eie:
-            print("Fail to init an execution object: "+str(eie.value))
+            print(_severe("Fail to init an execution object: "+str(eie.value)))
         except executionException as ee:
-            print("Fail to execute: "+str(eie.value))
+            print(_severe("Fail to execute: "+str(eie.value)))
         except commandException as ce:
-            print("Error in command method: "+str(ce.value))
+            print(_severe("Error in command method: "+str(ce.value)))
         except engineInterruptionException as eien:
             if eien.abnormal:
-                print("Abnormal execution abort, reason: "+str(eien.value))
+                print(_severe("Abnormal execution abort, reason: "+str(eien.value)))
             else:
-                print("Normal execution abort, reason: "+str(eien.value))
+                print(_warning("Normal execution abort, reason: "+str(eien.value)))
         except argException as ae:
-            print("Error in parsing argument: "+str(ae.value))
+            print(_warning("Error in parsing argument: "+str(ae.value)))
         except ListOfException as loe:
             if len(loe.exceptions) > 0:
-                print("List of exception:")
+                print(_severe("List of exception:"))
                 for e in loe.exceptions:
-                    print("    "+str(e))
+                    print(_warning("    "+str(e)))
         except Exception as e:
-            print('\033[91m' + str(e) + '\033[0m')
+            print(_severe(str(e)))
 
         #print stack trace if debug is enabled
         if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
@@ -387,6 +398,8 @@ class CommandExecuter():
 
             finalKeys.append(None)
             return finalKeys[index]
+            
+        #TODO is it normal to catch exception like this here ?
         except Exception as ex:
             import traceback,sys
             print traceback.format_exc()

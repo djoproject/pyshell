@@ -20,7 +20,7 @@ from tries                   import tries
 from tries.exception         import ambiguousPathException
 import sys,os
 from math                    import log
-from valuable                import Valuable
+from pyshell.utils.valuable  import Valuable
 from pyshell.utils.constants import KEYSTORE_SECTION_NAME
 
 try:

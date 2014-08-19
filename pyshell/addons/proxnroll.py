@@ -37,7 +37,7 @@ from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, Int
 from pyshell.command.exception import engineInterruptionException
 from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
 
-from pcsc import printATR #FIXME create a dependancy... 
+from pyshell.addons.pcsc import printATR #FIXME create a dependancy... 
 
 ## FUNCTION SECTION ##
 

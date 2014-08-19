@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #Copyright (C) 2012  Jonathan Delvaux <pyshell@djoproject,net>
 
@@ -15,31 +16,43 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class executionInitException(Exception):
+from pyshell.utils.exception import PyshellException, CORE_ERROR, CORE_WARNING
+
+class executionInitException(PyshellException):
     def __init__(self,value):
+        PyshellException.__init__(self, CORE_ERROR)
         self.value = value
 
     def __str__(self):
         return str(self.value)
 
-class executionException(Exception):
+class executionException(PyshellException):
     def __init__(self,value):
+        PyshellException.__init__(self, CORE_ERROR)
         self.value = value
 
     def __str__(self):
         return str(self.value)
         
-class commandException(Exception):
+class commandException(PyshellException):
     def __init__(self,value):
+        PyshellException.__init__(self, CORE_ERROR)
         self.value = value
 
     def __str__(self):
         return str(self.value)
 
-class engineInterruptionException(Exception):
+class engineInterruptionException(PyshellException):
     def __init__(self, value, abnormal = False):
+        if abnormal:
+            PyshellException.__init__(self, CORE_ERROR)
+        else:
+            PyshellException.__init__(self, CORE_WARNING)
+    
         self.abnormal = abnormal
         self.value = value
 
     def __str__(self):
         return str(self.value)
+        
+

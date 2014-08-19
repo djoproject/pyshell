@@ -1,8 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from exception import executionException
-#from pyshell.arg.argchecker import 
+#Copyright (C) 2012  Jonathan Delvaux <pyshell@djoproject,net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from pyshell.command.exception import executionException
 
 #TODO 
     #move that into the arg package
@@ -131,7 +145,7 @@ def isAValidIndex(li, index, cmdName = None, listName = None, context="engine", 
             cmdName = ""
         
         if listName != None:
-            listName = " on list <"+listName+">"
+            listName = " on list '"+listName+"'"
         else:
             listName = ""
         

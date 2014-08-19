@@ -16,13 +16,15 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from exception               import *
+
 from tries                   import tries
 from tries.exception         import ambiguousPathException
 import collections # for collections.Hashable
 from math                    import log
 import os
 from threading               import Lock
+
+from pyshell.arg.exception   import *
 from pyshell.utils.keystore  import Key
 from pyshell.utils.constants import ENVIRONMENT_NAME, CONTEXT_NAME, KEYSTORE_SECTION_NAME
 
@@ -123,14 +125,14 @@ class ArgChecker(object):
         
         if minimumSize != None:
             if type(minimumSize) != int:
-                raise argInitializationException("("+self.typeName+") Minimum size must be an integer, got type <"+str(type(minimumSize))+"> with the following value <"+str(minimumSize)+">")
+                raise argInitializationException("("+self.typeName+") Minimum size must be an integer, got type '"+str(type(minimumSize))+"' with the following value <"+str(minimumSize)+">")
                 
             if minimumSize < 0:
                 raise argInitializationException("("+self.typeName+") Minimum size must be a positive value, got <"+str(minimumSize)+">")
         
         if maximumSize != None:
             if type(maximumSize) != int:
-                raise argInitializationException("("+self.typeName+") Maximum size must be an integer, got type <"+str(type(maximumSize))+"> with the following value <"+str(maximumSize)+">") 
+                raise argInitializationException("("+self.typeName+") Maximum size must be an integer, got type '"+str(type(maximumSize))+"' with the following value <"+str(maximumSize)+">") 
         
             if maximumSize < 0:
                 raise argInitializationException("("+self.typeName+") Maximum size must be a positive value, got <"+str(maximumSize)+">") 
@@ -216,7 +218,7 @@ class ArgChecker(object):
             if len(prefix) > 0:
                 prefix += " "
         
-            prefix += "at argument <"+str(argNameToBind)+">"
+            prefix += "at argument '"+str(argNameToBind)+"'"
             
         if len(prefix) > 0:
             prefix += ": "
@@ -237,7 +239,7 @@ class stringArgChecker(ArgChecker):
             if hasattr(value, "__str__"):
                 return str(value)
         
-            self._raiseArgException("this value <"+str(value)+"> is not a valid string, got type <"+str(type(value))+">", argNumber, argNameToBind)
+            self._raiseArgException("this value '"+str(value)+"' is not a valid string, got type '"+str(type(value))+"'", argNumber, argNameToBind)
     
         return value
     
@@ -286,9 +288,9 @@ class IntegerArgChecker(ArgChecker):
         if castedValue == None:
             
             if len(self.bases) == 1:
-                message = "Only a number in base <"+str(self.bases[0])+" is allowed>"
+                message = "Only a number in base <"+str(self.bases[0])+"> is allowed"
             else:
-                message = "Only a number in bases <"+", ".join(str(x) for x in list_of_ints)+" is allowed>"
+                message = "Only a number in bases <"+", ".join(str(x) for x in list_of_ints)+"> is allowed"
         
             self._raiseArgException("this arg is not a valid "+self.typeName.lower()+", got <"+str(value)+">. "+message, argNumber, argNameToBind)
 
@@ -341,13 +343,13 @@ class tokenValueArgChecker(stringArgChecker):
     def __init__(self, tokenDict, typename=TOKENCHECKER_TYPENAME):
         stringArgChecker.__init__(self, typename)
         if not isinstance(tokenDict, dict):
-            raise argInitializationException("("+self.typeName+") tokenDict must be a dictionary, got <"+str(type(tokenDict))+">")
+            raise argInitializationException("("+self.typeName+") tokenDict must be a dictionary, got '"+str(type(tokenDict))+"'")
         
         self.localtries = tries()
         for k,v in tokenDict.iteritems():
             #key must be non empty string, value can be anything
             if type(k) != str and type(k) != unicode:
-                raise argInitializationException("("+self.typeName+") a key in the dictionary is not a string: <"+str(k)+">, type: <"+str(type(k))+">")
+                raise argInitializationException("("+self.typeName+") a key in the dictionary is not a string: '"+str(k)+"', type: '"+str(type(k))+"'")
 
             self.localtries.insert(k,v)
     
@@ -357,11 +359,11 @@ class tokenValueArgChecker(stringArgChecker):
         try:
             node = self.localtries.search(value)
             if node == None:
-                self._raiseArgException("this arg <"+str(value)+"> is not an existing token, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
+                self._raiseArgException("this arg '"+str(value)+"' is not an existing token, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
             return node.value
             
         except ambiguousPathException:
-            self._raiseArgException("this arg <"+str(value)+"> is ambiguous, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
+            self._raiseArgException("this arg '"+str(value)+"' is ambiguous, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
         
     def getUsage(self):
         return "("+ ("|".join(self.localtries.getKeyList())) + ")"
@@ -395,10 +397,10 @@ class floatTokenArgChecker(ArgChecker):
         ArgChecker.__init__(self,1,1,True, FLOATCHECKER_TYPENAME)
     
         if minimum != None and type(minimum) != float and type(minimum) != int:
-            raise argInitializationException("("+self.typeName+") Minimum must be a float or None, got <"+str(type(minimum))+">")
+            raise argInitializationException("("+self.typeName+") Minimum must be a float or None, got '"+str(type(minimum))+"'")
             
         if maximum != None and type(maximum) != float and type(maximum) != int:
-            raise argInitializationException("("+self.typeName+") Maximum must be a float or None, got <"+str(type(maximum))+">")
+            raise argInitializationException("("+self.typeName+") Maximum must be a float or None, got '"+str(type(maximum))+"'")
             
         if minimum != None and maximum != None and maximum < minimum:
             raise argInitializationException("("+self.typeName+") Maximum <"+str(maximum)+"> can not be smaller than Minimum <"+str(minimum)+">")
@@ -488,12 +490,12 @@ class parameterChecker(ArgChecker):
         ArgChecker.__init__(self,0,0,False, typeName)
         
         if keyname is None or (type(keyname) != str and type(keyname) != unicode) or not isinstance(keyname, collections.Hashable):
-            raise argInitializationException("("+self.typeName+") keyname must be hashable string, got <"+str(keyname)+">")
+            raise argInitializationException("("+self.typeName+") keyname must be hashable string, got '"+str(keyname)+"'")
         
         self.keyname = keyname
         
         if parent is not None and (  (type(parent) != str and type(parent) != unicode) or not isinstance(parent, collections.Hashable) ):
-            raise argInitializationException("("+self.typeName+") parent must be hashable string, got <"+str(parent)+">")
+            raise argInitializationException("("+self.typeName+") parent must be hashable string, got '"+str(parent)+"'")
         
         self.parent = parent
     
@@ -502,7 +504,7 @@ class parameterChecker(ArgChecker):
         env = self.engine.getEnv()
 
         if not env.hasParameter(self.keyname, self.parent):#self.keyname not in self.engine.getEnv():
-            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber, argNameToBind)
+            self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
     
         return env.getParameter(self.keyname, self.parent) #self.engine.getEnv()[self.keyname][0]
         
@@ -531,12 +533,12 @@ class parameterDynamicChecker(ArgChecker):
     def getValue(self,value,argNumber=None, argNameToBind=None):
         self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
         if not isinstance(value, collections.Hashable):
-            self._raiseArgException("keyname must be hashable, got <"+str(value)+">", argNumber, argNameToBind)
+            self._raiseArgException("keyname must be hashable, got '"+str(value)+"'", argNumber, argNameToBind)
         
         env = self.engine.getEnv()
 
         if not self.engine.getEnv().hasParameter(value, self.parent): #value not in self.engine.getEnv():
-            self._raiseArgException("the key <"+self.keyname+"> is not available but needed", argNumber, argNameToBind)
+            self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
     
         return self.engine.getEnv().getParameter(self.keyname, self.parent) #self.engine.getEnv()[value][0]
     
@@ -580,7 +582,7 @@ class defaultValueChecker(ArgChecker):
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
         if not isinstance(checker, ArgChecker) or isinstance(checker, listArgChecker):
-            raise argInitializationException("("+LISTCHECKER_TYPENAME+") checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got <"+str(type(checker))+">")
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got '"+str(type(checker))+"'")
 
         #checker must have a fixed size
         if checker.minimumSize != checker.maximumSize or checker.minimumSize == None or checker.minimumSize == 0:
@@ -718,16 +720,16 @@ class filePathArgChecker(stringArgChecker):
         stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME)
     
         if exist is not None and type(exist) != bool:
-            raise argInitializationException("("+self.typeName+") exist must be None or a boolean, got <"+str(type(exist))+">")
+            raise argInitializationException("("+self.typeName+") exist must be None or a boolean, got '"+str(type(exist))+"'")
             
         if readable is not None and type(readable) != bool:
-            raise argInitializationException("("+self.typeName+") readable must be None or a boolean, got <"+str(type(readable))+">")
+            raise argInitializationException("("+self.typeName+") readable must be None or a boolean, got '"+str(type(readable))+"'")
             
         if writtable is not None and type(writtable) != bool:
-            raise argInitializationException("("+self.typeName+") writtable must be None or a boolean, got <"+str(type(writtable))+">")
+            raise argInitializationException("("+self.typeName+") writtable must be None or a boolean, got '"+str(type(writtable))+"'")
         
         if isFile is not None and type(isFile) != bool:
-            raise argInitializationException("("+self.typeName+") isFile must be None or a boolean, got <"+str(type(isFile))+">")
+            raise argInitializationException("("+self.typeName+") isFile must be None or a boolean, got '"+str(type(isFile))+"'")
         
         self.exist     = exist
         self.readable  = readable
@@ -747,10 +749,10 @@ class filePathArgChecker(stringArgChecker):
             fileExist = os.access(path, os.F_OK)
             
             if self.exist and not fileExist:
-                self._raiseArgException("Path <"+str(path)+"> does not exist and must exist",argNumber, argNameToBind)
+                self._raiseArgException("Path '"+str(path)+"' does not exist and must exist",argNumber, argNameToBind)
                 
             if not self.exist and fileExist:
-                self._raiseArgException("Path <"+str(path)+"> exists and must not exist",argNumber, argNameToBind)
+                self._raiseArgException("Path '"+str(path)+"' exists and must not exist",argNumber, argNameToBind)
         
         #isFile
         if self.isFile is not None:
@@ -761,10 +763,10 @@ class filePathArgChecker(stringArgChecker):
                 isFile = os.path.isfile(path)
                 
                 if self.isFile and not isFile:
-                    self._raiseArgException("Path <"+str(path)+"> is a directory and must be a file",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' is a directory and must be a file",argNumber, argNameToBind)
                     
                 if not self.isFile and isFile:
-                    self._raiseArgException("Path <"+str(path)+"> is a file and must be a directory",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' is a file and must be a directory",argNumber, argNameToBind)
             #else: #if not exist, do not care, no way to know if it is a file or a directory
         
         #readable
@@ -774,16 +776,16 @@ class filePathArgChecker(stringArgChecker):
                 
             if not fileExist:
                 if self.exist is not None and self.exist:
-                    self._raiseArgException("Path <"+str(path)+"> does not exist and so it is not readable",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' does not exist and so it is not readable",argNumber, argNameToBind)
             
             else:
                 readable = os.access(path, os.R_OK)
                 
                 if self.readable and not readable:
-                    self._raiseArgException("Path <"+str(path)+"> is not readable and must be readable",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' is not readable and must be readable",argNumber, argNameToBind)
                 
                 if not self.readable and readable:
-                    self._raiseArgException("Path <"+str(path)+"> is readable and must not be readable",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' is readable and must not be readable",argNumber, argNameToBind)
             
         #writtable
         if self.writtable is not None:
@@ -810,16 +812,16 @@ class filePathArgChecker(stringArgChecker):
                     curentPath = parentPath
                     parentPath = os.path.abspath(os.path.join(curentPath, os.pardir))
                 else:
-                    self._raiseArgException("Path <"+str(path)+"> does not exist and the first existing parent directory <"+str(parentPath)+"> is not writtable",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' does not exist and the first existing parent directory '"+str(parentPath)+"' is not writtable",argNumber, argNameToBind)
                     
             else:
                 writtable = os.access(path, os.W_OK)#return False if path does not exist...
                 
                 if self.writtable and not writtable:
-                    self._raiseArgException("Path <"+str(path)+"> is not writtable and must be writtable",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' is not writtable and must be writtable",argNumber, argNameToBind)
                 
                 if not self.writtable and writtable:
-                    self._raiseArgException("Path <"+str(path)+"> is writtable and must not be writtable",argNumber, argNameToBind)
+                    self._raiseArgException("Path '"+str(path)+"' is writtable and must not be writtable",argNumber, argNameToBind)
         
         #don't open a file, because not sure the addon will close it...        
         return value
@@ -833,16 +835,16 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         
         if keySize != None:
             if type(keySize) != int:
-                raise argInitializationException("("+self.typeName+") keySize must be an integer, got <"+str(type(keySize))+">")
+                raise argInitializationException("("+self.typeName+") keySize must be an integer, got '"+str(type(keySize))+"'")
                 
             if type(keySize) < 0:
                 raise argInitializationException("("+self.typeName+") keySize must be bigger than 0, got <"+str(tkeySize)+">")
         
         if allowdifferentKeySize == None or type(allowdifferentKeySize) != bool:
-            raise argInitializationException("("+self.typeName+") allowdifferentKeySize must be a boolean, got <"+str(type(allowdifferentKeySize))+">")
+            raise argInitializationException("("+self.typeName+") allowdifferentKeySize must be a boolean, got '"+str(type(allowdifferentKeySize))+"'")
         
         if byteKey == None or type(byteKey) != bool:
-            raise argInitializationException("("+self.typeName+") byteKey must be a boolean, got <"+str(type(byteKey))+">")
+            raise argInitializationException("("+self.typeName+") byteKey must be a boolean, got '"+str(type(byteKey))+"'")
         
         self.allowdifferentKeySize = allowdifferentKeySize
         self.keySize               = keySize
@@ -854,22 +856,22 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
 
         if not self.engine.getEnv().hasParameter(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME):
-            self._raiseArgException("the key <"+str(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME)+"> is not available in parameters but is needed to get key <"+str(value)+">", argNumber, argNameToBind)
+            self._raiseArgException("keystore is not available in parameters but is needed to get key '"+str(value)+"'", argNumber, argNameToBind)
 
         keystore = self.engine.getEnv().getParameter(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME).getValue()
         
         if not keystore.hasKey(value):
-            self._raiseArgException("unknown key <"+str(value)+">", argNumber, argNameToBind)
+            self._raiseArgException("unknown key '"+str(value)+"'", argNumber, argNameToBind)
         
         keyInstance = keystore.getKey(value)
         
         #check type
         if self.byteKey != None:
             if self.byteKey and keyInstance.getKeyType() !=  Key.KEYTYPE_HEXA:
-                self._raiseArgException("the key <"+str(value)+"> is a bit key and the process need a byte key", argNumber, argNameToBind)
+                self._raiseArgException("the key '"+str(value)+"' is a bit key and the process need a byte key", argNumber, argNameToBind)
                 
             if not self.byteKey and keyInstance.getKeyType() !=  Key.KEYTYPE_BIT:
-                self._raiseArgException("the key <"+str(value)+"> is a byte key and the process need a bit key", argNumber, argNameToBind)
+                self._raiseArgException("the key '"+str(value)+"' is a byte key and the process need a bit key", argNumber, argNameToBind)
         
         #check size
         if self.keySize != None and not self.allowdifferentKeySize and keyInstance.getKeySize() < self.keySize:
@@ -878,7 +880,7 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
             else:
                 keytype = "bit(s)"
                 
-            self._raiseArgException("too short key <"+str(value)+">, need a key of at least <"+str(self.keySize)+" "+keytype+", got a <"+str(keyInstance.getKeySize())+"> "+keytype+" key", argNumber, argNameToBind)
+            self._raiseArgException("too short key '"+str(value)+"', need a key of at least <"+str(self.keySize)+" "+keytype+", got a <"+str(keyInstance.getKeySize())+"> "+keytype+" key", argNumber, argNameToBind)
         
         return keyInstance
 

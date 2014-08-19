@@ -16,10 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from tries.exception                   import triesException
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand
 from pyshell.arg.decorator             import shellMethod
 from pyshell.command.command           import MultiOutput
-from tries.exception                   import triesException
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
 from pyshell.utils.constants           import ENVIRONMENT_NAME
@@ -73,7 +73,7 @@ def usageFun(args, mltries):
     try:
         searchResult = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
-        print "failed to find the command <"+str(args)+">, reason: "+str(te)
+        print "failed to find the command '"+str(args)+"', reason: "+str(te)
         return
 
     if searchResult.isAmbiguous():
@@ -81,12 +81,12 @@ def usageFun(args, mltries):
         tries = searchResult.existingPath[tokenIndex][1].localTries
         keylist = tries.getKeyList(args[tokenIndex])
 
-        print("ambiguity on command <"+" ".join(args)+">, token <"+str(args[tokenIndex])+">, possible value: "+ ", ".join(keylist))
+        print("ambiguity on command '"+" ".join(args)+"', token '"+str(args[tokenIndex])+"', possible value: "+ ", ".join(keylist))
         return
 
     if not searchResult.isPathFound():
         tokenNotFound = searchResult.getNotFoundTokenList()
-        print "command not found, unknown token <"+tokenNotFound[0]+">"
+        print "command not found, unknown token '"+tokenNotFound[0]+"'"
         return 
 
     if not searchResult.isAvalueOnTheLastTokenFound():
@@ -132,7 +132,7 @@ def helpFun(mltries, args=None):
         #manage not found case
         if not ambiguityOnLastToken and not advancedResult.isPathFound():
             notFoundToken = advancedResult.getNotFoundTokenList()
-            print "unkwnon token "+str(advancedResult.getTokenFoundCount())+": <"+notFoundToken[0]+">"
+            print "unkwnon token "+str(advancedResult.getTokenFoundCount())+": '"+notFoundToken[0]+"'"
             return
     
     found = []
@@ -225,7 +225,7 @@ def helpFun(mltries, args=None):
     if len(stop) == 0:
         if len(found) == 0:
             if len(fullArgs) > 0:
-                print "unkwnon token 0: <"+fullArgs[0]+">"
+                print "unkwnon token 0: '"+fullArgs[0]+"'"
             else:
                 print "no help available"
         

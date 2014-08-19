@@ -39,7 +39,7 @@ def setProperties(key, propertyName, propertyValue, parameters, parent):
     elif propertyName == "index_transient":
         param.setTransientIndex(propertyValue)
     else:
-        raise Exception("Unknown property <"+str(propertyName)+">, one of these was expected: readonly/removable/transient/index_transient")
+        raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
 def getProperties(key, propertyName, parameters, parent):
     param = getParameter(key, parameters, parent)
@@ -53,7 +53,7 @@ def getProperties(key, propertyName, parameters, parent):
     elif propertyName == "index_transient":
         return param.isTransientIndex()
     else:
-        raise Exception("Unknown property <"+str(propertyName)+">, one of these was expected: readonly/removable/transient/index_transient")
+        raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
 def addValuesFun(key, values, parameters, parent):
     param = getParameter(key, parameters, parent)
@@ -67,7 +67,7 @@ def addValuesFun(key, values, parameters, parent):
 
 def getParameter(key,parameters,parent=None):
     if not parameters.hasParameter(key, parent):
-        raise Exception("Unknow parameter key <"+str(key)+">")
+        raise Exception("Unknow parameter key '"+str(key)+"'")
 
     return parameters.getParameter(key, parent)
     
@@ -85,11 +85,11 @@ def listParameter(parameter, parent=None, key=None, printParent = True, allParen
     if parent != None:
         if parent not in parameter.params:
             return ()
-            #raise Exception("unknown parameter parent <"+str(parent)+">") 
+            #raise Exception("unknown parameter parent '"+str(parent)+"'") 
         
         if key != None:
             if key not in parameter.params[parent]:
-                raise Exception("unknown key <"+str(key)+"> in parent <"+str(parent)+">") 
+                raise Exception("unknown key '"+str(key)+"' in parent '"+str(parent)+"'") 
     
             return (str(parent)+"."+str(key)+" : \""+repr(parameter.params[parent][key])+"\"",)
     
@@ -150,7 +150,7 @@ def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=F
             parameters.setParameter(key, classDef(value, checker),parent)
             return 
 
-        raise Exception("Try to create a "+str(parent)+" with an existing key name <"+str(key)+">")
+        raise Exception("Try to create a "+str(parent)+" with an existing key name '"+str(key)+"'")
 
     #check value
     value = checker.getValue(values, None, str(parent).title()+" "+key)
@@ -342,7 +342,7 @@ def setVar(key, values, parameter, parent=None):
 
     #parent must be different of forbidden name
     if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+        raise Exception("parent '"+str(parent)+"' can not be used in var system")
 
     parameter.setParameter(key,VarParameter(values), parent)
 
@@ -354,7 +354,7 @@ def getVar(key, parameter, parent=None):
 
     #parent must be different of forbidden name
     if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+        raise Exception("parent '"+str(parent)+"' can not be used in var system")
 
     return getParameter(key, parameter, parent).getValue()
 
@@ -366,7 +366,7 @@ def unsetVar(key, parameter, parent=None):
 
     #parent must be different of forbidden name
     if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+        raise Exception("parent '"+str(parent)+"' can not be used in var system")
 
     removeParameter(key, parameter, parent)
 
@@ -378,7 +378,7 @@ def listVar(parameter, key=None, parent=None):
 
     #parent must be different of forbidden name
     if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent <"+str(parent)+"> can not be used in var system")
+        raise Exception("parent '"+str(parent)+"' can not be used in var system")
 
     return listParameter(parameter, parent, key, True, FORBIDEN_SECTION_NAME.keys())
 

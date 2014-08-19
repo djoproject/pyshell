@@ -17,8 +17,8 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import inspect
-from exceptions import RegisterException
-from pyshell.utils.exception import ListOfException, AbstractListableException
+from pyshell.loader.exception import RegisterException
+from pyshell.utils.exception  import ListOfException, AbstractListableException
 
 #TODO catch and manage ListOfLoadException somewhere
     #in executer
@@ -38,7 +38,7 @@ def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleL
         
         #must be an instance of GlobalLoader
         if not isinstance(loadersDict,GlobalLoader):
-            raise RegisterException("(loader) getAndInitCallerModule, the stored loader in the module <"+str(mod)+"> is not an instance of GlobalLoader, get <"+str(type(loadersDict))+">")
+            raise RegisterException("(loader) getAndInitCallerModule, the stored loader in the module '"+str(mod)+"' is not an instance of GlobalLoader, get '"+str(type(loadersDict))+"'")
         
     else:
         loadersDict = GlobalLoader()

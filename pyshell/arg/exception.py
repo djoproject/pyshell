@@ -1,6 +1,7 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-#Copyright (C) 2012  Jonathan Delvaux <jonathan.delvaux@uclouvain.be>
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -15,37 +16,28 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class argException(Exception):
+from pyshell.utils.exception import PyshellException, USER_ERROR, ERROR
+
+class argException(PyshellException):
     def __init__(self,value,usage=""):
+        PyshellException.__init__(self, USER_ERROR)
         self.value = value
         self.usage = usage
 
     def __str__(self):
         return str(self.value)
 
-class argInitializationException(Exception):
+class argInitializationException(PyshellException):
     def __init__(self,value):
+        PyshellException.__init__(self, ERROR)
         self.value = value
 
     def __str__(self):
         return str(self.value)
         
-"""class argExecutionException(Exception):
+class decoratorException(PyshellException):
     def __init__(self,value):
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
-        
-class argPostExecutionException(Exception):
-    def __init__(self,value):
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)"""
-        
-class decoratorException(Exception):
-    def __init__(self,value):
+        PyshellException.__init__(self, ERROR)
         self.value = value
 
     def __str__(self):

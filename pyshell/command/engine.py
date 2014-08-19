@@ -1,11 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from command import MultiOutput, MultiCommand, Command
-from exception import *
-from stackEngine import engineStack
-from utils import *
-from pyshell.utils.parameter import ParameterManager
+#Copyright (C) 2012  Jonathan Delvaux <pyshell@djoproject,net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from pyshell.command.command     import MultiOutput, MultiCommand, Command
+from pyshell.command.exception   import *
+from pyshell.command.stackEngine import engineStack
+from pyshell.command.utils       import *
+from pyshell.utils.parameter     import ParameterManager
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test    
@@ -39,7 +54,7 @@ class engineV3(object):
         for i in xrange(0,len(cmdList)):
             c = cmdList[i]
             if not isinstance(c, MultiCommand):#only the MultiCommand are allowed in the list
-                raise executionInitException("(engine) init, item <"+str(i)+"> in the command list is not a MultiCommand instance, got <"+str(type(c))+">")
+                raise executionInitException("(engine) init, item <"+str(i)+"> in the command list is not a MultiCommand instance, got '"+str(type(c))+"'")
             
             if len(c) == 0: #empty multi command are not allowed
                 raise executionInitException("(engine) init, a command is empty")
@@ -59,7 +74,7 @@ class engineV3(object):
         elif isinstance(env, ParameterManager):
             self.env  = env
         else:
-            raise executionInitException("(engine) init, env must be an instance of ParameterManager or None, got <"+str(type(env))+">")
+            raise executionInitException("(engine) init, env must be an instance of ParameterManager or None, got '"+str(type(env))+"'")
 
         self.stack            = engineStack()
         self._isInProcess     = False
@@ -464,7 +479,7 @@ class engineV3(object):
     def addSubCommand(self, cmd, cmdID = None, onlyAddOnce = True, useArgs = True):
         #is a valid cmd ?
         if not isinstance(cmd, Command):#only the Command are allowed in the list
-            raise executionException("(engine) addSubCommand, cmd is not a Command instance, got <"+str(type(cmd))+">")
+            raise executionException("(engine) addSubCommand, cmd is not a Command instance, got '"+str(type(cmd))+"'")
         
         #compute the current command index where the sub command will be insert, check the cmd path on the stack
         if cmdID == None:
@@ -499,7 +514,7 @@ class engineV3(object):
     
     def addCommand(self, cmd, convertProcessToPreProcess = False):
         if not isinstance(cmd, MultiCommand):#only the MultiCommand are allowed in the list
-            raise executionException("(engine) addCommand, cmd is not a MultiCommand instance, got <"+str(type(cmd))+">")
+            raise executionException("(engine) addCommand, cmd is not a MultiCommand instance, got '"+str(type(cmd))+"'")
         
         #The process (!= pre and != post), must always be the process of the last command in the list
         #if we add a new command, the existing process on the stack became invalid
@@ -871,7 +886,7 @@ class engineV3(object):
                      to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,) #just remove one item in the path to get the next postprocess to execute
             
             else:
-                raise executionException("(engine) execute, unknwon process command <"+str(insType)+">")
+                raise executionException("(engine) execute, unknwon process command '"+str(insType)+"'")
         
             if self.selfkillreason != None:
                 reason,abnormal = self.selfkillreason

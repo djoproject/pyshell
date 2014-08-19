@@ -1,15 +1,30 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
     from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
 else:
     from collections import OrderedDict 
     
-from argchecker import ArgChecker, defaultValueChecker
-from argfeeder import ArgFeeder
-from exception import decoratorException
+from pyshell.arg.argchecker import ArgChecker, defaultValueChecker
+from pyshell.arg.argfeeder  import ArgFeeder
+from pyshell.arg.exception  import decoratorException
 import inspect, types
 
 class _C(object):
@@ -30,7 +45,7 @@ class funAnalyser(object):
         #is a function ?
         #TODO manage every function case ?
         if type(fun) != staticMethType and type(fun) != types.MethodType and type(fun) != types.InstanceType and type(fun) != types.ClassType and type(fun) != types.FunctionType:
-            raise decoratorException("(funAnalyser) init faile, need a function instance, got <"+str(type(fun))+">")
+            raise decoratorException("(funAnalyser) init faile, need a function instance, got '"+str(type(fun))+"'")
 
         self.fun = fun
         self.inspect_result = inspect.getargspec(fun)
@@ -45,20 +60,20 @@ class funAnalyser(object):
     def has_default(self, argname):
         #existing argument ?
         if argname not in self.inspect_result.args:
-            raise decoratorException("(decorator) unknonw argument <"+str(argname)+"> at function <"+self.fun.__name__+">")
+            raise decoratorException("(decorator) unknonw argument '"+str(argname)+"' at function '"+self.fun.__name__+"'")
 
         return not ( (self.inspect_result.args.index(argname) < (len(self.inspect_result.args) - self.lendefault)) )
 
     def get_default(self,argname):
         #existing argument ?
         if argname not in self.inspect_result.args:
-            raise decoratorException("(decorator) unknonw argument <"+str(argname)+"> at function <"+self.fun.__name__+">")
+            raise decoratorException("(decorator) unknonw argument '"+str(argname)+"' at function '"+self.fun.__name__+"'")
 
         index = self.inspect_result.args.index(argname)
         if not (index < (len(self.inspect_result.args) - self.lendefault)):
             return self.inspect_result.defaults[index - (len(self.inspect_result.args) - len(self.inspect_result.defaults))]
         
-        raise decoratorException("(decorator) no default value to the argument <"+str(argname)+"> at function <"+self.fun.__name__+">")
+        raise decoratorException("(decorator) no default value to the argument '"+str(argname)+"' at function '"+self.fun.__name__+"'")
 
     def setCheckerDefault(self, argname,checker):
         if self.has_default(argname):
@@ -78,13 +93,13 @@ def shellMethod(**argList):
     #check the checkers
     for key,checker in argList.iteritems():
         if not isinstance(checker,ArgChecker):
-            raise decoratorException("(shellMethod decorator) the checker linked to the key <"+key+"> is not an instance of ArgChecker")
+            raise decoratorException("(shellMethod decorator) the checker linked to the key '"+key+"' is not an instance of ArgChecker")
 
     #define decorator method
     def decorator(fun):
         #is there already a decorator ?
         if hasattr(fun, "checker"):
-            raise decoratorException("(decorator) the function <"+fun.__name__+"> has already a shellMethod decorator")
+            raise decoratorException("(decorator) the function '"+fun.__name__+"' has already a shellMethod decorator")
     
         #inspect the function
         analyzed_fun = funAnalyser(fun)
@@ -112,19 +127,19 @@ def shellMethod(**argList):
                     
                     #check if the previous checker remain a few arg to the following or not
                     if previousChecker.isVariableSize() and previousChecker.maximumSize == None:
-                        raise decoratorException("(decorator) the previous argument <"+str(previousName)+"> has an infinite variable size, you can't add a new argment <"+str(argname)+"> at function <"+fun.__name__+">")
+                        raise decoratorException("(decorator) the previous argument '"+str(previousName)+"' has an infinite variable size, you can't add a new argment '"+str(argname)+"' at function '"+fun.__name__+"'")
             
                 argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)
             elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
                 argCheckerList[argname] = defaultValueChecker(analyzed_fun.get_default(argname))
             else:
-                raise decoratorException("(shellMethod decorator) the arg <"+argname+"> is not used and has no default value")
+                raise decoratorException("(shellMethod decorator) the arg '"+argname+"' is not used and has no default value")
         
         #All the key are used in the function call?
         keys = argList.keys()
         if len(keys) > 0:
             string = ",".join(argList.keys())
-            raise decoratorException("(shellMethod decorator) the following key(s) had no match in the function prototype : <"+string+">")
+            raise decoratorException("(shellMethod decorator) the following key(s) had no match in the function prototype : '"+string+"'")
         
         #set the checker on the function
         fun.checker = ArgFeeder(argCheckerList)

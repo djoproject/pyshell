@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from utils import getAndInitCallerModule, AbstractLoader
+from pyshell.loader.utils import getAndInitCallerModule, AbstractLoader
 
 def _local_getAndInitCallerModule(subLoaderName = None)
     return getAndInitCallerModule(AliasLoader.__module__+"."+AliasLoader.__name__,AliasLoader, 3, subLoaderName)
