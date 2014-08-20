@@ -19,6 +19,7 @@
 from pyshell.arg.decorator  import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, ArgChecker
 from pyshell.utils.utils    import toHexString
+import re
 
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance())  )
 def stringListResultHandler(result):
@@ -62,33 +63,38 @@ def printBytesAsString(byteList):
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
+    ansi_escape = re.compile(r'\x1b[^m]*m')
+
     #compute size
     size = {}
     for line in listOfLine:
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
             if 0 not in size:
-                size[0] = len(str(line)) + 1
+                size[0] = len(ansi_escape.sub('', str(line))) + 1
             else:
-                size[0] = max(size[0],len(str(line)) + 1)
+                size[0] = max(size[0],len(ansi_escape.sub('', str(line))) + 1)
         else:
             for index in range(0,len(line)):
                 if index not in size:
-                    size[index] = len(str(line[index])) + 1
+                    size[index] = len(ansi_escape.sub('', str(line[index]))) + 1
                 else:
-                    size[index] = max(size[index], len(str(line[index]))+1 )
+                    size[index] = max(size[index], len(ansi_escape.sub('', str(line[index])))+1 )
     
     #print table
     for line in listOfLine:
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
-            padding = size[0] - len(str(line))
+            print(str(line))
+            
+            #no need of pading if the line has only one column
+            """padding = size[0] - len(str(line))
             if len(size) == 1:
                 print(str(line))
             else:
-                print(str(line) + " "*padding)
+                print(str(line) + " "*padding)"""
         else:
             line_to_print = ""
             for index in range(0,len(line)):
-                padding = size[index] - len(str(line[index]))
+                padding = size[index] - len(ansi_escape.sub('', str(line[index])))
                 
                 #no padding on last column
                 if index == len(size) - 1:

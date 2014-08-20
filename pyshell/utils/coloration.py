@@ -45,3 +45,6 @@ def nocolor(text):
     
 def bolt(text):
     return BOLT+text+ENDC
+    
+def underline(text):
+    return UNDERLINE+text+ENDC

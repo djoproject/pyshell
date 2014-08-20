@@ -33,11 +33,9 @@ ADDON_PREFIX  = "pyshell.addons."
 ### addon ###
 
 #TODO
-    #be able to get more information about a addon
-        #which sub part are reloadable for example (needed for the next TODO)
-
     #be able to only reload (and only reload, because different parts are linkend and can't be loaded single) a specific part of a module
         #only parameters for example
+        #from files or not
                 
     #prblm with local addon name and external addon name
         #it is easy to use short name, but it is complicated to merge the use of both short and long name
@@ -86,12 +84,7 @@ def listAddonFun(addon_dico, execution_context):
     if len(l) == 0:
         return [("No addon available",)]
     
-    #FIXME does not work correctly
-        #prblm, the bolt decoration are size computed in the colomn size :/
-    
-    #l.insert(0, (title("Name"),title("Sub part"),title("State"), ) )
-    l.insert(0, ("Name","Sub part","State", ) )
-
+    l.insert(0, (title("Addon name"),title("Sub part"),title("State"), ) )
     return l
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
@@ -196,6 +189,14 @@ def hardReload(name, parameters, subAddon = None):
     mod._loaders.load(parameters, subAddon)
 
     print "   "+name+" loaded !" 
+
+#TODO
+    #be able to get more information about a addon
+        #which sub part are reloadable for example (needed for the next TODO)
+        #also be able to get information from an unloaded addon
+
+def getAddonInformation(name, parameters, ):
+    pass #TODO
 
 ### REGISTER SECTION ###
 
