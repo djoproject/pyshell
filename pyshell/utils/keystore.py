@@ -48,7 +48,7 @@ class KeyStore(object):
         
         #if no file, no load
         if not os.path.exists(self.filePath.getValue()):
-            print("(KeyStore) load, file <"+str(self.filePath.getValue())+"> does not exist")
+            print("(KeyStore) load, file '"+str(self.filePath.getValue())+"' does not exist")
             return
         
         #try to load the keystore
@@ -56,19 +56,19 @@ class KeyStore(object):
         try:
             config.read(self.filePath.getValue())
         except Exception as ex:
-            print("(KeyStore) load, fail to read parameter file <"+str(self.filePath.getValue())+"> : "+str(ex))
+            print("(KeyStore) load, fail to read parameter file '"+str(self.filePath.getValue())+"' : "+str(ex))
             return
         
         #main section available ?
         if not config.has_section(KEYSTORE_SECTION_NAME):
-            print("(KeyStore) load, config file <"+str(self.filePath.getValue())+"> is valid but does not hold keystore section")
+            print("(KeyStore) load, config file '"+str(self.filePath.getValue())+"' is valid but does not hold keystore section")
             return
             
         for keyName in config.options(KEYSTORE_SECTION_NAME):
             try:
                 self.tries.insert(keyName, Key(config.get(KEYSTORE_SECTION_NAME, keyName), transient=False))
             except Exception as ex:
-                print("(KeyStore) load, fail to load key <"+str(keyName)+"> : "+str(ex))
+                print("(KeyStore) load, fail to load key '"+str(keyName)+"' : "+str(ex))
         
     def save(self):
         if self.filePath is None:
@@ -103,7 +103,7 @@ class KeyStore(object):
     
     def setKeyInstance(self, keyname, instance):
         if not isinstance(instance, Key):
-            raise Exception("(KeyStore) setKeyInstance, invalid key instance, expect Key instance, got <"+str(type(instance))+">")
+            raise Exception("(KeyStore) setKeyInstance, invalid key instance, expect Key instance, got '"+str(type(instance))+"'")
     
         node = self.tries.search(keyname,True)
         if node is None:
@@ -147,7 +147,7 @@ class Key(object):
     def __init__(self, keyString, transient=True):
         #is it a string ?
         if type(keyString) != str and type(keyString) != unicode:
-            raise Exception("(Key) __init__, invalid key string, expected a string, got <"+str(type(keyString))+">")
+            raise Exception("(Key) __init__, invalid key string, expected a string, got '"+str(type(keyString))+"'")
         
         keyString = keyString.lower()
     
@@ -179,13 +179,13 @@ class Key(object):
             self.key     = keyString[2:]
             self.keySize = len(self.key)
         else:
-            raise Exception("(Key) __init__, invalid key string, must start with 0x or 0b, got <"+keyString+">")
+            raise Exception("(Key) __init__, invalid key string, must start with 0x or 0b, got '"+keyString+"'")
 
         self.setTransient(transient)
     
     def setTransient(self, state):
         if type(state) != bool:
-            raise Exception("(Key) setTransient, expected a bool type as state, got <"+str(type(state))+">")
+            raise Exception("(Key) setTransient, expected a bool type as state, got '"+str(type(state))+"'")
     
         self.transient = state
     
