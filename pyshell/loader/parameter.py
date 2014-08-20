@@ -28,7 +28,7 @@ from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.utils.parameter  import EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.arg.argchecker   import defaultInstanceArgChecker
 from pyshell.utils.constants  import ENVIRONMENT_NAME, CONTEXT_NAME
-from pyshell.utils.exception  import ListOfException
+from pyshell.utils.exception  import ListOfException, ParameterException
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(ParamaterLoader.__module__+"."+ParamaterLoader.__name__,ParamaterLoader, 3, subLoaderName)
@@ -190,7 +190,7 @@ class ParamaterLoader(AbstractLoader):
         except ParameterException as pe:
             listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set "+str(parentName)+" value with key '"+str(keyName)+"': "+str(pe)))
     
-    def load(self, parameterManager = None):
+    def load(self, parameterManager = None, subLoaderName = None):
         if parameterManager == None:
             return
 
@@ -208,7 +208,7 @@ class ParamaterLoader(AbstractLoader):
         if exceptions.isThrowable():
             raise exceptions
 
-    def unload(self, parameterManager = None):
+    def unload(self, parameterManager = None, subLoaderName = None):
         if parameterManager == None:
             return
 

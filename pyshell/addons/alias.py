@@ -16,7 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.loader import *
 from pyshell.arg.decorator import shellMethod
 
 #TODO

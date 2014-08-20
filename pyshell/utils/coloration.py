@@ -16,12 +16,14 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-MAUVE  = '\033[95m'
-BLUE    = '\033[94m'
-GREEN   = '\033[92m'
-ORANGE  = '\033[93m'
-RED     = '\033[91m'
-ENDC    = '\033[0m'
+MAUVE     = '\033[95m'
+BLUE      = '\033[94m'
+GREEN     = '\033[92m'
+ORANGE    = '\033[93m'
+RED       = '\033[91m'
+ENDC      = '\033[0m'
+BOLT      = '\033[1m'
+UNDERLINE = '\033[4m'
 
 def red(text):
     return RED+text+ENDC
@@ -40,3 +42,6 @@ def mauve(text):
 
 def nocolor(text):
     return text
+    
+def bolt(text):
+    return BOLT+text+ENDC

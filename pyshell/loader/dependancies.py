@@ -38,5 +38,5 @@ class DependanciesLoader(AbstractLoader):
         AbstractLoader.__init__(self)
         self.dep = []
         
-    def load(self, parameterManager):
+    def load(self, parameterManager, subLoaderName = None):
         pass #TODO raise if a dependancies is not satisfied

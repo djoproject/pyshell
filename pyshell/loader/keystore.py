@@ -43,7 +43,7 @@ class KeyStoreLoader(AbstractLoader):
     def __init__(self):
         self.keys = {}
 
-    def load(self, parameterManager):
+    def load(self, parameterManager, subLoaderName = None):
         keyStore = _initAndGetKeyStore(parameterManager, LOADING_METHOD_NAME)
         
         for keyName, value in self.keys.items():
@@ -55,7 +55,7 @@ class KeyStoreLoader(AbstractLoader):
             keyStore.setKeyInstance(keyName, keyInstance)
             
 
-    def unload(self, parameterManager):
+    def unload(self, parameterManager, subLoaderName = None):
         keyStore = _initAndGetKeyStore(parameterManager, UNLOADING_METHOD_NAME)
     
         for keyName, value in self.keys.items():
