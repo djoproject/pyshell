@@ -39,6 +39,11 @@ ADDON_PREFIX  = "pyshell.addons."
                 
     #prblm with local addon name and external addon name
         #it is easy to use short name, but it is complicated to merge the use of both short and long name
+        #best way is to only use complete name, but it is boring...
+        
+    #**PRIOR** the subaddon state has moved into utils
+        #no need to store it here
+        #only store addon module path
 
 ## FUNCTION SECTION ##
 
@@ -158,7 +163,7 @@ def importExternal(name, parameters, subAddon = None):
     addon_dico[key] = mod._loaders
     mod._loaders.load(parameters, subAddon)
 
-    print "   "+name+" loaded !" 
+    print("   "+name+" loaded !") 
 
 #TODO decore it and register it
     #need to find an explicit command
@@ -188,14 +193,22 @@ def hardReload(name, parameters, subAddon = None):
     addon_dico[key] = mod._loaders
     mod._loaders.load(parameters, subAddon)
 
-    print "   "+name+" loaded !" 
+    print("   "+name+" loaded !") 
 
 #TODO
     #be able to get more information about a addon
         #which sub part are reloadable for example (needed for the next TODO)
         #also be able to get information from an unloaded addon
+        
+    #where to store these informations, see brainstorming in loader/utils.py
 
 def getAddonInformation(name, parameters, ):
+    #if not in the list, try to load it
+    
+    #extract information from _loaders
+    
+    #print information
+
     pass #TODO
 
 ### REGISTER SECTION ###

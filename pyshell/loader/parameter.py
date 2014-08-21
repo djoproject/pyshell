@@ -89,6 +89,7 @@ def registerSetVar(varKey, stringValue, noErrorIfKeyExist = False, override = Fa
     
 class ParamaterLoader(AbstractLoader):
     def __init__(self, prefix=()):
+        AbstractLoader.__init__(self)
         self.valueToAddTo = []
         self.valueToSet   = []
 
@@ -191,6 +192,8 @@ class ParamaterLoader(AbstractLoader):
             listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set "+str(parentName)+" value with key '"+str(keyName)+"': "+str(pe)))
     
     def load(self, parameterManager = None, subLoaderName = None):
+        AbstractLoader.load(self, parameterManager, subLoaderName)
+    
         if parameterManager == None:
             return
 
@@ -209,6 +212,8 @@ class ParamaterLoader(AbstractLoader):
             raise exceptions
 
     def unload(self, parameterManager = None, subLoaderName = None):
+        AbstractLoader.unload(self, parameterManager, subLoaderName)
+    
         if parameterManager == None:
             return
 

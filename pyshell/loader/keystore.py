@@ -41,9 +41,12 @@ def _initAndGetKeyStore(parameterManager, methName):
 
 class KeyStoreLoader(AbstractLoader):
     def __init__(self):
+        AbstractLoader.__init__(self)
         self.keys = {}
 
     def load(self, parameterManager, subLoaderName = None):
+        AbstractLoader.load(self, parameterManager, subLoaderName)
+        
         keyStore = _initAndGetKeyStore(parameterManager, LOADING_METHOD_NAME)
         
         for keyName, value in self.keys.items():
@@ -56,6 +59,8 @@ class KeyStoreLoader(AbstractLoader):
             
 
     def unload(self, parameterManager, subLoaderName = None):
+        AbstractLoader.unload(self, parameterManager, subLoaderName)
+        
         keyStore = _initAndGetKeyStore(parameterManager, UNLOADING_METHOD_NAME)
     
         for keyName, value in self.keys.items():

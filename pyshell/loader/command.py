@@ -113,6 +113,7 @@ class CommandLoader(AbstractLoader):
         self.stoplist   = []
     
     def load(self, parameterManager, subLoaderName = None):
+        AbstractLoader.load(self, parameterManager, subLoaderName)
     
         if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
             print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
@@ -143,6 +144,8 @@ class CommandLoader(AbstractLoader):
                 print "fail to disable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)
 
     def unload(self, parameterManager, subLoaderName = None):
+        AbstractLoader.unload(self, parameterManager, subLoaderName)
+    
         if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
             print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             return
