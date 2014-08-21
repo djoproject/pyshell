@@ -47,25 +47,31 @@ def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleL
     return mod._loaders.getLoader(callerLoaderKey, callerLoaderClassDefinition, subLoaderName)
 
 class AbstractLoader(object):
-    STATE_NONE     = "NOT LOADED" 
-    STATE_LOADED   = "LOADED"
-    STATE_UNLOADED = "UNLOADED"
-    STATE_RELOADED = "RELOADED"    
+    STATE_NONE       = "NOT LOADED" 
+    STATE_LOADED     = "LOADED"
+    STATE_LOADED _E  = "LOADED WITH ERROR"
+    STATE_UNLOADED   = "UNLOADED"
+    STATE_UNLOADED_E = "UNLOADED WITH ERROR"
+    STATE_RELOADED   = "RELOADED" 
+    STATE_RELOADED_E = "RELOADED WITH ERROR" 
 
     def __init__(self):
-        self.isLoaded    = None #TODO boolean is not enought, because 4 state (no state, loaded, unloaded, reloaded)
-        self.noticeList  = []
-        self.warningList = []
-        self.errorList   = []
+        pass
+        
+    #TODO is it the correct place to store this information ?
+        #OR is it better to store it in the upper dico ?
+    
+        #self.isLoaded    = None #TODO boolean is not enought, because 4 state (no state, loaded, unloaded, reloaded)
+        #self.informationList  = []
 
-    def isLoaded(self):
+    """def isLoaded(self):
         return self.isLoaded is not None and self.isLoaded
         
     def isUnloaded(self):
         return self.isLoaded is not None and not self.isLoaded
         
     def setLoaded(self,state):
-        self.isLoaded = state
+        self.isLoaded = state"""
 
     def load(self, parameterManager, subLoaderName = None):
         pass #TO OVERRIDE
@@ -138,6 +144,8 @@ class GlobalLoader(AbstractLoader):
         AbstractLoader.__init__(self)
         self.subloader = {}
         
+        #
+        
     def getLoaderNameList(self):
         return self.subloader.keys()
 
@@ -149,10 +157,10 @@ class GlobalLoader(AbstractLoader):
         
     def getLoader(self, loaderName, classDefinition, subLoaderName = None):
         if loaderName not in self.subloader:
-            self.subloader[loaderName] = {}
+            self.subloader[loaderName] = {} #TODO put a loading state here, just next the dico, XXX not sure...
             
         if subLoaderName not in self.subloader[loaderName]:
-            self.subloader[loaderName][subLoaderName] = classDefinition()
+            self.subloader[loaderName][subLoaderName] = classDefinition() 
             
         return self.subloader[loaderName][subLoaderName]
         
