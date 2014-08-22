@@ -17,19 +17,14 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import inspect
-from pyshell.loader.exception import RegisterException
+from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException, AbstractListableException
 
-#TODO catch and manage ListOfLoadException somewhere
-    #in executer
-    #in addon addon
-    #... (don't think there is other place)
+#TODO replace None by Default in the exception message for default sub addon
 
 def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, subLoaderName = None):
     frm = inspect.stack()[3]
     mod = inspect.getmodule(frm[0])
-
-    #print inspect.stack()[3]
 
     #init loaders dictionnary
     loadersDict = None
@@ -47,31 +42,8 @@ def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleL
     return mod._loaders.getLoader(callerLoaderKey, callerLoaderClassDefinition, subLoaderName)
 
 class AbstractLoader(object):
-    STATE_NONE       = "NOT LOADED" 
-    STATE_LOADED     = "LOADED"
-    STATE_LOADED _E  = "LOADED WITH ERROR"
-    STATE_UNLOADED   = "UNLOADED"
-    STATE_UNLOADED_E = "UNLOADED WITH ERROR"
-    STATE_RELOADED   = "RELOADED" 
-    STATE_RELOADED_E = "RELOADED WITH ERROR" 
-
     def __init__(self):
         pass
-        
-    #TODO is it the correct place to store this information ?
-        #OR is it better to store it in the upper dico ?
-    
-        #self.isLoaded    = None #TODO boolean is not enought, because 4 state (no state, loaded, unloaded, reloaded)
-        #self.informationList  = []
-
-    """def isLoaded(self):
-        return self.isLoaded is not None and self.isLoaded
-        
-    def isUnloaded(self):
-        return self.isLoaded is not None and not self.isLoaded
-        
-    def setLoaded(self,state):
-        self.isLoaded = state"""
 
     def load(self, parameterManager, subLoaderName = None):
         pass #TO OVERRIDE
@@ -83,137 +55,97 @@ class AbstractLoader(object):
         self.unload(parameterManager, subLoaderName)
         self.load(parameterManager, subLoaderName)
         
-        #could overrided
+        #can be overrided too
 
-#brainstorming
-    #what
-        #we need to know which module.submodule has been loaded or not
-        #a place to store the erreur/warning/notice/... generated during the module load/unloading process
+class GlobalLoaderLoadingState(object):
+    STATE_REGISTERED = "REGISTERED BUT NOT LOADED" 
+    STATE_LOADED     = "LOADED"
+    STATE_LOADED_E   = "LOADED WITH ERROR"
+    STATE_UNLOADED   = "UNLOADED"
+    STATE_UNLOADED_E = "UNLOADED WITH ERROR"
+    STATE_RELOADED   = "RELOADED" 
+    STATE_RELOADED_E = "RELOADED WITH ERROR" 
 
-    #fact
-        #a module only know the name of submodule to load
-        #a module does not know its own name
-        #an error/exception can occur during loading process
-    
-    #prblm
-        #where to store the information "module.submodule loaded or not" ?
-        #where to store erreur/warning/notice information ?
-            #in parent module
-                #prblm
-                    #not the best place to store these information
-                    #information must be linked to module loader, not parent
-                    #imply to update current structure
-                
-                #good point
-                    #catch easyli state and information
-                    #no need of update from user in source code
-                                
-            #in module
-                #prblm
-                    #need to call parent unload/load method when it is overriden
-                    #need to store itself the erreur/warning/notice information in structure
-                    #an unexpected error can occur in loading process and prevent the registration of any information
-                    #some user could create loader and forget to register information
-                    #imply to update current structure
-                
-                #good point
-                    #it is the most logical point where to store these informations
-                
-            #outside
-                #prblm
-                    #a structure already exist where we can store the information, it is ridiculous to build a equivalent structure just near the existing one
-            
-            #BEST SOLUTION
-                #grab the information in parent module
-                #but store the informations in module
-            
-        #when to considere a module is loaded ?
-            #once the method is called
-                #best solution because even if there is some error, we can't block the unload
-                #if some elements had been loaded
-                #BEST SOLUTION
-            
-            #once the method is called and there is no error
-                #prblm
-                    #some elements had maybe been loaded
-            
-            #...
-            
+    def __init__(self):
+        self.state         = GlobalLoaderLoadingState.STATE_REGISTERED
+        self.lastException = None
+
 class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
         self.subloader = {}
         
-        #
-        
-    def getLoaderNameList(self):
+    def getSubLoaderAvailable(self):
         return self.subloader.keys()
 
-    def getSubLoaderDictionnary(self, loaderName):
-        if loaderName not in self.subloader:
-            raise Exception("(GlobalLoader) getSubLoaderDictionnary, unknown loader name '"+str(loaderName)+"'")
-            
-        return self.subloader[loaderName]
-        
+    def getLoaderDictionary(self, subLoaderName = None):
+        if subLoaderName not in self.subloader:
+            raise Exception("(GlobalLoader) getLoaderDictionary, sub loader '"+str(subLoaderName)+"' does not exist")
+
+        return self.subloader[subLoaderName]
+
     def getLoader(self, loaderName, classDefinition, subLoaderName = None):
-        if loaderName not in self.subloader:
-            self.subloader[loaderName] = {} #TODO put a loading state here, just next the dico, XXX not sure...
+        if subLoaderName not in self.subloader:
+            self.subloader[subLoaderName] = ({},GlobalLoaderLoadingState(),) 
             
-        if subLoaderName not in self.subloader[loaderName]:
-            self.subloader[loaderName][subLoaderName] = classDefinition() 
+        if loaderName not in self.subloader[subLoaderName][0]:
+            self.subloader[subLoaderName][0][loaderName] = classDefinition() 
             
-        return self.subloader[loaderName][subLoaderName]
-        
-    def load(self, parameterManager, subLoaderName = None):
-        exception = ListOfException()
+        return self.subloader[subLoaderName][0][loaderName]
     
-        for loaderName, subLoaderDic in self.subloader.items():
-            if subLoaderName in subLoaderDic:
-                #TODO manage load state
-            
-                try:
-                    subLoaderDic[subLoaderName].load(parameterManager)
-                except AbstractListableException as ale:
-                    exception.addException(ale)
-                    
-                #TODO register informations
-                    
-        if exception.isThrowable():
+
+    def _innerLoad(self,methodName, parameterManager, subLoaderName, allowedState, invalidStateMessage, nextState,nextStateIfError):
+        exception = ListOfException()
+
+        #nothing to do for this subloader
+        if subLoaderName not in self.subloader: 
+            return
+
+        currentState = self.subloader[subLoaderName][1]
+        if currentState.state not in allowedState:
+            raise LoadException("(GlobalLoader) methodName, sub loader '"+str(subLoaderName)+"' "+invalidStateMessage)
+
+        for loaderName, loader in self.subloader[subLoaderName][0].items():
+            meth_toCall = getattr(loader, methodName)
+
+            try:
+                meth_toCall(parameterManager,subLoaderName)
+            except AbstractListableException as ale:
+                exception.addException(ale)
+            except Exception as ex:
+                exception = ex
+    
+        if not isinstance(exception,AbstractListableException) or exception.isThrowable():
+            currentState.state = nextStateIfError
+            currentState.lastException = exception
             raise exception
+        else:
+            currentState.state = nextState
+            currentState.lastException = None
+
+    def load(self, parameterManager, subLoaderName = None):
+        allowedState = [GlobalLoaderLoadingState.STATE_REGISTERED, 
+                        GlobalLoaderLoadingState.STATE_UNLOADED, 
+                        GlobalLoaderLoadingState.STATE_UNLOADED_E]
+
+        self._innerLoad("load", parameterManager, subLoaderName, allowedState, "is already loaded",GlobalLoaderLoadingState.STATE_LOADED,GlobalLoaderLoadingState.STATE_LOADED_E)
 
     def unload(self, parameterManager, subLoaderName = None):
-        exception = ListOfException()
-    
-        for loaderName, subLoaderDic in self.subloader.items():
-            if subLoaderName in subLoaderDic:
-                #TODO manage load state
-            
-                try:
-                    subLoaderDic[subLoaderName].unload(parameterManager)
-                except AbstractListableException as ale:
-                    exception.addException(ale)
-        
-                #TODO register informations
-        
-        if exception.isThrowable():
-            raise exception
-        
-    def reload(self, parameterManager, subLoaderName = None):
-        exception = ListOfException()
-    
-        for loaderName, subLoaderDic in self.subloader.items():
-            if subLoaderName in subLoaderDic:
-                #TODO manage load state
-            
-                try:
-                    subLoaderDic[subLoaderName].reload(parameterManager)
-                except AbstractListableException as ale:
-                    exception.addException(ale)
-                    
-                #TODO register informations
+        allowedState = [GlobalLoaderLoadingState.STATE_LOADED, 
+                        GlobalLoaderLoadingState.STATE_LOADED_E, 
+                        GlobalLoaderLoadingState.STATE_RELOADED, 
+                        GlobalLoaderLoadingState.STATE_RELOADED_E]
 
-        if exception.isThrowable():
-            raise exception
+        self._innerLoad("unload", parameterManager, subLoaderName, allowedState, "is not loaded",GlobalLoaderLoadingState.STATE_UNLOADED,GlobalLoaderLoadingState.STATE_UNLOADED_E)
+
+    def reload(self, parameterManager, subLoaderName = None):
+        allowedState = [GlobalLoaderLoadingState.STATE_LOADED, 
+                        GlobalLoaderLoadingState.STATE_LOADED_E, 
+                        GlobalLoaderLoadingState.STATE_RELOADED, 
+                        GlobalLoaderLoadingState.STATE_RELOADED_E]
+                        
+        self._innerLoad("reload", parameterManager, subLoaderName, allowedState, "is not loaded",GlobalLoaderLoadingState.STATE_RELOADED,GlobalLoaderLoadingState.STATE_RELOADED_E)
+
 
     
         

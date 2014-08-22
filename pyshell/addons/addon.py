@@ -19,13 +19,14 @@
 #from pyshell.utils.loader import *
 from pyshell.loader.command            import registerSetTempPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.parameter          import registerSetEnvironment
+from pyshell.loader.utils              import GlobalLoaderLoadingState
 from pyshell.arg.decorator             import shellMethod
 import os, sys
-from pyshell.simpleProcess.postProcess import printColumn
+from pyshell.simpleProcess.postProcess import printColumn, stringListResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.constants           import ENVIRONMENT_NAME
-from pyshell.utils.coloration          import green, orange, bolt, nocolor
+from pyshell.utils.coloration          import green, orange, bolt, nocolor, red
 
 ADDONLIST_KEY = "loader_addon"
 ADDON_PREFIX  = "pyshell.addons."
@@ -40,12 +41,36 @@ ADDON_PREFIX  = "pyshell.addons."
     #prblm with local addon name and external addon name
         #it is easy to use short name, but it is complicated to merge the use of both short and long name
         #best way is to only use complete name, but it is boring...
-        
-    #**PRIOR** the subaddon state has moved into utils
-        #no need to store it here
-        #only store addon module path
+    
+    #create a method to add/remove on startup
 
 ## FUNCTION SECTION ##
+
+def _tryToGetDicoFromParameters(parameters):
+    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+        raise Exception("no addon list defined")
+
+    return parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+
+def _tryToGetAddonFromDico(addon_dico, name):
+    if name not in addon_dico:
+        raise Exception("unknown addon '"+str(name)+"'")
+
+    return addon_dico[name]
+
+def _tryToGetAddonFromParameters(parameters, name):
+    return _tryToGetAddonFromDico(_tryToGetDicoFromParameters(parameters), name)
+
+def _tryToImportLoaderFromFile(name):
+    try:
+        mod = __import__(name,fromlist=["_loaders"])
+    except ImportError as ie:
+        raise Exception("fail to load addon, reason: "+str(ie))
+
+    if not hasattr(mod, "_loaders"):
+        raise Exception("invalid addon, no loader found.  don't forget to register something in the addon")
+
+    return mod._loaders
 
 @shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY),
              execution_context = contextParameterChecker("execution"))
@@ -54,14 +79,17 @@ def listAddonFun(addon_dico, execution_context):
     
     addon_dico = addon_dico.getValue()
     
+    #define print style
     if execution_context.getSelectedValue() == "shell":
-        colorfunLoaded = green
-        colorfunNotLoaded = orange
-        title = bolt
+        printok      = green
+        printwarning = orange
+        printerror   = red
+        title        = bolt
     else:
-        colorfunLoaded = nocolor
-        colorfunNotLoaded = nocolor
-        title = nocolor
+        printok      = nocolor
+        printwarning = nocolor
+        printerror   = nocolor
+        title        = nocolor
 
     #create addon list from default addon directory
     local_addon = []
@@ -72,17 +100,23 @@ def listAddonFun(addon_dico, execution_context):
                     local_addon.append(ADDON_PREFIX + name[0:-3])
     
     l = []
-    for (name, subAddon) in addon_dico.keys():
+    for name,loader in addon_dico.items():
         if name in local_addon:
             local_addon.remove(name)
         
-        if subAddon is None:
-            l.append( (name, "(default)", colorfunLoaded("LOADED"), ) )
-        else:
-            l.append( (name, "("+str(subAddon)+")", colorfunLoaded("LOADED"), ) )
+        for subLoaderName, (subloader,state, ) in loader.subloader.items():
+            if subLoaderName is None:
+                subLoaderName = "(default)"
+
+            if state.state in (GlobalLoaderLoadingState.STATE_LOADED, GlobalLoaderLoadingState.STATE_RELOADED,):
+                l.append( (name, subLoaderName, printok(state.state), ) )
+            elif state.state in (GlobalLoaderLoadingState.STATE_UNLOADED, GlobalLoaderLoadingState.STATE_REGISTERED,):
+                l.append( (name, subLoaderName, printwarning(state.state), ) )
+            else:
+                l.append( (name, subLoaderName, printerror(state.state), ) )
 
     for name in local_addon:
-        l.append( (name,"",colorfunNotLoaded("NOT LOADED"), ) )
+        l.append( (name,"",printwarning(GlobalLoaderLoadingState.STATE_UNLOADED), ) )
 
     l.sort()
 
@@ -98,17 +132,8 @@ def listAddonFun(addon_dico, execution_context):
 def unloadAddon(name, parameters, subAddon = None):
     "unload an addon"
 
-    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
-        raise Exception("no addon list defined")
-
-    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
-    key = (name,subAddon,)
-    
-    if key not in addon_dico:
-        raise Exception("unknown addon '"+str(name)+"'")
-    
-    addon_dico[key].unload(parameters, subAddon)
-    del addon_dico[key]
+    addon = _tryToGetAddonFromParameters(parameters, name)
+    addon.unload(parameters, subAddon)
     print(str(name)+" unloaded !")
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
@@ -117,16 +142,8 @@ def unloadAddon(name, parameters, subAddon = None):
 def reloadAddon(name, parameters, subAddon = None):
     "reload an addon"
 
-    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
-        raise Exception("no addon list defined")
-
-    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
-    key = (name,subAddon,)
-    
-    if key not in addon_dico:
-        raise Exception("unknown addon '"+str(name)+"'")
-    
-    addon_dico[key].reload(parameters, subAddon)
+    addon = _tryToGetAddonFromParameters(parameters, name)
+    addon.reload(parameters, subAddon)
     print(str(name)+" reloaded !")
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
@@ -143,73 +160,74 @@ def loadAddonFun(name, parameters, subAddon = None):
 def importExternal(name, parameters, subAddon = None):
     "load an external addon, use the absolute name of the package to load"
 
-    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
-        raise Exception("no addon list defined")
+    #get addon list
+    addon_dico = _tryToGetDicoFromParameters(parameters)
 
-    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
-    key = (name,subAddon,)
-    
-    if key in addon_dico:
-        raise Exception("already loaded addon")
+    #import from file
+    loader = _tryToImportLoaderFromFile(name)
 
-    try:
-        mod = __import__(name,fromlist=["_loaders"])
-    except ImportError as ie:
-        raise Exception("fail to load addon, reason: "+str(ie))
+    #load and register
+    addon_dico[name] = loader
+    loader.load(parameters, subAddon)
 
-    if not hasattr(mod, "_loaders"):
-        raise Exception("invalid addon, no loader found.  don't forget to register something in the addon")
+    print(name+" loaded !") 
 
-    addon_dico[key] = mod._loaders
-    mod._loaders.load(parameters, subAddon)
-
-    print("   "+name+" loaded !") 
-
-#TODO decore it and register it
-    #need to find an explicit command
-    
+#TODO register it, need to find an explicit command
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
+             subAddon=stringArgChecker(), 
+             parameters=completeEnvironmentChecker())
 def hardReload(name, parameters, subAddon = None):
     
-    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
-        raise Exception("no addon list defined")
+    #get addon list and addon
+    addon_dico = _tryToGetDicoFromParameters(parameters)
+    addon      = _tryToGetAddonFromDico(addon_dico, name)
 
-    addon_dico = parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
-    
-    key = (name,subAddon,)
-    #unload
-    if key in addon_dico:
-        addon_dico[key].unload(parameters, subAddon)
-        print(str(name)+" unloaded !")
-        
-    #load from file
-    try:
-        mod = __import__(name,fromlist=["_loaders"])
-    except ImportError as ie:
-        raise Exception("fail to load addon, reason: "+str(ie))
+    #unload addon
+    addon.unload(parameters, subAddon)
 
-    if not hasattr(mod, "_loaders"):
-        raise Exception("invalid addon, no loader found.  don't forget to register something in the addon")
+    #load addon from file
+    loader = _tryToImportLoaderFromFile(name)
 
-    addon_dico[key] = mod._loaders
-    mod._loaders.load(parameters, subAddon)
+    #load and register
+    addon_dico[name] = loader
+    loader.load(parameters, subAddon)
 
-    print("   "+name+" loaded !") 
+    print(name+" hard reloaded !") 
 
-#TODO
-    #be able to get more information about a addon
-        #which sub part are reloadable for example (needed for the next TODO)
-        #also be able to get information from an unloaded addon
-        
-    #where to store these informations, see brainstorming in loader/utils.py
+@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             addon_dico=environmentParameterChecker(ADDONLIST_KEY))
+def getAddonInformation(name, addon_dico, ):
+    #TODO improve view
 
-def getAddonInformation(name, parameters, ):
     #if not in the list, try to load it
+    addon_dico = addon_dico.getValue()
+    if name not in addon_dico:
+        addon = _tryToImportLoaderFromFile(name)
+    else:
+        addon = addon_dico[name]
     
+    lines = []
     #extract information from _loaders
-    
-    #print information
+        #current name
+    lines.append("Addon Name: "+str(name))
 
-    pass #TODO
+    #each sub addon
+    lines.append("sub addon list:")
+    for subLoaderName, (subloaders, status, ) in addon.subloader.items():
+        if subLoaderName is None:
+            subLoaderName = "Default"
+
+        #current status
+        lines.append("    *"+str(subLoaderName)+": "+status.state)
+
+        #loader in each subbadon
+        lines.append("        sub addon part:")
+        for name, loader in subloaders.items():
+            lines.append("            *"+str(name))
+
+        #TODO error from last load/unload/reload (if error is not none)
+    
+    return lines
 
 ### REGISTER SECTION ###
 
@@ -219,6 +237,7 @@ registerCommand( ("load",) ,                  pro=loadAddonFun)
 registerCommand( ("unload",) ,                pro=unloadAddon)
 registerCommand( ("reload",) ,                pro=reloadAddon)
 registerCommand( ("import",) ,                pro=importExternal)
+registerCommand( ("info",) ,                  pro=getAddonInformation,post=stringListResultHandler)
 registerStopHelpTraversalAt( ("addon",) )
 
-registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = { ("pyshell.addons.addon",None,):sys.modules[__name__]._loaders}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
+registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {"pyshell.addons.addon":sys.modules[__name__]._loaders}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
