@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #from pyshell.utils.loader import *
-from pyshell.loader.command            import registerSetTempPrefix, registerCommand, registerStopHelpTraversalAt
+from pyshell.loader.command            import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt, registerSetTempPrefix
 from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.loader.utils              import GlobalLoaderLoadingState
 from pyshell.arg.decorator             import shellMethod
@@ -27,22 +27,10 @@ from pyshell.arg.argchecker            import defaultInstanceArgChecker, complet
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.constants           import ENVIRONMENT_NAME
 from pyshell.utils.coloration          import green, orange, bolt, nocolor, red
+from pyshell.utils.exception           import ListOfException
 
 ADDONLIST_KEY = "loader_addon"
 ADDON_PREFIX  = "pyshell.addons."
-
-### addon ###
-
-#TODO
-    #be able to only reload (and only reload, because different parts are linkend and can't be loaded single) a specific part of a module
-        #only parameters for example
-        #from files or not
-                
-    #prblm with local addon name and external addon name
-        #it is easy to use short name, but it is complicated to merge the use of both short and long name
-        #best way is to only use complete name, but it is boring...
-    
-    #create a method to add/remove on startup
 
 ## FUNCTION SECTION ##
 
@@ -104,16 +92,16 @@ def listAddonFun(addon_dico, execution_context):
         if name in local_addon:
             local_addon.remove(name)
         
-        for subLoaderName, (subloader,state, ) in loader.subloader.items():
-            if subLoaderName is None:
-                subLoaderName = "(default)"
+        for subAddonName, (subloader,state, ) in loader.subAddons.items():
+            if subAddonName is None:
+                subAddonName = "(default)"
 
             if state.state in (GlobalLoaderLoadingState.STATE_LOADED, GlobalLoaderLoadingState.STATE_RELOADED,):
-                l.append( (name, subLoaderName, printok(state.state), ) )
+                l.append( (name, subAddonName, printok(state.state), ) )
             elif state.state in (GlobalLoaderLoadingState.STATE_UNLOADED, GlobalLoaderLoadingState.STATE_REGISTERED,):
-                l.append( (name, subLoaderName, printwarning(state.state), ) )
+                l.append( (name, subAddonName, printwarning(state.state), ) )
             else:
-                l.append( (name, subLoaderName, printerror(state.state), ) )
+                l.append( (name, subAddonName, printerror(state.state), ) )
 
     for name in local_addon:
         l.append( (name,"",printwarning(GlobalLoaderLoadingState.STATE_UNLOADED), ) )
@@ -150,14 +138,6 @@ def reloadAddon(name, parameters, subAddon = None):
              subAddon=stringArgChecker(), 
              parameters=completeEnvironmentChecker())
 def loadAddonFun(name, parameters, subAddon = None):
-    "load a internal shell addon, just use the name of the module, no need to use the absolute name"
-    toLoad = ADDON_PREFIX+str(name)
-    importExternal(toLoad, parameters, subAddon = None)
-
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
-             subAddon=stringArgChecker(), 
-             parameters=completeEnvironmentChecker())
-def importExternal(name, parameters, subAddon = None):
     "load an external addon, use the absolute name of the package to load"
 
     #get addon list
@@ -172,7 +152,6 @@ def importExternal(name, parameters, subAddon = None):
 
     print(name+" loaded !") 
 
-#TODO register it, need to find an explicit command
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
              subAddon=stringArgChecker(), 
              parameters=completeEnvironmentChecker())
@@ -195,9 +174,22 @@ def hardReload(name, parameters, subAddon = None):
     print(name+" hard reloaded !") 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             addon_dico=environmentParameterChecker(ADDONLIST_KEY))
-def getAddonInformation(name, addon_dico, ):
-    #TODO improve view
+             addon_dico=environmentParameterChecker(ADDONLIST_KEY),
+             tabsize=environmentParameterChecker("tabsize"),
+             execution_context = contextParameterChecker("execution"))
+def getAddonInformation(name, addon_dico, tabsize, execution_context):
+    tab = " "*tabsize.getValue()
+
+    if execution_context.getSelectedValue() == "shell":
+        printok      = green
+        printwarning = orange
+        printerror   = red
+        title        = bolt
+    else:
+        printok      = nocolor
+        printwarning = nocolor
+        printerror   = nocolor
+        title        = nocolor
 
     #if not in the list, try to load it
     addon_dico = addon_dico.getValue()
@@ -209,35 +201,103 @@ def getAddonInformation(name, addon_dico, ):
     lines = []
     #extract information from _loaders
         #current name
-    lines.append("Addon Name: "+str(name))
+    lines.append(title("Addon")+" '"+str(name)+"'")
 
     #each sub addon
-    lines.append("sub addon list:")
-    for subLoaderName, (subloaders, status, ) in addon.subloader.items():
-        if subLoaderName is None:
-            subLoaderName = "Default"
+    for subAddonName, (subloaders, status, ) in addon.subAddons.items():
+        if subAddonName is None:
+            subAddonName = "Default"
 
         #current status
-        lines.append("    *"+str(subLoaderName)+": "+status.state)
+        lines.append(tab+title("Sub addon")+" '"+str(subAddonName)+"': "+status.state) #TODO color status like in the list addon
 
         #loader in each subbadon
-        lines.append("        sub addon part:")
         for name, loader in subloaders.items():
-            lines.append("            *"+str(name))
+            #print information error for each loader
+            if loader.lastException is not None:
+                if isinstance(loader.lastException, ListOfException):
+                    lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = "+printerror(str(len(loader.lastException.exceptions)))+")")
 
-        #TODO error from last load/unload/reload (if error is not none)
-    
+                    for exc in loader.lastException.exceptions:
+                        print lines.append(tab*5 + "*" + str(exc)) #TODO color error (pyshell style or red)
+
+                else:
+                    lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = "+printerror("1")+")")
+                    lines.append(tab*3 + printerror(str(loader.lastException)))
+                    #TODO try to print stack trace
+            else:
+                lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = 0)")
+
     return lines
+
+@shellMethod(name =          defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             subLoaderName = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             subAddon =      stringArgChecker(), 
+             parameters =    completeEnvironmentChecker())
+def subLoaderReload(name, subLoaderName, parameters, subAddon = None):
+    #addon name exist ?
+    addon = _tryToGetAddonFromParameters(parameters, name)
+
+    #subaddon exist ?
+    if subAddon not in addon.subAddons:
+        raise Exception("Unknown sub addon '"+str(subAddon)+"'")
+
+    loaderDictionnary, status = addon.subAddons[subAddon]
+
+    #subloader exist ?
+    if subLoaderName not in loaderDictionnary:
+        raise Exception("Unknown sub loader '"+str(subLoaderName)+"'")
+
+    loader = loaderDictionnary[subLoaderName]
+
+    #reload subloader
+    try:
+        loader.reload(parameters, subAddon)
+    except Exception as ex:
+        loader.lastException = ex
+        raise ex
+
+    print("sub loader '"+str(subLoaderName)+"' reloaded !")
+
+@shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+def addOnStartUp(addonName, addonListOnStartUp):
+    
+    #package exist ?
+    _tryToImportLoaderFromFile(addonName)
+
+    addonList = addonListOnStartUp.getValue()
+
+    if addonName not in addonList:
+        addonList.append(addonName)
+        addonListOnStartUp.setValue(addonList)
+
+@shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+def removeOnStartUp(addonName, addonListOnStartUp):
+    addonList = addonListOnStartUp.getValue()
+
+    if addonName in addonList:
+        addonList.remove(addonName)
+        addonListOnStartUp.setValue(addonList)
 
 ### REGISTER SECTION ###
 
-registerSetTempPrefix( ("addon", ) )
+registerSetGlobalPrefix( ("addon", ) )
 registerCommand( ("list",) ,                  pro=listAddonFun, post=printColumn)
-registerCommand( ("load",) ,                  pro=loadAddonFun)
 registerCommand( ("unload",) ,                pro=unloadAddon)
-registerCommand( ("reload",) ,                pro=reloadAddon)
-registerCommand( ("import",) ,                pro=importExternal)
+registerSetTempPrefix( ("reload",  ) )
+registerCommand( ("addon",) ,        pro=reloadAddon)
+registerCommand( ("hard",) ,         pro=hardReload)
+registerCommand( ("subloader",) ,    pro=subLoaderReload)
+registerSetTempPrefix( () )
+registerStopHelpTraversalAt( ("reload",) )
+registerCommand( ("load",) ,                  pro=loadAddonFun)
 registerCommand( ("info",) ,                  pro=getAddonInformation,post=stringListResultHandler)
-registerStopHelpTraversalAt( ("addon",) )
+registerSetTempPrefix( ("onstartup",  ) )
+registerCommand( ("add",) ,         pro=addOnStartUp)
+registerCommand( ("remove",) ,      pro=removeOnStartUp)
+registerStopHelpTraversalAt( ("onstartup",) )
+registerStopHelpTraversalAt( () )
 
 registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {"pyshell.addons.addon":sys.modules[__name__]._loaders}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)

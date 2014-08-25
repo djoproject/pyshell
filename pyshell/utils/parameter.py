@@ -33,6 +33,10 @@ from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGOR
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
         #store in three separate files ?
+
+    #implement "add value" method to context/envi list
+        #used and implemented in addon/parameter.py
+        #used in ?
     
 try:
     pyrev = sys.version_info.major

@@ -40,7 +40,7 @@ from tries.exception import triesException, pathNotExistsTriesException
 from pyshell.command.exception import *
 from pyshell.command.engine    import engineV3
 from pyshell.arg.exception     import *
-from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker
+from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
 from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter
 from pyshell.utils.keystore    import KeyStore
@@ -104,6 +104,7 @@ class CommandExecuter():
 
         #init original params
         self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("tabsize",             EnvironmentParameter(value=4, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
 
         #TODO update "vars" to ... (remove it?)
         self.params.setParameter("vars",                EnvironmentParameter(value={},transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
@@ -118,7 +119,7 @@ class CommandExecuter():
         self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution",           ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         
         #redirect output
         real_out    = sys.stdout
