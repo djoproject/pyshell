@@ -31,6 +31,18 @@ CORE_NOTICE   = 21
 USER_NOTICE   = 22
 PARSE_NOTIVE  = 23
 
+def formatException(exception, printok, printwarning, printerror):
+    if isinstance(exception, PyshellException):
+        if exception.severity >= NOTICE:
+            return printerror(str(exception))
+        elif exception.severity >= WARNING:
+            return printwarning(str(exception))
+        else:
+            return printerror(str(exception))
+            
+    else:
+        return printerror(str(exception))
+
 class PyshellException(Exception):
     def __init__(self,severity = ERROR):
         self.severity = severity

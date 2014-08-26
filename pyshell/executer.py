@@ -133,6 +133,8 @@ class CommandExecuter():
             print "Fail to load parameters file: "+str(ex)
 
         #try to load standard shell function
+        #TODO try to remove addon loading from here and move it to the loop to load addon
+            #just import loadAddonFun from addon
         try:
             addon._loaders.load(self.params)
         except ListOfException as loe:

@@ -21,6 +21,7 @@ from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException, AbstractListableException
 
 #TODO replace None by Default in the exception message for default sub addon
+    #Or replace None in prototype with "default" string ?
 
 def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, subAddonName = None):
     frm = inspect.stack()[3]
@@ -74,7 +75,7 @@ class GlobalLoader(AbstractLoader):
         AbstractLoader.__init__(self)
         self.subAddons = {}
         
-    def getSubLoaderAvailable(self): #TODO change name
+    def getSubAddonsAvailable(self):
         return self.subAddons.keys()
 
     def getLoaderDictionary(self, subAddonName = None):
@@ -83,12 +84,13 @@ class GlobalLoader(AbstractLoader):
 
         return self.subAddons[subAddonName]
 
-    def getLoader(self, loaderName, classDefinition, subAddonName = None):
-        #TODO classDefinition had to be a definition of AbstractLoader
-            #equal does not work, and is not an instance, so instanceof will not work too...
-
-        #if classDefinition != AbstractLoader:
-        #    raise RegisterException("(GlobalLoader) getLoader, class definition provided is not a valid definition of AbstractLoader, got '"+str(classDefinition)+"'")
+    def getLoader(self, loaderName, classDefinition, subAddonName = None):        
+        try:
+            if not issubclass(classDefinition, AbstractLoader):
+                raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an unallowed class loader definition, must be a class definition inheriting from AbstractLoader")
+        
+        except TypeError:
+                raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader")
 
         if subAddonName not in self.subAddons:
             self.subAddons[subAddonName] = ({},GlobalLoaderLoadingState(),) 
@@ -100,7 +102,7 @@ class GlobalLoader(AbstractLoader):
     
 
     def _innerLoad(self,methodName, parameterManager, subAddonName, allowedState, invalidStateMessage, nextState,nextStateIfError):
-        exception = ListOfException()
+        exception = ListOfException() #TODO redondance of information, the errors will be store in sub addons too
 
         #nothing to do for this subAddons
         if subAddonName not in self.subAddons: 
@@ -122,6 +124,10 @@ class GlobalLoader(AbstractLoader):
             except Exception as ex:
                 exception = ex
                 loader.lastException = ex
+                
+                #TODO try also to store stacktrace
+                    #use inspect
+                    #store the exception in a custom field in lastException
 
         #TODO prblm
             #Exception as ex must raise immediately
@@ -130,10 +136,20 @@ class GlobalLoader(AbstractLoader):
 
             #solution:
                 #raise immediately and stop loading of the others addons
+                    #so, some addon are loaded and others not, bad idea...
                 #add the exception in the list of exception
+                    #looks the better idea
 
             #but have to raise something at the end of loading
                 #because serious error occured, so we can't show "xxx loaed !!!"
+        
+        #XXX SOLUTION XXX
+            #allowed to store any kind of exception in ListOfException and store unknown exception in it
+                #need to update ListOfException implementation
+                    #AbstractListableException is it still needed ?
+                        #yead for the some case where we want to stop process if not an AbstractListableException
+            #continue to load addon (already the case)
+            #raise at the end of loading (already the case)
     
         if not isinstance(exception,AbstractListableException) or exception.isThrowable():
             currentState.state = nextStateIfError

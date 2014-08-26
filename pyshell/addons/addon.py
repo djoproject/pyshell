@@ -27,7 +27,7 @@ from pyshell.arg.argchecker            import defaultInstanceArgChecker, complet
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.constants           import ENVIRONMENT_NAME
 from pyshell.utils.coloration          import green, orange, bolt, nocolor, red
-from pyshell.utils.exception           import ListOfException
+from pyshell.utils.exception           import ListOfException, formatException
 
 ADDONLIST_KEY = "loader_addon"
 ADDON_PREFIX  = "pyshell.addons."
@@ -59,6 +59,14 @@ def _tryToImportLoaderFromFile(name):
         raise Exception("invalid addon, no loader found.  don't forget to register something in the addon")
 
     return mod._loaders
+
+def _formatState(state, printok, printwarning, printerror):
+    if state in (GlobalLoaderLoadingState.STATE_LOADED, GlobalLoaderLoadingState.STATE_RELOADED,):
+        return printok(state)
+    elif state in (GlobalLoaderLoadingState.STATE_UNLOADED, GlobalLoaderLoadingState.STATE_REGISTERED,):
+        return printwarning(state)
+    else:
+        return printerror(state)
 
 @shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY),
              execution_context = contextParameterChecker("execution"))
@@ -96,12 +104,7 @@ def listAddonFun(addon_dico, execution_context):
             if subAddonName is None:
                 subAddonName = "(default)"
 
-            if state.state in (GlobalLoaderLoadingState.STATE_LOADED, GlobalLoaderLoadingState.STATE_RELOADED,):
-                l.append( (name, subAddonName, printok(state.state), ) )
-            elif state.state in (GlobalLoaderLoadingState.STATE_UNLOADED, GlobalLoaderLoadingState.STATE_REGISTERED,):
-                l.append( (name, subAddonName, printwarning(state.state), ) )
-            else:
-                l.append( (name, subAddonName, printerror(state.state), ) )
+            l.append( (name, subAddonName, _formatState(state.state, printok, printwarning, printerror ), ) )
 
     for name in local_addon:
         l.append( (name,"",printwarning(GlobalLoaderLoadingState.STATE_UNLOADED), ) )
@@ -209,7 +212,7 @@ def getAddonInformation(name, addon_dico, tabsize, execution_context):
             subAddonName = "Default"
 
         #current status
-        lines.append(tab+title("Sub addon")+" '"+str(subAddonName)+"': "+status.state) #TODO color status like in the list addon
+        lines.append(tab+title("Sub addon")+" '"+str(subAddonName)+"': "+_formatState(status.state, printok, printwarning, printerror ) )
 
         #loader in each subbadon
         for name, loader in subloaders.items():
@@ -219,12 +222,13 @@ def getAddonInformation(name, addon_dico, tabsize, execution_context):
                     lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = "+printerror(str(len(loader.lastException.exceptions)))+")")
 
                     for exc in loader.lastException.exceptions:
-                        print lines.append(tab*5 + "*" + str(exc)) #TODO color error (pyshell style or red)
+                        lines.append(tab*5 + "*" + formatException(exc, printok, printwarning, printerror))
 
                 else:
                     lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = "+printerror("1")+")")
                     lines.append(tab*3 + printerror(str(loader.lastException)))
-                    #TODO try to print stack trace
+                    #TODO try to print stack trace (if debug)
+                        #stacktrace must be stored in a custom field of lastException
             else:
                 lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = 0)")
 
@@ -280,6 +284,62 @@ def removeOnStartUp(addonName, addonListOnStartUp):
     if addonName in addonList:
         addonList.remove(addonName)
         addonListOnStartUp.setValue(addonList)
+        
+@shellMethod(addonListOnStartUp = environmentParameterChecker("addonToLoad"),
+             execution_context = contextParameterChecker("execution"))
+def listOnStartUp(addonListOnStartUp,execution_context):
+    addons = addonListOnStartUp.getValue()
+    
+    if len(addons) == 0:
+        return ()
+    
+    if execution_context.getSelectedValue() == "shell":
+        title        = bolt
+    else:
+        title        = nocolor
+    
+    r = []
+    r.append( (title("Order"), title("Addon name"),) )
+    for i in range(0,len(addons)):
+        r.append( ("  "+str(i), str(addons[i]), ) )
+    
+    return r
+
+@shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+def downAddonInList(addonName, addonListOnStartUp):
+    addonList = addonListOnStartUp.getValue()
+    
+    if addonName not in addonList:
+        raise Exception("unknown addon name '"+str(addonName)+"'")
+        
+    position = addonList.index(addonName)
+    addonList.remove(addonName)
+    addonList.insert(position+1, addonName)
+    
+@shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+def upAddonInList(addonName, addonListOnStartUp):
+    addonList = addonListOnStartUp.getValue()
+    
+    if addonName not in addonList:
+        raise Exception("unknown addon name '"+str(addonName)+"'")
+        
+    position = addonList.index(addonName)
+    addonList.remove(addonName)
+    addonList.insert(max(position-1,0), addonName)
+    
+@shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             position           = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
+             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+def setAddonPositionInList(addonName, position, addonListOnStartUp):
+    addonList = addonListOnStartUp.getValue()
+    
+    if addonName not in addonList:
+        raise Exception("unknown addon name '"+str(addonName)+"'")
+        
+    addonList.remove(addonName)
+    addonList.insert(max(position,0), addonName)
 
 ### REGISTER SECTION ###
 
@@ -287,16 +347,20 @@ registerSetGlobalPrefix( ("addon", ) )
 registerCommand( ("list",) ,                  pro=listAddonFun, post=printColumn)
 registerCommand( ("unload",) ,                pro=unloadAddon)
 registerSetTempPrefix( ("reload",  ) )
-registerCommand( ("addon",) ,        pro=reloadAddon)
-registerCommand( ("hard",) ,         pro=hardReload)
-registerCommand( ("subloader",) ,    pro=subLoaderReload)
+registerCommand( ("addon",) ,                 pro=reloadAddon)
+registerCommand( ("hard",) ,                  pro=hardReload)
+registerCommand( ("subloader",) ,             pro=subLoaderReload)
 registerSetTempPrefix( () )
 registerStopHelpTraversalAt( ("reload",) )
 registerCommand( ("load",) ,                  pro=loadAddonFun)
 registerCommand( ("info",) ,                  pro=getAddonInformation,post=stringListResultHandler)
 registerSetTempPrefix( ("onstartup",  ) )
-registerCommand( ("add",) ,         pro=addOnStartUp)
-registerCommand( ("remove",) ,      pro=removeOnStartUp)
+registerCommand( ("add",) ,                   pro=addOnStartUp)
+registerCommand( ("remove",) ,                pro=removeOnStartUp)
+registerCommand( ("list",) ,                  pro=listOnStartUp, post=printColumn)
+registerCommand( ("up",) ,                    pro=upAddonInList)
+registerCommand( ("down",) ,                  pro=downAddonInList)
+registerCommand( ("index",) ,                 pro=setAddonPositionInList)
 registerStopHelpTraversalAt( ("onstartup",) )
 registerStopHelpTraversalAt( () )
 
