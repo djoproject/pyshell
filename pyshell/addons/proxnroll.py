@@ -30,14 +30,15 @@
         #maybe we want to use them after the prox post process
 
 
-from apdu.readers.proxnroll import ProxnrollAPDUBuilder
-from pyshell.loader.command import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix, registerSetTempPrefix
-from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, tokenValueArgChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
-from pyshell.command.exception import engineInterruptionException
+from apdu.readers.proxnroll            import ProxnrollAPDUBuilder
+from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix, registerSetTempPrefix
+from pyshell.arg.decorator             import shellMethod
+from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, tokenValueArgChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
+from pyshell.command.exception         import engineInterruptionException
 from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
 
-from pyshell.addons.pcsc import printATR #FIXME create a dependancy... 
+from pyshell.addons.pcsc               import printATR #FIXME create a dependancy... 
+from pyshell.loader.dependancies       import registerDependOnAddon
 
 ## FUNCTION SECTION ##
 
@@ -139,6 +140,7 @@ def mifareUpdate(blockNumber, Key, datas): #FIXME Key could be None
 ## REGISTER ##
 
 # MAIN #
+registerDependOnAddon("pyshell.addons.pcsc")
 registerSetGlobalPrefix( ("proxnroll", ) )
 registerStopHelpTraversalAt( () )
 registerCommand( ( "setlight",),  pre=setLight,                               pro=stopAsMainProcess) 

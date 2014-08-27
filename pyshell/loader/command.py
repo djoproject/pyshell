@@ -17,11 +17,11 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from tries.exception          import triesException
-
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.command.command  import MultiCommand, UniCommand
-from pyshell.loader.exception import RegisterException
+from pyshell.loader.exception import LoadException, RegisterException
 from pyshell.utils.constants  import ENVIRONMENT_NAME
+from pyshell.utils.exception  import ListOfException
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)
@@ -111,17 +111,22 @@ class CommandLoader(AbstractLoader):
         self.cmdDict    = {}
         self.TempPrefix = None
         self.stoplist   = []
-    
+        
+        self.loadedCommand       = None
+        self.loadedStopTraversal = None
+        
     def load(self, parameterManager, subLoaderName = None):
+        self.loadedCommand       = []
+        self.loadedStopTraversal = []
+    
         AbstractLoader.load(self, parameterManager, subLoaderName)
     
         if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
-            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
-            return    
+            raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             
         mltries = parameterManager.getParameter("levelTries", ENVIRONMENT_NAME).getValue()
-    
-        #TODO don't print error message here, group the error in a listException
+
+        exceptions = ListOfException()
     
         #add command
         for k,v in self.cmdDict.iteritems():
@@ -130,39 +135,63 @@ class CommandLoader(AbstractLoader):
             key.extend(keyList)
             try:
                 mltries.insert(key, cmd)
+                self.loadedCommand.append(key)
             except triesException as te:
-                print "fail to insert key '"+str(" ".join(key))+"' in multi tries: "+str(te)
+                exceptions.addException( LoadException("fail to insert key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
 
         #stop traversal
         for stop in self.stoplist:
             key = list(self.prefix)
             key.extend(stop)
         
+            #TODO is it already enabled ?
+                #if yes then "continue", don't set it again
+        
             try:
                 mltries.setStopTraversal(key, True)
+                self.loadedStopTraversal.append(key)
             except triesException as te:
-                print "fail to disable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)
+                exceptions.addException( LoadException("fail to disable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)))
+                
+        #raise error list
+        if exceptions.isThrowable():
+            raise exceptions
+
+    #TODO
+    #at unload, only unload successfuly command at load
+        #if the command already exists before the load, don't remove it at unload
 
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
     
         if not parameterManager.hasParameter("levelTries", ENVIRONMENT_NAME):
-            print("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
+            raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             return
             
         mltries = parameterManager.getParameter("levelTries", ENVIRONMENT_NAME).getValue()
+        
+        exceptions = ListOfException()
     
-        #TODO don't print error message here, group the error in a listException
-    
-        for k,v in self.cmdDict.iteritems():
-            keyList, cmd = v
-            key = list(self.prefix)
-            key.extend(keyList)
-            
+        for key in self.loadedCommand:           
             try:
                 mltries.remove(key)
             except triesException as te:
-                print("fail to remove key '"+str(" ".join(key))+"' in multi tries: "+str(te))
+                exceptions.addException( LoadException( "fail to remove key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
+        
+        #TODO remove stop traversal
+        for key in self.loadedStopTraversal:
+            
+            #TODO if key does not exist, continue
+                #don't try to set it, the previous remove had probably removed the path in the tree
+        
+            try:
+                mltries.setStopTraversal(key, False)
+            except triesException as te:
+                exceptions.addException( LoadException("fail to enable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)))
+        
+        #raise error list
+        if exceptions.isThrowable():
+            raise exceptions 
         
     def addCmd(self, name, keyList, cmd):
         if self.TempPrefix != None:

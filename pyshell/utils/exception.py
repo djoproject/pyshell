@@ -72,7 +72,7 @@ class ListOfException(AbstractListableException):
     def addException(self,exception):
         if isinstance(exception, ListOfException):
             self.exceptions.extend(exception)
-        elif isinstance(exception, AbstractListableException):
+        elif isinstance(exception, Exception):#AbstractListableException):
             self.exceptions.append(exception)
         else:
             raise Exception("(ListOfException) addException, can only store exception of type AbstractListableException or ListOfException, got '"+str(type(exception))+"'")

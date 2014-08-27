@@ -21,6 +21,7 @@ from pyshell.loader.exception import LoadException
 from pyshell.utils.keystore   import Key, KeyStore
 from pyshell.utils.parameter  import EnvironmentParameter
 from pyshell.utils.constants  import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
+from pyshell.utils.exception  import ListOfException
 
 LOADING_METHOD_NAME    = "load"
 UNLOADING_METHOD_NAME  = "unload"
@@ -43,28 +44,37 @@ class KeyStoreLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
         self.keys = {}
+        self.loadedKeys = None
 
     def load(self, parameterManager, subLoaderName = None):
+        self.loadedKeys = []
         AbstractLoader.load(self, parameterManager, subLoaderName)
-        
+
         keyStore = _initAndGetKeyStore(parameterManager, LOADING_METHOD_NAME)
+        exceptions = ListOfException()
         
         for keyName, value in self.keys.items():
             keyInstance, override = value
             
             if keyStore.hasKey(keyName) and not override:
+                exceptions.addException( LoadException("fail to register key '"+str(keyName)+"', key alreay exists") )
                 continue
                 
             keyStore.setKeyInstance(keyName, keyInstance)
+            self.loadedKeys.append(keyName)
             
+        #raise error list
+        if exceptions.isThrowable():
+            raise exceptions 
 
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
         
         keyStore = _initAndGetKeyStore(parameterManager, UNLOADING_METHOD_NAME)
     
-        for keyName, value in self.keys.items():
-            keyStore.unsetKey(keyName)
+        for keyName in self.loadedKeys:
+            if keyStore.hasKey(keyName):
+                keyStore.unsetKey(keyName)
         
 def registerKey(keyName, keyString, override = True, transient=True, subLoaderName = None):
     keyInstance          = Key(keyString, transient)

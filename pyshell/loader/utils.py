@@ -16,12 +16,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import inspect
+import inspect,traceback
 from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException, AbstractListableException
+from pyshell.utils.constants  import DEFAULT_SUBADDON_NAME
 
-#TODO replace None by Default in the exception message for default sub addon
-    #Or replace None in prototype with "default" string ?
 
 def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, subAddonName = None):
     frm = inspect.stack()[3]
@@ -68,7 +67,7 @@ class GlobalLoaderLoadingState(object):
     STATE_RELOADED_E = "RELOADED WITH ERROR" 
 
     def __init__(self):
-        self.state         = GlobalLoaderLoadingState.STATE_REGISTERED
+        self.state = GlobalLoaderLoadingState.STATE_REGISTERED
 
 class GlobalLoader(AbstractLoader):
     def __init__(self):
@@ -79,6 +78,9 @@ class GlobalLoader(AbstractLoader):
         return self.subAddons.keys()
 
     def getLoaderDictionary(self, subAddonName = None):
+        if subAddonName is None:
+            subAddonName = DEFAULT_SUBADDON_NAME
+    
         if subAddonName not in self.subAddons:
             raise Exception("(GlobalLoader) getLoaderDictionary, sub addon '"+str(subAddonName)+"' does not exist")
 
@@ -91,7 +93,10 @@ class GlobalLoader(AbstractLoader):
         
         except TypeError:
                 raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader")
-
+        
+        if subAddonName is None:
+            subAddonName = DEFAULT_SUBADDON_NAME
+        
         if subAddonName not in self.subAddons:
             self.subAddons[subAddonName] = ({},GlobalLoaderLoadingState(),) 
             
@@ -102,7 +107,10 @@ class GlobalLoader(AbstractLoader):
     
 
     def _innerLoad(self,methodName, parameterManager, subAddonName, allowedState, invalidStateMessage, nextState,nextStateIfError):
-        exception = ListOfException() #TODO redondance of information, the errors will be store in sub addons too
+        exceptions = ListOfException()
+
+        if subAddonName is None:
+            subAddonName = DEFAULT_SUBADDON_NAME
 
         #nothing to do for this subAddons
         if subAddonName not in self.subAddons: 
@@ -118,42 +126,14 @@ class GlobalLoader(AbstractLoader):
             try:
                 meth_toCall(parameterManager,subAddonName)
                 loader.lastException = None
-            except AbstractListableException as ale:
-                exception.addException(ale)
-                loader.lastException = ale
             except Exception as ex:
-                exception = ex
                 loader.lastException = ex
-                
-                #TODO try also to store stacktrace
-                    #use inspect
-                    #store the exception in a custom field in lastException
-
-        #TODO prblm
-            #Exception as ex must raise immediately
-            #but loop over each addon before to raise
-            #so other Exception can occur and overwrite the last one
-
-            #solution:
-                #raise immediately and stop loading of the others addons
-                    #so, some addon are loaded and others not, bad idea...
-                #add the exception in the list of exception
-                    #looks the better idea
-
-            #but have to raise something at the end of loading
-                #because serious error occured, so we can't show "xxx loaed !!!"
-        
-        #XXX SOLUTION XXX
-            #allowed to store any kind of exception in ListOfException and store unknown exception in it
-                #need to update ListOfException implementation
-                    #AbstractListableException is it still needed ?
-                        #yead for the some case where we want to stop process if not an AbstractListableException
-            #continue to load addon (already the case)
-            #raise at the end of loading (already the case)
+                exceptions.addException(ex)
+                loader.lastException.stackTrace = traceback.format_exc()
     
-        if not isinstance(exception,AbstractListableException) or exception.isThrowable():
+        if exceptions.isThrowable():
             currentState.state = nextStateIfError
-            raise exception
+            raise exceptions
         else:
             currentState.state = nextState
 

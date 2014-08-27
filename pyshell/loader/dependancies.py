@@ -17,21 +17,21 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
-from pyshell.loader.exception import RegisterException
+from pyshell.loader.exception import RegisterException, LoadException
+from pyshell.utils.constants  import ENVIRONMENT_NAME, ADDONLIST_KEY, DEFAULT_SUBADDON_NAME
 
-#TODO
-    #need to have the list of already loaded addons
-        #and/or the subaddons part
-
-def _local_getAndInitCallerModule(subLoaderName = None)
+def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, 3, subLoaderName)
     
-def registerDependOnAddon(name, subLoaderName = None):
+def registerDependOnAddon(name, subName = None, subLoaderName = None):
     if type(name) != str and type(name) != unicode:
         raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon name are allowed")
 
+    if subName != None and (type(subName) != str and type(subName) != unicode):
+        raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon subName are allowed")
+
     loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.dep.append(name)
+    loader.dep.append( (name,subName,) )
     
 class DependanciesLoader(AbstractLoader):
     def __init__(self):
@@ -40,4 +40,27 @@ class DependanciesLoader(AbstractLoader):
         
     def load(self, parameterManager, subLoaderName = None):
         AbstractLoader.load(self, parameterManager, subLoaderName)
-        pass #TODO raise if a dependancies is not satisfied
+        
+        if len(self.dep) == 0:
+            return
+        
+        if not parameterManager.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+            raise LoadException("(DependanciesLoader) load, no addon list defined")
+        
+        addon_dico = parameterManager.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+        
+        for (name, subname) in self.dep:
+            if name not in addon_dico:
+                raise LoadException("(DependanciesLoader) load, no addon '"+str(name)+"' loaded")
+                
+            loader = addon_dico[name]
+            
+            if subname is None:
+                subname = DEFAULT_SUBADDON_NAME
+            
+            if subname not in loader.subAddons:
+                raise LoadException("(DependanciesLoader) load, addon '"+str(name)+"', sub addon '"+str(subname)+"' is not loaded")
+        
+        
+        
+        

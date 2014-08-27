@@ -27,3 +27,5 @@ DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
 MAIN_CATEGORY          = "main"
 PARAMETER_NAME         = "parameter"
 DEFAULT_SEPARATOR      = ","
+ADDONLIST_KEY          = "loader_addon"
+DEFAULT_SUBADDON_NAME  = "default"
