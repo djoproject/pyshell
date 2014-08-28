@@ -23,6 +23,8 @@
             #think to a system able to stop it easily          
         
     #manage daemon system
+    
+    #finish to propagate exception coloring
 
 #system library
 import readline
@@ -31,6 +33,7 @@ import sys
 import atexit
 import getopt
 import traceback
+from contextlib import contextmanager
 
 #tries library
 from tries import multiLevelTries
@@ -44,9 +47,9 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker,
 from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter
 from pyshell.utils.keystore    import KeyStore
-from pyshell.utils.exception   import ListOfException
+from pyshell.utils.exception   import ListOfException, formatException
 from pyshell.utils.constants   import DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.coloration  import red, orange, nocolor
+from pyshell.utils.coloration  import red, orange, green, nocolor
 
 class writer :
     def __init__(self, out):
@@ -97,6 +100,43 @@ def _parseLine(line, args):
 
     return toret
 
+###
+
+def getColoration(parameters):
+    if parameters.getParameter("execution",CONTEXT_NAME).getSelectedValue() == "shell":
+        return red, orange, green
+    else:
+        return nocolor,nocolor,nocolor
+
+@contextmanager
+def ExceptionManager(parameters, msg_prefix = None):
+    try:
+        yield
+    except ListOfException as loe:
+        error,warning,ok = getColoration(parameters)
+        
+        if msg_prefix is None:
+            msg_prefix = "List of exception"
+        
+        print(error(msg_prefix)+":")
+        for e in loe.exceptions:
+            print("    "+formatException(pex, ok, warning, error))
+        
+    except Exception as pex:
+        if msg_prefix is None:
+            msg_prefix = ""
+        else:
+            msg_prefix += " :"
+            
+        error,warning,ok = getColoration(parameters)
+        print(msg_prefix+formatException(pex, ok, warning, error))
+
+        if parameters.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+            print()
+            traceback.print_exc()
+
+###
+
 class CommandExecuter():
     def __init__(self, paramFile = None):
         #create param manager
@@ -127,29 +167,18 @@ class CommandExecuter():
         sys.stdout  = self.writer
         
         #try to load parameter file
-        try:
+        with ExceptionManager(self.params, "Fail to load parameters file"):
             self.params.load()
-        except Exception as ex:
-            print "Fail to load parameters file: "+str(ex)
 
         #try to load standard shell function
         #TODO try to remove addon loading from here and move it to the loop to load addon
             #just import loadAddonFun from addon
-        try:
+                #no it will be a double import, the addon loading method must be in utils or somewhere there
+        with ExceptionManager(self.params, "LOADING FATAL ERROR"):
             addon._loaders.load(self.params)
-        except ListOfException as loe:
-            if len(loe.exceptions) > 0:
-                print("LOADING FATAL ERROR:")
-                for e in loe.exceptions:
-                    print("    "+str(e))
-        #except Exception as ex:
-        #    print "LOADING FATAL ERROR, an unexpected error occured during the default addon loading: "+str(ex)
-
-            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-                traceback.print_exc()
 
         #load and manage history file
-        #FIXME move on start'up
+        #FIXME move on start'up event
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
             try:
                 readline.read_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
@@ -157,31 +186,19 @@ class CommandExecuter():
                 pass
         
         #try to load keystore
-        #FIXME move on start'up
+        #FIXME move on start'up event
         if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
-            try:
+            with ExceptionManager(self.params, "Fail to load keystore file"):
                 self.keystore.load()
-            except Exception as ex:
-                print "Fail to load keystore file: "+str(ex)
         
         #load other addon
         #FIXME move to onStartUp event when the event manager will be ready
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
-            try:
+            with ExceptionManager(self.params, "fail to load addon '"+str(addonName)+"'"):
                 addon.loadAddonFun(addonName, self.params)
-            except ListOfException as loe:
-                if len(loe.exceptions) > 0:
-                    print("fail to load addon '"+str(addonName)+"': ")
-                    for e in loe.exceptions:
-                        print("    "+str(e))
-            except Exception as ex:
-                print("fail to load addon '"+str(addonName)+"': "+str(ex))
 
-                if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-                    traceback.print_exc()
-                
         #save at exit
-        #FIXME move to atExit when the event manager will be ready
+        #FIXME move to atExit  event when the event manager will be ready
         atexit.register(self.saveParams)
         atexit.register(self.saveKeyStore)
         atexit.register(self.saveHistory)
@@ -278,9 +295,9 @@ class CommandExecuter():
             if len(loe.exceptions) > 0:
                 print(_severe("List of exception:"))
                 for e in loe.exceptions:
-                    print(_warning("    "+str(e)))
+                    print(_warning("    "+str(e))) #TODO use formatException
         except Exception as e:
-            print(_severe(str(e)))
+            print(_severe(str(e))) #TODO use formatException
 
         #print stack trace if debug is enabled
         if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
