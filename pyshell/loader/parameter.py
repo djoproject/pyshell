@@ -15,13 +15,6 @@
 
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#TODO
-    #quid:
-        #si on ajoute une valeur qui existe deja
-        #lorsqu'on unload, on ne devrait pas la retirer
-        #impliquerai d'avoir un etat du loadeur par rapport a son chargement
-        
         
 from pyshell.loader.exception import LoadException
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
@@ -92,9 +85,12 @@ class ParamaterLoader(AbstractLoader):
         AbstractLoader.__init__(self)
         self.valueToAddTo = []
         self.valueToSet   = []
+        
+        self.valueToUnset  = None
+        self.valueToRemove = None
 
     def _removeValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
-        if not parameterManager.hasParameter(keyName,CONTEXT_NAME):
+        if not parameterManager.hasParameter(keyName,parentName):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': unknow key name"))
             return
         
@@ -121,11 +117,12 @@ class ParamaterLoader(AbstractLoader):
             #remove value
             envObject.value.remove(v)
 
-        #force to rebuilt index
-        envObject.setIndex(envObject.index)
-
+        #force to rebuilt index for context
+        if isinstance(envObject, ContextParameter):
+            envObject.setIndex(envObject.index)
+        
     def _addValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
-        if not parameterManager.hasParameter(keyName,CONTEXT_NAME):
+        if not parameterManager.hasParameter(keyName,parentName):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': unknow key name"))
             return
         
@@ -164,34 +161,52 @@ class ParamaterLoader(AbstractLoader):
             
         try:
             envobject.setValue(oldValues)
+            self.valueToRemove.append(  (keyName, ValuesToAdd, parentName, )  )
         except argException as argE:
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(v)+"' to "+str(parentName)+" '"+str(keyName)+"': invalid values, "+str(argE)))
         except ParameterException as pe:
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(v)+"' to "+str(parentName)+" '"+str(keyName)+"': "+str(pe)))
     
-    def _unsetValueTo(self, parameterManager, keyName, parentName, listOfExceptions):
-        if not parameterManager.hasParameter(keyName, ENVIRONMENT_NAME):
-            listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset "+str(parentName)+" value with key '"+str(keyName)+"': key does not exist"))
-            return
+    def _unsetValueTo(self, parameterManager, exist,oldValue,keyName,parentName,value, listOfExceptions):
         
-        try:
-            parameterManager.unsetParameter(keyName, parentName)
-        except ParameterException as pe:
-            listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset "+str(parentName)+" value with key '"+str(keyName)+"': "+str(pe)))
+        #still exist ?
+        if not parameterManager.hasParameter(keyName,parentName):
+            listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset "+str(parentName)+" value with key '"+str(keyName)+"': key does not exist"))
+        
+        if exist:
+            envItem = parameterManager.getParameter(keyName,parentName)
+            
+            #if current value is still the value loaded with this addon, restore the old value
+            if envItem.getValue() == value:
+                envItem.setValue(oldValue)
+            #otherwise, the value has been updated and the item already exist before the loading of this module, so do nothing
+        else: 
+            try:
+                parameterManager.unsetParameter(keyName, parentName)
+            except ParameterException as pe:
+                listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset "+str(parentName)+" value with key '"+str(keyName)+"': "+str(pe)))
+    
     
     def _setValueTo(self, parameterManager, keyName, value, noErrorIfKeyExist, override, parentName, listOfExceptions):
-        if parameterManager.hasParameter(keyName, ENVIRONMENT_NAME) and not override:
-            if not noErrorIfKeyExist:
-                listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set "+str(parentName)+" value with key '"+str(keyName)+"': key already exists"))
-            
-            return
+        exist = parameterManager.hasParameter(keyName, parentName)
+        oldValue = None
+        if exist:
+            oldValue = parameterManager.getParameter(keyName, parentName).getValue()
+            if not override:
+                if not noErrorIfKeyExist:
+                    listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set "+str(parentName)+" value with key '"+str(keyName)+"': key already exists"))
+                
+                return
 
         try:
             parameterManager.setParameter(keyName, value,parentName)
+            self.valueToUnset.append(  (exist,oldValue,keyName,parentName,value, )  )
         except ParameterException as pe:
             listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set "+str(parentName)+" value with key '"+str(keyName)+"': "+str(pe)))
     
     def load(self, parameterManager = None, subLoaderName = None):
+        self.valueToUnset = []
+        self.valueToRemove = []
         AbstractLoader.load(self, parameterManager, subLoaderName)
     
         if parameterManager == None:
@@ -204,8 +219,8 @@ class ParamaterLoader(AbstractLoader):
             self._addValueTo(parameterManager, contextKey, value, parent, exceptions)
 
         #set value
-        for key, instance, noErrorIfKeyExist, override,ENVIRONMENT_NAME in self.valueToSet:
-            self._setValueTo(parameterManager, key, instance, noErrorIfKeyExist, override,ENVIRONMENT_NAME, exceptions)
+        for key, instance, noErrorIfKeyExist, override,parent in self.valueToSet:
+            self._setValueTo(parameterManager, key, instance, noErrorIfKeyExist, override,parent, exceptions)
 
         #raise error list
         if exceptions.isThrowable():
@@ -220,12 +235,12 @@ class ParamaterLoader(AbstractLoader):
         exceptions = ListOfException()
 
         #remove values added
-        for contextKey, value, parent in self.valueToAddTo:
+        for contextKey, value, parent  in self.valueToRemove:
             self._removeValueTo(parameterManager, contextKey, value, parent, exceptions)
 
         #remove object set
-        for key, instance, noErrorIfKeyExist, override,ENVIRONMENT_NAME in self.valueToSet:
-            self._unsetValueTo(parameterManager, key,ENVIRONMENT_NAME, exceptions)
+        for exist,oldValue,keyName,parentName,value in self.valueToUnset:
+            self._unsetValueTo(parameterManager, exist, oldValue, keyName, parentName, value, exceptions)
 
         #raise error list
         if exceptions.isThrowable():

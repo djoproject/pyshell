@@ -144,10 +144,10 @@ class CommandLoader(AbstractLoader):
             key = list(self.prefix)
             key.extend(stop)
         
-            #TODO is it already enabled ?
-                #if yes then "continue", don't set it again
-        
             try:
+                if mltries.isStopTraversal(key):
+                    continue
+            
                 mltries.setStopTraversal(key, True)
                 self.loadedStopTraversal.append(key)
             except triesException as te:
@@ -156,10 +156,6 @@ class CommandLoader(AbstractLoader):
         #raise error list
         if exceptions.isThrowable():
             raise exceptions
-
-    #TODO
-    #at unload, only unload successfuly command at load
-        #if the command already exists before the load, don't remove it at unload
 
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
@@ -178,16 +174,23 @@ class CommandLoader(AbstractLoader):
             except triesException as te:
                 exceptions.addException( LoadException( "fail to remove key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
         
-        #TODO remove stop traversal
+        #remove stop traversal
         for key in self.loadedStopTraversal:
             
-            #TODO if key does not exist, continue
-                #don't try to set it, the previous remove had probably removed the path in the tree
+            #if key does not exist, continue
+            try:
+                searchResult = mltries.searchNode(key, False)
+                
+                if searchResult == None or not searchResult.isPathFound():
+                    continue
+                
+            except triesException as te:
+                continue
         
             try:
                 mltries.setStopTraversal(key, False)
             except triesException as te:
-                exceptions.addException( LoadException("fail to enable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)))
+                exceptions.addException( LoadException("fail to enable traversal for key list '"+str(" ".join(key))+"' in multi tries: "+str(te)))
         
         #raise error list
         if exceptions.isThrowable():
