@@ -17,14 +17,22 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #-add argument
-        #-d start as daemon
-            #by default, a daemon must be a loop
-            #think to a system able to stop it easily          
-        
-    #manage daemon system
-    
-    #finish to propagate exception coloring
+    #manage deaemon system
+        #think about log file, how and where to store it
+
+        #-add argument
+            #-d start as daemon
+                #by default, a daemon must be a loop
+                #think to a system able to stop it easily   
+                    #stop the daemon from command
+                    #another argument -k (?)       
+            
+            #always need a file
+                #could be possible to set it in parameter
+
+            #create an addon to manage daemon
+                #start, stop, restart, kill, list, ...
+                #be able to manage these action from command line
 
 #system library
 import readline
@@ -48,8 +56,9 @@ from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter
 from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException, formatException
-from pyshell.utils.constants   import DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
 from pyshell.utils.coloration  import red, orange, green, nocolor
+from pyshell.addons.addon      import loadAddonFun
 
 class writer :
     def __init__(self, out):
@@ -57,85 +66,6 @@ class writer :
 
     def write(self, text):
         self.out.write("    "+str(text))
-
-def _parseLine(line, args):
-    line = line.split("|")
-    toret = []
-
-    for partline in line:
-        #remove blank char
-        partline = partline.strip(' \t\n\r')
-        if len(partline) == 0:
-            continue
-        
-        #split on space
-        partline = partline.split(" ")
-
-        #fo each token
-        finalCmd = []
-        for cmd in partline:
-            cmd = cmd.strip(' \t\n\r')
-            if len(cmd) == 0 :
-                continue
-            
-            if args is not None:
-                if cmd.startswith("$") and len(cmd) > 1:
-                    if cmd[1:] not in args:
-                        print("Unknown var '"+cmd[1:]+"'")
-                        return ()
-
-                    finalCmd.extend(args[cmd[1:]])
-
-                elif cmd.startswith("\$"):
-                    finalCmd.append(cmd[1:])
-                else:
-                    finalCmd.append(cmd)
-            else:
-                finalCmd.append(cmd)
-
-        if len(finalCmd) == 0:
-            continue
-
-        toret.append(finalCmd)
-
-    return toret
-
-###
-
-def getColoration(parameters):
-    if parameters.getParameter("execution",CONTEXT_NAME).getSelectedValue() == "shell":
-        return red, orange, green
-    else:
-        return nocolor,nocolor,nocolor
-
-@contextmanager
-def ExceptionManager(parameters, msg_prefix = None):
-    try:
-        yield
-    except ListOfException as loe:
-        error,warning,ok = getColoration(parameters)
-        
-        if msg_prefix is None:
-            msg_prefix = "List of exception"
-        
-        print(error(msg_prefix)+":")
-        for e in loe.exceptions:
-            print("    "+formatException(pex, ok, warning, error))
-        
-    except Exception as pex:
-        if msg_prefix is None:
-            msg_prefix = ""
-        else:
-            msg_prefix += " :"
-            
-        error,warning,ok = getColoration(parameters)
-        print(msg_prefix+formatException(pex, ok, warning, error))
-
-        if parameters.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-            print()
-            traceback.print_exc()
-
-###
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -145,10 +75,6 @@ class CommandExecuter():
         #init original params
         self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("tabsize",             EnvironmentParameter(value=4, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-
-        #TODO update "vars" to ... (remove it?)
-        self.params.setParameter("vars",                EnvironmentParameter(value={},transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
-        
         self.params.setParameter("levelTries",          EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
         keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
         self.params.setParameter("keystoreFile",        keyStorePath, ENVIRONMENT_NAME)
@@ -159,7 +85,9 @@ class CommandExecuter():
         self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution",           ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.addon",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
+        
         
         #redirect output
         real_out    = sys.stdout
@@ -167,15 +95,8 @@ class CommandExecuter():
         sys.stdout  = self.writer
         
         #try to load parameter file
-        with ExceptionManager(self.params, "Fail to load parameters file"):
+        with self.ExceptionManager("Fail to load parameters file"):
             self.params.load()
-
-        #try to load standard shell function
-        #TODO try to remove addon loading from here and move it to the loop to load addon
-            #just import loadAddonFun from addon
-                #no it will be a double import, the addon loading method must be in utils or somewhere there
-        with ExceptionManager(self.params, "LOADING FATAL ERROR"):
-            addon._loaders.load(self.params)
 
         #load and manage history file
         #FIXME move on start'up event
@@ -188,13 +109,13 @@ class CommandExecuter():
         #try to load keystore
         #FIXME move on start'up event
         if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
-            with ExceptionManager(self.params, "Fail to load keystore file"):
+            with self.ExceptionManager("Fail to load keystore file"):
                 self.keystore.load()
         
         #load other addon
         #FIXME move to onStartUp event when the event manager will be ready
         for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
-            with ExceptionManager(self.params, "fail to load addon '"+str(addonName)+"'"):
+            with self.ExceptionManager("fail to load addon '"+str(addonName)+"'"):
                 addon.loadAddonFun(addonName, self.params)
 
         #save at exit
@@ -214,28 +135,71 @@ class CommandExecuter():
     def saveKeyStore(self):
         if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
             self.keystore.save()
+    
+    def _parseLine(self,line, enableArgs = True):
+        line = line.split("|")
+        toret = []
         
+        for partline in line:
+            #remove blank char
+            partline = partline.strip(' \t\n\r')
+            if len(partline) == 0:
+                continue
+            
+            #split on space
+            partline = partline.split(" ")
+
+            #fo each token
+            finalCmd = []
+            for cmd in partline:
+                cmd = cmd.strip(' \t\n\r')
+                if len(cmd) == 0 :
+                    continue
+                
+                if enableArgs:
+                    if cmd.startswith("$") and len(cmd) > 1:
+                        if not self.params.hasParameter(cmd[1:]):
+                            print("Unknown var '"+cmd[1:]+"'")
+                            return ()
+                        
+                        param = self.params.getParameter(cmd[1:])
+                        
+                        #TODO should be a variable instance
+                        
+                        #no more need if an instance variable, always list, no ?
+                        if param.isAListType():
+                            finalCmd.extend(param.getValue())
+                        else:
+                            finalCmd.append(param.getValue())
+
+                    elif cmd.startswith("\$"):
+                        finalCmd.append(cmd[1:])
+                    else:
+                        finalCmd.append(cmd)
+                else:
+                    finalCmd.append(cmd)
+
+            if len(finalCmd) == 0:
+                continue
+
+            toret.append(finalCmd)
+
+        return toret
+    
     #
     #
     # @return, true if no severe error or correct process, false if severe error
     #
     def executeCommand(self,cmd):
         ## init, parse and check the string list ##
-        
-        #TODO update vars, if exist use it, otherelse, put a None value or something like that
-        cmdStringList = _parseLine(cmd,self.params.getParameter("vars", ENVIRONMENT_NAME).getValue())
+        cmdStringList = self._parseLine(cmd)
 
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
             return False
 
         #define console coloration function
-        if self.params.getParameter("execution",CONTEXT_NAME).getSelectedValue() == "shell":
-            _severe = red
-            _warning = orange
-        else:
-            _severe = nocolor
-            _warning = nocolor
+        _severe,_warning,_notice = self.getColoration()
 
         ## look after command in tries ##
         rawCommandList = []   
@@ -290,14 +254,15 @@ class CommandExecuter():
             else:
                 print(_warning("Normal execution abort, reason: "+str(eien.value)))
         except argException as ae:
-            print(_warning("Error in parsing argument: "+str(ae.value)))
+            print(_warning("Error while parsing argument: "+str(ae.value)))
         except ListOfException as loe:
             if len(loe.exceptions) > 0:
                 print(_severe("List of exception:"))
                 for e in loe.exceptions:
-                    print(_warning("    "+str(e))) #TODO use formatException
+                    print(self.printFormatedException(e))
+                    
         except Exception as e:
-            print(_severe(str(e))) #TODO use formatException
+            print(self.printFormatedException(e))
 
         #print stack trace if debug is enabled
         if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
@@ -352,7 +317,7 @@ class CommandExecuter():
         sys.stdout.flush()
         
     def complete(self,suffix,index):
-        cmdStringList = _parseLine(readline.get_line_buffer(),None)
+        cmdStringList = self._parseLine(readline.get_line_buffer(),False)
 
         try:
             ## special case, empty line ##
@@ -419,12 +384,45 @@ class CommandExecuter():
             finalKeys.append(None)
             return finalKeys[index]
             
-        #TODO is it normal to catch exception like this here ?
         except Exception as ex:
-            import traceback,sys
-            print traceback.format_exc()
+            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+                print(self.printFormatedException(ex))
+                print traceback.format_exc()
 
         return None
+
+    def getColoration(self):
+        if self.params.getParameter("execution",CONTEXT_NAME).getSelectedValue() == "shell":
+            return red, orange, green
+        else:
+            return nocolor,nocolor,nocolor
+
+    @contextmanager
+    def ExceptionManager(self, msg_prefix = None):
+        try:
+            yield
+        except ListOfException as loe:
+            error,warning,ok = self.getColoration()
+            
+            if msg_prefix is None:
+                msg_prefix = "List of exception"
+            
+            print(error(msg_prefix)+": ")
+            for e in loe.exceptions:
+                print("    "+formatException(e, ok, warning, error))
+            
+        except Exception as pex:
+            if msg_prefix is None:
+                msg_prefix = ""
+            else:
+                msg_prefix += ": "
+                
+            error,warning,ok = self.getColoration()
+            print(msg_prefix+formatException(pex, ok, warning, error))
+
+            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+                print()
+                traceback.print_exc()
 
     def executeFile(self,filename):
         shellOnExit = False
@@ -443,6 +441,10 @@ class CommandExecuter():
             print("An error occured during the script execution: "+str(ex))
         
         return shellOnExit
+
+    def printFormatedException(self, ex):
+        error,warning,ok = self.getColoration()
+        return formatException(ex, ok, warning, error)
 
 def usage():
     print("")

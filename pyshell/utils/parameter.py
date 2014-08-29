@@ -360,7 +360,20 @@ class EnvironmentParameter(Parameter):
         self.setListSeparator(sep)
         self.typ = typ
         self._setValue(value)
-
+    
+    #TODO replace in all code part, the test isinstance(typ, listArgChecker) 
+    def isAListType(self):
+        return self.isListType
+    
+    #TODO replace brutal add value everywhere in the code
+    def addValues(self, values):
+        pass #TODO
+        
+    #TODO replace brutal add value everywhere in the code
+    def removeValue(self, value):
+        pass #TODO remove a value if list type
+            #TODO be carefull, need to recompute index in context class
+    
     def setListSeparator(self, sep):
         if sep == None or (type(sep) != str and type(sep) != unicode):
             raise ParameterException("(EnvironmentParameter) setListSeparator, separator must be a string, get "+str(type(sep)))

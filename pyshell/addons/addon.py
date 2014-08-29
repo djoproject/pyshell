@@ -18,7 +18,6 @@
 
 #from pyshell.utils.loader import *
 from pyshell.loader.command            import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt, registerSetTempPrefix
-from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.loader.utils              import GlobalLoaderLoadingState, DEFAULT_SUBADDON_NAME
 from pyshell.arg.decorator             import shellMethod
 import os, sys
@@ -380,5 +379,3 @@ registerCommand( ("down",) ,                  pro=downAddonInList)
 registerCommand( ("index",) ,                 pro=setAddonPositionInList)
 registerStopHelpTraversalAt( ("onstartup",) )
 registerStopHelpTraversalAt( () )
-
-registerSetEnvironment(ADDONLIST_KEY, EnvironmentParameter(value = {"pyshell.addons.addon":sys.modules[__name__]._loaders}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), noErrorIfKeyExist = False, override = True)
