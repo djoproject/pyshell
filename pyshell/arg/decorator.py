@@ -117,7 +117,6 @@ def shellMethod(**argList):
                     continue
             
             if argname in argList: #check if the argname is in the argList
-                #print argList
                 checker = argList[argname]
                 del argList[argname]
                 

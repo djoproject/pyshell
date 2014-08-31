@@ -97,5 +97,20 @@ class ParameterLoadingException(AbstractListableException):
 
     def __str__(self):
         return str(self.value)
-        
+
+class KeyStoreException(PyshellException):
+    def __init__(self,value=None, severity=ERROR):
+        PyshellException.__init__(self, severity)
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+class KeyStoreLoadingException(AbstractListableException):
+    def __init__(self,value):
+        AbstractListableException.__init__(self,None, PARSE_WARNING)
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
         

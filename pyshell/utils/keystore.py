@@ -22,6 +22,7 @@ import sys,os
 from math                    import log
 from pyshell.utils.valuable  import Valuable
 from pyshell.utils.constants import KEYSTORE_SECTION_NAME
+from pyshell.utils.exception import KeyStoreLoadingException, KeyStoreException, ListOfException
 
 try:
     pyrev = sys.version_info.major
@@ -36,7 +37,7 @@ else:
 class KeyStore(object):
     def __init__(self,filePath = None):
         if filePath != None and not isinstance(filePath,Valuable):
-            raise Exception("(KeyStore) __init__, filePath must be a Valuable object")
+            raise KeyStoreException("(KeyStore) __init__, filePath must be a Valuable object")
     
         self.filePath = filePath
         self.tries = tries()
@@ -46,9 +47,8 @@ class KeyStore(object):
         if self.filePath == None:
             return
         
-        #if no file, no load
+        #if no file, no load, no keystore file, loading not possible but no error
         if not os.path.exists(self.filePath.getValue()):
-            print("(KeyStore) load, file '"+str(self.filePath.getValue())+"' does not exist")
             return
         
         #try to load the keystore
@@ -56,19 +56,21 @@ class KeyStore(object):
         try:
             config.read(self.filePath.getValue())
         except Exception as ex:
-            print("(KeyStore) load, fail to read parameter file '"+str(self.filePath.getValue())+"' : "+str(ex))
-            return
+            raise KeyStoreLoadingException("(KeyStore) load, fail to read parameter file '"+str(self.filePath.getValue())+"' : "+str(ex))
         
         #main section available ?
         if not config.has_section(KEYSTORE_SECTION_NAME):
-            print("(KeyStore) load, config file '"+str(self.filePath.getValue())+"' is valid but does not hold keystore section")
-            return
-            
+            raise KeyStoreLoadingException("(KeyStore) load, config file '"+str(self.filePath.getValue())+"' is valid but does not hold keystore section")
+        
+        exceptions = ListOfException()
         for keyName in config.options(KEYSTORE_SECTION_NAME):
             try:
                 self.tries.insert(keyName, Key(config.get(KEYSTORE_SECTION_NAME, keyName), transient=False))
             except Exception as ex:
-                print("(KeyStore) load, fail to load key '"+str(keyName)+"' : "+str(ex))
+                exceptions.append( KeyStoreLoadingException("(KeyStore) load, fail to load key '"+str(keyName)+"' : "+str(ex)))
+
+        if exceptions.isThrowable():
+            raise exceptions
         
     def save(self):
         if self.filePath is None:
@@ -96,14 +98,14 @@ class KeyStore(object):
             node = self.tries.search(keyNamePrefix)
             return node is not None
         except ambiguousPathException as ape:
-            raise Exception("(KeyStore) hasKey, Ambiguous key name", ape)
+            raise KeyStoreException("(KeyStore) hasKey, Ambiguous key name", ape)
         
     def setKey(self, keyname, keyString):
         self.setKeyInstance(keyname, Key(keyString))
     
     def setKeyInstance(self, keyname, instance):
         if not isinstance(instance, Key):
-            raise Exception("(KeyStore) setKeyInstance, invalid key instance, expect Key instance, got '"+str(type(instance))+"'")
+            raise KeyStoreException("(KeyStore) setKeyInstance, invalid key instance, expect Key instance, got '"+str(type(instance))+"'")
     
         node = self.tries.search(keyname,True)
         if node is None:
@@ -116,12 +118,12 @@ class KeyStore(object):
             node = self.tries.search(keyNamePrefix)
             
             if node is None:
-                raise Exception("(KeyStore) getKey, unknown key name")
+                raise KeyStoreException("(KeyStore) getKey, unknown key name")
                 
             return node.getValue()
             
         except ambiguousPathException:
-            raise Exception("(KeyStore) getKey, Ambiguous key name", ape)
+            raise KeyStoreException("(KeyStore) getKey, Ambiguous key name", ape)
         
     def unsetKey(self, keyNamePrefix):
         try:
@@ -132,7 +134,7 @@ class KeyStore(object):
             self.tries.remove(node.getCompleteName())
                 
         except ambiguousPathException as ape:
-            raise Exception("(KeyStore) unsetKey, Ambiguous key name", ape)
+            raise KeyStoreException("(KeyStore) unsetKey, Ambiguous key name", ape)
         
     def getKeyList(self, prefix = ""):
         return self.tries.getKeyList(prefix)
@@ -147,7 +149,7 @@ class Key(object):
     def __init__(self, keyString, transient=True):
         #is it a string ?
         if type(keyString) != str and type(keyString) != unicode:
-            raise Exception("(Key) __init__, invalid key string, expected a string, got '"+str(type(keyString))+"'")
+            raise KeyStoreException("(Key) __init__, invalid key string, expected a string, got '"+str(type(keyString))+"'")
         
         keyString = keyString.lower()
     
@@ -156,7 +158,7 @@ class Key(object):
             try:
                 int(keyString, 16)
             except ValueError as ve:
-                raise Exception("(Key) __init__, invalid hexa string, start with 0x but is not valid: "+str(ve))
+                raise KeyStoreException("(Key) __init__, invalid hexa string, start with 0x but is not valid: "+str(ve))
         
             self.keyType = Key.KEYTYPE_HEXA
             self.key     = keyString[2:]
@@ -173,19 +175,19 @@ class Key(object):
             try:
                 int(keyString, 2)
             except ValueError as ve:
-                raise Exception("(Key) __init__, invalid binary string, start with 0b but is not valid: "+str(ve))
+                raise KeyStoreException("(Key) __init__, invalid binary string, start with 0b but is not valid: "+str(ve))
     
             self.keyType = Key.KEYTYPE_BIT
             self.key     = keyString[2:]
             self.keySize = len(self.key)
         else:
-            raise Exception("(Key) __init__, invalid key string, must start with 0x or 0b, got '"+keyString+"'")
+            raise KeyStoreException("(Key) __init__, invalid key string, must start with 0x or 0b, got '"+keyString+"'")
 
         self.setTransient(transient)
     
     def setTransient(self, state):
         if type(state) != bool:
-            raise Exception("(Key) setTransient, expected a bool type as state, got '"+str(type(state))+"'")
+            raise KeyStoreException("(Key) setTransient, expected a bool type as state, got '"+str(type(state))+"'")
     
         self.transient = state
     

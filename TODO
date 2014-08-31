@@ -1,40 +1,7 @@
 #############################
 ### keystore              ###
-#############################
-    set/unset/get
-    list of byte, at least 1 byte ?
-        what append if uncomplet byte?
-            for example 12 bits key ?
-            
-    Where to store it?
-        in parameter file ?
-            nop it is a parameter file, not a key store
-        
-        in a new file ?
-            yes, same directory as parameter file
-            create a subdirectory to store everything(history, rc, ...)
-            
-        use a simple properties looks like file
-            hkhgj= 1 2 3
-            dede= 5 8 9 ..
-            ...
-            
-        complete KeyArgchecker
-        
-        not only addon, utils, add to stdaddon
-        
-        define default key somewhere
-        
-        byte or bit ?
-    
-    cypher it
-
-#############################
-### loader                ###
-#############################
-
-prblm avec le unload des parametres
-    si par exemple ces parametres ont été loadé deux fois, à la fois par l'addon à unloaded et par un autre addon mais que ce dernier n'est pas déchargé
+#############################    
+    be able to cypher it
 
 #############################
 ### utilisation des tries ###
@@ -49,6 +16,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         -addon name
         -...
 
+    look after dictionary init {
+
 ##################
 ### decorateur ###
 ##################
@@ -59,16 +28,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 ##################
 ### argchecker ###
 ##################
-
--file path (pour les params)
-    #correct path
-    #must exist or not
-    #be a file or a directory
-    #readable or not
-    #writtable or not
-    #...
-    
--key argchecher
 
 -string
     min size
@@ -213,22 +172,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 
 #########################################################################################################################
 
-################################
-### VAR                      ###
-################################
-
-les vars ne sont jamais que des genericParameter en mode transient et en mode list
-    voir dans quelle mesure les deux systèmes peuvent être fusionné
-
-
-################################
-### Static parameter (files) ###
-################################
-    what to parameter:
-        tab_length                  TODO
-        history file for raw input  OK
-        param des addons            TODO use this var
-            package de base, ...
 
 ###############
 ### context ###
