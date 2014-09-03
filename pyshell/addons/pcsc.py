@@ -41,10 +41,11 @@
                     
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
 from pyshell.arg.decorator             import shellMethod
-from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker
-from pyshell.simpleProcess.postProcess import stringListResultHandler, printColumn
+from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker, contextParameterChecker
+from pyshell.simpleProcess.postProcess import printColumn
 from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.utils.parameter           import EnvironmentParameter
+from pyshell.utils.coloration          import bolt, nocolor
 
 try:
     from smartcard.System                 import readers
@@ -148,6 +149,8 @@ def transmit(data, connection_index=0, connections = None):
 def connectCard(index=0, cards = None,connections = None):
     #TODO check autoload and contextLoaded
 
+    #TODO link the card to the connexion object and 
+
     card_list = cards.getValue()
     
     if len(card_list) == 0:
@@ -169,6 +172,10 @@ def connectCard(index=0, cards = None,connections = None):
 @shellMethod(index=IntegerArgChecker(0))
 def connectReader(index=0, connections = None):
     #TODO check autoload and contextLoaded
+    
+    #XXX what append if two card available on the reader ? 
+    
+    #TODO find a way to make a link between the card and the connexion object
 
     r = readers()
 
@@ -209,17 +216,26 @@ def disconnect(index=0, connections = None):
         connection_list.remove(connectionToUse)
         connections.setValue(connection_list)
 
-@shellMethod(connections = environmentParameterChecker("pcsc_connexionlist"))
-def getConnected(connections):
+@shellMethod(connections = environmentParameterChecker("pcsc_connexionlist"),
+             execution_context = contextParameterChecker("execution"))
+def getConnected(connections, execution_context):
     connection_list = connections.getValue()
     
     if len(connection_list) == 0:
         return ()
-        
-    to_ret = []
     
-    #TODO
-        #create column, column title, get information about connection (see pyscard documentation), ...
+    if execution_context.getSelectedValue() == "shell":
+        title = bolt 
+    else:
+        title = nocolor
+    
+    to_ret = []
+    to_ret.append( (title("ID"), title("Card"), title("Reader"), title("Protocol"), title("ATR"), ) )
+    
+    for con in connection_list:
+        #TODO use the link between the card and the connection
+    
+        pass #TODO 
     
     return to_ret
 
@@ -229,17 +245,49 @@ def getAvailableCard(cards):
     #TODO same kind of stuff than in getConnected
         #create column, column title, get information about card (see pyscard documentation), ...
 
+        #abstract class card has a field with the reader
+        
+        #column : ID, card name, reader name, is connected ?
+
     pass #TODO
 
-def getAvailableReader():
+@shellMethod(cards       = environmentParameterChecker("pcsc_cardlist"),
+             connections = environmentParameterChecker("pcsc_connexionlist"),
+             execution_context = contextParameterChecker("execution"))
+def getAvailableReader(cards, connections,execution_context):
+    #TODO check autoload and contextLoaded
+    
+    r = readers()
+    
+    if len(r) == 0:
+        return ()
+    
+    if execution_context.getSelectedValue() == "shell":
+        title = bolt 
+    else:
+        title = nocolor
+    
+    to_ret = []
+    to_ret.append( (title("Reader name"), title(" Card on reader"), title(" Card connected"),) )
+    
+    cards = cards.getValue()
+    connections = connections.getValue()
+    
+    for reader in r:
+        connected = 0
+        onreader = 0
+    
+        for card in cards:
+            if card.reader == reader:
+                onreader += 1
+                
+        for con in connections:
+            if con.getReader == reader:
+                connected += 1
+                
+        to_ret.append( (str(reader), "  "+str(onreader), "  "+str(connected),) )
 
-    #TODO could be probably possible to get more information about reader
-        #see documentation
-        #create column, column title, ...
-        #the number of card on the reader, the number of connection opened, ...
-        #...
-
-    return readers()
+    return to_ret
 
 ## register ENVIRONMENT ##
 
@@ -259,7 +307,7 @@ registerSetGlobalPrefix( ("pcsc", ) )
 registerStopHelpTraversalAt( () )
 registerCommand( ("load",) ,             pro=loadPCSC)
 
-registerCommand( ("reader","list",) ,    pro=getAvailableReader, post=stringListResultHandler)
+registerCommand( ("reader","list",) ,    pro=getAvailableReader, post=printColumn)
 registerCommand( ("reader","connect",) , pro=connectReader)
 
 registerCommand( ("card","list",) ,      pro=getAvailableCard,   post=printColumn)
