@@ -16,6 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #create an argchecker to check if the value is an instance of
+    #create an argchecker to check if the value is a type of
+    #and when it will be done, look after listargchecker(defaultargchecker()) and replace them if possible
 
 from tries                   import tries
 from tries.exception         import ambiguousPathException
