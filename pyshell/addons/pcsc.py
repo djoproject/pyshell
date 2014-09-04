@@ -17,10 +17,6 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #use loaded and autoload environment
-
-    #check in rfidDefault if something must be retrieve
-
     #XXX what about scard data transmit ?
 
     #thread to manage card list, otherwise the list will always be empty
@@ -37,17 +33,19 @@
         #to catch event (not really needed now)
         #start on loading of pcsc, not on addon loading
         
-    
+    #enable/disable data watch (see old rfid file)
                     
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
 from pyshell.arg.decorator             import shellMethod
-from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker, contextParameterChecker
+from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker, contextParameterChecker, tokenValueArgChecker
 from pyshell.simpleProcess.postProcess import printColumn
 from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.coloration          import bolt, nocolor
+from apdu.misc.apdu                    import toHexString
 
 try:
+    #TODO check if every items here are needed
     from smartcard.System                 import readers
     from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
     from smartcard.ReaderMonitoring       import ReaderMonitor, ReaderObserver
@@ -78,6 +76,20 @@ except ImportError as ie:
     
     raise Exception("Fail to import smartcard : "+str(ie))
 
+## MISC SECTION ##
+
+def _checkList(l, index, item_type):
+    if len(l) == 0:
+        raise Exception("no "+item_type+" available")
+    
+    connectionToUse = None
+    
+    try:
+        return l[index]
+    except IndexError:
+        raise Exception("invalid "+item_type+" index, expected a value between 0 and "+str(len(l) -1)+", got "+str(index)) #TODO will produce a weird message if only one item in list
+        
+
 ## FUNCTION SECTION ##
 
 @shellMethod(bytes=listArgChecker(IntegerArgChecker(0,255)))
@@ -93,11 +105,15 @@ def printATR(bytes):
     atr.dump()
     print 'T15 supported: ', atr.isT15Supported()
 
-@shellMethod(loaded = environmentParameterChecker("pcsc_contextready"))
-def loadPCSC(loaded):
-
-    if loaded.getValue():
-        raise Exception("pcsc context is already loaded")
+@shellMethod(autoload    = contextParameterChecker("pcsc_autoload"),
+             loaded      = contextParameterChecker("pcsc_contextready"),
+             autoconnect = contextParameterChecker("pcsc_autoconnect"))
+def loadPCSC(autoload, loaded,autoconnect):
+    if loaded:
+        return
+        
+    if not autoload:
+        raise Exception("pcsc is not loaded and autoload is disabled")
 
     #not already called in an import ?
     try:
@@ -107,6 +123,8 @@ def loadPCSC(loaded):
         loaded.setValue(True)
         
     except EstablishContextException as e:
+        #TODO should raise an exception 
+        
         print "   "+str(e)
         
         import platform
@@ -119,6 +137,10 @@ def loadPCSC(loaded):
             print "   HINT : check if the 'scardsvr' service is running, maybe it has not yet started or it crashed"
         else:
             print "   HINT : check the os process that manage card reader"
+            
+        return
+        
+    #TODO start thread to monitor card connection
 
 
 @shellMethod(data=listArgChecker(IntegerArgChecker(0,255)),
@@ -130,37 +152,19 @@ def transmit(data, connection_index=0, connections = None):
         #setErrorCheckingChain to the connection object
         #maybe could be interesting to set it at connection creation
 
-    connection_list = connections.getValue()
-    
-    if len(connection_list) == 0:
-        raise Exception("no connection available")
-    
-    connectionToUse = None
-    try:
-        connectionToUse = connection_list[connection_index]
-    except IndexError:
-        raise Exception("invalid connection index, expected a value between 0 and "+str(len(connection_list) -1)+", got "+str(connection_index)) #TODO will produce a weird message if only one item in list
-        
+    connectionToUse = _checkList(connections.getValue(), connection_index, "connection")
     return connectionToUse.transmit(data)
 
-@shellMethod(index       = IntegerArgChecker(),
+@shellMethod(index       = IntegerArgChecker(0),
              cards       = environmentParameterChecker("pcsc_cardlist"),
-             connections = environmentParameterChecker("pcsc_connexionlist"))
-def connectCard(index=0, cards = None,connections = None):
-    #TODO check autoload and contextLoaded
+             connections = environmentParameterChecker("pcsc_connexionlist"),
+             autoload    = contextParameterChecker("pcsc_autoload"),
+             loaded      = contextParameterChecker("pcsc_contextready"),
+             autoconnect = contextParameterChecker("pcsc_autoconnect"))
+def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=False, autoconnect=False):
+    loadPCSC(loaded.getValue(), autoload.getValue(), autoconnect.getValue())
 
-    #TODO link the card to the connexion object and 
-
-    card_list = cards.getValue()
-    
-    if len(card_list) == 0:
-        raise Exception("no card available")
-    
-    cardToUse = None
-    try:
-        cardToUse = card_list[index]
-    except IndexError:
-        raise Exception("invalid card index, expected a value between 0 and "+str(len(card_list) -1)+", got "+str(index)) #TODO will produce a weird message if only one item in list
+    connectionToUse = _checkList(cards.getValue(), index, "card")
     
     connection = cardToUse.createConnection()
     connection.connect()
@@ -169,25 +173,16 @@ def connectCard(index=0, cards = None,connections = None):
     connection_list.append(connection)
     connections.setValue(connection_list)
 
-@shellMethod(index=IntegerArgChecker(0))
-def connectReader(index=0, connections = None):
-    #TODO check autoload and contextLoaded
+@shellMethod(index=IntegerArgChecker(0),
+             connections = environmentParameterChecker("pcsc_connexionlist"),
+             autoload    = contextParameterChecker("pcsc_autoload"),
+             loaded      = contextParameterChecker("pcsc_contextready"),
+             autoconnect = contextParameterChecker("pcsc_autoconnect"))
+def connectReader(index=0, connections = None,loaded=False, autoload=False, autoconnect=False):
+    loadPCSC(loaded.getValue(), autoload.getValue(), autoconnect.getValue())
+
+    readerToUse = _checkList(readers(), index, "reader")
     
-    #XXX what append if two card available on the reader ? 
-    
-    #TODO find a way to make a link between the card and the connexion object
-
-    r = readers()
-
-    if len(r) == 0:
-        raise Exception("no reader available", True)
-
-    readerToUse = none
-    try:
-        readerToUse = r[index]
-    except IndexError:
-        raise Exception("invalid reader index, expected a value between 0 and "+str(len(r) -1)+", got "+str(index)) #TODO will produce a weird message if only one item in list
-        
     connection = readerToUse.createConnection()
     connection.connect()#create a connection to the card
 
@@ -195,20 +190,15 @@ def connectReader(index=0, connections = None):
     connection_list.append(connection)
     connections.setValue(connection_list)
 
-
-@shellMethod(index       = IntegerArgChecker(),
+@shellMethod(index       = IntegerArgChecker(0),
              connections = environmentParameterChecker("pcsc_connexionlist"))
 def disconnect(index=0, connections = None):
     connection_list = connections.getValue()
     
     if len(connection_list) == 0:
         return
-    
-    connectionToUse = None
-    try:
-        connectionToUse = connection_list[index]
-    except IndexError:
-        raise Exception("invalid connection index, expected a value between 0 and "+str(len(connection_list) -1)+", got "+str(index)) #TODO will produce a weird message if only one item in list
+        
+    connectionToUse = _checkList(connection_list, connection_index, "connection")
 
     try:
         connectionToUse.disconnect()
@@ -230,32 +220,62 @@ def getConnected(connections, execution_context):
         title = nocolor
     
     to_ret = []
-    to_ret.append( (title("ID"), title("Card"), title("Reader"), title("Protocol"), title("ATR"), ) )
+    to_ret.append( (title("ID"), title("Reader"), title("Protocol"), title("ATR"), ) )
     
-    for con in connection_list:
-        #TODO use the link between the card and the connection
+    index = 0
+    for con in connection_list:        
+        #protocole type
+        if con.getProtocol() == CardConnection.RAW_protocol:
+            prot = "RAW"
+        elif con.getProtocol() == CardConnection.T15_protocol:
+            prot = "T15"
+        elif con.getProtocol() == CardConnection.T0_protocol:
+            prot = "T0"
+        elif con.getProtocol() == CardConnection.T1_protocol:
+            prot = "T1"
+        else:
+            prot = "unknown"
     
-        pass #TODO 
+        to_ret.append( (str(index), str(con.getReader()),prot, toHexString(con.getATR()), ) )
+    
+        index += 1 
     
     return to_ret
 
-@shellMethod(cards = environmentParameterChecker("pcsc_cardlist"))
-def getAvailableCard(cards):
+@shellMethod(cards = environmentParameterChecker("pcsc_cardlist"),
+             connections = environmentParameterChecker("pcsc_connexionlist"))
+def getAvailableCard(cards,connections):
 
-    #TODO same kind of stuff than in getConnected
-        #create column, column title, get information about card (see pyscard documentation), ...
+    card_list = cards.getValue()
 
-        #abstract class card has a field with the reader
+    if len(card_list) == 0:
+        return ()
         
-        #column : ID, card name, reader name, is connected ?
+    to_ret = []
+    to_ret.append( ("ID", "Reader", "Connected", "ATR", ) )
+    
+    index = 0
+    for card in card_list:
+        for con in connections:
+            if con.getATR() == card.atr:
+                connected = "connected"
+                break
+        else:
+            connected = "not connected"
+    
+        to_ret.append( (str(index), str(card.reader), connected, toHexString(con.atr), ) )
+        index += 1
+    
+    return to_ret
 
-    pass #TODO
-
-@shellMethod(cards       = environmentParameterChecker("pcsc_cardlist"),
-             connections = environmentParameterChecker("pcsc_connexionlist"),
-             execution_context = contextParameterChecker("execution"))
-def getAvailableReader(cards, connections,execution_context):
-    #TODO check autoload and contextLoaded
+@shellMethod(cards             = environmentParameterChecker("pcsc_cardlist"),
+             connections       = environmentParameterChecker("pcsc_connexionlist"),
+             execution_context = contextParameterChecker("execution"),
+             autoload          = contextParameterChecker("pcsc_autoload"),
+             loaded            = contextParameterChecker("pcsc_contextready"),
+             autoconnect       = contextParameterChecker("pcsc_autoconnect"))
+def getAvailableReader(cards, connections,execution_context, autoload=False, loaded=False, autoconnect=False):
+    loadPCSC(loaded.getValue(), autoload.getValue(), autoconnect.getValue())
     
     r = readers()
     
@@ -282,24 +302,38 @@ def getAvailableReader(cards, connections,execution_context):
                 onreader += 1
                 
         for con in connections:
-            if con.getReader == reader:
+            if con.getReader() == reader:
                 connected += 1
                 
         to_ret.append( (str(reader), "  "+str(onreader), "  "+str(connected),) )
 
     return to_ret
+    
+@shellMethod(connexion_index = IntegerArgChecker(0),
+             connections = environmentParameterChecker("pcsc_connexionlist"),
+             protocol    = tokenValueArgChecker({"T0":CardConnection.T0_protocol, "T1":CardConnection.T1_protocol, "T15":CardConnection.T15_protocol, "RAW":CardConnection.RAW_protocol}))
+def setProtocol(connexion_index, protocol, connections):
+    connectionToUse = _checkList(connections.getValue(), connection_index, "connection")
+    connectionToUse.setProtocol(protocol)
+
+@shellMethod(value    = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             autoload = contextParameterChecker("pcsc_autoload"))
+def setAutoLoad(value,autoload):
+    autoload.setValue(value)
+    
+@shellMethod(value    = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             autoconnect = contextParameterChecker("pcsc_autoconnect"))
+def setAutoConnect(value,autoconnect):
+    autoload.setValue(value)
 
 ## register ENVIRONMENT ##
 
-registerSetEnvironment(envKey="pcsc_autoload",     env=EnvironmentParameter(True,  typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = False, readonly = False, removable = False), noErrorIfKeyExist = True, override = False)
-registerSetEnvironment(envKey="pcsc_contextready", env=EnvironmentParameter(False, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
+registerSetEnvironment(envKey="pcsc_autoload",      env=EnvironmentParameter(True,  typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = False, readonly = False, removable = False), noErrorIfKeyExist = True, override = False)
+registerSetEnvironment(envKey="pcsc_contextready",  env=EnvironmentParameter(False, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
+registerSetEnvironment(envKey="pcsc_autoconnect",   env=EnvironmentParameter(False, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = False, readonly = False, removable = False), noErrorIfKeyExist = True, override = False)
 
 registerSetEnvironment(envKey="pcsc_cardlist",      env=EnvironmentParameter([], typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
 registerSetEnvironment(envKey="pcsc_connexionlist", env=EnvironmentParameter([], typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
-
-#TODO autoConnect
-    #to the first card only
-    #need autoload enabled or context loaded
 
 ## register METHOD ##
 
@@ -316,6 +350,10 @@ registerCommand( ("card","connect",) ,   pro=connectCard)
 registerCommand( ("list",) ,             pro=getConnected,       post=printColumn)
 registerCommand( ("disconnect",) ,       pro=disconnect)
 registerCommand( ("transmit",) ,         pro=transmit)
+
+registerCommand( ("set","autoload",) ,   pro=setAutoLoad)
+registerCommand( ("set","autoconnect") , pro=setAutoConnect)
+registerCommand( ("set","protocol") ,    pro=setProtocol)
 
 
 

@@ -225,6 +225,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
         le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
             afficher un message pour dire que c'est normal
+            oui mais le message d'erreur ne s'affiche pas toujours, comment savoir s'il s'est affiché ou non ?
    
     #faire un système de gestion des codes d'erreurs
 	    à faire dans executeAPDU
@@ -267,7 +268,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 ################################
 
     Tout les parameter devrait pouvoir être thread safe si necessaire
-        cotnext/generic/environment/...
+        context/generic/environment/...
 
     Choisir a l'instanciation si thread-safe ?
     Ou les faire tous thread-safe ?
@@ -324,15 +325,17 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #mettre un lock sur l'execution d'action ?
         #ou un pool de commande en attente ?
         
-    #XXX prblm avec l'event onContextChange
+    #XXX prblm 1 avec l'event onContextChange
         #il va probablement survenir lors de l'execution d'un process
         #on ne peut dés lors pas executer directement l'event, on doit attendre que le courant aie fini
         #faire un pool d'execution à la fin d'une execution
         
-    #XXX même problème que precedement mais inversé
+    #XXX prblm 2 même problème que precedement mais inversé
         #si on a un event qui s'éxecute, on ne peut pas démarrer un nouveau process
-        
-    #XXX solution pour les deux problèmes
+
+###
+
+    #XXX solution 1 pour les deux problèmes
         #faire un pool de commande thread safe à executer sequentiellement
         
         #si on tente d'executer un process manuellement et qu'un pool de commande est en cours d'execution
@@ -356,10 +359,58 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         
         #XXX quid, on perd en puissance niveau multi processing
             #a quel point ?
+    
+    #XXX SOLUTION 2 chaque parameter (env/context) contient un lock
+        #lors de chaque execution d'une commande ou une piped command
+        #on récupere les lock de chacun des parametres utilisés
+        #on lock, et on ne délock qu'après l'execution
+        
+        #avantage
+            #permet un multithreading bien independant
+            #simple a mettre en place
+        
+        #inconvenient
+            #peut être compliqué de récupérer l'ensemble des lock
+        
+        #prblm to solve
+            #si une routine se declenche elle meme SOLVED
+                #la nouvelle routine sera dans un autre thread et devra attendre la liberation des locks
+                #donc pas un prblm
+                
+            #quid de l'affichage et du REPL ? SOLVED
+                #si on est pas dans le thread principal, on affiche uniquement en REPL
+                
+                #créer une ressource REPL ? NO
+                    #pas sûr que ce soit une bonne idée car pas vraiment moyen de savoir si on est dans le main thread ou non
+                    #et puis ce sera seulement checké au moment de l'execution de la commande
+                        #donc trop tard pour locker quelque chose correctement
+                
+                #au niveau de l'execution de la routine, gérer un parameter special "printable" 
+                    #s'il n'est pas utilisé dans un process, pas d'affichage, pas de lock
+                    #s'il est utilisé dans une methode, plusieurs cas de figure
+                        #thread principale OR non
+                        #shell OR daemon/script
+                        
+                        #si thread principale + shell => pas de lock et on utilise la methode print
+                        #si thread secondaire + shell => lock + repl print
+                        #si autre                     => lock + print
+                        
+            #pas toujours necessaire de locker l'ensemble d'un parameter
+                #risque de perte de process parallele
+                
+                #par exemple, on a un pool de connexion et on ne veut utiliser qu'une connexion en particulier
+                    #le pool est un parameter (probablement un env)
+                    #on devra locker le pool pour se servir d'une seule connexion, c'est bof...
+                    #par contre on doit empecher de pouvoir retirer l'element du pool donc on doit +- locker le pool aussi
 
-    #deux types d'event:
+    #plusieurs types d'event:
         #ceux à traiter immediatement
+            #dans le même thread
+            #dans un autre thread
+            
         #ceux à traiter a la fin du process courant
+            #dans le même thread
+            #dans un autre thread
         
         #encore d'actualité avec le thread management ?
         #même si c'est possible d'executer un process dans un process, c'est crade ...
@@ -386,7 +437,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
             #+ : thread safe, completement sequentiel
             #- : on perd le multitasking
             
-    Solution 2:
+    Solution 2: (VOIR AUSSI LA SOLUTION 2 DANS L'EVENT MANAGER)
         Chaque thread examine les ressources necessaires pour executer son groupe de commandes et essayent de les locker de manière ordonnées
         Si une ressource n'est pas libre, on attends
             #+ : thread safe aussi
