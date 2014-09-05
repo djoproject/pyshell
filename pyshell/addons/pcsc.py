@@ -17,6 +17,15 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
+    #think about critical section on card list
+        #will also occured on connection_list
+        
+        #what about boolean env ?
+
+    #monitoring data/reader/card
+    
+    #autoconnect
+
     #XXX what about scard data transmit ?
 
     #thread to manage card list, otherwise the list will always be empty
@@ -26,14 +35,12 @@
                 #NEED A LOCK HERE
                     #because a lot of command access to this list
                 #could be interesting to implement lock in parameter class system
-        #start on loading of pcsc, not on addon loading
                     
     #thread to manage reader connection/disconnection
         #no need to hold a list, pcsc does it
         #to catch event (not really needed now)
         #start on loading of pcsc, not on addon loading
         
-    #enable/disable data watch (see old rfid file)
                     
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
 from pyshell.arg.decorator             import shellMethod
@@ -45,20 +52,18 @@ from pyshell.utils.coloration          import bolt, nocolor
 from apdu.misc.apdu                    import toHexString
 
 try:
-    #TODO check if every items here are needed
     from smartcard.System                 import readers
-    from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
-    from smartcard.ReaderMonitoring       import ReaderMonitor, ReaderObserver
-    from smartcard.CardMonitoring         import CardMonitor, CardObserver
+    #from smartcard.CardConnectionObserver import ConsoleCardConnectionObserver
+    #from smartcard.ReaderMonitoring       import ReaderMonitor, ReaderObserver
+    from smartcard.CardMonitoring         import CardObserver,CardMonitor
     from smartcard.CardConnection         import CardConnection
     from smartcard.ATR                    import ATR
     from smartcard.pcsc.PCSCContext       import PCSCContext
     from smartcard.pcsc.PCSCExceptions    import EstablishContextException
-
-    from smartcard.sw.ErrorCheckingChain    import ErrorCheckingChain
-    from smartcard.sw.ISO7816_4ErrorChecker import ISO7816_4ErrorChecker
-    from smartcard.sw.ISO7816_8ErrorChecker import ISO7816_8ErrorChecker
-    from smartcard.sw.ISO7816_9ErrorChecker import ISO7816_9ErrorChecker
+    #from smartcard.sw.ErrorCheckingChain    import ErrorCheckingChain
+    #from smartcard.sw.ISO7816_4ErrorChecker import ISO7816_4ErrorChecker
+    #from smartcard.sw.ISO7816_8ErrorChecker import ISO7816_8ErrorChecker
+    #from smartcard.sw.ISO7816_9ErrorChecker import ISO7816_9ErrorChecker
 except ImportError as ie:
     #TODO improve
         #the printed message will not be really pretty
@@ -75,8 +80,109 @@ except ImportError as ie:
             #yeah but why this occured each times with macos ???
     
     raise Exception("Fail to import smartcard : "+str(ie))
+    
+    #TODO the error message must contain
+        #maybe pyscard is not installed with this version of python, try another one if exists
+        #or maybe pyscard is not installed at all on this system, download and install it from http://pyscard.sourceforge.net
+    
+    #TODO need to be able to print an exception on several lines
 
 ## MISC SECTION ##
+
+
+class CardManager( CardObserver ):
+    """A simple card observer that is notified
+    when cards are inserted/removed from the system and
+    prints the list of cards
+    """
+    
+    def __init__(self, cardListEnv, autoConnectEnv):
+        self.cardmonitor    = CardMonitor()
+        self.cardListEnv    = cardListEnv
+        self.autoConnectEnv = autoConnectEnv #TODO
+        #self.enable = True
+        #self.cardList = []
+        self.cardmonitor.addObserver( self )
+        #self.autocon = False
+    
+    def update( self, observable, (addedcards, removedcards) ):
+        
+        #r = ""  #card connected or removed
+        #ac = "" #autoconnect result
+        if addedcards != None and len(addedcards) > 0:
+            #r += "Added cards" + str(addedcards) 
+            
+            #TODO should be in critical section
+            cardList = self.cardListEnv.getValue()[:]
+            
+            for c in addedcards:
+                cardList.append(c)
+            
+            self.cardListEnv.setValue(cardList)
+            #XXX
+            
+            #ac = self.autoConnect()
+        
+        if removedcards != None and len(removedcards) > 0:
+            
+            #if len(r) > 0:
+            #    r += "\n"
+            
+            #r += "Removed cards" + str(removedcards)
+            
+            #TODO should be in critical section
+            cardList = self.cardListEnv.getValue()[:]
+            
+            for c in removedcards:
+                cardList.remove(c)
+
+            self.cardListEnv.setValue(cardList)
+            #XXX
+
+                #if hasattr(c,'connection'):
+                #    disconnectReaderFromCardFun(Executer.envi)
+                #    print("WARNING : the card has been removed, the connection is broken")
+        
+        #if len(r) > 0:
+        #    print(r)
+        
+        #if self.enable and len(r) > 0:
+        #    if len(ac) > 0:
+        #        r += ac + "\n"
+        #    
+        #    print(r)
+        #else:
+        #    if len(ac) > 0:
+        #        print(ac)
+        
+    #def activate(self):
+        #if not self.enable:
+        #    self.cardmonitor.addObserver( self )
+        
+    #    self.enable = True
+        
+    #def desactivate(self):
+        #if self.enable:
+        #    self.cardmonitor.deleteObserver(self)
+        
+    #    self.enable = False
+        
+    #def enableAutoCon(self):
+    #    self.autocon = True
+    #    Executer.printOnShell(self.autoConnect())
+        
+    #def disableAutoCon(self):
+    #    self.autocon = False
+        
+    #def autoConnect(self):
+    #    if "connection" not in Executer.envi and self.autocon:
+    #        if len(self.cardList) == 1:
+    #            if connectReaderFromCardFun(Executer.envi):
+    #                return "connected to a card"
+    #        elif len(self.cardList) > 1:
+    #            return "WARNING : autoconnect is enable but there is more than one card available, no connection established"
+    #    
+    #   return None
 
 def _checkList(l, index, item_type):
     if len(l) == 0:
@@ -105,14 +211,16 @@ def printATR(bytes):
     atr.dump()
     print 'T15 supported: ', atr.isT15Supported()
 
-@shellMethod(autoload    = contextParameterChecker("pcsc_autoload"),
-             loaded      = contextParameterChecker("pcsc_contextready"),
-             autoconnect = contextParameterChecker("pcsc_autoconnect"))
-def loadPCSC(autoload, loaded,autoconnect):
-    if loaded:
+@shellMethod(cards = environmentParameterChecker("pcsc_cardlist"),
+             autoload    = environmentParameterChecker("pcsc_autoload"),
+             loaded      = environmentParameterChecker("pcsc_contextready"),
+             autoconnect = environmentParameterChecker("pcsc_autoconnect"))
+def loadPCSC(cards, autoload, loaded,autoconnect):
+
+    if loaded.getValue():
         return
         
-    if not autoload:
+    if not autoload.getValue():
         raise Exception("pcsc is not loaded and autoload is disabled")
 
     #not already called in an import ?
@@ -124,6 +232,7 @@ def loadPCSC(autoload, loaded,autoconnect):
         
     except EstablishContextException as e:
         #TODO should raise an exception 
+            #same problem as in import try/catch, must be able to raise an exception on several lines
         
         print "   "+str(e)
         
@@ -140,8 +249,8 @@ def loadPCSC(autoload, loaded,autoconnect):
             
         return
         
-    #TODO start thread to monitor card connection
-
+    #start thread to monitor card connection
+    CardManager(cards, autoconnect)
 
 @shellMethod(data=listArgChecker(IntegerArgChecker(0,255)),
              #connection_index= defaultInstanceArgChecker.getIntegerArgCheckerInstance() #FIXME DashPAram
@@ -158,11 +267,11 @@ def transmit(data, connection_index=0, connections = None):
 @shellMethod(index       = IntegerArgChecker(0),
              cards       = environmentParameterChecker("pcsc_cardlist"),
              connections = environmentParameterChecker("pcsc_connexionlist"),
-             autoload    = contextParameterChecker("pcsc_autoload"),
-             loaded      = contextParameterChecker("pcsc_contextready"),
-             autoconnect = contextParameterChecker("pcsc_autoconnect"))
+             autoload    = environmentParameterChecker("pcsc_autoload"),
+             loaded      = environmentParameterChecker("pcsc_contextready"),
+             autoconnect = environmentParameterChecker("pcsc_autoconnect"))
 def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=False, autoconnect=False):
-    loadPCSC(loaded.getValue(), autoload.getValue(), autoconnect.getValue())
+    loadPCSC(cards, autoload, loaded, autoconnect)
 
     connectionToUse = _checkList(cards.getValue(), index, "card")
     
@@ -174,12 +283,13 @@ def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=
     connections.setValue(connection_list)
 
 @shellMethod(index=IntegerArgChecker(0),
+             cards       = environmentParameterChecker("pcsc_cardlist"),
              connections = environmentParameterChecker("pcsc_connexionlist"),
-             autoload    = contextParameterChecker("pcsc_autoload"),
-             loaded      = contextParameterChecker("pcsc_contextready"),
-             autoconnect = contextParameterChecker("pcsc_autoconnect"))
-def connectReader(index=0, connections = None,loaded=False, autoload=False, autoconnect=False):
-    loadPCSC(loaded.getValue(), autoload.getValue(), autoconnect.getValue())
+             autoload    = environmentParameterChecker("pcsc_autoload"),
+             loaded      = environmentParameterChecker("pcsc_contextready"),
+             autoconnect = environmentParameterChecker("pcsc_autoconnect"))
+def connectReader(index=0,cards = None, connections = None,loaded=False, autoload=False, autoconnect=False):
+    loadPCSC(cards, autoload, loaded, autoconnect)
 
     readerToUse = _checkList(readers(), index, "reader")
     
@@ -198,7 +308,7 @@ def disconnect(index=0, connections = None):
     if len(connection_list) == 0:
         return
         
-    connectionToUse = _checkList(connection_list, connection_index, "connection")
+    connectionToUse = _checkList(connection_list, index, "connection")
 
     try:
         connectionToUse.disconnect()
@@ -236,34 +346,42 @@ def getConnected(connections, execution_context):
         else:
             prot = "unknown"
     
-        to_ret.append( (str(index), str(con.getReader()),prot, toHexString(con.getATR()), ) )
+        to_ret.append( ("  "+str(index), "  "+str(con.getReader()),"  "+prot, "  "+toHexString(con.getATR()), ) )
     
         index += 1 
     
     return to_ret
 
 @shellMethod(cards = environmentParameterChecker("pcsc_cardlist"),
-             connections = environmentParameterChecker("pcsc_connexionlist"))
-def getAvailableCard(cards,connections):
+             connections = environmentParameterChecker("pcsc_connexionlist"),
+             execution_context = contextParameterChecker("execution"))
+def getAvailableCard(cards,connections, execution_context):
+    #TODO if not loaded, even if a card if available, the list will be empty
 
     card_list = cards.getValue()
 
     if len(card_list) == 0:
         return ()
-        
+    
+    if execution_context.getSelectedValue() == "shell":
+        title = bolt 
+    else:
+        title = nocolor
+    
     to_ret = []
-    to_ret.append( ("ID", "Reader", "Connected", "ATR", ) )
+    to_ret.append( (title("ID"), title("Reader"), title(" Connected"), title(" ATR"), ) )
     
     index = 0
+    connections = connections.getValue()
     for card in card_list:
         for con in connections:
             if con.getATR() == card.atr:
-                connected = "connected"
+                connected = "  connected"
                 break
         else:
-            connected = "not connected"
+            connected = "  not connected"
     
-        to_ret.append( (str(index), str(card.reader), connected, toHexString(con.atr), ) )
+        to_ret.append( (str(index), " "+str(card.reader), connected, "  "+toHexString(card.atr), ) )
         index += 1
     
     return to_ret
@@ -271,11 +389,11 @@ def getAvailableCard(cards,connections):
 @shellMethod(cards             = environmentParameterChecker("pcsc_cardlist"),
              connections       = environmentParameterChecker("pcsc_connexionlist"),
              execution_context = contextParameterChecker("execution"),
-             autoload          = contextParameterChecker("pcsc_autoload"),
-             loaded            = contextParameterChecker("pcsc_contextready"),
-             autoconnect       = contextParameterChecker("pcsc_autoconnect"))
+             autoload          = environmentParameterChecker("pcsc_autoload"),
+             loaded            = environmentParameterChecker("pcsc_contextready"),
+             autoconnect       = environmentParameterChecker("pcsc_autoconnect"))
 def getAvailableReader(cards, connections,execution_context, autoload=False, loaded=False, autoconnect=False):
-    loadPCSC(loaded.getValue(), autoload.getValue(), autoconnect.getValue())
+    loadPCSC(cards, autoload, loaded, autoconnect)
     
     r = readers()
     
@@ -288,11 +406,12 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
         title = nocolor
     
     to_ret = []
-    to_ret.append( (title("Reader name"), title(" Card on reader"), title(" Card connected"),) )
+    to_ret.append( (title("ID"),title("Reader name"), title(" Card on reader"), title(" Card connected"),) )
     
     cards = cards.getValue()
     connections = connections.getValue()
     
+    index = 0
     for reader in r:
         connected = 0
         onreader = 0
@@ -305,8 +424,9 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
             if con.getReader() == reader:
                 connected += 1
                 
-        to_ret.append( (str(reader), "  "+str(onreader), "  "+str(connected),) )
-
+        to_ret.append( (str(index), " "+str(reader), "  "+str(onreader), "  "+str(connected),) )
+        index += 1
+        
     return to_ret
     
 @shellMethod(connexion_index = IntegerArgChecker(0),
@@ -317,14 +437,19 @@ def setProtocol(connexion_index, protocol, connections):
     connectionToUse.setProtocol(protocol)
 
 @shellMethod(value    = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
-             autoload = contextParameterChecker("pcsc_autoload"))
+             autoload = environmentParameterChecker("pcsc_autoload"))
 def setAutoLoad(value,autoload):
     autoload.setValue(value)
     
 @shellMethod(value    = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
-             autoconnect = contextParameterChecker("pcsc_autoconnect"))
+             autoconnect = environmentParameterChecker("pcsc_autoconnect"))
 def setAutoConnect(value,autoconnect):
     autoload.setValue(value)
+
+#TODO
+    #monitor card
+    #monitor reader
+    #monitor data
 
 ## register ENVIRONMENT ##
 
