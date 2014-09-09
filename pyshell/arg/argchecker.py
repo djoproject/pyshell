@@ -20,6 +20,8 @@
     #create an argchecker to check if the value is an instance of
     #create an argchecker to check if the value is a type of
     #and when it will be done, look after listargchecker(defaultargchecker()) and replace them if possible
+    
+    #create a checker to instanciate a class instance from a number of parameter
 
 from tries                   import tries
 from tries.exception         import ambiguousPathException

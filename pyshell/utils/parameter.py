@@ -347,6 +347,11 @@ class Parameter(Valuable): #abstract
         pass #TO OVERRIDE
 
 class EnvironmentParameter(Parameter):
+    #TODO implement a lock system
+        #must be possible to add a lock in a list
+        #must be able to retrieve the id of the lock
+        #a lock must have a unique ID
+
     def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         Parameter.__init__(self, transient)
         self.setReadOnly(readonly)

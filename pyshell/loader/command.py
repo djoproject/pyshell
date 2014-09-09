@@ -16,6 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #registerSetGlobalPrefix + registerStopHelpTraversalAt
+    #registerSetTempPrefix + registerStopHelpTraversalAt
+    #ces deux actions ne fonctionnent pas tout à fait de la mêmem manière lors du passage des paramètre
+    #ça peut être déroutant pour l'utilisateur
+
 from tries.exception          import triesException
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.command.command  import MultiCommand, UniCommand

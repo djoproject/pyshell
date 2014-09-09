@@ -17,6 +17,8 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
+    #a connexion id shouldn't change if an other connexion is closed
+
     #think about critical section on card list
         #will also occured on connection_list
         
@@ -42,7 +44,7 @@
         #start on loading of pcsc, not on addon loading
         
                     
-from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
+from pyshell.loader.command            import registerCommand, registerSetGlobalPrefix, registerSetTempPrefix, registerStopHelpTraversalAt
 from pyshell.arg.decorator             import shellMethod
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker, contextParameterChecker, tokenValueArgChecker
 from pyshell.simpleProcess.postProcess import printColumn
@@ -193,13 +195,17 @@ def _checkList(l, index, item_type):
     try:
         return l[index]
     except IndexError:
-        raise Exception("invalid "+item_type+" index, expected a value between 0 and "+str(len(l) -1)+", got "+str(index)) #TODO will produce a weird message if only one item in list
+        if len(l) == 1:
+            raise Exception("invalid "+item_type+" index, only the value 0 is actually allowed, got "+str(index))
+        else:
+            raise Exception("invalid "+item_type+" index, expected a value between 0 and "+str(len(l) -1)+", got "+str(index))
         
 
 ## FUNCTION SECTION ##
 
 @shellMethod(bytes=listArgChecker(IntegerArgChecker(0,255)))
 def printATR(bytes):
+    "convert a string of bytes into a human readable comprehension of the ATR"
     if bytes == None or not isinstance(bytes,list) or len(bytes) < 1:
         Executer.printOnShell("The value is not a valid ATR")
         return
@@ -216,6 +222,7 @@ def printATR(bytes):
              loaded      = environmentParameterChecker("pcsc_contextready"),
              autoconnect = environmentParameterChecker("pcsc_autoconnect"))
 def loadPCSC(cards, autoload, loaded,autoconnect):
+    "try to load the pcsc context, this method must be called before any pcsc action if autoload is disabled"
 
     if loaded.getValue():
         return
@@ -256,6 +263,7 @@ def loadPCSC(cards, autoload, loaded,autoconnect):
              #connection_index= defaultInstanceArgChecker.getIntegerArgCheckerInstance() #FIXME DashPAram
              connections=environmentParameterChecker("pcsc_connexionlist"))
 def transmit(data, connection_index=0, connections = None):
+    "transmit a list of bytes to a card connection"
 
     #TODO manage every SW here
         #setErrorCheckingChain to the connection object
@@ -263,6 +271,10 @@ def transmit(data, connection_index=0, connections = None):
 
     connectionToUse = _checkList(connections.getValue(), connection_index, "connection")
     return connectionToUse.transmit(data)
+    
+    #TODO if connection is broken, disconnect and remove from the list
+        #how to know it ?
+        #manage it in the thread ?
 
 @shellMethod(index       = IntegerArgChecker(0),
              cards       = environmentParameterChecker("pcsc_cardlist"),
@@ -271,6 +283,7 @@ def transmit(data, connection_index=0, connections = None):
              loaded      = environmentParameterChecker("pcsc_contextready"),
              autoconnect = environmentParameterChecker("pcsc_autoconnect"))
 def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=False, autoconnect=False):
+    "create a connection over a specific card"
     loadPCSC(cards, autoload, loaded, autoconnect)
 
     connectionToUse = _checkList(cards.getValue(), index, "card")
@@ -289,6 +302,8 @@ def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=
              loaded      = environmentParameterChecker("pcsc_contextready"),
              autoconnect = environmentParameterChecker("pcsc_autoconnect"))
 def connectReader(index=0,cards = None, connections = None,loaded=False, autoload=False, autoconnect=False):
+    "create a connection over a specific reader"
+    
     loadPCSC(cards, autoload, loaded, autoconnect)
 
     readerToUse = _checkList(readers(), index, "reader")
@@ -303,6 +318,8 @@ def connectReader(index=0,cards = None, connections = None,loaded=False, autoloa
 @shellMethod(index       = IntegerArgChecker(0),
              connections = environmentParameterChecker("pcsc_connexionlist"))
 def disconnect(index=0, connections = None):
+    "close a connection"
+    
     connection_list = connections.getValue()
     
     if len(connection_list) == 0:
@@ -319,6 +336,8 @@ def disconnect(index=0, connections = None):
 @shellMethod(connections = environmentParameterChecker("pcsc_connexionlist"),
              execution_context = contextParameterChecker("execution"))
 def getConnected(connections, execution_context):
+    "list the existing connection(s)"    
+    
     connection_list = connections.getValue()
     
     if len(connection_list) == 0:
@@ -356,6 +375,8 @@ def getConnected(connections, execution_context):
              connections = environmentParameterChecker("pcsc_connexionlist"),
              execution_context = contextParameterChecker("execution"))
 def getAvailableCard(cards,connections, execution_context):
+    "list available card(s) on the system connected or not"
+
     #TODO if not loaded, even if a card if available, the list will be empty
 
     card_list = cards.getValue()
@@ -393,6 +414,8 @@ def getAvailableCard(cards,connections, execution_context):
              loaded            = environmentParameterChecker("pcsc_contextready"),
              autoconnect       = environmentParameterChecker("pcsc_autoconnect"))
 def getAvailableReader(cards, connections,execution_context, autoload=False, loaded=False, autoconnect=False):
+    "list available reader(s)"
+
     loadPCSC(cards, autoload, loaded, autoconnect)
     
     r = readers()
@@ -433,24 +456,40 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
              connections = environmentParameterChecker("pcsc_connexionlist"),
              protocol    = tokenValueArgChecker({"T0":CardConnection.T0_protocol, "T1":CardConnection.T1_protocol, "T15":CardConnection.T15_protocol, "RAW":CardConnection.RAW_protocol}))
 def setProtocol(connexion_index, protocol, connections):
+    "set communication protocol on a card connection"
+
     connectionToUse = _checkList(connections.getValue(), connection_index, "connection")
     connectionToUse.setProtocol(protocol)
 
 @shellMethod(value    = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              autoload = environmentParameterChecker("pcsc_autoload"))
 def setAutoLoad(value,autoload):
+    "set auto loadding context on any call to pcsc method"
+
     autoload.setValue(value)
     
 @shellMethod(value    = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              autoconnect = environmentParameterChecker("pcsc_autoconnect"))
 def setAutoConnect(value,autoconnect):
+    "set auto connection to the first card available and only to the first card"
+
     autoload.setValue(value)
 
-#TODO
-    #monitor card
-    #monitor reader
-    #monitor data
-
+@shellMethod(enable = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance())
+def monitorCard(enable):
+    "enable/disable card monitoring"
+    pass #TODO
+    
+@shellMethod(enable = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance())
+def monitorReader(enable):
+    "enable/disable reader monitoring"
+    pass #TODO
+    
+@shellMethod(enable = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance())
+def monitorData(enable):
+    "enable/disable data monitoring"
+    pass #TODO
+    
 ## register ENVIRONMENT ##
 
 registerSetEnvironment(envKey="pcsc_autoload",      env=EnvironmentParameter(True,  typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = False, readonly = False, removable = False), noErrorIfKeyExist = True, override = False)
@@ -464,22 +503,30 @@ registerSetEnvironment(envKey="pcsc_connexionlist", env=EnvironmentParameter([],
 
 registerSetGlobalPrefix( ("pcsc", ) )
 registerStopHelpTraversalAt( () )
-registerCommand( ("load",) ,             pro=loadPCSC)
-
-registerCommand( ("reader","list",) ,    pro=getAvailableReader, post=printColumn)
-registerCommand( ("reader","connect",) , pro=connectReader)
-
-registerCommand( ("card","list",) ,      pro=getAvailableCard,   post=printColumn)
-registerCommand( ("card","connect",) ,   pro=connectCard)
 
 registerCommand( ("list",) ,             pro=getConnected,       post=printColumn)
 registerCommand( ("disconnect",) ,       pro=disconnect)
 registerCommand( ("transmit",) ,         pro=transmit)
+registerCommand( ("load",) ,             pro=loadPCSC)
 
-registerCommand( ("set","autoload",) ,   pro=setAutoLoad)
-registerCommand( ("set","autoconnect") , pro=setAutoConnect)
-registerCommand( ("set","protocol") ,    pro=setProtocol)
+registerSetTempPrefix( ("reader", ) )
+registerCommand( ("list",) ,    pro=getAvailableReader, post=printColumn)
+registerCommand( ("connect",) , pro=connectReader)
+registerStopHelpTraversalAt( ("reader",) )
 
+registerSetTempPrefix( ("card", ) )
+registerCommand( ("list",) ,      pro=getAvailableCard,   post=printColumn)
+registerCommand( ("connect",) ,   pro=connectCard)
+registerStopHelpTraversalAt( ("card",) )
 
+registerSetTempPrefix( ("set", ) )
+registerCommand( ("autoload",) ,   pro=setAutoLoad)
+registerCommand( ("autoconnect",) , pro=setAutoConnect)
+registerCommand( ("protocol",) ,    pro=setProtocol)
+registerStopHelpTraversalAt( ("set",) )
 
-
+registerSetTempPrefix( ("monitor", ) )
+registerCommand( ("card",) ,   pro=monitorCard)
+registerCommand( ("reader",) , pro=monitorReader)
+registerCommand( ("data",) ,   pro=monitorData)
+registerStopHelpTraversalAt( ("monitor",) )

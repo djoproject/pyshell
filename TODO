@@ -208,12 +208,56 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #le restaurer ensuiste
         #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
             #pour eviter d'avoir plusieurs descripteur vers le même fichier
-            #et ainsi eviter dávoir des overlaps dans le fichier
+            #et ainsi eviter d'avoir des overlaps dans le fichier
 
     #commande pour rediriger l'output vers un fichier
         #faire une commande de flush
         #flush and close at exit
         #si on fait un close, il faut retirer l'event at_exit
+
+    PRBLM
+        multithreading
+        shell/script/thread concurrent
+        affichage unique
+        
+        conflict avec readline
+            besoin de bricoler pour afficher des event asynchrones
+            
+        conflict avec l'autocompletion
+            l'output d'origine doit être rétabli sinon l'autocomplet ne fonctionne pas
+            ça pourrait être interessant de comprendre pourquoi ça merde
+                faire une question sur stackoverflow
+        
+    SOLUTION 1
+        faire un manager d'affichage qui prend la place du default output
+            il possede:
+                une reference vers l'ancien affichage
+                l'id du main thread
+                un lock 
+                
+            lorsqu'un write survient
+                si script OU daemon
+                    utilise print
+                
+                si shell
+                    on verouille le lock            
+                            
+                    si thread principale
+                        utilise le print principale
+                    
+                    si thread secondaire
+                        utilise REPL
+                    
+                    unlock        
+                    
+            lorsqu'un autocomplete survient
+                on lock
+                restauration de l'ancien output
+                execution de l'autocomplete
+                restauration du manager d'output
+                unlock
+        
+        ça resoud définitivement le problème de l'affichage d'info dans le multiprocess
 
 ############
 ### rfid ###
@@ -377,7 +421,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
                 #la nouvelle routine sera dans un autre thread et devra attendre la liberation des locks
                 #donc pas un prblm
                 
-            #quid de l'affichage et du REPL ? SOLVED
+            #quid de l'affichage et du REPL ? SOLVED pseudo code dans la partie sur l'affichage (voir plus haut)
                 #si on est pas dans le thread principal, on affiche uniquement en REPL
                 
                 #créer une ressource REPL ? NO
@@ -395,22 +439,58 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
                         #si thread secondaire + shell => lock + repl print
                         #si autre                     => lock + print
                         
-            #pas toujours necessaire de locker l'ensemble d'un parameter
+            #pas toujours necessaire de locker l'ensemble d'un parameter NOT SOLVED
                 #risque de perte de process parallele
                 
                 #par exemple, on a un pool de connexion et on ne veut utiliser qu'une connexion en particulier
                     #le pool est un parameter (probablement un env)
                     #on devra locker le pool pour se servir d'une seule connexion, c'est bof...
                     #par contre on doit empecher de pouvoir retirer l'element du pool donc on doit +- locker le pool aussi
+                    
+            #PSEUDOCODE
+                variable:
+                    list d'event
+                        un event est une chaine de caractère unique
+                        un event contient une liste de commande
+                            avec ou sans argument
+                        
+                methode:
+
+                    add command to event(name, command)
+                        ajoute la commande à l'event s'il existe
+                            si l'event n'existe pas, le créer
+                            l'event name doit etre unique
+                        
+                    fire event(name, args)
+                        lancer un nouveau thread
+                            definir une variable speciale uniquement accessible dans ce thread
+                                cette variable va contenir les args du thread
+                                passer cette variable au commande qui le demande
+                        
+                            récuperer la liste de commande, faire une copie
+                                cette liste ne doit pas pouvoir être modifier par un autre thread
+                                
+                            pour l'ensemble des commandes dans la liste
+                                executer la commande (voir methode suivante)
+                    
+                    execute a command(command)
+                        recuperer la liste des lock utilisés dans cette commande
+                        les trier et les locké
+                        exécuter la commande
+                        libérer la commande
+                        
 
     #plusieurs types d'event:
-        #ceux à traiter immediatement
-            #dans le même thread
-            #dans un autre thread
-            
-        #ceux à traiter a la fin du process courant
-            #dans le même thread
-            #dans un autre thread
+                    #ceux à traiter immediatement DEPRECATED
+                        #dans le même thread
+                        #dans un autre thread
+                        
+                    #ceux à traiter a la fin du process courant DEPRECATED
+                        #dans le même thread
+                        #dans un autre thread
+                        
+        #simplification CURRENT
+            #un déclenchement d'event démarre directement un nouveau thread pour traiter l'event
         
         #encore d'actualité avec le thread management ?
         #même si c'est possible d'executer un process dans un process, c'est crade ...
@@ -419,6 +499,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         on regroupe un liste de toute les commandes à executer
         on execute le process de lock
         on execute les commandes
+        
+    
 
 ##########################################
 ### threading management brainstorming ###

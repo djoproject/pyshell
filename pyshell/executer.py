@@ -90,8 +90,7 @@ class CommandExecuter():
         
         
         #redirect output
-        real_out    = sys.stdout
-        self.writer = writer(real_out)
+        self.writer = writer(sys.stdout)
         sys.stdout  = self.writer
         
         #try to load parameter file
