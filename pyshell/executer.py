@@ -296,7 +296,6 @@ class CommandExecuter():
             finally:
                 sys.stdout = self.writer    
             
-            
             #execute command
             self.executeCommand(cmd)        
     
