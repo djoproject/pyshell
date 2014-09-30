@@ -27,7 +27,7 @@ from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.constants           import ENVIRONMENT_NAME, ADDONLIST_KEY
 from pyshell.utils.coloration          import green, orange, bolt, nocolor, red
 from pyshell.utils.exception           import ListOfException, formatException
-
+from pyshell.utils.printing            import notice
 
 ADDON_PREFIX  = "pyshell.addons."
 
@@ -121,7 +121,7 @@ def unloadAddon(name, parameters, subAddon = None):
 
     addon = _tryToGetAddonFromParameters(parameters, name)
     addon.unload(parameters, subAddon)
-    print(str(name)+" unloaded !")
+    notice(str(name)+" unloaded !")
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
              subAddon=stringArgChecker(), 
@@ -131,7 +131,7 @@ def reloadAddon(name, parameters, subAddon = None):
 
     addon = _tryToGetAddonFromParameters(parameters, name)
     addon.reload(parameters, subAddon)
-    print(str(name)+" reloaded !")
+    notice(str(name)+" reloaded !")
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
              subAddon=stringArgChecker(), 
@@ -149,7 +149,7 @@ def loadAddonFun(name, parameters, subAddon = None):
     addon_dico[name] = loader
     loader.load(parameters, subAddon)
 
-    print(name+" loaded !") 
+    notice(name+" loaded !") 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
              subAddon=stringArgChecker(), 
@@ -171,7 +171,7 @@ def hardReload(name, parameters, subAddon = None):
     addon_dico[name] = loader
     loader.load(parameters, subAddon)
 
-    print(name+" hard reloaded !") 
+    notice(name+" hard reloaded !") 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              addon_dico=environmentParameterChecker(ADDONLIST_KEY),
@@ -266,7 +266,7 @@ def subLoaderReload(name, subLoaderName, parameters, subAddon = None):
         loader.lastException.stackTrace = traceback.format_exc()
         raise ex
 
-    print("sub loader '"+str(subLoaderName)+"' reloaded !")
+    notice("sub loader '"+str(subLoaderName)+"' reloaded !")
 
 @shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              addonListOnStartUp = environmentParameterChecker("addonToLoad"))

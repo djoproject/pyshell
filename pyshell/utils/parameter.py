@@ -275,7 +275,7 @@ class ParameterManager(object):
 
         #name exists ?
         if name not in self.params[parent]:
-            raise ParameterException("(ParameterManager) getParameter, parameter name '"+str(name)+"'  does not exist")
+            raise ParameterException("(ParameterManager) getParameter, parameter '"+str(name)+"'  does not exist")
 
         return self.params[parent][name]
 

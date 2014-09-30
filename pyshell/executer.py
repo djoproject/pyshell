@@ -58,14 +58,17 @@ from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException, formatException
 from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
 from pyshell.utils.coloration  import red, orange, green, nocolor
+from pyshell.utils.utils       import getTerminalSize
+from pyshell.utils.printing    import Printer, warning, error
+from pyshell.utils.valuable    import SimpleValuable
 from pyshell.addons.addon      import loadAddonFun
 
-class writer :
-    def __init__(self, out):
-    	self.out = out
+#class writer :
+#    def __init__(self, out):
+#    	self.out = out
 
-    def write(self, text):
-        self.out.write("    "+str(text))
+#    def write(self, text):
+#        self.out.write("    "+str(text))
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -88,10 +91,15 @@ class CommandExecuter():
         self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.addon",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
         
+        printer = Printer.getInstance()
+        printer.setShellContext(self.params.getParameter("execution",CONTEXT_NAME))
+        printer.setREPLFunction(self.printAsynchronousOnShellV2)
+        self.promptWaitingValuable = SimpleValuable(False)
+        printer.setRunningContext(self.promptWaitingValuable)
         
         #redirect output
-        self.writer = writer(sys.stdout)
-        sys.stdout  = self.writer
+        #self.writer = writer(sys.stdout)
+        #sys.stdout  = self.writer
         
         #try to load parameter file
         with self.ExceptionManager("Fail to load parameters file"):
@@ -159,6 +167,12 @@ class CommandExecuter():
                     if cmd.startswith("$") and len(cmd) > 1:
                         if not self.params.hasParameter(cmd[1:]):
                             print("Unknown var '"+cmd[1:]+"'")
+                            #TODO should be red printed
+                            
+                            #TODO try to find other unknown var
+                                #then print them all
+                                #then return ()
+                            
                             return ()
                         
                         param = self.params.getParameter(cmd[1:])
@@ -198,6 +212,7 @@ class CommandExecuter():
             return False
 
         #define console coloration function
+        #TODO remove it
         _severe,_warning,_notice = self.getColoration()
 
         ## look after command in tries ##
@@ -209,7 +224,7 @@ class CommandExecuter():
             try:
                 searchResult = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().advancedSearch(finalCmd, False)
             except triesException as te:
-                print(_warning("failed to find the command '"+str(finalCmd)+"', reason: "+str(te)))
+                warning("failed to find the command '"+str(finalCmd)+"', reason: "+str(te))
                 return False
             
             if searchResult.isAmbiguous():                    
@@ -217,17 +232,17 @@ class CommandExecuter():
                 tries = searchResult.existingPath[tokenIndex][1].localTries
                 keylist = tries.getKeyList(finalCmd[tokenIndex])
 
-                print(_warning("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist)))
+                warning("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist))
 
                 return False
             elif not searchResult.isAvalueOnTheLastTokenFound():
                 if searchResult.getTokenFoundCount() == len(finalCmd):
-                    print(_warning("uncomplete command '"+" ".join(finalCmd)+"', type 'help "+" ".join(finalCmd)+"' to get the next available parts of this command"))
+                    warning("uncomplete command '"+" ".join(finalCmd)+"', type 'help "+" ".join(finalCmd)+"' to get the next available parts of this command")
                 else:
                     if len(finalCmd) == 1:
-                        print(_warning("unknown command '"+" ".join(finalCmd)+"', type 'help' to get the list of commands"))
+                        warning("unknown command '"+" ".join(finalCmd)+"', type 'help' to get the list of commands")
                     else:
-                        print(_warning("unknown command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands"))
+                        warning("unknown command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands")
                 
                 return False
 
@@ -242,21 +257,21 @@ class CommandExecuter():
             return True
             
         except executionInitException as eie:
-            print(_severe("Fail to init an execution object: "+str(eie.value)))
+            error("Fail to init an execution object: "+str(eie.value))
         except executionException as ee:
-            print(_severe("Fail to execute: "+str(eie.value)))
+            error("Fail to execute: "+str(eie.value))
         except commandException as ce:
-            print(_severe("Error in command method: "+str(ce.value)))
+            error("Error in command method: "+str(ce.value))
         except engineInterruptionException as eien:
             if eien.abnormal:
-                print(_severe("Abnormal execution abort, reason: "+str(eien.value)))
+                error("Abnormal execution abort, reason: "+str(eien.value))
             else:
-                print(_warning("Normal execution abort, reason: "+str(eien.value)))
+                warning("Normal execution abort, reason: "+str(eien.value))
         except argException as ae:
-            print(_warning("Error while parsing argument: "+str(ae.value)))
+            warning("Error while parsing argument: "+str(ae.value))
         except ListOfException as loe:
             if len(loe.exceptions) > 0:
-                print(_severe("List of exception:"))
+                error("List of exception:")
                 for e in loe.exceptions:
                     print(self.printFormatedException(e))
                     
@@ -284,8 +299,9 @@ class CommandExecuter():
         #mainloop
         while True:
             #read prompt
+            self.promptWaitingValuable.setValue(True)
             try:
-                sys.stdout = self.writer.out
+                #sys.stdout = self.writer.out
                 cmd = raw_input(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue())
             except SyntaxError:
                 print "   syntax error"
@@ -294,15 +310,37 @@ class CommandExecuter():
                 print "\n   end of stream"
                 break
             finally:
-                sys.stdout = self.writer    
+                self.promptWaitingValuable.setValue(False)
+            #finally:
+            #    sys.stdout = self.writer    
             
             #execute command
             self.executeCommand(cmd)        
     
-    ###############################################################################################
-    ##### Readline REPL ###########################################################################
-    ###############################################################################################
-    def printAsynchronousOnShell(self,EventToPrint):
+    def printAsynchronousOnShellV2(self,EventToPrint):
+        #this is needed because after an input, the readline buffer isn't always empty
+        if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
+            size = len(prompt)
+            toprint = prompt
+            
+        else:
+            size = len(prompt) + len(readline.get_line_buffer())
+            toprint = prompt + readline.get_line_buffer()
+        
+        width, height = getTerminalSize()
+        offset = int(size/width)
+        
+        #http://ascii-table.com/ansi-escape-sequences-vt-100.php
+        message = EventToPrint +" "+str(width)+" "+str(size)+" "+str(offset)
+        if offset > 0:
+            message = "\r\033["+str(offset)+"A\033[2K   " + message# + "\033[s"
+        else:
+            message = "\r\033[K   " + message# + "\033[s"
+        
+        sys.stdout.write(message + "\n" + toprint)
+        sys.stdout.flush()
+        
+    """def printAsynchronousOnShell(self,EventToPrint):
         print ""
         print "   "+EventToPrint
 
@@ -312,7 +350,7 @@ class CommandExecuter():
         else:
             sys.stdout.write(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue() + readline.get_line_buffer())
 
-        sys.stdout.flush()
+        sys.stdout.flush()"""
         
     def complete(self,suffix,index):
         cmdStringList = self._parseLine(readline.get_line_buffer(),False)
@@ -400,6 +438,7 @@ class CommandExecuter():
         try:
             yield
         except ListOfException as loe:
+            #TODO remove it
             error,warning,ok = self.getColoration()
             
             if msg_prefix is None:
@@ -414,7 +453,8 @@ class CommandExecuter():
                 msg_prefix = ""
             else:
                 msg_prefix += ": "
-                
+            
+            #TODO remove it
             error,warning,ok = self.getColoration()
             print(msg_prefix+formatException(pex, ok, warning, error))
 
@@ -440,9 +480,13 @@ class CommandExecuter():
         
         return shellOnExit
 
+    #TODO remove it
     def printFormatedException(self, ex):
+        #TODO remove it
         error,warning,ok = self.getColoration()
         return formatException(ex, ok, warning, error)
+
+####################################################################################################
 
 def usage():
     print("")

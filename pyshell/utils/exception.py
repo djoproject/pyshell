@@ -46,6 +46,14 @@ def formatException(exception, printok, printwarning, printerror):
 class PyshellException(Exception):
     def __init__(self,severity = ERROR):
         self.severity = severity
+        
+class DefaultPyshellException(PyshellException):
+    def __init__(self, value,severity = ERROR):
+        PyshellException.__init__(self,severity)
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
 
 class ParameterException(PyshellException):
     "Exception used when a error is triggered by the utilisation of parameter"

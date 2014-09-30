@@ -19,30 +19,47 @@
 from pyshell.arg.decorator  import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, ArgChecker
 from pyshell.utils.utils    import toHexString
+from pyshell.utils.printing import printShell
 import re
 
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance())  )
 def stringListResultHandler(result):
+    if len(result) == 0:
+        return
+    
+    ret = ""
     for i in result:
-        print(i)
+        ret += i +"\n"
+        
+    printShell(ret[:-1])
 
 @shellMethod(result=ArgChecker())
 def printResultHandler(result=None):
     if result != None:
-        print(str(result))
+        printShell(str(result))
 
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def listResultHandler(result):
+    if len(result) == 0:
+        return
+
+    ret = ""
     for i in result:
-        print(str(i))
+        ret += str(i) +"\n"
+
+    printShell(ret[:-1])
         
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def listFlatResultHandler(result):
+    if len(result) == 0:
+        printShell("")
+        return
+
     s = ""
     for i in result:
         s += str(i) + " "
     
-    print(s)
+    printShell(s[:-1])
 
 @shellMethod(string=listArgChecker(IntegerArgChecker(0,255)))
 def printStringCharResult(string):
@@ -50,20 +67,23 @@ def printStringCharResult(string):
     for char in string:
         s += chr(char)
         
-    print(s)
+    printShell(s)
 
 @shellMethod(byteList=listArgChecker(IntegerArgChecker(0,255)))
 def printBytesAsString(byteList):
     if len(byteList) == 0:
         return byteList
 
-    print(toHexString(byteList))
+    printShell(toHexString(byteList))
     
     return byteList
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
     ansi_escape = re.compile(r'\x1b[^m]*m')
+
+    if len(listOfLine) == 0:
+        return
 
     #compute size
     size = {}
@@ -80,17 +100,13 @@ def printColumn(listOfLine):
                 else:
                     size[index] = max(size[index], len(ansi_escape.sub('', str(line[index])))+1 )
     
+    to_print = ""
     #print table
     for line in listOfLine:
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
-            print(str(line))
+            to_print += str(line) + "\n"
             
             #no need of pading if the line has only one column
-            """padding = size[0] - len(str(line))
-            if len(size) == 1:
-                print(str(line))
-            else:
-                print(str(line) + " "*padding)"""
         else:
             line_to_print = ""
             for index in range(0,len(line)):
@@ -102,6 +118,7 @@ def printColumn(listOfLine):
                 else:
                     line_to_print += str(line[index]) + " "*padding
                 
-            print line_to_print
+            to_print +=  line_to_print + "\n"
      
+    printShell(to_print[:-1])
     

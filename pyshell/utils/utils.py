@@ -48,3 +48,27 @@ def toHexString(bytes=[], format=0):
                 pformat = "0x" + pformat 
                     
         return rstrip(rstrip(reduce(lambda a, b: a + pformat % ((b + 256) % 256), [""] + bytes)), ',')
+        
+def ioctl_GWINSZ(fd):
+    try:
+        cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,'1234'))
+    except:
+        return
+    return cr
+
+def getTerminalSize():
+    cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+    if not cr:
+        try:
+            fd = os.open(os.ctermid(), os.O_RDONLY)
+            cr = ioctl_GWINSZ(fd)
+            
+            os.close(fd)
+        except:
+            pass
+    
+    if not cr:
+        env = os.environ
+        cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
+    
+    return int(cr[1]), int(cr[0])

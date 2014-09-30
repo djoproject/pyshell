@@ -23,6 +23,7 @@ from pyshell.command.command           import MultiOutput
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
 from pyshell.utils.constants           import ENVIRONMENT_NAME
+from pyshell.utils.exception           import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
 
 ## FUNCTION SECTION ##
 
@@ -73,25 +74,21 @@ def usageFun(args, mltries):
     try:
         searchResult = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
-        print "failed to find the command '"+str(args)+"', reason: "+str(te)
-        return
+        raise DefaultPyshellException("failed to find the command '"+str(args)+"', reason: "+str(te))
 
     if searchResult.isAmbiguous():
         tokenIndex = len(searchResult.existingPath) - 1
         tries = searchResult.existingPath[tokenIndex][1].localTries
         keylist = tries.getKeyList(args[tokenIndex])
 
-        print("ambiguity on command '"+" ".join(args)+"', token '"+str(args[tokenIndex])+"', possible value: "+ ", ".join(keylist))
-        return
+        raise DefaultPyshellException("ambiguity on command '"+" ".join(args)+"', token '"+str(args[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
 
     if not searchResult.isPathFound():
         tokenNotFound = searchResult.getNotFoundTokenList()
-        print "command not found, unknown token '"+tokenNotFound[0]+"'"
-        return 
+        raise DefaultPyshellException("command not found, unknown token '"+tokenNotFound[0]+"'", USER_ERROR)
 
     if not searchResult.isAvalueOnTheLastTokenFound():
-        print "parent token, no usage on this path" 
-        return
+        raise DefaultPyshellException("parent token, no usage on this path", USER_WARNING)
 
     cmd = searchResult.getLastTokenFoundValue()
     return cmd.usage()
@@ -126,14 +123,12 @@ def helpFun(mltries, args=None):
             ambiguityOnLastToken = tokenIndex == len(fullArgs) -1
             if not ambiguityOnLastToken:
                 #if ambiguity occurs on an intermediate key, stop the search
-                print "Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist)
-                return
+                raise DefaultPyshellException("Ambiguous value on key index <"+str(tokenIndex)+">, possible value: "+", ".join(keylist), USER_WARNING)
 
         #manage not found case
         if not ambiguityOnLastToken and not advancedResult.isPathFound():
             notFoundToken = advancedResult.getNotFoundTokenList()
-            print "unkwnon token "+str(advancedResult.getTokenFoundCount())+": '"+notFoundToken[0]+"'"
-            return
+            raise DefaultPyshellException("unkwnon token "+str(advancedResult.getTokenFoundCount())+": '"+notFoundToken[0]+"'", USER_ERROR)
     
     found = []
     stringKeys = []
@@ -225,9 +220,9 @@ def helpFun(mltries, args=None):
     if len(stop) == 0:
         if len(found) == 0:
             if len(fullArgs) > 0:
-                print "unkwnon token 0: '"+fullArgs[0]+"'"
+                raise DefaultPyshellException("unkwnon token 0: '"+fullArgs[0]+"'", USER_ERROR)
             else:
-                print "no help available"
+                raise DefaultPyshellException("no help available",WARNING)
         
             return ()
         elif len(found) == 1 :

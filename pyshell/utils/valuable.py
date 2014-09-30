@@ -26,3 +26,13 @@ class DefaultValuable(Valuable):
 
     def getValue(self):
         return self.value
+        
+class SimpleValuable(Valuable):
+    def __init__(self, value = None):
+        self.value = value
+
+    def getValue(self):
+        return self.value
+        
+    def setValue(self, value):
+        self.value = value
