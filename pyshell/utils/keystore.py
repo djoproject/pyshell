@@ -241,7 +241,12 @@ class Key(object):
         return self.keyType
         
     def getKeySize(self):
-        return self.keySize      
-    
+        return self.keySize   
+        
+    def getTypeString(self):
+        if self.keyType == Key.KEYTYPE_HEXA:
+            return "byte"
+        else:
+            return "bit"
     
     

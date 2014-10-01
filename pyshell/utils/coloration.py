@@ -16,6 +16,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO move this in constant.py
+
+#TODO faire deux types de coloration, sur fond sombre ou sur fond clair
+    #ou faire une variable de'environment de constrate
+
 MAUVE     = '\033[95m'
 BLUE      = '\033[94m'
 GREEN     = '\033[92m'

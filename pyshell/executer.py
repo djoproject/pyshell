@@ -55,20 +55,12 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker,
 from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter
 from pyshell.utils.keystore    import KeyStore
-from pyshell.utils.exception   import ListOfException, formatException
+from pyshell.utils.exception   import ListOfException
 from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.coloration  import red, orange, green, nocolor
 from pyshell.utils.utils       import getTerminalSize
-from pyshell.utils.printing    import Printer, warning, error
+from pyshell.utils.printing    import Printer, warning, error, printException
 from pyshell.utils.valuable    import SimpleValuable
 from pyshell.addons.addon      import loadAddonFun
-
-#class writer :
-#    def __init__(self, out):
-#    	self.out = out
-
-#    def write(self, text):
-#        self.out.write("    "+str(text))
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -91,16 +83,14 @@ class CommandExecuter():
         self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.addon",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
         
+        #prepare the printing system
         printer = Printer.getInstance()
         printer.setShellContext(self.params.getParameter("execution",CONTEXT_NAME))
         printer.setREPLFunction(self.printAsynchronousOnShellV2)
         self.promptWaitingValuable = SimpleValuable(False)
-        printer.setRunningContext(self.promptWaitingValuable)
-        
-        #redirect output
-        #self.writer = writer(sys.stdout)
-        #sys.stdout  = self.writer
-        
+        printer.setPromptShowedContext(self.promptWaitingValuable)
+        printer.setSpacingContext(self.params.getParameter("tabsize",ENVIRONMENT_NAME))
+                
         #try to load parameter file
         with self.ExceptionManager("Fail to load parameters file"):
             self.params.load()
@@ -211,10 +201,6 @@ class CommandExecuter():
         if len(cmdStringList) == 0:
             return False
 
-        #define console coloration function
-        #TODO remove it
-        _severe,_warning,_notice = self.getColoration()
-
         ## look after command in tries ##
         rawCommandList = []   
         rawArgList     = []
@@ -273,14 +259,14 @@ class CommandExecuter():
             if len(loe.exceptions) > 0:
                 error("List of exception:")
                 for e in loe.exceptions:
-                    print(self.printFormatedException(e))
+                    printException(e)
                     
         except Exception as e:
-            print(self.printFormatedException(e))
+            printException(e)
 
         #print stack trace if debug is enabled
         if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-            traceback.print_exc()
+            error(traceback.format_exc())
 
         return False
     
@@ -301,23 +287,22 @@ class CommandExecuter():
             #read prompt
             self.promptWaitingValuable.setValue(True)
             try:
-                #sys.stdout = self.writer.out
                 cmd = raw_input(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue())
-            except SyntaxError:
-                print "   syntax error"
+            except SyntaxError as se:
+                self.promptWaitingValuable.setValue(False)
+                error(se, "syntax error")
                 continue
             except EOFError:
-                print "\n   end of stream"
-                break
-            finally:
                 self.promptWaitingValuable.setValue(False)
-            #finally:
-            #    sys.stdout = self.writer    
-            
+                warning("\n   end of stream")
+                break
+ 
             #execute command
+            self.promptWaitingValuable.setValue(False)
             self.executeCommand(cmd)        
     
-    def printAsynchronousOnShellV2(self,EventToPrint):
+    def printAsynchronousOnShellV2(self,message):
+        prompt = self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue()
         #this is needed because after an input, the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
             size = len(prompt)
@@ -331,26 +316,14 @@ class CommandExecuter():
         offset = int(size/width)
         
         #http://ascii-table.com/ansi-escape-sequences-vt-100.php
-        message = EventToPrint +" "+str(width)+" "+str(size)+" "+str(offset)
+        #message = EventToPrint +" "+str(width)+" "+str(size)+" "+str(offset)
         if offset > 0:
-            message = "\r\033["+str(offset)+"A\033[2K   " + message# + "\033[s"
+            message = "\r\033["+str(offset)+"A\033[2K" + message# + "\033[s"
         else:
-            message = "\r\033[K   " + message# + "\033[s"
+            message = "\r\033[K" + message# + "\033[s"
         
         sys.stdout.write(message + "\n" + toprint)
         sys.stdout.flush()
-        
-    """def printAsynchronousOnShell(self,EventToPrint):
-        print ""
-        print "   "+EventToPrint
-
-        #this is needed because after an input, the readline buffer isn't always empty
-        if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
-            sys.stdout.write(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue())
-        else:
-            sys.stdout.write(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue() + readline.get_line_buffer())
-
-        sys.stdout.flush()"""
         
     def complete(self,suffix,index):
         cmdStringList = self._parseLine(readline.get_line_buffer(),False)
@@ -422,45 +395,32 @@ class CommandExecuter():
             
         except Exception as ex:
             if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-                print(self.printFormatedException(ex))
-                print traceback.format_exc()
+                printException(ex,None, traceback.format_exc())
 
         return None
-
-    def getColoration(self):
-        if self.params.getParameter("execution",CONTEXT_NAME).getSelectedValue() == "shell":
-            return red, orange, green
-        else:
-            return nocolor,nocolor,nocolor
 
     @contextmanager
     def ExceptionManager(self, msg_prefix = None):
         try:
             yield
         except ListOfException as loe:
-            #TODO remove it
-            error,warning,ok = self.getColoration()
-            
             if msg_prefix is None:
                 msg_prefix = "List of exception"
             
-            print(error(msg_prefix)+": ")
+            error(msg_prefix+": ")
             for e in loe.exceptions:
-                print("    "+formatException(e, ok, warning, error))
+                printException(e,"    ")
             
         except Exception as pex:
-            if msg_prefix is None:
-                msg_prefix = ""
-            else:
+            if msg_prefix is not None:
                 msg_prefix += ": "
-            
-            #TODO remove it
-            error,warning,ok = self.getColoration()
-            print(msg_prefix+formatException(pex, ok, warning, error))
 
+            st = None
             if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-                print()
-                traceback.print_exc()
+                st = traceback.format_exc()
+                
+            printException(pex, msg_prefix, st)
+
 
     def executeFile(self,filename):
         shellOnExit = False
@@ -476,17 +436,16 @@ class CommandExecuter():
                 
                     self.executeCommand(line)
         except Exception as ex:
-            print("An error occured during the script execution: "+str(ex))
+            st = None
+            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+                st = traceback.format_exc()
+                
+            printException(ex, "An error occured during the script execution: ", st)
         
         return shellOnExit
 
-    #TODO remove it
-    def printFormatedException(self, ex):
-        #TODO remove it
-        error,warning,ok = self.getColoration()
-        return formatException(ex, ok, warning, error)
-
 ####################################################################################################
+#no need to use printing system on the following function because shell is not yet running
 
 def usage():
     print("")

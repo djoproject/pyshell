@@ -80,6 +80,11 @@ def printBytesAsString(byteList):
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
+    #TODO
+        #in several preprocess used to generate input for this function, need to add some space at some place to improve viewing
+        #these space are junk and should be only added here
+        #remove then from preprocess and add them here
+
     ansi_escape = re.compile(r'\x1b[^m]*m')
 
     if len(listOfLine) == 0:

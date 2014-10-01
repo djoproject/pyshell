@@ -220,6 +220,10 @@ def addEnvironmentValuesFun(key, values, parameters):
              key       = stringArgChecker())
 def listEnvFun(parameter, key=None):
     "list all the environment variable"
+    
+    #TODO improve list printing
+        #see addon list
+    
     return listParameter(parameter, ENVIRONMENT_NAME, key, False)
     
 @shellMethod(key           = stringArgChecker(),
@@ -277,7 +281,7 @@ def setContextValuesFun(key, values, parameter):
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def addContextValuesFun(key, values, parameter):
-    "add values to a context parameter list"
+    "add values to a context parameter list"    
     addValuesFun(key, values, parameter, CONTEXT_NAME)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -310,6 +314,10 @@ def getSelectedContextIndex(key, parameter):
              key       = stringArgChecker())
 def listContext(parameter, key=None):
     "list all the context variable"
+    
+    #TODO improve list printing
+        #see addon list
+    
     return listParameter(parameter, CONTEXT_NAME, key, False)
     
 @shellMethod(key           = stringArgChecker(),
@@ -375,6 +383,9 @@ def unsetVar(key, parameter, parent=None):
              parent    = stringArgChecker())
 def listVar(parameter, key=None, parent=None):
     "list every existing var"
+
+    #TODO improve list printing
+        #see addon list
 
     #parent must be different of forbidden name
     if parent in FORBIDEN_SECTION_NAME:

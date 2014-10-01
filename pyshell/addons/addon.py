@@ -26,8 +26,8 @@ from pyshell.arg.argchecker            import defaultInstanceArgChecker, complet
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.constants           import ENVIRONMENT_NAME, ADDONLIST_KEY
 from pyshell.utils.coloration          import green, orange, bolt, nocolor, red
-from pyshell.utils.exception           import ListOfException, formatException
-from pyshell.utils.printing            import notice
+from pyshell.utils.exception           import ListOfException
+from pyshell.utils.printing            import notice, formatException
 
 ADDON_PREFIX  = "pyshell.addons."
 

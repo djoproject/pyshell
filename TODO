@@ -16,7 +16,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         -addon name
         -...
 
-    look after dictionary init {
+    look after dictionary init { everywhere in the code
 
 ##################
 ### decorateur ###

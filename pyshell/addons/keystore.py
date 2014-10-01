@@ -17,11 +17,12 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.decorator             import shellMethod
-from pyshell.arg.argchecker            import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
-from pyshell.simpleProcess.postProcess import listFlatResultHandler, stringListResultHandler
+from pyshell.arg.argchecker            import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker, contextParameterChecker
+from pyshell.simpleProcess.postProcess import listFlatResultHandler, printColumn
 from pyshell.loader.command            import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.keystore           import registerKey
 from pyshell.utils.constants           import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
+from pyshell.utils.coloration          import green, bolt, nocolor
 
 ## DECLARATION PART ##
 
@@ -42,14 +43,30 @@ def getKey(key, start=0, end=None, keyStore=None):
     "get a key"
     return key.getKey(start, end)
 
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
-def listKey(keyStore=None):
+@shellMethod(keyStore          = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME),
+             execution_context = contextParameterChecker("execution"))
+def listKey(keyStore, execution_context):
     "list available key in the keystore"
+    
+    keyStore = keyStore.getValue()
+        
+    if execution_context.getSelectedValue() == "shell":
+        info  = green
+        title = bolt
+    else:
+        info  = nocolor
+        title = nocolor
+    
     toRet = []
     
-    for k in keyStore.getValue().getKeyList():
-        toRet.append(str(k)+": "+repr(keyStore.getValue().getKey(k)))
-        
+    for k in keyStore.getKeyList():
+        key = keyStore.getKey(k)
+        toRet.append( (" "+k,"  "+key.getTypeString(),"  "+str(key.getKeySize()), "  "+info(str(key)), ) )
+    
+    if len(toRet) == 0:
+        return [("No key available",)]
+    
+    toRet.insert(0, (title("Key name"),title(" Type"),title(" Size"), title(" Value"), ) )
     return toRet
 
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -84,7 +101,7 @@ registerSetGlobalPrefix( ("key", ) )
 registerCommand( ("set",) ,                    post=setKey)
 registerCommand( ("get",) ,                    pre=getKey, pro=listFlatResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetKey)
-registerCommand( ("list",) ,                   pre=listKey, pro=stringListResultHandler)
+registerCommand( ("list",) ,                   pre=listKey, pro=printColumn)
 registerCommand( ("save",) ,                   pro=saveKeyStore)
 registerCommand( ("load",) ,                   pro=loadKeyStore)
 registerCommand( ("clean",) ,                  pro=cleanKeyStore)

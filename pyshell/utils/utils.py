@@ -16,9 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#FIXME already exist in apdu.misc.util...
+#FIXME toHexString already exist in apdu.misc.util...
  
 from string import rstrip
+import os
 
 PACK = 1
 HEX = 2
