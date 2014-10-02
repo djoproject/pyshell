@@ -53,7 +53,7 @@ from pyshell.command.engine    import engineV3
 from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
 from pyshell.addons            import addon
-from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter
+from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
@@ -136,6 +136,7 @@ class CommandExecuter():
     def _parseLine(self,line, enableArgs = True):
         line = line.split("|")
         toret = []
+        unknowVarError = set()
         
         for partline in line:
             #remove blank char
@@ -148,6 +149,7 @@ class CommandExecuter():
 
             #fo each token
             finalCmd = []
+            
             for cmd in partline:
                 cmd = cmd.strip(' \t\n\r')
                 if len(cmd) == 0 :
@@ -156,25 +158,18 @@ class CommandExecuter():
                 if enableArgs:
                     if cmd.startswith("$") and len(cmd) > 1:
                         if not self.params.hasParameter(cmd[1:]):
-                            print("Unknown var '"+cmd[1:]+"'")
-                            #TODO should be red printed
+                            unknowVarError.add("Unknown var '"+cmd[1:]+"'")
+                            continue
                             
-                            #TODO try to find other unknown var
-                                #then print them all
-                                #then return ()
-                            
-                            return ()
-                        
                         param = self.params.getParameter(cmd[1:])
                         
-                        #TODO should be a variable instance
+                        if not isinstance(param, VarParameter):
+                            unknowVarError.add("specified key '"+cmd[1:]+"' correspond to a type different of a var")
+                            continue
                         
-                        #no more need if an instance variable, always list, no ?
-                        if param.isAListType():
-                            finalCmd.extend(param.getValue())
-                        else:
-                            finalCmd.append(param.getValue())
-
+                        #because it is a VarParameter, it is always a list type
+                        finalCmd.extend(param.getValue())   
+                        
                     elif cmd.startswith("\$"):
                         finalCmd.append(cmd[1:])
                     else:
@@ -186,6 +181,10 @@ class CommandExecuter():
                 continue
 
             toret.append(finalCmd)
+
+        if len(unknowVarError) > 0:
+            error("\n".join(unknowVarError))
+            return ()
 
         return toret
     

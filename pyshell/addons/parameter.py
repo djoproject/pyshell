@@ -20,8 +20,10 @@ from pyshell.loader.command            import registerStopHelpTraversalAt, regis
 from pyshell.arg.decorator             import shellMethod
 from pyshell.utils.parameter           import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
 from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler,listResultHandler,printColumn
-from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker
+from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.constants           import CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.coloration          import green, bolt, nocolor, orange
+from pyshell.utils.exception           import DefaultPyshellException
 
 ## FUNCTION SECTION ##
 
@@ -77,7 +79,7 @@ def removeParameter(key, parameters, parent=None):
 
     parameters.unsetParameter(key, parent)
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+"""@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              parent    = stringArgChecker(),
              key       = stringArgChecker())
 def listParameter(parameter, parent=None, key=None, printParent = True, allParentExcept = ()):
@@ -125,7 +127,75 @@ def listParameter(parameter, parent=None, key=None, printParent = True, allParen
                 to_ret.append( (subk, ": \""+rep+"\"", ) )
 
             
-    return to_ret
+    return to_ret"""
+
+def _listGeneric(parameter, parent, key, execution_context, formatValueFun, getTitleFun, forbidenParent = ()):
+    #TODO re-apply a width limit on the printing
+        #use it in printing ?
+            #nope because we maybe want to print something on the several line
+            
+        #a util function allow to retrieve the terminal width
+            #if in shell only 
+            #or script ? without output redirection
+
+    if parent is not None:
+        if parent in forbidenParent:
+            raise DefaultPyshellException("Parent '"+str(parent)+"' is not allowed to list vars", USER_ERROR)
+        
+        if parent not in parameter.params:
+            raise DefaultPyshellException("Parent '"+str(parent)+"' does not exist", USER_WARNING)
+        
+        parents = (parent, )
+    else:
+        parents = parameter.params.keys()
+        
+    if execution_context.getSelectedValue() == "shell":
+        title  = bolt
+        values = orange
+    else:
+        title  = nocolor
+        values = nocolor
+
+    toRet = []
+    for k in parents:
+        if k in forbidenParent:
+            continue
+        
+        if key is not None:
+            if key not in parameter.params[k]:
+                continue
+            
+            toRet.append( formatValueFun(k, key, parameter.params[k][key], values) )
+            break
+        
+        for subk,subv in parameter.params[k].items():
+            toRet.append( formatValueFun(k, subk, subv, values) )
+    
+    if len(toRet) == 0:
+        return [("No var available",)]
+    
+    toRet.insert(0, getTitleFun(title) )
+    return toRet
+
+def _parameterRowFormating(parent, key, paramItem, valueFormatingFun):
+
+    if paramItem.isAListType():
+        value = ', '.join(str(x) for x in paramItem.getValue())
+    else:
+        value = str(paramItem.getValue())
+
+    return (" "+str(parent), "  "+str(key), "  "+valueFormatingFun(value), )
+
+def _parameterGetTitle(titleFormatingFun):
+    return (titleFormatingFun("Parent"), titleFormatingFun(" Name"), titleFormatingFun(" Value"), )
+
+
+@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             parent    = stringArgChecker(),
+             key       = stringArgChecker(),
+             execution_context = contextParameterChecker("execution"))
+def listParameter(parameter, parent=None, key=None,execution_context=None):
+    return _listGeneric(parameter, parent, key, execution_context, _parameterRowFormating, _parameterGetTitle)
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def loadParameter(parameter):
@@ -216,15 +286,20 @@ def addEnvironmentValuesFun(key, values, parameters):
     "add values to an environment parameter list"
     addValuesFun(key, values, parameters, ENVIRONMENT_NAME)
 
+def _envRowFormating(parent, key, envItem, valueFormatingFun):
+    if envItem.isAListType():
+        return (" "+str(key), "  true", valueFormatingFun("  "+', '.join(str(x) for x in envItem.getValue())), ) 
+    else:
+        return (" "+str(key), "  false", valueFormatingFun("  "+str(envItem.getValue())), ) 
+
+def _envGetTitle(titleFormatingFun):
+    return (titleFormatingFun("Name"), titleFormatingFun(" IsList"), titleFormatingFun(" Value(s)"), )
+
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker())
-def listEnvFun(parameter, key=None):
-    "list all the environment variable"
-    
-    #TODO improve list printing
-        #see addon list
-    
-    return listParameter(parameter, ENVIRONMENT_NAME, key, False)
+             key       = stringArgChecker(),
+             execution_context = contextParameterChecker("execution"))
+def listEnvs(parameter, key=None, execution_context=None):
+    return _listGeneric(parameter, ENVIRONMENT_NAME, key, execution_context, _envRowFormating, _envGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -310,15 +385,17 @@ def getSelectedContextIndex(key, parameter):
     "get the selected value index for the current context"
     return getParameter(key,parameter,CONTEXT_NAME).getIndex()
 
+def _conRowFormating(parent, key, conItem, valueFormatingFun):
+    return (" "+str(key), "  "+str(conItem.getIndex()), "  "+valueFormatingFun(str(conItem.getSelectedValue())), "  "+', '.join(str(x) for x in conItem.getValue()), )
+
+def _conGetTitle(titleFormatingFun):
+    return (titleFormatingFun("Name"), titleFormatingFun(" Index"), titleFormatingFun(" Value"), titleFormatingFun(" Values"), )
+
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker())
-def listContext(parameter, key=None):
-    "list all the context variable"
-    
-    #TODO improve list printing
-        #see addon list
-    
-    return listParameter(parameter, CONTEXT_NAME, key, False)
+             key       = stringArgChecker(),
+             execution_context = contextParameterChecker("execution"))
+def listContexts(parameter, key=None, execution_context=None):
+    return _listGeneric(parameter, CONTEXT_NAME, key, execution_context, _conRowFormating, _conGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -378,20 +455,18 @@ def unsetVar(key, parameter, parent=None):
 
     removeParameter(key, parameter, parent)
 
+def _varRowFormating(parent, key, varItem, valueFormatingFun):
+    return (" "+str(parent), "  "+str(key), valueFormatingFun("  "+', '.join(str(x) for x in varItem.getValue())), )
+
+def _varGetTitle(titleFormatingFun):
+    return ( titleFormatingFun("Parent"),titleFormatingFun(" Name"),titleFormatingFun(" Values"), )
+
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             parent    = stringArgChecker(),
              key       = stringArgChecker(),
-             parent    = stringArgChecker())
-def listVar(parameter, key=None, parent=None):
-    "list every existing var"
-
-    #TODO improve list printing
-        #see addon list
-
-    #parent must be different of forbidden name
-    if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent '"+str(parent)+"' can not be used in var system")
-
-    return listParameter(parameter, parent, key, True, FORBIDEN_SECTION_NAME.keys())
+             execution_context = contextParameterChecker("execution"))
+def listVars(parameter, parent=None, key=None, execution_context=None):
+    return _listGeneric(parameter, parent, key, execution_context, _varRowFormating, _varGetTitle, FORBIDEN_SECTION_NAME)
 
 #################################### REGISTER SECTION #################################### 
 
@@ -400,7 +475,7 @@ registerSetTempPrefix( ("var", ) )
 registerCommand( ("set",) ,                    post=setVar)
 registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetVar)
-registerCommand( ("list",) ,                   pre=listVar, pro=printColumn)
+registerCommand( ("list",) ,                   pre=listVars, pro=printColumn)
 registerStopHelpTraversalAt( ("var",) )
 
 #context
@@ -414,14 +489,14 @@ registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=prin
 registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
-registerCommand( ("list",) ,               pre=listContext, pro=printColumn)
+registerCommand( ("list",) ,               pre=listContexts, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=printResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
 #env 
 registerSetTempPrefix( ("environment", ) )
-registerCommand( ("list",) ,           pro=listEnvFun,   post=printColumn )
+registerCommand( ("list",) ,           pro=listEnvs,   post=printColumn )
 registerCommand( ("create","single",), post=createEnvironmentValueFun)
 registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
 registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
@@ -437,6 +512,6 @@ registerStopHelpTraversalAt( ("environment",) )
 registerSetTempPrefix( ("parameter", ) )
 registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("load",) ,           pro=loadParameter)
-registerCommand( ("list",) ,            pro=listParameter, post=printColumn)
+registerCommand( ("list",) ,           pro=listParameter, post=printColumn)
 registerStopHelpTraversalAt( ("parameter",) )
     

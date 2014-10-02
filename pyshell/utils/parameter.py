@@ -374,7 +374,7 @@ class EnvironmentParameter(Parameter):
     def addValues(self, values):
         pass #TODO
         
-    #TODO replace brutal add value everywhere in the code
+    #TODO replace brutal remove value everywhere in the code
     def removeValue(self, value):
         pass #TODO remove a value if list type
             #TODO be carefull, need to recompute index in context class
@@ -651,7 +651,7 @@ class ContextParameter(EnvironmentParameter):
         
 class VarParameter(EnvironmentParameter):
     def __init__(self,value):
-        tmp_value_parsed = [value]
+        tmp_value_parsed = [value] #TODO what occur if it is a list or not ?
         parsed_value = []
         
         while len(tmp_value_parsed) > 0:

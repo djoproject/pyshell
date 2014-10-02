@@ -41,7 +41,13 @@ class KeyStore(object):
     
         self.filePath = filePath
         self.tries = tries()
+    
+    def __str__(self):
+        return repr(self)
         
+    def __repr__(self):
+        return str(self.tries.countValue())+" key(s) stored"
+    
     def load(self):
         #if no path, no load
         if self.filePath == None:
