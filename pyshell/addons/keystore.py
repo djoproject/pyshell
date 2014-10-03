@@ -61,12 +61,12 @@ def listKey(keyStore, execution_context):
     
     for k in keyStore.getKeyList():
         key = keyStore.getKey(k)
-        toRet.append( (" "+k,"  "+key.getTypeString(),"  "+str(key.getKeySize()), "  "+info(str(key)), ) )
+        toRet.append( (k,key.getTypeString(),str(key.getKeySize()),info(str(key)), ) )
     
     if len(toRet) == 0:
         return [("No key available",)]
     
-    toRet.insert(0, (title("Key name"),title(" Type"),title(" Size"), title(" Value"), ) )
+    toRet.insert(0, (title("Key name"),title("Type"),title("Size"), title("Value"), ) )
     return toRet
 
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),

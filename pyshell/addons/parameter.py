@@ -184,10 +184,10 @@ def _parameterRowFormating(parent, key, paramItem, valueFormatingFun):
     else:
         value = str(paramItem.getValue())
 
-    return (" "+str(parent), "  "+str(key), "  "+valueFormatingFun(value), )
+    return (str(parent), str(key), valueFormatingFun(value), )
 
 def _parameterGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Parent"), titleFormatingFun(" Name"), titleFormatingFun(" Value"), )
+    return (titleFormatingFun("Parent"), titleFormatingFun("Name"), titleFormatingFun("Value"), )
 
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
@@ -288,12 +288,12 @@ def addEnvironmentValuesFun(key, values, parameters):
 
 def _envRowFormating(parent, key, envItem, valueFormatingFun):
     if envItem.isAListType():
-        return (" "+str(key), "  true", valueFormatingFun("  "+', '.join(str(x) for x in envItem.getValue())), ) 
+        return (str(key), "true", valueFormatingFun(', '.join(str(x) for x in envItem.getValue())), ) 
     else:
-        return (" "+str(key), "  false", valueFormatingFun("  "+str(envItem.getValue())), ) 
+        return (str(key), "false", valueFormatingFun(str(envItem.getValue())), ) 
 
 def _envGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Name"), titleFormatingFun(" IsList"), titleFormatingFun(" Value(s)"), )
+    return (titleFormatingFun("Name"), titleFormatingFun("IsList"), titleFormatingFun("Value(s)"), )
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker(),
@@ -386,10 +386,10 @@ def getSelectedContextIndex(key, parameter):
     return getParameter(key,parameter,CONTEXT_NAME).getIndex()
 
 def _conRowFormating(parent, key, conItem, valueFormatingFun):
-    return (" "+str(key), "  "+str(conItem.getIndex()), "  "+valueFormatingFun(str(conItem.getSelectedValue())), "  "+', '.join(str(x) for x in conItem.getValue()), )
+    return (str(key), str(conItem.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
 
 def _conGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Name"), titleFormatingFun(" Index"), titleFormatingFun(" Value"), titleFormatingFun(" Values"), )
+    return (titleFormatingFun("Name"), titleFormatingFun("Index"), titleFormatingFun("Value"), titleFormatingFun("Values"), )
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker(),
@@ -456,10 +456,10 @@ def unsetVar(key, parameter, parent=None):
     removeParameter(key, parameter, parent)
 
 def _varRowFormating(parent, key, varItem, valueFormatingFun):
-    return (" "+str(parent), "  "+str(key), valueFormatingFun("  "+', '.join(str(x) for x in varItem.getValue())), )
+    return (str(parent), str(key), valueFormatingFun(', '.join(str(x) for x in varItem.getValue())), )
 
 def _varGetTitle(titleFormatingFun):
-    return ( titleFormatingFun("Parent"),titleFormatingFun(" Name"),titleFormatingFun(" Values"), )
+    return ( titleFormatingFun("Parent"),titleFormatingFun("Name"),titleFormatingFun("Values"), )
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              parent    = stringArgChecker(),

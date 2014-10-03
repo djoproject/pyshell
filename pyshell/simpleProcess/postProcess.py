@@ -80,11 +80,6 @@ def printBytesAsString(byteList):
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
-    #TODO
-        #in several preprocess used to generate input for this function, need to add some space at some place to improve viewing
-        #these space are junk and should be only added here
-        #remove then from preprocess and add them here
-
     ansi_escape = re.compile(r'\x1b[^m]*m')
 
     if len(listOfLine) == 0:
@@ -92,36 +87,49 @@ def printColumn(listOfLine):
 
     #compute size
     size = {}
-    for line in listOfLine:
+    spaceToAdd = 2 #at least two space column separator
+    
+    for row_index in range(0,len(listOfLine)):
+        line = listOfLine[row_index]
+        
+        if row_index == 1: #space to add to have the data column slighty on the right
+            spaceToAdd += 1
+        
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
             if 0 not in size:
-                size[0] = len(ansi_escape.sub('', str(line))) + 1
+                size[0] = len(ansi_escape.sub('', str(line))) + spaceToAdd
             else:
-                size[0] = max(size[0],len(ansi_escape.sub('', str(line))) + 1)
+                size[0] = max(size[0],len(ansi_escape.sub('', str(line))) + spaceToAdd)
         else:
-            for index in range(0,len(line)):
-                if index not in size:
-                    size[index] = len(ansi_escape.sub('', str(line[index]))) + 1
+            for column_index in range(0,len(line)):
+                if column_index not in size:
+                    size[column_index] = len(ansi_escape.sub('', str(line[column_index]))) + spaceToAdd
                 else:
-                    size[index] = max(size[index], len(ansi_escape.sub('', str(line[index])))+1 )
+                    size[column_index] = max(size[column_index], len(ansi_escape.sub('', str(line[column_index])))+spaceToAdd )
     
     to_print = ""
     #print table
-    for line in listOfLine:
+    defaultPrefix = ""
+    for row_index in range(0,len(listOfLine)):
+        line = listOfLine[row_index]
+        
+        if row_index == 1:
+            defaultPrefix = " "
+        
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
-            to_print += str(line) + "\n"
+            to_print += defaultPrefix + str(line) + "\n"
             
             #no need of pading if the line has only one column
         else:
             line_to_print = ""
-            for index in range(0,len(line)):
-                padding = size[index] - len(ansi_escape.sub('', str(line[index])))
+            for column_index in range(0,len(line)):
+                padding = size[column_index] - len(ansi_escape.sub('', str(line[column_index]))) - len(defaultPrefix)
                 
                 #no padding on last column
-                if index == len(size) - 1:
-                    line_to_print += str(line[index])
+                if column_index == len(size) - 1:
+                    line_to_print += defaultPrefix + str(line[column_index])
                 else:
-                    line_to_print += str(line[index]) + " "*padding
+                    line_to_print += defaultPrefix + str(line[column_index]) + " "*padding
                 
             to_print +=  line_to_print + "\n"
      

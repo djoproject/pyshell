@@ -52,6 +52,7 @@ from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.coloration          import bolt, nocolor
 from apdu.misc.apdu                    import toHexString
+from pyshell.utils.printing            import notice
 
 try:
     from smartcard.System                 import readers
@@ -109,10 +110,10 @@ class CardManager( CardObserver ):
     
     def update( self, observable, (addedcards, removedcards) ):
         
-        #r = ""  #card connected or removed
+        r = ""  #card connected or removed
         #ac = "" #autoconnect result
         if addedcards != None and len(addedcards) > 0:
-            #r += "Added cards" + str(addedcards) 
+            r += "Added card(s) " + str(addedcards) 
             
             #TODO should be in critical section
             cardList = self.cardListEnv.getValue()[:]
@@ -127,10 +128,10 @@ class CardManager( CardObserver ):
         
         if removedcards != None and len(removedcards) > 0:
             
-            #if len(r) > 0:
-            #    r += "\n"
+            if len(r) > 0:
+                r += "\n"
             
-            #r += "Removed cards" + str(removedcards)
+            r += "Removed cards" + str(removedcards)
             
             #TODO should be in critical section
             cardList = self.cardListEnv.getValue()[:]
@@ -141,12 +142,12 @@ class CardManager( CardObserver ):
             self.cardListEnv.setValue(cardList)
             #XXX
 
-                #if hasattr(c,'connection'):
-                #    disconnectReaderFromCardFun(Executer.envi)
-                #    print("WARNING : the card has been removed, the connection is broken")
+            #if hasattr(c,'connection'):
+            #    disconnectReaderFromCardFun(Executer.envi)
+            #    print("WARNING : the card has been removed, the connection is broken")
         
-        #if len(r) > 0:
-        #    print(r)
+        if len(r) > 0:
+            notice(r)
         
         #if self.enable and len(r) > 0:
         #    if len(ac) > 0:
@@ -294,6 +295,8 @@ def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=
     connection_list = connections.getValue()[:]
     connection_list.append(connection)
     connections.setValue(connection_list)
+    
+    #TODO return connection id
 
 @shellMethod(index=IntegerArgChecker(0),
              cards       = environmentParameterChecker("pcsc_cardlist"),
@@ -314,6 +317,8 @@ def connectReader(index=0,cards = None, connections = None,loaded=False, autoloa
     connection_list = connections.getValue()[:]
     connection_list.append(connection)
     connections.setValue(connection_list)
+    
+    #TODO return connection id
 
 @shellMethod(index       = IntegerArgChecker(0),
              connections = environmentParameterChecker("pcsc_connexionlist"))
@@ -349,7 +354,7 @@ def getConnected(connections, execution_context):
         title = nocolor
     
     to_ret = []
-    to_ret.append( (title("ID"), title("Reader"), title("Protocol"), title("ATR"), ) )
+    to_ret.append( (title("ID"), title("Reader name"), title("Protocol"), title("ATR"), ) )
     
     index = 0
     for con in connection_list:        
@@ -365,7 +370,7 @@ def getConnected(connections, execution_context):
         else:
             prot = "unknown"
     
-        to_ret.append( ("  "+str(index), "  "+str(con.getReader()),"  "+prot, "  "+toHexString(con.getATR()), ) )
+        to_ret.append( (str(index), str(con.getReader()),prot, toHexString(con.getATR()), ) )
     
         index += 1 
     
@@ -377,7 +382,7 @@ def getConnected(connections, execution_context):
 def getAvailableCard(cards,connections, execution_context):
     "list available card(s) on the system connected or not"
 
-    #TODO if not loaded, even if a card if available, the list will be empty
+    #FIXME if not loaded, even if a card if available, the list will be empty
 
     card_list = cards.getValue()
 
@@ -390,19 +395,19 @@ def getAvailableCard(cards,connections, execution_context):
         title = nocolor
     
     to_ret = []
-    to_ret.append( (title("ID"), title("Reader"), title(" Connected"), title(" ATR"), ) )
+    to_ret.append( (title("ID"), title("Reader name"), title("Connected"), title("ATR"), ) )
     
     index = 0
     connections = connections.getValue()
     for card in card_list:
         for con in connections:
             if con.getATR() == card.atr:
-                connected = "  connected"
+                connected = "connected"
                 break
         else:
-            connected = "  not connected"
+            connected = "not connected"
     
-        to_ret.append( (str(index), " "+str(card.reader), connected, "  "+toHexString(card.atr), ) )
+        to_ret.append( (str(index), str(card.reader), connected, toHexString(card.atr), ) )
         index += 1
     
     return to_ret
@@ -429,7 +434,7 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
         title = nocolor
     
     to_ret = []
-    to_ret.append( (title("ID"),title("Reader name"), title(" Card on reader"), title(" Card connected"),) )
+    to_ret.append( (title("ID"),title("Reader name"), title("Card on reader"), title("Card connected"),) )
     
     cards = cards.getValue()
     connections = connections.getValue()
@@ -447,7 +452,7 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
             if con.getReader() == reader:
                 connected += 1
                 
-        to_ret.append( (str(index), " "+str(reader), "  "+str(onreader), "  "+str(connected),) )
+        to_ret.append( (str(index), str(reader), str(onreader), str(connected),) )
         index += 1
         
     return to_ret

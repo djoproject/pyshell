@@ -311,7 +311,7 @@ def listOnStartUp(addonListOnStartUp,execution_context):
     r = []
     r.append( (title("Order"), title("Addon name"),) )
     for i in range(0,len(addons)):
-        r.append( ("  "+str(i), str(addons[i]), ) )
+        r.append( (str(i), str(addons[i]), ) )
     
     return r
 

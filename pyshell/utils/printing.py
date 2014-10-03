@@ -21,6 +21,9 @@
         #os.fstat(0) == os.fstat(1)
         #http://stackoverflow.com/questions/1512457/determining-if-stdout-for-a-python-process-is-redirected
 
+    #coloration system should be moved here and only used here
+        #with a kind of formating method
+
 import threading, sys
 from pyshell.utils.valuable   import Valuable, DefaultValuable
 from pyshell.utils.coloration import red, orange, green
