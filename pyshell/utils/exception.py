@@ -20,16 +20,19 @@ ERROR         = 0
 CORE_ERROR    = 1
 USER_ERROR    = 2
 PARSE_ERROR   = 3
+LIBRARY_ERROR = 4
 
-WARNING       = 10
-CORE_WARNING  = 11
-USER_WARNING  = 12
-PARSE_WARNING = 13
+WARNING         = 10
+CORE_WARNING    = 11
+USER_WARNING    = 12
+PARSE_WARNING   = 13
+LIBRARY_WARNING = 14
 
-NOTICE        = 20
-CORE_NOTICE   = 21
-USER_NOTICE   = 22
-PARSE_NOTIVE  = 23
+NOTICE         = 20
+CORE_NOTICE    = 21
+USER_NOTICE    = 22
+PARSE_NOTICE   = 23
+LIBRARY_NOTICE = 24
 
 class PyshellException(Exception):
     def __init__(self,severity = ERROR):

@@ -22,13 +22,17 @@
     #think about critical section on card list
         #will also occured on connection_list
         
-        #what about boolean env ?
+        #what about boolean env ? (???)
+            #use its own rlock (not implemented yet)
 
     #monitoring data/reader/card
     
     #autoconnect
 
     #XXX what about scard data transmit ?
+        #it is a sublayer to pyscard
+        #not really usefull
+        #but it could be interesting to have an access to it
 
     #thread to manage card list, otherwise the list will always be empty
         #add card in the list
@@ -51,8 +55,9 @@ from pyshell.simpleProcess.postProcess import printColumn
 from pyshell.loader.parameter          import registerSetEnvironment
 from pyshell.utils.parameter           import EnvironmentParameter
 from pyshell.utils.coloration          import bolt, nocolor
+from pyshell.utils.printing            import Printer, notice, printShell
+from pyshell.utils.exception           import DefaultPyshellException, LIBRARY_ERROR
 from apdu.misc.apdu                    import toHexString
-from pyshell.utils.printing            import notice
 
 try:
     from smartcard.System                 import readers
@@ -67,28 +72,30 @@ try:
     #from smartcard.sw.ISO7816_4ErrorChecker import ISO7816_4ErrorChecker
     #from smartcard.sw.ISO7816_8ErrorChecker import ISO7816_8ErrorChecker
     #from smartcard.sw.ISO7816_9ErrorChecker import ISO7816_9ErrorChecker
-except ImportError as ie:
-    #TODO improve
-        #the printed message will not be really pretty
-        #because the raised exception will be print and the hint message too
-        
-    #print "failed to import smartcard : "+str(ie)
-    print "maybe the library is not installed for this version of python"
-    print "http://pyscard.sourceforge.net"
-    
+except ImportError as ie:    
     import sys
-    if(sys.platform == 'darwin'):
-        print "HINT : on macos system, try to execute this script with python2.6"
-        #TODO not a problem of macos, we try to execute the script with python2.7 and pyscard is installed with python2.6
-            #yeah but why this occured each times with macos ???
     
-    raise Exception("Fail to import smartcard : "+str(ie))
+    message  = "Fail to import smartcard : "+str(ie) 
+    message += "\n\nmaybe the library is not installed on this system, you can download it from"
+    message += "\nhttp://pyscard.sourceforge.net"
     
-    #TODO the error message must contain
-        #maybe pyscard is not installed with this version of python, try another one if exists
-        #or maybe pyscard is not installed at all on this system, download and install it from http://pyscard.sourceforge.net
+    message += "\n\nOR maybe pyscard is installed with another version of python"
+    message += "\ncurrent is "+str(sys.version_info[0])+"."+str(sys.version_info[1])+", maybe try with a python "
     
-    #TODO need to be able to print an exception on several lines
+    if sys.version_info[0] == 3:
+        message += "2"
+    elif sys.version_info[0] == 2:
+        if sys.version_info[1] == 6:
+            message += "2.7"
+        elif sys.version_info[1] == 7:
+            message += "2.6"
+        else:
+            message += "2.6 or 2.7"
+    else:
+        message += "2.6 or 2.7"
+    message += " runtime if available"
+    
+    raise DefaultPyshellException(message, LIBRARY_ERROR)
 
 ## MISC SECTION ##
 
@@ -213,10 +220,10 @@ def printATR(bytes):
     
     atr = ATR(bytes)
     
-    print atr
-    print
-    atr.dump()
-    print 'T15 supported: ', atr.isT15Supported()
+    with Printer.getInstance(): #use of this critical section because dump produce some print without control
+        printShell(atr+"\n")
+        atr.dump()
+        printShell('T15 supported: ', atr.isT15Supported())
 
 @shellMethod(cards = environmentParameterChecker("pcsc_cardlist"),
              autoload    = environmentParameterChecker("pcsc_autoload"),
@@ -233,29 +240,26 @@ def loadPCSC(cards, autoload, loaded,autoconnect):
 
     #not already called in an import ?
     try:
-        print "context loading... please wait"
+        notice("context loading... please wait")
         PCSCContext()
-        print "context loaded"
+        notice("context loaded")
         loaded.setValue(True)
         
     except EstablishContextException as e:
-        #TODO should raise an exception 
-            #same problem as in import try/catch, must be able to raise an exception on several lines
-        
-        print "   "+str(e)
+        message = str(e)
         
         import platform
         pf = platform.system()
         if pf == 'Darwin':
-            print "   HINT : connect a reader and use a tag/card with it, then retry the command"
+            message += "\nHINT : connect a reader and use a tag/card with it, then retry the command"
         elif pf == 'Linux':
-            print "   HINT : check if the 'pcscd' daemon is running, maybe it has not yet started or it crashed"
+            message += "\nHINT : check if the 'pcscd' daemon is running, maybe it has not been started or it crashed"
         elif pf == 'Windows':
-            print "   HINT : check if the 'scardsvr' service is running, maybe it has not yet started or it crashed"
+            message += "\nHINT : check if the 'scardsvr' service is running, maybe it has not been started or it crashed"
         else:
-            print "   HINT : check the os process that manage card reader"
+            message += "\nHINT : check the os process that manage card reader"
             
-        return
+        raise DefaultPyshellException(message,LIBRARY_ERROR)
         
     #start thread to monitor card connection
     CardManager(cards, autoconnect)
@@ -494,15 +498,15 @@ def monitorReader(enable):
 def monitorData(enable):
     "enable/disable data monitoring"
     pass #TODO
-    
+        
 ## register ENVIRONMENT ##
 
 registerSetEnvironment(envKey="pcsc_autoload",      env=EnvironmentParameter(True,  typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = False, readonly = False, removable = False), noErrorIfKeyExist = True, override = False)
 registerSetEnvironment(envKey="pcsc_contextready",  env=EnvironmentParameter(False, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
 registerSetEnvironment(envKey="pcsc_autoconnect",   env=EnvironmentParameter(False, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), transient = False, readonly = False, removable = False), noErrorIfKeyExist = True, override = False)
 
-registerSetEnvironment(envKey="pcsc_cardlist",      env=EnvironmentParameter([], typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
-registerSetEnvironment(envKey="pcsc_connexionlist", env=EnvironmentParameter([], typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = True,  readonly = False, removable = False), noErrorIfKeyExist = True, override = True)
+registerSetEnvironment(envKey="pcsc_cardlist",      env=EnvironmentParameter([], typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = True,  readonly = True, removable = False), noErrorIfKeyExist = True, override = True)
+registerSetEnvironment(envKey="pcsc_connexionlist", env=EnvironmentParameter([], typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = True,  readonly = True, removable = False), noErrorIfKeyExist = True, override = True)
 
 ## register METHOD ##
 
