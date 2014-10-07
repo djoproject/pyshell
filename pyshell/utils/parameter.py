@@ -20,8 +20,9 @@ from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, A
 from pyshell.utils.exception import ListOfException, AbstractListableException
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
 from pyshell.utils.valuable  import Valuable
-import os, sys
 from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
+import os, sys
+from threading import Lock
 
 #TODO
     #context/env manager ?
@@ -346,11 +347,26 @@ class Parameter(Valuable): #abstract
     def setFromFile(self,valuesDictionary):
         pass #TO OVERRIDE
 
+def _lockSorter(param1, param2):
+    return param1.getLockID() - param2.getLockID()
+
+class ParametersLocker(object):
+    def __init__(self, parametersList):
+        self.parametersList = sorted(parametersList, cmp=_lockSorter)
+                
+    def __enter__(self):
+        for param in self.parametersList:
+            param.getLock().acquire(blocking=True)
+        
+        return self
+            
+    def __exit__(self, type, value, traceback):
+        for param in self.parametersList:
+            param.getLock().release()
+
 class EnvironmentParameter(Parameter):
-    #TODO implement a lock system
-        #must be possible to add a lock in a list
-        #must be able to retrieve the id of the lock
-        #a lock must have a unique ID
+    _internalLock = Lock()
+    _internalLockCounter = 0
 
     def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         Parameter.__init__(self, transient)
@@ -365,6 +381,25 @@ class EnvironmentParameter(Parameter):
         self.setListSeparator(sep)
         self.typ = typ
         self._setValue(value)
+        
+        self.lock   = None
+        self.lockID = -1
+
+    def _initLock(self):
+        if self.lock is None:
+            with EnvironmentParameter._internalLock:
+                if self.lock is None:
+                    self.lockID = _internalLockCounter
+                    _internalLockCounter += 1
+                    self.lock = Lock()
+    
+    def getLock(self):
+        self._initLock()
+        return self.lock
+        
+    def getLockID(self):
+        self._initLock()
+        return elf.lockID
     
     #TODO replace in all code part, the test isinstance(typ, listArgChecker) 
     def isAListType(self):

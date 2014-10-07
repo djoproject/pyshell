@@ -116,6 +116,8 @@ class CardManager( CardObserver ):
         #self.autocon = False
     
     def update( self, observable, (addedcards, removedcards) ):
+        #FIXME should raise an event and no more (WAIT FOR EVENT MANAGER)
+            #the business should not occured here (because of lock, etc..)
         
         r = ""  #card connected or removed
         #ac = "" #autoconnect result
