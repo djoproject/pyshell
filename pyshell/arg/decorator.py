@@ -18,11 +18,11 @@
 
 import sys
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
-    from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
+    from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the import path will change
 else:
     from collections import OrderedDict 
     
-from pyshell.arg.argchecker import ArgChecker, defaultValueChecker
+from pyshell.arg.argchecker import ArgChecker, defaultValueChecker, defaultInstanceArgChecker
 from pyshell.arg.argfeeder  import ArgFeeder
 from pyshell.arg.exception  import decoratorException
 import inspect, types
@@ -43,7 +43,7 @@ staticMethType = _C.staticMethType
 class funAnalyser(object):
     def __init__(self, fun):
         #is a function ?
-        #TODO manage every function case ?
+        #TODO manage every function case ? difference between python2 and python3 ?
         if type(fun) != staticMethType and type(fun) != types.MethodType and type(fun) != types.InstanceType and type(fun) != types.ClassType and type(fun) != types.FunctionType:
             raise decoratorException("(funAnalyser) init faile, need a function instance, got '"+str(type(fun))+"'")
 
@@ -86,7 +86,6 @@ class funAnalyser(object):
 ##### DECORATOR ###############################################################################
 ###############################################################################################
 
-#def shellMethod(suffix,**argList):
 def shellMethod(**argList):
     #no need to check collision key, it's a dictionary
 
@@ -125,14 +124,15 @@ def shellMethod(**argList):
                     previousName,previousChecker = list(argCheckerList.items())[-1]
                     
                     #check if the previous checker remain a few arg to the following or not
+                    #FIXME remove this condition as soon as a parametrization system will be deployed
                     if previousChecker.isVariableSize() and previousChecker.maximumSize == None:
                         raise decoratorException("(decorator) the previous argument '"+str(previousName)+"' has an infinite variable size, you can't add a new argment '"+str(argname)+"' at function '"+fun.__name__+"'")
             
-                argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)
+                argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)                
             elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
                 argCheckerList[argname] = defaultValueChecker(analyzed_fun.get_default(argname))
             else:
-                raise decoratorException("(shellMethod decorator) the arg '"+argname+"' is not used and has no default value")
+                argCheckerList[argname] = defaultInstanceArgChecker.getArgCheckerInstance()
         
         #All the key are used in the function call?
         keys = argList.keys()
@@ -142,7 +142,6 @@ def shellMethod(**argList):
         
         #set the checker on the function
         fun.checker = ArgFeeder(argCheckerList)
-    
         return fun
     
     return decorator

@@ -55,12 +55,47 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker,
 from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.keystore    import KeyStore
-from pyshell.utils.exception   import ListOfException
+from pyshell.utils.exception   import ListOfException, DefaultPyshellException, USER_WARNING
 from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
 from pyshell.utils.utils       import getTerminalSize
 from pyshell.utils.printing    import Printer, warning, error, printException
 from pyshell.utils.valuable    import SimpleValuable
 from pyshell.addons.addon      import loadAddonFun
+
+def extractCmdFromArgs(cmdStringList, levelTries):
+
+    ## look after command in tries ##
+    rawCommandList = []   
+    rawArgList     = []
+    for finalCmd in cmdStringList:            
+        #search the command with advanced seach
+        searchResult = None
+        try:
+            searchResult = levelTries.advancedSearch(finalCmd, False)
+        except triesException as te:
+            raise DefaultPyshellException("failed to find the command '"+str(finalCmd)+"', reason: "+str(te), USER_WARNING)
+        
+        if searchResult.isAmbiguous():                    
+            tokenIndex = len(searchResult.existingPath) - 1
+            tries = searchResult.existingPath[tokenIndex][1].localTries
+            keylist = tries.getKeyList(finalCmd[tokenIndex])
+
+            raise DefaultPyshellException("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
+
+        elif not searchResult.isAvalueOnTheLastTokenFound():
+            if searchResult.getTokenFoundCount() == len(finalCmd):
+                raise DefaultPyshellException("uncomplete command '"+" ".join(finalCmd)+"', type 'help "+" ".join(finalCmd)+"' to get the next available parts of this command", USER_WARNING)
+                
+            if len(finalCmd) == 1:
+                raise DefaultPyshellException("unknown command '"+" ".join(finalCmd)+"', type 'help' to get the list of commands", USER_WARNING)
+                
+            raise DefaultPyshellException("unknown command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING)
+
+        #append in list
+        rawCommandList.append(searchResult.getLastTokenFoundValue())
+        rawArgList.append(searchResult.getNotFoundTokenList())
+    
+    return rawCommandList, rawArgList
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -199,45 +234,16 @@ class CommandExecuter():
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
             return False
-
-        ## look after command in tries ##
-        rawCommandList = []   
-        rawArgList     = []
-        for finalCmd in cmdStringList:            
-            #search the command with advanced seach
-            searchResult = None
-            try:
-                searchResult = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().advancedSearch(finalCmd, False)
-            except triesException as te:
-                warning("failed to find the command '"+str(finalCmd)+"', reason: "+str(te))
-                return False
-            
-            if searchResult.isAmbiguous():                    
-                tokenIndex = len(searchResult.existingPath) - 1
-                tries = searchResult.existingPath[tokenIndex][1].localTries
-                keylist = tries.getKeyList(finalCmd[tokenIndex])
-
-                warning("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist))
-
-                return False
-            elif not searchResult.isAvalueOnTheLastTokenFound():
-                if searchResult.getTokenFoundCount() == len(finalCmd):
-                    warning("uncomplete command '"+" ".join(finalCmd)+"', type 'help "+" ".join(finalCmd)+"' to get the next available parts of this command")
-                else:
-                    if len(finalCmd) == 1:
-                        warning("unknown command '"+" ".join(finalCmd)+"', type 'help' to get the list of commands")
-                    else:
-                        warning("unknown command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands")
-                
-                return False
-
-            #append in list
-            rawCommandList.append(searchResult.getLastTokenFoundValue())
-            rawArgList.append(searchResult.getNotFoundTokenList())
         
         ## execute the engine object ##
         try:
+            #convert token string to command objects and argument strings
+            rawCommandList, rawArgList = extractCmdFromArgs(cmdStringList, self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue())
+            
+            #prepare an engine
             engine = engineV3(rawCommandList, rawArgList, self.params)
+            
+            #execute 
             engine.execute()
             return True
             

@@ -116,17 +116,16 @@ class ParameterManager(object):
                 config.read(self.filePath)
             except Exception as ex:
                 raise ParameterLoadingException("(ParameterManager) load, fail to read parameter file : "+str(ex))
-                return
         else:
-        
+            #is there at least one parameter in one of the existing category ?
             emptyParameter = True
-            for k,v in self.params:
-                if len(self.params[k]) > 0:
+            for parentCategoryName,categoryList in self.params.items():
+                if len(self.params[parentCategoryName]) > 0:
                     emptyParameter = False
                     break
             
+            #if no parameter file, try to create it, then return
             if not emptyParameter:
-                #if no parameter file, try to create it, then return
                 try:
                     self.save()
                 except Exception as ex:
@@ -356,7 +355,7 @@ class ParametersLocker(object):
                 
     def __enter__(self):
         for param in self.parametersList:
-            param.getLock().acquire(blocking=True)
+            param.getLock().acquire(True)
         
         return self
             
@@ -389,8 +388,8 @@ class EnvironmentParameter(Parameter):
         if self.lock is None:
             with EnvironmentParameter._internalLock:
                 if self.lock is None:
-                    self.lockID = _internalLockCounter
-                    _internalLockCounter += 1
+                    self.lockID = EnvironmentParameter._internalLockCounter
+                    EnvironmentParameter._internalLockCounter += 1
                     self.lock = Lock()
     
     def getLock(self):
@@ -399,7 +398,10 @@ class EnvironmentParameter(Parameter):
         
     def getLockID(self):
         self._initLock()
-        return elf.lockID
+        return self.lockID
+        
+    def isLockEnable(self):
+        return True
     
     #TODO replace in all code part, the test isinstance(typ, listArgChecker) 
     def isAListType(self):

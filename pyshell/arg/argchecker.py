@@ -836,6 +836,8 @@ class filePathArgChecker(stringArgChecker):
         return "<file_path>"
         
 class keyStoreTranslatorArgChecker(stringArgChecker):
+    "retrieve a key from the keystore"
+
     def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
         stringArgChecker.__init__(self, KEYTRANSLATORCHECKER_TYPENAME)
         
@@ -894,6 +896,7 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         return "<key name>"
 
 class KeyArgChecker(IntegerArgChecker):
+    "create a key from the input"
     def __init__(self):
         self.bases = [2,16]
         self.shortType     = "key"

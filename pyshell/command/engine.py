@@ -20,7 +20,7 @@ from pyshell.command.command     import MultiOutput, MultiCommand, Command
 from pyshell.command.exception   import *
 from pyshell.command.stackEngine import engineStack
 from pyshell.command.utils       import *
-from pyshell.utils.parameter     import ParameterManager
+from pyshell.utils.parameter     import ParameterManager, EnvironmentParameter, ParametersLocker
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test    
@@ -34,6 +34,15 @@ DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
+
+class FalseLock(object):
+    def __enter__(self):
+        return self
+        
+    def __exit__(self):
+        pass
+        
+FALSELOCK = FalseLock()
 
 class _emptyDataToken(object):
     pass
@@ -959,15 +968,32 @@ class engineV3(object):
         #execute checker
         if hasattr(subcmd, "checker"):         
             data = subcmd.checker.checkArgs(args, self)
+            
+            #find lockable object            
+            lockableList = []
+            for k,v in data.items():
+                if not isinstance(v,EnvironmentParameter):
+                    continue
+                    
+                if not v.isLockEnable():
+                    continue
+                    
+                lockableList.append(v)
+            
+            lock = ParametersLocker(lockableList)
+            
         else:
             data = {}
+            lock = FALSELOCK
+        
 
         #execute Xprocess
-        self._isInProcess = True
-        try:
-            r = subcmd(**data)
-        finally:
-            self._isInProcess = False
+        with lock:
+            self._isInProcess = True
+            try:
+                r = subcmd(**data)
+            finally:
+                self._isInProcess = False
 
         #manage None output
         if r == None:
