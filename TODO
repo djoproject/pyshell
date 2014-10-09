@@ -598,6 +598,11 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
             #on génére le code avec les appels de fonction encore parametrable
             #implique une dépendance au code calculant les apdus
             
+            créer un objet special capable de résoudre des path dans le tries, genre:
+                pytries_exec.con.sel.val("debug",0).pipe(pytries_exec.echo())
+                
+                ça devrait être possible en overridant des methodes style getAttr, __call__, ....
+            
         #level 2: rien n'est calculé, on execute via le shell
             #on est en niveau de script
             #besoin de l'ensemble du code
