@@ -68,13 +68,39 @@ else:
     
 class Event(object):
     def __init__(self):
-        self.stringCmdList = [] 
-        self.stopOnError = True #TODO do accessor
-        self.argFromEventOnlyForFirstCommand = False #TODO accessor + use it 
-        self.useArgFromEvent = True #TODO accessor + use it
+        self.stringCmdList = []  
+        self.stopOnError = True
+        self.argFromEventOnlyForFirstCommand = False
+        self.useArgFromEvent = True
     
-    def addCommand(self, commandList, argList):
-        self.stringCmdList.append( (commandList, argList, ) )
+    def setStopOnError(self, value):
+        #TODO value must be a boolean
+    
+        self.stopOnError = value
+        
+    def setArgFromEventOnlyForFirstCommand(self, value):
+        #TODO value must be a boolean
+    
+        self.argFromEventOnlyForFirstCommand = value
+        
+    def setUseArgFromEvent(self, value):
+        #TODO value must be a boolean
+    
+        self.useArgFromEvent = value
+        
+    def isStopOnError(self):
+        return self.stopOnError
+        
+    def isArgFromEventOnlyForFirstCommand(self):
+        return self.argFromEventOnlyForFirstCommand
+        
+    def isUseArgFromEvent(self):
+        return self.useArgFromEvent
+    
+    def addCommand(self, commandStringList):
+        #TODO commandStringList must be a list of string
+    
+        self.stringCmdList.append( commandStringList )
         
     def removeCommand(self, index):
         try:
@@ -116,7 +142,7 @@ class Event(object):
         self.moveCommand(index,index+1)
         
     def clone(self):
-        pass #TODO
+        pass #TODO only clone the command list, no need to clone the command themselve
 
 def isInt(value):
     try:
@@ -209,6 +235,9 @@ class EventManager(object):
         if eventName not in self.events:
             self.events[eventName] = Event(cmdList, argList)
 
+    def executeEvent(self, eventName, argList = None):
+        pass #TODO same as fireEvent but in the same thread
+
     def fireEvent(self, eventName, argList = None):
         if eventName not in self.events:
             pass #TODO raise
@@ -223,6 +252,8 @@ class EventManager(object):
         t.start()
 
     def _fireEvent(self, cmdsAndArgsList, eventArgList=None):
+        #TODO use stopOnError, argFromEventOnlyForFirstCommand, useArgFromEvent
+    
         for cmdsAndArgs in cmdsAndArgsList:
             cmdObjects, argList = cmdsAndArgs
         
@@ -235,6 +266,7 @@ class EventManager(object):
     def executeCommand(self, cmdList, argList):
         pass #TODO copy (or move) from executer
 
+#TODO remove the following statement
 if __name__ == "__main__":
     print "plop"
     config = ConfigParser.RawConfigParser()
