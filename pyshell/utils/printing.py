@@ -28,6 +28,7 @@ import threading, sys
 from pyshell.utils.valuable   import Valuable, DefaultValuable
 from pyshell.utils.coloration import red, orange, green
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException
+import re
 
 _EMPTYSTRING = ""
 
@@ -198,5 +199,9 @@ def formatException(exception):
             return orange(str(exception))
         
         return red(str(exception))
+
+def strLength(string):
+    ansi_escape = re.compile(r'\x1b[^m]*m')
+    return len(ansi_escape.sub('', str(string)))
 
 
