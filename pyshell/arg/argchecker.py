@@ -544,9 +544,9 @@ class parameterDynamicChecker(ArgChecker):
         env = self.engine.getEnv()
 
         if not self.engine.getEnv().hasParameter(value, self.parent): #value not in self.engine.getEnv():
-            self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
+            self._raiseArgException("the key '"+str(value)+"' is not available but needed", argNumber, argNameToBind)
     
-        return self.engine.getEnv().getParameter(self.keyname, self.parent) #self.engine.getEnv()[value][0]
+        return self.engine.getEnv().getParameter(value, self.parent) #self.engine.getEnv()[value][0]
     
     def hasDefaultValue(self, argNameToBind=None):
         return False
@@ -718,6 +718,10 @@ class listArgChecker(ArgChecker):
                     
     def __str__(self):
         return "listArgChecker : "+str(self.checker)
+        
+    def setEngine(self, engine):
+        ArgChecker.setEngine(self, engine)
+        self.checker.setEngine(engine)
         
 class filePathArgChecker(stringArgChecker):
     #just check a path, no operation are executed here, it is the job of the addon to perform change
