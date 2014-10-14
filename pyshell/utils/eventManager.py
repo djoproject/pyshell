@@ -24,6 +24,7 @@ EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 import threading, sys
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
+from pyshell.utils.utils     import raiseIfInvalidKeyList
 
 try:
     pyrev = sys.version_info.major
@@ -44,14 +45,12 @@ else:
         
     #find a new name, not really an alias, and not really an event
     
-    #need to store setting with the command list
-
-#XXX brainstorming
-    #event avec ou sans argument ? avec
+#XXX brainstorming XXX
+    #event avec ou sans argument ? avec OK
     
-    #comment sont identifier les events ? string
+    #comment sont identifier les events ? string OK
 
-    #format de la commande ? or where to convert from string to object ?
+    #format de la commande ? or where to convert from string to object ? OK
         #TYPE 1: pure texte
             #--- les erreurs de commandes inconnues se produisent lors de l'execution de l'event
                 #+++ mais possibilité de les corriger pour la prochaine execution de l'event si on load le module manquant
@@ -63,30 +62,52 @@ else:
                 #--- si l'event n'est pas loadé ou que la ligne est retirée, cela peut modifier le comportement de l'event
             #--- pas moyen de reconvertir en texte ensuite, besoin de stocker la chaine d'origine
     
-    #what about security access to the alias ?
-        #readonly ? removable ?
-    
+    #what about security access to the alias ? TODO
+        #readonly ? removable ? transient ?
+        
+    #what about execution of an alias in a piping processes:  a | alias | b | c TODO
+        #can not be splitted in pre/pro/post
+            #why ? because there are maybe already piping in the process inside the alias
+            
+        #can be pre or pro or post
+            #not pro, because in case of piping, alias will not be executed 
+        
+        #so pro or pre ?
+            #by default pre
+            #but could be interesting to act as post in certain cases
+
+
 class Event(object):
     def __init__(self):
         self.stringCmdList = []  
-        self.stopOnError = True
+        self.stopOnError                     = True
         self.argFromEventOnlyForFirstCommand = False
-        self.useArgFromEvent = True
+        self.useArgFromEvent                 = True
+        self.executeOnPre                    = True
     
     def setStopOnError(self, value):
-        #TODO value must be a boolean
+        if type(value) != bool:
+            raise ParameterException("(Event) setStopOnError, expected a boolean value as parameter, got '"+str(type(value))+"'")
     
         self.stopOnError = value
         
     def setArgFromEventOnlyForFirstCommand(self, value):
-        #TODO value must be a boolean
+        if type(value) != bool:
+            raise ParameterException("(Event) setStopOnError, expected a boolean value as parameter, got '"+str(type(value))+"'")
     
         self.argFromEventOnlyForFirstCommand = value
         
     def setUseArgFromEvent(self, value):
-        #TODO value must be a boolean
+        if type(value) != bool:
+            raise ParameterException("(Event) setStopOnError, expected a boolean value as parameter, got '"+str(type(value))+"'")
     
         self.useArgFromEvent = value
+        
+    def setExecuteOnPre (self, value):
+        if type(value) != bool:
+            raise ParameterException("(Event) setExecuteOnPre, expected a boolean value as parameter, got '"+str(type(value))+"'")
+    
+        self.executeOnPre = value
         
     def isStopOnError(self):
         return self.stopOnError
@@ -96,10 +117,12 @@ class Event(object):
         
     def isUseArgFromEvent(self):
         return self.useArgFromEvent
+        
+    def isExecuteOnPre(self):
+        return self.executeOnPre
     
     def addCommand(self, commandStringList):
-        #TODO commandStringList must be a list of string
-    
+        raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "addCommand")    
         self.stringCmdList.append( commandStringList )
         
     def removeCommand(self, index):
@@ -112,7 +135,14 @@ class Event(object):
         try:
             self.stringCmdList[fromIndex]
         except IndexError:
-            pass #TODO raise
+            if len(self.stringCmdList) == 0:
+                message = "command list is empty"
+            elif len(self.stringCmdList) == 1:
+                message = "only index 0 is available"
+            else:
+                message = "a value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
+        
+            raise ParameterException("(Event) moveCommand, invalid index 'from',"+message+" , got '"+str(fromIndex)+"'")
         
         #transforme to positive index if needed
         if fromIndex < 0:
@@ -121,7 +151,14 @@ class Event(object):
         try:
             self.stringCmdList[toIndex]
         except IndexError:
-            pass #TODO raise
+            if len(self.stringCmdList) == 0:
+                message = "command list is empty"
+            elif len(self.stringCmdList) == 1:
+                message = "only index 0 is available"
+            else:
+                message = "a value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
+        
+            raise ParameterException("(Event) moveCommand, invalid index 'to',"+message+" , got '"+str(fromIndex)+"'")
             
         #transforme to positive index if needed
         if toIndex < 0:
@@ -129,7 +166,8 @@ class Event(object):
             
         if fromIndex == toIndex:
             return
-            
+        
+        #manage the case when we try to insert after the existing index
         if fromIndex < toIndex:
             toIndex -= 1
             
@@ -142,7 +180,15 @@ class Event(object):
         self.moveCommand(index,index+1)
         
     def clone(self):
-        pass #TODO only clone the command list, no need to clone the command themselve
+        e = Event()
+    
+        e.stringCmdList                   = self.stringCmdList[:]
+        e.stopOnError                     = self.stopOnError
+        e.argFromEventOnlyForFirstCommand = self.argFromEventOnlyForFirstCommand
+        e.useArgFromEvent                 = self.useArgFromEvent
+        e.executeOnPre                    = self.executeOnPre
+        
+        return e
 
 def isInt(value):
     try:
@@ -185,14 +231,18 @@ class EventManager(object):
         errorList = ListOfException()
         for section in config.sections():
             #TODO get or create the event
+                #in case of existing event, manage security (need to be defined)
+            
             event = Event()
+            onError = False
         
             for option in config.options(section):
                 value = config.get(section, option)
-                if option in ["stopOnError","argFromEventOnlyForFirstCommand","useArgFromEvent"] :
+                if option in ["stopOnError","argFromEventOnlyForFirstCommand","useArgFromEvent", "executeOnPre"] :
                     validBool, boolValue = isBool(value)
                     if not validBool:
-                        errorList.addException(ParameterLoadingException("") #TODO set the error message
+                        errorList.addException(ParameterLoadingException("(EventManager) load, a boolean value was expected for parameter '"+str(option)+"' of event '"+str(section)+"', got '"+str(value)+"'"))
+                        onError = True
                         continue
                     
                     setattr(event,option,boolValue)
@@ -200,15 +250,16 @@ class EventManager(object):
                 else:
                     validInt, intValue = isInt(option)
                     if not validInt:
-                        #TODO notify the error
-                    
+                        errorList.addException(ParameterLoadingException("(EventManager) load, ")) #TODO
                         continue
                     
                     #TODO a new command to process
                         #need to parse value to string token
                         
                     #event.stringCmdList.insert(intValue, )
-                    
+            
+            if not onError:
+                self.events[section] = event
         
     def save(self):
         if self.filePath is None:
@@ -219,40 +270,45 @@ class EventManager(object):
         for eventName, eventObject in self.events.items():
             config.add_section(eventName)
             
-            #TODO set event properties
-            #config.set(eventName, childName, value)
+            #set event properties
+            config.set(eventName, "stopOnError",                     eventObject.stopOnError)
+            config.set(eventName, "argFromEventOnlyForFirstCommand", eventObject.argFromEventOnlyForFirstCommand)
+            config.set(eventName, "useArgFromEvent",                 eventObject.useArgFromEvent)
+            config.set(eventName, "executeOnPre",                    eventObject.executeOnPre)
             
-            #TODO write each command in order
-            #for ...
-                #TODO generate event on text format
+            #write each command in order
+            index = 0
+            for cmd in eventObject.stringCmdList:
+                config.set(eventName, str(index), " ".join(cmd))
+                index += 1
             
         with open(self.filePath, 'wb') as configfile:
             config.write(configfile)
     
-    def addCommand(self, eventName, cmdList, argList):
-        #TODO check cmd
-
+    def addCommand(self, eventName, cmdList):
         if eventName not in self.events:
-            self.events[eventName] = Event(cmdList, argList)
+            self.events[eventName] = Event()
+            
+        self.events[eventName].addCommand(cmdList)
 
     def executeEvent(self, eventName, argList = None):
-        pass #TODO same as fireEvent but in the same thread
+        self.fireEvent(eventName, argList, False)
 
-    def fireEvent(self, eventName, argList = None):
+    def fireEvent(self, eventName, argList = None, onThread = True):
         if eventName not in self.events:
             pass #TODO raise
 
-        event = self.events[eventName]
-
-        #TODO clone the event and give it to the thread
-            #to avoid unexpected behaviour if the event is updated after its fire
+        event = self.events[eventName].clone()
 
         #start thread
-        t = threading.Thread(None, self._fireEvent, None, (event.cmdsAndArgsList[:], argList,))
-        t.start()
+        if onThread:
+            t = threading.Thread(None, self._fireEvent, None, (event,))
+            t.start()
+        else:
+            self._fireEvent(event)
 
-    def _fireEvent(self, cmdsAndArgsList, eventArgList=None):
-        #TODO use stopOnError, argFromEventOnlyForFirstCommand, useArgFromEvent
+    def _fireEvent(self, event):
+        #TODO use stopOnError, argFromEventOnlyForFirstCommand, useArgFromEvent, ...
     
         for cmdsAndArgs in cmdsAndArgsList:
             cmdObjects, argList = cmdsAndArgs
@@ -261,22 +317,11 @@ class EventManager(object):
                 argList = argList[:]
                 argList.append(eventArgList)
         
-            self.executeCommand(cmdObjects, eventArgList)
+            self.executeCommand(cmdStringList)
 
     def executeCommand(self, cmdList, argList):
         pass #TODO copy (or move) from executer
 
-#TODO remove the following statement
-if __name__ == "__main__":
-    print "plop"
-    config = ConfigParser.RawConfigParser()
-    config.read("/home/djo/development/inputTest.conf")
-    
-    for section in config.sections():
-        print section
-        for option in config.options(section):
-            print option
-            print config.get(section, option)
 
 
         

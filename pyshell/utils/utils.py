@@ -73,3 +73,16 @@ def getTerminalSize():
         cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
     
     return int(cr[1]), int(cr[0])
+    
+def raiseIfInvalidKeyList(keyList, exceptionClass,packageName, methName):
+    if not hasattr(keyList,"__iter__"):
+        raise exceptionClass("("+packageName+") "+methName+", list of string is not iterable")
+
+    for key in keyList:
+        if type(key) != str and type(key) != unicode:
+            raise exceptionClass("("+packageName+") "+methName+", only string or unicode key are allowed")
+
+        if len(key) == 0:
+            raise exceptionClass("("+packageName+") "+methName+", empty key is not allowed")
+            
+

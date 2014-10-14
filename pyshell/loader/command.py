@@ -32,6 +32,7 @@ from pyshell.utils.exception  import ListOfException
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)
 
+#TODO replace with the version from utils
 def _raiseIfInvalidKeyList(keyList, methName):
     if not hasattr(keyList,"__iter__"):
         raise RegisterException("(Loader) "+methName+", keyList is not iterable")
