@@ -401,7 +401,7 @@ class EnvironmentParameter(Parameter):
         return self.lockID
         
     def isLockEnable(self):
-        return True
+        return True #TODO be able to diable it ?
     
     #TODO replace in all code part, the test isinstance(typ, listArgChecker) 
     def isAListType(self):

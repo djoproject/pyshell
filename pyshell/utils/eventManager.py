@@ -22,8 +22,8 @@ EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
 import threading, sys
-from pyshell.utils.exception import ListOfException
-from pyshell.utils.exception import ParameterException, ParameterLoadingException
+from pyshell.utils.exception import 
+from pyshell.utils.exception import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils     import raiseIfInvalidKeyList
 
 try:
@@ -36,7 +36,7 @@ if pyrev == 2:
 else:
     import configparser as ConfigParser
 
-#TODO
+#TODO TODO TODO TODO TODO
     #keep track of running event and be able to kill one or all of them
     
     #XXX XXX XXX a stored event is absolutly on the same form than an alias should be XXX XXX XXX
@@ -45,15 +45,18 @@ else:
         
     #find a new name, not really an alias, and not really an event
     
-#XXX brainstorming XXX
-    #event avec ou sans argument ? avec OK
+    #rename all variable like stringCmdList, it is difficult to understand what is what
     
-    #comment sont identifier les events ? string OK
+#XXX XXX XXX XXX brainstorming XXX XXX XXX XXX
 
-    #format de la commande ? or where to convert from string to object ? OK
-        #TYPE 1: pure texte
+    #event avec ou sans argument ? avec XXX OK
+    
+    #comment sont identifier les events ? string XXX OK
+
+    #format de la commande ? or where to convert from string to object ? XXX OK
+        #TYPE 1: pure texte XXX SELECTED THIS ONE
             #--- les erreurs de commandes inconnues se produisent lors de l'execution de l'event
-                #+++ mais possibilité de les corriger pour la prochaine execution de l'event si on load le module manquant
+                #+++ mais possibilité de les corriger pour la prochaine execution de l'event si on load le module manquant et aussi avec le param stopOnError
             #+++ possible de reconvertir en text immediatement
             
             
@@ -61,9 +64,58 @@ else:
             #+++ les erreurs de commandes inconnues se produisent lors de l'ajout de la commande dans un event
                 #--- si l'event n'est pas loadé ou que la ligne est retirée, cela peut modifier le comportement de l'event
             #--- pas moyen de reconvertir en texte ensuite, besoin de stocker la chaine d'origine
+            
+    #what about the storage/parsing of piped command ? TODO
+        #axioms:
+            #1. store parsed full text but not converted to object
+    
+        #storage TYPE 1 : forbide piping
+            #--- lose of huge power, not possible to do that
+        
+        #storage TYPE 2 : manage piping XXX SELECTED THIS ONE
+            #probleme to solve
+                #how to add piped command in the shell ? 
+                    #use two command:
+                        #one to add a new command to an event
+                        #one to pipe a new command to an existing event
+                        
+                        #don't forget command to manage them (update, move, remove, ...)
+                
+                #how to store them in memory full text ? TODO
+                    #how to store them on file
+                    
+    #how to store them in the software ? TODO
+        #what we need
+            #the alias/event must be accessible from the tries
+            #it must be possible to list alias/event
+        
+        #SOLUTION 1:
+            #store only the alias in the tries
+            #traversal the whole tries to retrieve the list of alias/event
+            #just need a tag or an attribute to know if it is a command or an alias
+            
+        #SOLUTION 2:
+            #store in the tries and in an independant structure with the list of alias
+            
+        # ...
+    
+    #should be possible to fire a command from shell TODO
+        #so in another thread
+        #even if there is piping
+    
+        #how to say to the system to start in another thread ?
+        
+            #SOLUTION 1 : use a special keyword to start the command
+                #E.G. "fire", but this keyword must be locked and not possible to add/remove in the tries from addon
+                    #fire plop a bc | toto 1 2 3 | tutu $rt
+                    
+            #... 
     
     #what about security access to the alias ? TODO
         #readonly ? removable ? transient ?
+        
+        #lock on certain command in the alias ?
+            # E.G. can't remove cmd 2 but it is possible to remove cmd 5
         
     #what about execution of an alias in a piping processes:  a | alias | b | c TODO
         #can not be splitted in pre/pro/post
@@ -75,6 +127,11 @@ else:
         #so pro or pre ?
             #by default pre
             #but could be interesting to act as post in certain cases
+            
+        #yeah but how to do that ? TODO
+            #Event object should inherite from singlecommand (or multicommand ?)
+                #and override pre and post from command
+                #have an access to the tries
 
 
 class Event(object):
@@ -213,7 +270,7 @@ def isBool(value):
 
 class EventManager(object):
     def __init__(self, filePath = None):
-        self.events = {}
+        self.events = {} #TODO remove and store event/alias somewhere else
         self.filePath = filePath
     
     def load(self):
@@ -250,11 +307,12 @@ class EventManager(object):
                 else:
                     validInt, intValue = isInt(option)
                     if not validInt:
-                        errorList.addException(ParameterLoadingException("(EventManager) load, ")) #TODO
+                        errorList.addException(ParameterLoadingException("(EventManager) load, a unknown key has been found for event '"+str(section)+"': "+str(option)))
                         continue
                     
                     #TODO a new command to process
                         #need to parse value to string token
+                        #need to know the format
                         
                     #event.stringCmdList.insert(intValue, )
             
@@ -296,7 +354,7 @@ class EventManager(object):
 
     def fireEvent(self, eventName, argList = None, onThread = True):
         if eventName not in self.events:
-            pass #TODO raise
+            raise DefaultPyshellException("(EventManager) fireEvent, unknown event '"+str(eventName)+"'",USER_ERROR)
 
         event = self.events[eventName].clone()
 
@@ -307,19 +365,27 @@ class EventManager(object):
         else:
             self._fireEvent(event)
 
-    def _fireEvent(self, event):
-        #TODO use stopOnError, argFromEventOnlyForFirstCommand, useArgFromEvent, ...
-    
-        for cmdsAndArgs in cmdsAndArgsList:
-            cmdObjects, argList = cmdsAndArgs
+    def _fireEvent(self, event): 
+        #TODO use arg executeOnPre
+       
+        first = True
+        for cmdsAndArgs in event.stringCmdList:
+            if event.useArgFromEvent:
+                if first or not event.argFromEventOnlyForFirstCommand:
+                    first = False
+                    
+                    #TODO append event args to command args
+                        #need to know the format
+        
         
             if eventArgList is not None:
                 argList = argList[:]
                 argList.append(eventArgList)
         
-            self.executeCommand(cmdStringList)
+            if not self.executeCommand(cmdStringList) and event.stopOnError:
+                break
 
-    def executeCommand(self, cmdList, argList):
+    def executeCommand(self, cmdsAndArgs):
         pass #TODO copy (or move) from executer
 
 

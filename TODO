@@ -38,64 +38,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 #################      
     #gérer les commentaires
         #voir shell.py
- 
-    #commande de parsing de liste de byte (interpretation en int, bin, hex, ascii, ...)
-        #voir dans les addons rfid
-        
-        #être capable de faire un diff byte sur deux sources de byte differente
-            #avec des jolie couleur en mode bisounours
-            #voir ansi color code
-            
-        #faire un addon pour ça
-
-#################
-### ALIAS     ###
-#################
-
-	#alias pointant sur 1..n commande(s)
-	    append alias NAME cmd+args
-	    remove alias NAME
-	
-        faire une liste d'alias'
-            description dans le code
-            
-        #un alias peu être utilisé dans un autre alias
-            #eviter les boucles
-                #pas possible si on empêche la creation d'un alias sur une commande qui n'existe pas
-        
-        #probleme lors de la suppression de l'objet pointé
-            #politique de suppression : on_cascade/interactive/error/nothing ?
-            
-        #eviter d'avoir une reference dans l'objet pointé
-            #comment savoir qu'il est pointé vers un alias alors ?
-            #maintenir un dic avec les mappings ?
-            #checker lors de chaque suppression de commande ?
-            
-        #on doit être capable de stocker des args avec l'alias
-            #tout en pouvant toujours lui en passer en l'appelant
-        
-    """def addAlias(self,CommandStrings,AliasCommandStrings):
-        #pas aussi simple
-            #on doit pouvoir gerer des alias avec des arguments fixe
-        
-        #commande speciale
-            #contient le path vers la commande
-            #les arguments ou une partie des arguments
-        
-        #TODO CommandStrings can't contain special token : >, >>, |, ...
-        
-        #TODO find the command in the tree
-        
-        #TODO build alias command
-        
-        #TODO insert in tree
-        
-        pass #TODO"""
-        
-    PRBLM to solve
-        addon creation at once (see addon file)
-        deletion politics 
-        dependencies deletion politics
 
 #################################
 ### parameter in command call ###
@@ -290,240 +232,61 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 
 ##### futur work (part 1) ########################################################################################################
     (threading/event/thread-safe/application-safe/...)
+    
+    work in progress, see file EventManager and parameter
 
-###############
-### context ###
-###############                
-    #thread safe
-        #select/get context must be thread safe
-            #one lock for each contexte
+#################
+### ALIAS     ###
+#################
+    (see alias addon file and eventManager file)
+        #les alias et les events sont très proches, la seule différence et le thread d'execution (le courant pour l'alias, un nouveau pour le thread)
+        #le travail est donc fort commun
+
+	#alias pointant sur 1..n commande(s)
+	    append alias NAME cmd+args
+	    remove alias NAME
+	
+        faire une liste d'alias'
+            description dans le code
             
-        #see futur work
+        #un alias peu être utilisé dans un autre alias
+            #eviter les boucles
+                #pas possible si on empêche la creation d'un alias sur une commande qui n'existe pas
+        
+        #probleme lors de la suppression de l'objet pointé
+            #politique de suppression : on_cascade/interactive/error/nothing ?
+            
+        #eviter d'avoir une reference dans l'objet pointé
+            #comment savoir qu'il est pointé vers un alias alors ?
+            #maintenir un dic avec les mappings ?
+            #checker lors de chaque suppression de commande ?
+            
+        #on doit être capable de stocker des args avec l'alias
+            #tout en pouvant toujours lui en passer en l'appelant
+                
+    PRBLM to solve
+        addon creation at once
+        deletion politics 
+        dependencies deletion politics
 
 ################################
 ### Parameter Thread safe    ###
 ################################
-
-    Tout les parameter devrait pouvoir être thread safe si necessaire
-        context/generic/environment/...
-
-    Choisir a l'instanciation si thread-safe ?
-    Ou les faire tous thread-safe ?
-
-    Getvalue en thread-safe ?
-    ou just le setValue ?
     
-    créer un lock/unlock parameter
-        pour pouvoir locker l'objet, faire un getValue, un process, ensuite un setValue et puis unlocker l'objet
-        
-    Systeme à double lock? un pour le get et un pour le set ?
+    pouvoir desactiver un lock dans un parameter ?
     
-    !!!! Attention, ce méchanisme entre en conflit avec la solution de multithreading deja discuté plus bas dans ce document !!!!
-        risque de deadlock
-        les lock doivent être réalisé au même moment
-        
-    utilisation des lock comme parameter ?
-        créer un parameter special "lock"
-
 #####################
 ### event manager ###
 #####################
-    #at startup
-        #load param (la creation des params par defaut doit etre faites avant)
-        #load history
-        #load addon in param file
-        
-    #at exit
-        #save param
-        #save history
-        #flush and close redirected stream
-        
-    #event type: onstartup, onexit, onContextChange, ...
-    #add event type 
-        #juste une string denomant l'event
-    
-    #list event name
-    #list action to do on event
-        #for on specific event, for an event prefix, for all event, ...
-    #add action on event
-        #add a string command executable in the shell
-        
-    #remove action on event
-        #remove the action at the top
-        #or remove the action at index
-        
-    #permettre de registerer des events dans le loader dans les addons
-    #methode pour declencher les events, fire + event name
-        #être capable de faire fire sur une liste d'event
-        
-    #ça va poser des problèmes si les events sont déclenchés dans des threads
-        #car rien n'est thread safe
-        
-        #mettre un lock sur l'execution d'action ?
-        #ou un pool de commande en attente ?
-        
-    #XXX prblm 1 avec l'event onContextChange
-        #il va probablement survenir lors de l'execution d'un process
-        #on ne peut dés lors pas executer directement l'event, on doit attendre que le courant aie fini
-        #faire un pool d'execution à la fin d'une execution
-        
-    #XXX prblm 2 même problème que precedement mais inversé
-        #si on a un event qui s'éxecute, on ne peut pas démarrer un nouveau process
-
-###
-
-    #XXX solution 1 pour les deux problèmes
-        #faire un pool de commande thread safe à executer sequentiellement
-        
-        #si on tente d'executer un process manuellement et qu'un pool de commande est en cours d'execution
-            #on bloque et on attend que le pool soit fini
-            #si le pool de commande genere de nouvelles commandes, celles-ci seront executée avant le process manuel
-            
-        #si on tente d'executer une commande alors qu'un process est en cours d'execution
-            #on l'ajoute dans un pool et on l'execute dès que le process manuel est fini
-
-        #si un second thread veut ajouter des commandes
-            #on fait une priority queueu, classé par thread id
-            #premier arrivé, premier servi
-            #chaque thread a son pool de commande
-            #on ajoute les commandes dans le pool correspondant à l'id du thread qui l'a ajouté
-            #le thread du prompt devient transparent vis à vis des autres threads
-                #cool on gagne en genericité
-
-        import threading
-        threading.Lock()
-        with self.lock:
-        
-        #XXX quid, on perd en puissance niveau multi processing
-            #a quel point ?
-    
-    #XXX SOLUTION 2 chaque parameter (env/context) contient un lock
-        #lors de chaque execution d'une commande ou une piped command
-        #on récupere les lock de chacun des parametres utilisés
-        #on lock, et on ne délock qu'après l'execution
-        
-        #avantage
-            #permet un multithreading bien independant
-            #simple a mettre en place
-        
-        #inconvenient
-            #peut être compliqué de récupérer l'ensemble des lock
-        
-        #prblm to solve
-            #si une routine se declenche elle meme SOLVED
-                #la nouvelle routine sera dans un autre thread et devra attendre la liberation des locks
-                #donc pas un prblm
-                
-            #quid de l'affichage et du REPL ? SOLVED pseudo code dans la partie sur l'affichage (voir plus haut)
-                #si on est pas dans le thread principal, on affiche uniquement en REPL
-                
-                #créer une ressource REPL ? NO
-                    #pas sûr que ce soit une bonne idée car pas vraiment moyen de savoir si on est dans le main thread ou non
-                    #et puis ce sera seulement checké au moment de l'execution de la commande
-                        #donc trop tard pour locker quelque chose correctement
-                
-                #au niveau de l'execution de la routine, gérer un parameter special "printable" 
-                    #s'il n'est pas utilisé dans un process, pas d'affichage, pas de lock
-                    #s'il est utilisé dans une methode, plusieurs cas de figure
-                        #thread principale OR non
-                        #shell OR daemon/script
-                        
-                        #si thread principale + shell => pas de lock et on utilise la methode print
-                        #si thread secondaire + shell => lock + repl print
-                        #si autre                     => lock + print
-                        
-            #pas toujours necessaire de locker l'ensemble d'un parameter NOT SOLVED
-                #risque de perte de process parallele
-                
-                #par exemple, on a un pool de connexion et on ne veut utiliser qu'une connexion en particulier
-                    #le pool est un parameter (probablement un env)
-                    #on devra locker le pool pour se servir d'une seule connexion, c'est bof...
-                    #par contre on doit empecher de pouvoir retirer l'element du pool donc on doit +- locker le pool aussi
-                    
-            #PSEUDOCODE
-                variable:
-                    list d'event
-                        un event est une chaine de caractère unique
-                        un event contient une liste de commande
-                            avec ou sans argument
-                        
-                methode:
-
-                    add command to event(name, command)
-                        ajoute la commande à l'event s'il existe
-                            si l'event n'existe pas, le créer
-                            l'event name doit etre unique
-                        
-                    fire event(name, args)
-                        lancer un nouveau thread
-                            definir une variable speciale uniquement accessible dans ce thread
-                                cette variable va contenir les args du thread
-                                passer cette variable au commande qui le demande
-                        
-                            récuperer la liste de commande, faire une copie
-                                cette liste ne doit pas pouvoir être modifier par un autre thread
-                                
-                            pour l'ensemble des commandes dans la liste
-                                executer la commande (voir methode suivante)
-                    
-                    execute a command(command)
-                        recuperer la liste des lock utilisés dans cette commande
-                        les trier et les locké
-                        exécuter la commande
-                        libérer la commande
-                        
-
-    #plusieurs types d'event:
-                    #ceux à traiter immediatement DEPRECATED
-                        #dans le même thread
-                        #dans un autre thread
-                        
-                    #ceux à traiter a la fin du process courant DEPRECATED
-                        #dans le même thread
-                        #dans un autre thread
-                        
-        #simplification CURRENT
-            #un déclenchement d'event démarre directement un nouveau thread pour traiter l'event
-        
-        #encore d'actualité avec le thread management ?
-        #même si c'est possible d'executer un process dans un process, c'est crade ...
-    
-    #un fireEvent doit se retrouver dans un nouveau thread pour gérer les locks (see below, threading management)
-        on regroupe un liste de toute les commandes à executer
-        on execute le process de lock
-        on execute les commandes
-        
-    
+    #system event
+        #not removable
+        #at startup, at exit, onContextChange, ...
+        #could be empty
 
 ##########################################
 ### threading management brainstorming ###
 ##########################################
 
-    okay, a la base, on a juste 1 point d'input, le shell
-        bien que rien n'empêche de finir une partie du process dans un tread de manière à récupérer le prompt plus rapidement
-        ce traitement doit pouvoir être indèpendant de tout autre process lancer ulterieuerement
-            genre: calcul de résultat, écriture sur un fichier, ...
-            
-    Maintenant que se passe t'il si on a des generateur externe d'evenement pouvant executer des commandes?
-        ces commandes peuvent entrer en conflit d'utilisation de ressource exclusive utilisée par une commande venant du prompt
-        
-    Solution 1:
-        tant qu'un tread n'a pas fini d'executer son pool de command, on ne permet pas à un autre tread d'executer son pool de commande
-            #+ : thread safe, completement sequentiel
-            #- : on perd le multitasking
-            
-    Solution 2: (VOIR AUSSI LA SOLUTION 2 DANS L'EVENT MANAGER)
-        Chaque thread examine les ressources necessaires pour executer son groupe de commandes et essayent de les locker de manière ordonnées
-        Si une ressource n'est pas libre, on attends
-            #+ : thread safe aussi
-            #+ : on garde le multitasking
-        
-        prblm si les commandes courantes generent de nouvelle commande dans un fireEvent
-            #car ces nouvelles commandes ont peu être besoin de + de lock qui sont mélangé avec les locks déjà acquis
-            
-        #Solution 2.1:
-            tout groupe de commande genéré se retrouvent dans un nouveau thread où on recommence le process de lock de zéro
-    
     #definition 
         #groupe de commande 
             #liste de 1 à n commande
@@ -543,35 +306,65 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 
     #XXX    Quid des ressource dynamique necessitant un verrou d'utilisation
         #exemple une connexion vers une carte rfid
-    
+        
+        #solution a la con
+            #ne pas stocker de ressource devant avoir leur propre lock dans des structures ne possedant qu'un seul lock
+            #dans le cas de la rfid, il suffirait de stocker les connexions et les cartes chacune dans un env indépendant
+                #du coup chaque objet aurait son lock, on augmente le threading et ça résoud le problème
             
     #quid de l'execution de deux instances de l'application...
-        #objet partagé avec pyro ?
+        #objet partagé avec pyro ? chiant avec pyro, besoin d'une lib externe...
         #fichier de lock ?
         #analyse des process en memoire ? (need to be root)
         #...
+        
+    #pour l'instant les ressource seront lockée pour un single process
+        #pas pour une commande, ni une multicommande, ni une piped commande, ni un aliasevent, ni ...
+        #est ce une bonne idée ?
 
 ##### futur work (part 2) ########################################################################################################
-
-################
-### workflow ###
-################
-    #n'afficher dans l'aide et n'autoriser que les commandes executables
-        #de manière à vraiment guider l'utilisateur dans ce qu'il peut faire
-        #toujours avoir une commande 
-            #exit : pour quitter le workflow
-            #reset : pour revenir au début du workflow
-
-####################
-### application  ###
-####################
-
-    #on remplace le leveltries courrant par un contenant uniquement les commandes de l'application
-        #avec une commande exit pour restaurer le leveltries principale
-        #les commandes du leveltries principales doivent toujours être accessible dans les commandes de l'application
-        #les apps doivent pouvoir executer du code et en même temps appeler des commandes sur le shell
     
-    #sorte de workflow
+#############################
+### state machine process ### OLD NAME : workflow, application
+#############################
+    #d'une certaine manière, une application dans le shell
+        #possede un etat (creer un objet etat qui peut stocker plein de chose)
+            #le stocker dans les parametres
+            #le rendre transient ou non
+            
+        #creer un package pour stocker les app
+        #possibilité d'en importer de l'exterieur
+    
+    #deux types d'app:
+        #simple: chaque execution d'action ramene a l'etat initiale, une sorte de simple application
+            #en fait c'est une complexe sans rien de défini
+        
+        #complexe: une action peut conduire vers un nouvel etat dans lequel seulement certaines actions sont possibles
+            #definir dans quel cas on va où, et aussi gérer les cas d'erreur
+            
+    #action par defaut: startApp
+        #disponible lorsque l'on se trouve dans le shell au démarrage avec le tries par défaut
+        #cette action va remplacer le tries courant par celui de la machine à état
+        #seule les actions de la state machine sont disponibles maintenant
+        
+    #action par defaut: exit
+        #disponible uniquement dans une application
+        #toujours disponible quelque soit l'etat de l'application
+        #soit renvoi dans le shell
+            #et restaure l'ancien tries
+            
+        #soit quitte completement le shell
+        
+    #action par defaut: reset
+        #disponible uniquement dans une application
+        #toujours disponible quelque soit l'etat de l'application
+        #ramene a l'etat initial si possible
+        #reset l'état de l'application
+        
+    #comment definir une action, que se passe t'il dedans? definir les liaison ? etc.
+        #pourrait être interessant d'utiliser les decorations
+        #TODO
+
 
 #########################
 ### service installer ###

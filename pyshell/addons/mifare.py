@@ -28,6 +28,8 @@ from pyshell.arg.argchecker    import IntegerArgChecker
         
     #map all the mifare card (classic, desfire, plus, ...)
     
+    #add a process like proxnroll to say that a command should be used with pipe only
+    
 
 @shellMethod(sector = IntegerArgChecker(0))
 def mifareUltraLightRead(sector = 0):
