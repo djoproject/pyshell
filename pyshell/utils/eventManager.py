@@ -22,7 +22,6 @@ EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
 import threading, sys
-from pyshell.utils.exception import 
 from pyshell.utils.exception import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils     import raiseIfInvalidKeyList
 
@@ -37,6 +36,8 @@ else:
     import configparser as ConfigParser
 
 #TODO TODO TODO TODO TODO
+    #convert brainstorming into TODO
+
     #keep track of running event and be able to kill one or all of them
     
     #XXX XXX XXX a stored event is absolutly on the same form than an alias should be XXX XXX XXX
@@ -65,7 +66,7 @@ else:
                 #--- si l'event n'est pas loadé ou que la ligne est retirée, cela peut modifier le comportement de l'event
             #--- pas moyen de reconvertir en texte ensuite, besoin de stocker la chaine d'origine
             
-    #what about the storage/parsing of piped command ? TODO
+    #what about the storage/parsing of piped command ? XXX OK
         #axioms:
             #1. store parsed full text but not converted to object
     
@@ -81,43 +82,40 @@ else:
                         
                         #don't forget command to manage them (update, move, remove, ...)
                 
-                #how to store them in memory full text ? TODO
-                    #how to store them on file
-                    
-    #how to store them in the software ? TODO
-        #what we need
-            #the alias/event must be accessible from the tries
-            #it must be possible to list alias/event
-        
-        #SOLUTION 1:
-            #store only the alias in the tries
-            #traversal the whole tries to retrieve the list of alias/event
-            #just need a tag or an attribute to know if it is a command or an alias
-            
-        #SOLUTION 2:
-            #store in the tries and in an independant structure with the list of alias
-            
-        # ...
-    
-    #should be possible to fire a command from shell TODO
+                #how to store them in memory full text ? 
+                    #how to store them on memory
+                        #2 dimension :
+                            #first level list: piped command
+                            #second level: string token
+
+                        #eg: aa bb cc | dd ee ff
+                            #in storage: (("aa", "bb", "cc",), ("dd", "ee", "ff",))
+
+                    #how to store them in file
+                        #with pipe included: "aa bb cc | dd ee ff"
+
+            #move parsing function from executer to here
+
+    #should be possible to fire a command from shell XXX OK
         #so in another thread
         #even if there is piping
     
         #how to say to the system to start in another thread ?
+            #should be possible to do it explictly or not
+            #not possible to create a process to do it because we are already too far in the process execution
+
+            #use both solution
         
-            #SOLUTION 1 : use a special keyword to start the command
+            #SOLUTION 1 : use a special keyword to start the command SELECTED
                 #E.G. "fire", but this keyword must be locked and not possible to add/remove in the tries from addon
                     #fire plop a bc | toto 1 2 3 | tutu $rt
-                    
+             
+            #SOLUTION 2 : act like in standard shell, use "&" character SELECTED
+                #so if a command finish with at least one space then &, run it like an event in a new thread
+
             #... 
-    
-    #what about security access to the alias ? TODO
-        #readonly ? removable ? transient ?
-        
-        #lock on certain command in the alias ?
-            # E.G. can't remove cmd 2 but it is possible to remove cmd 5
-        
-    #what about execution of an alias in a piping processes:  a | alias | b | c TODO
+
+    #what about execution of an alias in a piping processes:  a | alias | b | c XXX OK
         #can not be splitted in pre/pro/post
             #why ? because there are maybe already piping in the process inside the alias
             
@@ -128,19 +126,47 @@ else:
             #by default pre
             #but could be interesting to act as post in certain cases
             
-        #yeah but how to do that ? TODO
+        #yeah but how to do that ?
             #Event object should inherite from singlecommand (or multicommand ?)
                 #and override pre and post from command
                 #have an access to the tries
+                    #to be able to execute stored command
 
+    #how to store event object in the software ? TODO
+        #the current way is not efficient, need to be accessible from tries
+
+        #what we need
+            #the alias/event must be accessible from the tries
+            #it must be possible to list alias/event
+        
+        #SOLUTION 1:
+            #store the alias only in the tries
+            #traversal the whole tries to retrieve the list of alias/event, bof bof
+            #just need a tag or an attribute to know if it is a command or an alias
+            
+        #SOLUTION 2: for the moment, this is the best solution
+            #store in the tries and in an independant structure with the list of alias
+            #need to manage two data structure and maintain a coherence between them, bof bof
+            
+        # ...
+    
+    #what about security access to the alias ? TODO
+        #readonly ? removable ? transient ? OK
+            #do it like this, with these three booleans
+        
+        #lock on certain command in the alias ? TODO
+            # E.G. can't remove cmd 2 but it is possible to remove cmd 5
+            #is it really useful ?
 
 class Event(object):
-    def __init__(self):
+    def __init__(self, readonly = False, removable = True, transient = False):
         self.stringCmdList = []  
         self.stopOnError                     = True
         self.argFromEventOnlyForFirstCommand = False
         self.useArgFromEvent                 = True
         self.executeOnPre                    = True
+
+        #TODO
     
     def setStopOnError(self, value):
         if type(value) != bool:
