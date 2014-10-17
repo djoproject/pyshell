@@ -36,7 +36,7 @@ else:
     import configparser as ConfigParser
 
 #TODO TODO TODO TODO TODO
-    #convert brainstorming into TODO
+    #convert brainstorming into TODO PRIOR
 
     #keep track of running event and be able to kill one or all of them
     
@@ -115,7 +115,7 @@ else:
 
             #... 
 
-    #what about execution of an alias in a piping processes:  a | alias | b | c XXX OK
+    #what about execution of an alias in a piping processes:  a | alias | b | c TODO
         #can not be splitted in pre/pro/post
             #why ? because there are maybe already piping in the process inside the alias
             
@@ -131,42 +131,128 @@ else:
                 #and override pre and post from command
                 #have an access to the tries
                     #to be able to execute stored command
+                    
+        #TODO then how to execute the content of an event, the event itself will already be executed in an engine...
+            
+            #SOLUTION 1 : create a new engine
+                #whouuuuuuuuuuu ou pas, créer des engines dans des engines dans des engines, ...
+                #on risque d'exploser les ressources, mémoire, recursion, etc.
+                    #vraiment grave ? il n'y a qu'une piped commande qui s'exécute dans un engine à la fois
+                    #en cas de thread on devait d'office créer un nouveau engine de toute manièr
+                
+            #SOLUTION 2 : réutiliser l'engine existant
+                #euuh il est un peu en cours d'execution, est ce une bonne idée ?
+                #pas oublier qu'on ne parle que d'une seule piped commande à la fois !!!
+                
+                #SOLUTION 2.1: sauver la stack sur une stack
+                    #mettre son état courant sur une nouvelle stack 
+                    #definir un nouvel état en fonction du contenu de l'event
+                    #relancer l'engine
+                    #restaurer l'etat, comment ?
+                        #l'engine ne rendra plus la main à l'event si on est déjà passé par le post
+                    #continuer le process précédant
+                
+                #SOLUTION 2.2: stacker l'event en tête de stack
+                    #ça c'est chauuud
+                    #implique d'ajouter les commandes de l'event dans la liste
+                    #et de mettre à jour l'ensemble des index présent sur la pile
 
-    #how to store event object in the software ? TODO
+    #how to store event object in the software ? XXX OK
         #the current way is not efficient, need to be accessible from tries
 
         #what we need
             #the alias/event must be accessible from the tries
             #it must be possible to list alias/event
         
-        #SOLUTION 1:
+        #SOLUTION 1: XXX SELECTED (until better solution)
             #store the alias only in the tries
-            #traversal the whole tries to retrieve the list of alias/event, bof bof
-            #just need a tag or an attribute to know if it is a command or an alias
+            #traversal the whole tries to retrieve the list of alias/event, bof bof ---
+                #still better than manage two data structure
+            #just need to do an instanceof to know if it is a command or an alias +++
+            #really easy to implement +++
+            #with this structure, load and save could directly go to an addon, with the other even method
             
-        #SOLUTION 2: for the moment, this is the best solution
+        #SOLUTION 2: 
             #store in the tries and in an independant structure with the list of alias
-            #need to manage two data structure and maintain a coherence between them, bof bof
-            
+            #need to manage two data structure and maintain a coherence between them, bof bof ---
+            #easy to list +++
+            #rien n'empeche de supprimer l'event du tries sans que la seconde structure en soit prévenu ---
+        
+        #SOLUTION 3:
+            #amelioration de la solution 2
+            #les events stocke une reference vers une liste 
+                #meme si c'est interne, c'est chiant ---
+            #liste interne aux events
+                #static list
+                #avec method static de listing +++
+                #l'event a besoin de connaitre sa clé dans le tries ?
+                    #sinon le listing serait un peu foireux, on a la liste des events mais pas de leur path dans le tries
+                    #ça ce serait chiant à maintenir
+                    #rien n'empêche de le bouger d'endroit ou de le supprimer sans necessairement qu'il soit prévenu ---
+                        #une valeur n'est pas notifié de sa suppression dans le tries... (ce qui est evidement normal)
+                    
+                #necessite un delete manuelle pour le retirer de la liste interne
+                    #pas trop trop grave ---
+                    
+        
         # ...
     
-    #what about security access to the alias ? TODO
+    #what about security access to the alias ? XXX OK
         #readonly ? removable ? transient ? OK
             #do it like this, with these three booleans
         
-        #lock on certain command in the alias ? TODO
+        #lock on certain command in the alias ?
             # E.G. can't remove cmd 2 but it is possible to remove cmd 5
             #is it really useful ?
+            
+            #each command has two argument, removable and idRow
+                #if removable is False, it is not possible to remove the row from the event
+                
+                #if idRow is not None, not possible to move the row in the event
+                    #and idRow hold the index in the list
+                    
+                #prblm with this solution, how to store it in the config file ?
+                    #a parameter with locked and with id
+                        #E.G.: locked: 1,3,5
+                        #      idfixe: 3,6,7,9 
 
 class Event(object):
     def __init__(self, readonly = False, removable = True, transient = False):
-        self.stringCmdList = []  
+        self.stringCmdList = [] #TODO must be a dict
         self.stopOnError                     = True
         self.argFromEventOnlyForFirstCommand = False
         self.useArgFromEvent                 = True
         self.executeOnPre                    = True
-
-        #TODO
+        
+        #global lock system
+        self.setReadOnly(readonly)
+        self.setRemovable(removable)
+        self.setTransient(transient)
+        
+        #specific command system
+        self.fixedIndex       = set()
+        self.noRemovableIndex = set() 
+        self.readonlyIndex    = set()
+        
+    ###### get/set method
+        
+    def setReadOnly(self, value):
+        if type(value) != bool:
+            raise ParameterException("(Event) setReadOnly, expected a bool type as state, got '"+str(type(value))+"'")
+            
+        self.readonly = value
+        
+    def setRemovable(self, value):
+        if type(value) != bool:
+            raise ParameterException("(Event) setRemovable, expected a bool type as state, got '"+str(type(value))+"'")
+            
+        self.removable = value
+        
+    def setTransient(self, value):
+        if type(value) != bool:
+            raise ParameterException("(Event) setTransient, expected a bool type as state, got '"+str(type(value))+"'")
+            
+        self.transient = value  
     
     def setStopOnError(self, value):
         if type(value) != bool:
@@ -203,18 +289,55 @@ class Event(object):
         
     def isExecuteOnPre(self):
         return self.executeOnPre
+        
+    def isReadOnly(self):
+        return self.readonly
+        
+    def isRemovable(self):
+        return self.removable
+        
+    def isTransient(self):
+        return self.transient
+        
+    #### business method
     
     def addCommand(self, commandStringList):
         raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "addCommand")    
         self.stringCmdList.append( commandStringList )
         
+    def addPipeCommand(self, index, commandStringList):
+        #TODO event is readonly ?
+        
+        #TODO command is readonly ?
+    
+        pass #TODO
+        
+    def removePipeCommand(self, index):
+        #TODO event is readonly ?
+        
+        #TODO command is readonly ?
+        
+        #TODO remove the last part of a command is equal to remove it
+            #so the command is removable ?
+    
+        pass #TODO
+        
     def removeCommand(self, index):
+        #TODO is removable ?
+    
         try:
             del self.stringCmdList[index]
         except IndexError:
             pass #do nothing
         
     def moveCommand(self,fromIndex, toIndex):
+        #TODO is indexMovable ?
+        
+        #TODO is index movable ?
+        
+        #TODO is index free ?
+            #be careful in case of big move
+    
         try:
             self.stringCmdList[fromIndex]
         except IndexError:

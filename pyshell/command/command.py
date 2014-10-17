@@ -233,9 +233,9 @@ class UniCommand(MultiCommand):
         MultiCommand.addProcess(self,preProcess,process,postProcess)
 
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
-        pass # blocked the procedure to add more commands
+        pass # block the procedure to add more commands
 
     def addStaticCommand(self, cmd, useArgs = True):
-        pass # blocked the procedure to add more commands
+        pass # block the procedure to add more commands
 
 
