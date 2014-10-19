@@ -16,6 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #remove AbstractListableException from the system
+
 ERROR         = 0
 CORE_ERROR    = 1
 USER_ERROR    = 2

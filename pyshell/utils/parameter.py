@@ -235,6 +235,11 @@ class ParameterManager(object):
                     for name, value in contextValue.getParameterSerializableField().items():
                         config.set(contextName, name, value)
         
+        #create config directory
+        if not os.path.exists(os.path.dirname(self.filePath)):
+            os.makedirs(os.path.dirname(self.filePath))
+
+        #save file
         with open(self.filePath, 'wb') as configfile:
             config.write(configfile)
 

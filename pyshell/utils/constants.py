@@ -18,14 +18,16 @@
 
 import os
 
-KEYSTORE_SECTION_NAME  = "keystore"
-DEFAULT_KEYSTORE_FILE  = os.path.join(os.path.expanduser("~"), ".pyshell_keystore")
+DEFAULT_CONFIG_DIRECTORY = os.path.join(os.path.expanduser("~"), ".pyshell")
 
-CONTEXT_NAME           = "context"
-ENVIRONMENT_NAME       = "environment"
-DEFAULT_PARAMETER_FILE = os.path.join(os.path.expanduser("~"), ".pyshellrc")
-MAIN_CATEGORY          = "main"
-PARAMETER_NAME         = "parameter"
-DEFAULT_SEPARATOR      = ","
-ADDONLIST_KEY          = "loader_addon"
-DEFAULT_SUBADDON_NAME  = "default"
+KEYSTORE_SECTION_NAME    = "keystore"
+DEFAULT_KEYSTORE_FILE    = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_keystore")
+
+CONTEXT_NAME             = "context"
+ENVIRONMENT_NAME         = "environment"
+DEFAULT_PARAMETER_FILE   = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshellrc")
+MAIN_CATEGORY            = "main"
+PARAMETER_NAME           = "parameter"
+DEFAULT_SEPARATOR        = ","
+ADDONLIST_KEY            = "loader_addon"
+DEFAULT_SUBADDON_NAME    = "default"

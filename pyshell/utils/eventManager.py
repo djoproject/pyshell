@@ -22,8 +22,11 @@ EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
 import threading, sys
-from pyshell.utils.exception import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
-from pyshell.utils.utils     import raiseIfInvalidKeyList
+from pyshell.utils.exception   import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
+from pyshell.utils.utils       import raiseIfInvalidKeyList
+from pyshell.command.command   import UniCommand
+from pyshell.arg.decorator     import shellMethod
+from pyshell.arg.argchecker    import ArgChecker,listArgChecker
 
 try:
     pyrev = sys.version_info.major
@@ -38,6 +41,22 @@ else:
 #TODO TODO TODO TODO TODO
     #convert brainstorming into TODO PRIOR
 
+    #check whole security, is everything used ?
+        #readonlye, transient, removable, ...
+        #lockable index, not removable command, etc.
+
+    #firing/executing system
+        #for piped command
+            #with a "&" at the end of a script line
+            #with a "fire" at the beginning of a script line
+
+        #with only an alias name
+            #with one of the two solution above
+            #with a specific command from alias addon 
+
+    #faire un package "executing" qui va contenir les methods d'exeuction, de parsing, etc
+        #celle utilisées par l'executer et ici
+
     #keep track of running event and be able to kill one or all of them
     
     #XXX XXX XXX a stored event is absolutly on the same form than an alias should be XXX XXX XXX
@@ -47,178 +66,63 @@ else:
     #find a new name, not really an alias, and not really an event
     
     #rename all variable like stringCmdList, it is difficult to understand what is what
+
+### UTILS COMMAND ###
+
+def isInt(value):
+    try:
+        i = int(value) 
+        return True, i 
+    except ValueError:
+        pass
     
-#XXX XXX XXX XXX brainstorming XXX XXX XXX XXX
-
-    #event avec ou sans argument ? avec XXX OK
+    return False, None
     
-    #comment sont identifier les events ? string XXX OK
-
-    #format de la commande ? or where to convert from string to object ? XXX OK
-        #TYPE 1: pure texte XXX SELECTED THIS ONE
-            #--- les erreurs de commandes inconnues se produisent lors de l'execution de l'event
-                #+++ mais possibilité de les corriger pour la prochaine execution de l'event si on load le module manquant et aussi avec le param stopOnError
-            #+++ possible de reconvertir en text immediatement
-            
-            
-        #TYPE 2: convertie en objet
-            #+++ les erreurs de commandes inconnues se produisent lors de l'ajout de la commande dans un event
-                #--- si l'event n'est pas loadé ou que la ligne est retirée, cela peut modifier le comportement de l'event
-            #--- pas moyen de reconvertir en texte ensuite, besoin de stocker la chaine d'origine
-            
-    #what about the storage/parsing of piped command ? XXX OK
-        #axioms:
-            #1. store parsed full text but not converted to object
-    
-        #storage TYPE 1 : forbide piping
-            #--- lose of huge power, not possible to do that
+def isBool(value):
+    if type(value) != str and type(value) != unicode:
+        return False, None
         
-        #storage TYPE 2 : manage piping XXX SELECTED THIS ONE
-            #probleme to solve
-                #how to add piped command in the shell ? 
-                    #use two command:
-                        #one to add a new command to an event
-                        #one to pipe a new command to an existing event
-                        
-                        #don't forget command to manage them (update, move, remove, ...)
-                
-                #how to store them in memory full text ? 
-                    #how to store them on memory
-                        #2 dimension :
-                            #first level list: piped command
-                            #second level: string token
-
-                        #eg: aa bb cc | dd ee ff
-                            #in storage: (("aa", "bb", "cc",), ("dd", "ee", "ff",))
-
-                    #how to store them in file
-                        #with pipe included: "aa bb cc | dd ee ff"
-
-            #move parsing function from executer to here
-
-    #should be possible to fire a command from shell XXX OK
-        #so in another thread
-        #even if there is piping
-    
-        #how to say to the system to start in another thread ?
-            #should be possible to do it explictly or not
-            #not possible to create a process to do it because we are already too far in the process execution
-
-            #use both solution
+    if value.lower() == "true":
+        return True,True
         
-            #SOLUTION 1 : use a special keyword to start the command SELECTED
-                #E.G. "fire", but this keyword must be locked and not possible to add/remove in the tries from addon
-                    #fire plop a bc | toto 1 2 3 | tutu $rt
-             
-            #SOLUTION 2 : act like in standard shell, use "&" character SELECTED
-                #so if a command finish with at least one space then &, run it like an event in a new thread
-
-            #... 
-
-    #what about execution of an alias in a piping processes:  a | alias | b | c TODO
-        #can not be splitted in pre/pro/post
-            #why ? because there are maybe already piping in the process inside the alias
-            
-        #can be pre or pro or post
-            #not pro, because in case of piping, alias will not be executed 
+    if value.lower() == "false":
+        return True,False
         
-        #so pro or pre ?
-            #by default pre
-            #but could be interesting to act as post in certain cases
-            
-        #yeah but how to do that ?
-            #Event object should inherite from singlecommand (or multicommand ?)
-                #and override pre and post from command
-                #have an access to the tries
-                    #to be able to execute stored command
-                    
-        #TODO then how to execute the content of an event, the event itself will already be executed in an engine...
-            
-            #SOLUTION 1 : create a new engine
-                #whouuuuuuuuuuu ou pas, créer des engines dans des engines dans des engines, ...
-                #on risque d'exploser les ressources, mémoire, recursion, etc.
-                    #vraiment grave ? il n'y a qu'une piped commande qui s'exécute dans un engine à la fois
-                    #en cas de thread on devait d'office créer un nouveau engine de toute manièr
-                
-            #SOLUTION 2 : réutiliser l'engine existant
-                #euuh il est un peu en cours d'execution, est ce une bonne idée ?
-                #pas oublier qu'on ne parle que d'une seule piped commande à la fois !!!
-                
-                #SOLUTION 2.1: sauver la stack sur une stack
-                    #mettre son état courant sur une nouvelle stack 
-                    #definir un nouvel état en fonction du contenu de l'event
-                    #relancer l'engine
-                    #restaurer l'etat, comment ?
-                        #l'engine ne rendra plus la main à l'event si on est déjà passé par le post
-                    #continuer le process précédant
-                
-                #SOLUTION 2.2: stacker l'event en tête de stack
-                    #ça c'est chauuud
-                    #implique d'ajouter les commandes de l'event dans la liste
-                    #et de mettre à jour l'ensemble des index présent sur la pile
+    return False,None
 
-    #how to store event object in the software ? XXX OK
-        #the current way is not efficient, need to be accessible from tries
+def getAliasList(mltries):
+    #TODO traversal the whole tries
 
-        #what we need
-            #the alias/event must be accessible from the tries
-            #it must be possible to list alias/event
-        
-        #SOLUTION 1: XXX SELECTED (until better solution)
-            #store the alias only in the tries
-            #traversal the whole tries to retrieve the list of alias/event, bof bof ---
-                #still better than manage two data structure
-            #just need to do an instanceof to know if it is a command or an alias +++
-            #really easy to implement +++
-            #with this structure, load and save could directly go to an addon, with the other even method
-            
-        #SOLUTION 2: 
-            #store in the tries and in an independant structure with the list of alias
-            #need to manage two data structure and maintain a coherence between them, bof bof ---
-            #easy to list +++
-            #rien n'empeche de supprimer l'event du tries sans que la seconde structure en soit prévenu ---
-        
-        #SOLUTION 3:
-            #amelioration de la solution 2
-            #les events stocke une reference vers une liste 
-                #meme si c'est interne, c'est chiant ---
-            #liste interne aux events
-                #static list
-                #avec method static de listing +++
-                #l'event a besoin de connaitre sa clé dans le tries ?
-                    #sinon le listing serait un peu foireux, on a la liste des events mais pas de leur path dans le tries
-                    #ça ce serait chiant à maintenir
-                    #rien n'empêche de le bouger d'endroit ou de le supprimer sans necessairement qu'il soit prévenu ---
-                        #une valeur n'est pas notifié de sa suppression dans le tries... (ce qui est evidement normal)
-                    
-                #necessite un delete manuelle pour le retirer de la liste interne
-                    #pas trop trop grave ---
-                    
-        
-        # ...
-    
-    #what about security access to the alias ? XXX OK
-        #readonly ? removable ? transient ? OK
-            #do it like this, with these three booleans
-        
-        #lock on certain command in the alias ?
-            # E.G. can't remove cmd 2 but it is possible to remove cmd 5
-            #is it really useful ?
-            
-            #each command has two argument, removable and idRow
-                #if removable is False, it is not possible to remove the row from the event
-                
-                #if idRow is not None, not possible to move the row in the event
-                    #and idRow hold the index in the list
-                    
-                #prblm with this solution, how to store it in the config file ?
-                    #a parameter with locked and with id
-                        #E.G.: locked: 1,3,5
-                        #      idfixe: 3,6,7,9 
+    #TODO only keep name/Alias
 
-class Event(object):
-    def __init__(self, readonly = False, removable = True, transient = False):
-        self.stringCmdList = [] #TODO must be a dict
+    #TODO return the dict
+
+    pass #TODO
+
+def _getFirstAvailableIndex(dico, forbidden):
+    #TODO whaaaa l'algo de merde...
+
+    index = 0
+    while i > 1000:
+        if i in dico:
+            continue
+
+        if i in forbidden:
+            continue
+
+        return i
+
+    raise DefaultPyshellException("no more index available for this event", CORE_ERROR)
+
+class Event(UniCommand):
+    def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
+        UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
+
+        self.stringCmdList = [] #TODO must be a dict, to keep specific index on a command
+            #TODO trouver une structure de données adéquate
+                #trouver le premier indice libre
+                #lister les indices dans l'ordre
+
         self.stopOnError                     = True
         self.argFromEventOnlyForFirstCommand = False
         self.useArgFromEvent                 = True
@@ -230,10 +134,36 @@ class Event(object):
         self.setTransient(transient)
         
         #specific command system
-        self.fixedIndex       = set()
-        self.noRemovableIndex = set() 
-        self.readonlyIndex    = set()
-        
+        self.fixedIndex       = set() #can not move an existing command to or from this index
+        self.noRemovableIndex = set() #a command at this index is not removable
+        self.readonlyIndex    = set() #a command at this index is not editable
+    
+    ### PRE/POST process ###
+    @shellMethod(args=listArgChecker(ArgChecker()))
+    def _pre(self, args):
+        if not self.executeOnPre:
+            return args
+
+        return self._execute(args)
+
+    @shellMethod(args=listArgChecker(ArgChecker()))
+    def _post(self, args):
+        if self.executeOnPre:
+            return args
+
+        return self._execute(args)
+
+    def _execute(self, args):
+        #TODO make a copy of the current event
+            #could be updated during its execution in another thread
+
+        #TODO manage stopOnError, useArgFromEvent
+
+        #TODO execute commands
+            #create new engine for each command
+
+        pass
+
     ###### get/set method
         
     def setReadOnly(self, value):
@@ -301,8 +231,17 @@ class Event(object):
         
     #### business method
     
+    def setCommand(self, index, commandStringList):
+        pass #TODO
+
     def addCommand(self, commandStringList):
-        raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "addCommand")    
+        raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "addCommand") 
+
+        #TODO event is readonly ?
+
+        #TODO compute the first available index
+            #be careful to existing index
+
         self.stringCmdList.append( commandStringList )
         
     def addPipeCommand(self, index, commandStringList):
@@ -331,8 +270,6 @@ class Event(object):
             pass #do nothing
         
     def moveCommand(self,fromIndex, toIndex):
-        #TODO is indexMovable ?
-        
         #TODO is index movable ?
         
         #TODO is index free ?
@@ -395,152 +332,3 @@ class Event(object):
         e.executeOnPre                    = self.executeOnPre
         
         return e
-
-def isInt(value):
-    try:
-        i = int(value) 
-        return True, i 
-    except ValueError:
-        pass
-    
-    return False, None
-    
-def isBool(value):
-    if type(value) != str and type(value) != unicode:
-        return False, None
-        
-    if value.lower() == "true":
-        return True,True
-        
-    if value.lower() == "false":
-        return True,False
-        
-    return False,None
-
-class EventManager(object):
-    def __init__(self, filePath = None):
-        self.events = {} #TODO remove and store event/alias somewhere else
-        self.filePath = filePath
-    
-    def load(self):
-        if self.filePath is None:
-            return
-        
-        config = None
-        if os.path.exists(self.filePath):
-            config = ConfigParser.RawConfigParser()
-            try:
-                config.read(self.filePath)
-            except Exception as ex:
-                raise ParameterLoadingException("(EventManager) load, fail to read event file : "+str(ex))
-        
-        errorList = ListOfException()
-        for section in config.sections():
-            #TODO get or create the event
-                #in case of existing event, manage security (need to be defined)
-            
-            event = Event()
-            onError = False
-        
-            for option in config.options(section):
-                value = config.get(section, option)
-                if option in ["stopOnError","argFromEventOnlyForFirstCommand","useArgFromEvent", "executeOnPre"] :
-                    validBool, boolValue = isBool(value)
-                    if not validBool:
-                        errorList.addException(ParameterLoadingException("(EventManager) load, a boolean value was expected for parameter '"+str(option)+"' of event '"+str(section)+"', got '"+str(value)+"'"))
-                        onError = True
-                        continue
-                    
-                    setattr(event,option,boolValue)
-                    
-                else:
-                    validInt, intValue = isInt(option)
-                    if not validInt:
-                        errorList.addException(ParameterLoadingException("(EventManager) load, a unknown key has been found for event '"+str(section)+"': "+str(option)))
-                        continue
-                    
-                    #TODO a new command to process
-                        #need to parse value to string token
-                        #need to know the format
-                        
-                    #event.stringCmdList.insert(intValue, )
-            
-            if not onError:
-                self.events[section] = event
-        
-    def save(self):
-        if self.filePath is None:
-            return
-        
-        config = ConfigParser.RawConfigParser()
-        
-        for eventName, eventObject in self.events.items():
-            config.add_section(eventName)
-            
-            #set event properties
-            config.set(eventName, "stopOnError",                     eventObject.stopOnError)
-            config.set(eventName, "argFromEventOnlyForFirstCommand", eventObject.argFromEventOnlyForFirstCommand)
-            config.set(eventName, "useArgFromEvent",                 eventObject.useArgFromEvent)
-            config.set(eventName, "executeOnPre",                    eventObject.executeOnPre)
-            
-            #write each command in order
-            index = 0
-            for cmd in eventObject.stringCmdList:
-                config.set(eventName, str(index), " ".join(cmd))
-                index += 1
-            
-        with open(self.filePath, 'wb') as configfile:
-            config.write(configfile)
-    
-    def addCommand(self, eventName, cmdList):
-        if eventName not in self.events:
-            self.events[eventName] = Event()
-            
-        self.events[eventName].addCommand(cmdList)
-
-    def executeEvent(self, eventName, argList = None):
-        self.fireEvent(eventName, argList, False)
-
-    def fireEvent(self, eventName, argList = None, onThread = True):
-        if eventName not in self.events:
-            raise DefaultPyshellException("(EventManager) fireEvent, unknown event '"+str(eventName)+"'",USER_ERROR)
-
-        event = self.events[eventName].clone()
-
-        #start thread
-        if onThread:
-            t = threading.Thread(None, self._fireEvent, None, (event,))
-            t.start()
-        else:
-            self._fireEvent(event)
-
-    def _fireEvent(self, event): 
-        #TODO use arg executeOnPre
-       
-        first = True
-        for cmdsAndArgs in event.stringCmdList:
-            if event.useArgFromEvent:
-                if first or not event.argFromEventOnlyForFirstCommand:
-                    first = False
-                    
-                    #TODO append event args to command args
-                        #need to know the format
-        
-        
-            if eventArgList is not None:
-                argList = argList[:]
-                argList.append(eventArgList)
-        
-            if not self.executeCommand(cmdStringList) and event.stopOnError:
-                break
-
-    def executeCommand(self, cmdsAndArgs):
-        pass #TODO copy (or move) from executer
-
-
-
-        
-
-
-
-

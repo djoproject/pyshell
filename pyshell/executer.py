@@ -49,53 +49,18 @@ from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
 from pyshell.command.exception import *
-from pyshell.command.engine    import engineV3
 from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
 from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, USER_WARNING
-from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY
 from pyshell.utils.utils       import getTerminalSize
 from pyshell.utils.printing    import Printer, warning, error, printException
 from pyshell.utils.valuable    import SimpleValuable
+from pyshell.utils.executing   import executeCommand, preParseLine
 from pyshell.addons.addon      import loadAddonFun
-
-def extractCmdFromArgs(cmdStringList, levelTries):
-
-    ## look after command in tries ##
-    rawCommandList = []   
-    rawArgList     = []
-    for finalCmd in cmdStringList:            
-        #search the command with advanced seach
-        searchResult = None
-        try:
-            searchResult = levelTries.advancedSearch(finalCmd, False)
-        except triesException as te:
-            raise DefaultPyshellException("failed to find the command '"+str(finalCmd)+"', reason: "+str(te), USER_WARNING)
-        
-        if searchResult.isAmbiguous():                    
-            tokenIndex = len(searchResult.existingPath) - 1
-            tries = searchResult.existingPath[tokenIndex][1].localTries
-            keylist = tries.getKeyList(finalCmd[tokenIndex])
-
-            raise DefaultPyshellException("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
-
-        elif not searchResult.isAvalueOnTheLastTokenFound():
-            if searchResult.getTokenFoundCount() == len(finalCmd):
-                raise DefaultPyshellException("uncomplete command '"+" ".join(finalCmd)+"', type 'help "+" ".join(finalCmd)+"' to get the next available parts of this command", USER_WARNING)
-                
-            if len(finalCmd) == 1:
-                raise DefaultPyshellException("unknown command '"+" ".join(finalCmd)+"', type 'help' to get the list of commands", USER_WARNING)
-                
-            raise DefaultPyshellException("unknown command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING)
-
-        #append in list
-        rawCommandList.append(searchResult.getLastTokenFoundValue())
-        rawArgList.append(searchResult.getNotFoundTokenList())
-    
-    return rawCommandList, rawArgList
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -112,7 +77,7 @@ class CommandExecuter():
         self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=self.keystore,transient=True,readonly=True, removable=False), ENVIRONMENT_NAME) 
         self.params.setParameter("saveKeys",            EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("debug",               ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(os.path.expanduser("~"), ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("execution",           ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.addon",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
@@ -158,7 +123,12 @@ class CommandExecuter():
     
     def saveHistory(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
-            readline.write_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
+            path = self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue()
+
+            if not os.path.exists(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
+
+            readline.write_history_file(path)
     
     def saveParams(self):
         if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
@@ -167,114 +137,7 @@ class CommandExecuter():
     def saveKeyStore(self):
         if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
             self.keystore.save()
-    
-    def _parseLine(self,line, enableArgs = True):
-        line = line.split("|")
-        toret = []
-        unknowVarError = set()
         
-        for partline in line:
-            #remove blank char
-            partline = partline.strip(' \t\n\r')
-            if len(partline) == 0:
-                continue
-            
-            #split on space
-            partline = partline.split(" ")
-
-            #fo each token
-            finalCmd = []
-            
-            for cmd in partline:
-                cmd = cmd.strip(' \t\n\r')
-                if len(cmd) == 0 :
-                    continue
-                
-                if enableArgs:
-                    if cmd.startswith("$") and len(cmd) > 1:
-                        if not self.params.hasParameter(cmd[1:]):
-                            unknowVarError.add("Unknown var '"+cmd[1:]+"'")
-                            continue
-                            
-                        param = self.params.getParameter(cmd[1:])
-                        
-                        if not isinstance(param, VarParameter):
-                            unknowVarError.add("specified key '"+cmd[1:]+"' correspond to a type different of a var")
-                            continue
-                        
-                        #because it is a VarParameter, it is always a list type
-                        finalCmd.extend(param.getValue())   
-                        
-                    elif cmd.startswith("\$"):
-                        finalCmd.append(cmd[1:])
-                    else:
-                        finalCmd.append(cmd)
-                else:
-                    finalCmd.append(cmd)
-
-            if len(finalCmd) == 0:
-                continue
-
-            toret.append(finalCmd)
-
-        if len(unknowVarError) > 0:
-            error("\n".join(unknowVarError))
-            return ()
-
-        return toret
-    
-    #
-    #
-    # @return, true if no severe error or correct process, false if severe error
-    #
-    def executeCommand(self,cmd):
-        ## init, parse and check the string list ##
-        cmdStringList = self._parseLine(cmd)
-
-        #if empty list after parsing, nothing to execute
-        if len(cmdStringList) == 0:
-            return False
-        
-        ## execute the engine object ##
-        try:
-            #convert token string to command objects and argument strings
-            rawCommandList, rawArgList = extractCmdFromArgs(cmdStringList, self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue())
-            
-            #prepare an engine
-            engine = engineV3(rawCommandList, rawArgList, self.params)
-            
-            #execute 
-            engine.execute()
-            return True
-            
-        except executionInitException as eie:
-            error("Fail to init an execution object: "+str(eie.value))
-        except executionException as ee:
-            error("Fail to execute: "+str(eie.value))
-        except commandException as ce:
-            error("Error in command method: "+str(ce.value))
-        except engineInterruptionException as eien:
-            if eien.abnormal:
-                error("Abnormal execution abort, reason: "+str(eien.value))
-            else:
-                warning("Normal execution abort, reason: "+str(eien.value))
-        except argException as ae:
-            warning("Error while parsing argument: "+str(ae.value))
-        except ListOfException as loe:
-            if len(loe.exceptions) > 0:
-                error("List of exception:")
-                for e in loe.exceptions:
-                    printException(e)
-                    
-        except Exception as e:
-            printException(e)
-
-        #print stack trace if debug is enabled
-        if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-            error(traceback.format_exc())
-
-        return False
-    
     def mainLoop(self):
         #enable autocompletion
         if 'libedit' in readline.__doc__:
@@ -304,7 +167,7 @@ class CommandExecuter():
  
             #execute command
             self.promptWaitingValuable.setValue(False)
-            self.executeCommand(cmd)        
+            executeCommand(cmd, self.params)        
     
     def printAsynchronousOnShellV2(self,message):
         prompt = self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue()
@@ -331,7 +194,7 @@ class CommandExecuter():
         sys.stdout.flush()
         
     def complete(self,suffix,index):
-        cmdStringList = self._parseLine(readline.get_line_buffer(),False)
+        cmdStringList = preParseLine(readline.get_line_buffer())
 
         try:
             ## special case, empty line ##
@@ -439,7 +302,7 @@ class CommandExecuter():
                     if line.trim() == "noexit":
                         shellOnExit = True
                 
-                    self.executeCommand(line)
+                    executeCommand(line,self.params)
         except Exception as ex:
             st = None
             if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:

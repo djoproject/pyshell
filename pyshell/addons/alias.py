@@ -16,7 +16,26 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.decorator import shellMethod
+from pyshell.arg.decorator      import shellMethod
+from pyshell.loader.command     import registerCommand, registerSetGlobalPrefix, registerStopHelpTraversalAt
+from pyshell.arg.argchecker     import parameterChecker, filePathArgChecker
+from pyshell.utils.constants    import ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY
+from pyshell.utils.eventManager import Event  
+from pyshell.utils.executing    import preParseNotPipedCommand
+from pyshell.utils.exception    import ParameterLoadingException
+from pyshell.loader.parameter   import registerSetEnvironment
+from pyshell.utils.parameter           import EnvironmentParameter
+import sys, os
+
+try:
+    pyrev = sys.version_info.major
+except AttributeError:
+    pyrev = sys.version_info[0]
+
+if pyrev == 2:
+    import ConfigParser 
+else:
+    import configparser as ConfigParser
 
 #XXX ALIAS DEFINITION
     #an alias has a string list as name
@@ -115,21 +134,177 @@ from pyshell.arg.decorator import shellMethod
             
 ## FUNCTION SECTION ##
 
+@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME),
+             filePath = parameterChecker("alias_filepath", ENVIRONMENT_NAME))
+def load(mltries, filePath):
+
+    #load file
+    filePath = filePath.getValue()
+    
+    if not os.path.exists(filePath):
+        return
+
+    config = ConfigParser.RawConfigParser()
+    try:
+        config.read(filePath)
+    except Exception as ex:
+        raise ParameterLoadingException("fail to read alias file : "+str(ex))
+    
+    #parse config
+    errorList = ListOfException()
+    for section in config.sections():
+        parsedSection = preParseNotPipedCommand(section)
+
+        if len(parsedSection) == 0:
+            errorList.addException(ParameterLoadingException("an empty section or a section only composed with white space exists in alias file, this is not allowed"))
+            continue
+
+        mltriesSearchResult = mltries.advancedSearch( parsedSection, True ) 
+        if mltriesSearchResult.isValueFound():
+            alreadyExist = True
+            alias = mltriesSearchResult.getValue()
+
+            if not isinstance(alias, Event):
+                errorList.addException(ParameterLoadingException("a section holds an already existing path: '"+" ".join(parsedSection)+"'"))
+                continue
+
+            if alias.isReadOnly():
+                errorList.addException(ParameterLoadingException("an alias already exist on path '"+" ".join(parsedSection)+"' but it is readonly"))
+                continue
+        else:
+            alreadyExist = False
+            alias = Event()
+        
+        onError = False
+        for option in config.options(section):
+            value = config.get(section, option)
+            if option in ["stopOnError","argFromEventOnlyForFirstCommand","useArgFromEvent", "executeOnPre"] :
+                validBool, boolValue = isBool(value)
+                if not validBool:
+                    errorList.addException(ParameterLoadingException("a boolean value was expected for parameter '"+str(option)+"' of alias '"+str(section)+"', got '"+str(value)+"'"))
+                    onError = True
+                    continue
+                
+                setattr(alias,option,boolValue)
+            
+            #TODO there is other thing to parse
+
+            else:
+                #is it an index key ?
+                validInt, intValue = isInt(option)
+                if not validInt:
+                    errorList.addException(ParameterLoadingException("a unknown key has been found for alias '"+str(section)+"': "+str(option)))
+                    onError = True
+                    continue
+                
+                #parse cmd
+                preParsedCmd = preParseLine(value)
+                if len(preParsedCmd) == 0:
+                    continue
+
+                #add cmd
+                try:
+                    event.setCommand(intValue, preParsedCmd[0])
+
+                    for i in xrange(1, len(preParsedCmd)):
+                        event.addPipeCommand(intValue, preParsedCmd[0])
+
+                except Exception as ex:
+                    errorList.addException(ex) #TODO find a way to include section name
+                    onError = True 
+        
+        if not onError and not alreadyExist:
+            mltries.insert(parsedSection, alias)
+
+    #raise if error
+    if errorList.isThrowable():
+        raise errorList
+
+@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME),
+             filePath = parameterChecker("alias_filepath", ENVIRONMENT_NAME))
+def save(mltries, filePath): #TODO adapt
+    config = ConfigParser.RawConfigParser()
+    
+    for eventName, eventObject in self.events.items(): #TODO
+        config.add_section(eventName)
+        
+        #set event properties
+        config.set(eventName, "stopOnError",                     eventObject.stopOnError)
+        config.set(eventName, "argFromEventOnlyForFirstCommand", eventObject.argFromEventOnlyForFirstCommand)
+        config.set(eventName, "useArgFromEvent",                 eventObject.useArgFromEvent)
+        config.set(eventName, "executeOnPre",                    eventObject.executeOnPre)
+        
+        #TODO store new fields in event
+
+        #write each command in order
+        #TODO will be a map soon, need to adapt that
+        index = 0
+        for cmd in eventObject.stringCmdList:
+            config.set(eventName, str(index), " ".join(cmd))
+            index += 1
+        
+    with open(filePath, 'wb') as configfile:
+        config.write(configfile)
+
+def _listTraversal(path, node, state, level):
+    if not node.isValueSet():
+        return state
+
+    if not isinstance(node.value, Event):
+        return state
+
+    state[tuple(path)] = node.value
+    return state
+
+@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME))
+def listAlias(mltries):
+    mltries = mltries.getValue()
+    result = mltries.genericBreadthFirstTraversal(_listTraversal, {}, True,True, (), True)
+
+    for k,v in result:
+        print k,v
+
+def execute(name):
+    pass #TODO
+
+def fire(name):
+    pass #TODO
+
+def setProperty(idAlias, name, value):
+    pass #TODO
+
 def createAlias(name, command):
     pass #TODO
 
-def removeAlias(name):
+def removeAlias(idAlias):
     pass #TODO
     
-def addMethodToAlias(name, command):
+def addMethodToAlias(idAlias, command):
     pass #TODO
-    
-def listAlias(name):
-    pass #TODO
-    
-### REGISTER SECTION ###
 
-    #TODO
+def addPipedMethodToAlias(idAlias, command):
+    pass #TODO
+
+def moveCommandInAlias(idAlias, indexCommand, newIndex):
+    pass #TODO
+
+def moveCommandUpInAlias(idAlias, indexCommand):
+    pass #TODO
+
+def moveCommandDownInAlias(idAlias, indexCommand):
+    pass #TODO
+
+### REGISTER SECTION ###
+    
+registerSetGlobalPrefix( ("alias", ) )
+registerStopHelpTraversalAt( () )
+registerCommand( ("list", ), pro=listAlias )
+registerCommand( ("load", ), pro=load )
+registerCommand( ("save", ), pro=save )
+
+#TODO register filename
+registerSetEnvironment(envKey="alias_filepath", env=EnvironmentParameter(os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_alias"),  typ=filePathArgChecker(readable=True, isFile=True), transient = False, readonly = False, removable = True), noErrorIfKeyExist = True, override = False)
+
     
     
 

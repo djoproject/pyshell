@@ -96,6 +96,11 @@ class KeyStore(object):
         if keyCount == 0 and not os.path.exists(self.filePath.getValue()):
             return
             
+        #create config directory
+        if not os.path.exists(os.path.dirname(self.filePath.getValue())):
+            os.makedirs(os.path.dirname(self.filePath.getValue()))
+
+        #save key store
         with open(self.filePath.getValue(), 'wb') as configfile:
             config.write(configfile)
     
