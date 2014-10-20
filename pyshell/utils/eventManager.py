@@ -39,8 +39,6 @@ else:
     import configparser as ConfigParser
 
 #TODO TODO TODO TODO TODO
-    #convert brainstorming into TODO PRIOR
-
     #check whole security, is everything used ?
         #readonlye, transient, removable, ...
         #lockable index, not removable command, etc.
@@ -54,16 +52,10 @@ else:
             #with one of the two solution above
             #with a specific command from alias addon 
 
-    #faire un package "executing" qui va contenir les methods d'exeuction, de parsing, etc
-        #celle utilisées par l'executer et ici
-
     #keep track of running event and be able to kill one or all of them
-    
-    #XXX XXX XXX a stored event is absolutly on the same form than an alias should be XXX XXX XXX
-        #except that an alias has any string token list size as name
-        #an fire alias occurs in a new thread, an execute alias occurs immediately in the same thread
-        
+            
     #find a new name, not really an alias, and not really an event
+        #an event is just an alias running in backgroun, so we can keep alias
     
     #rename all variable like stringCmdList, it is difficult to understand what is what
 
@@ -90,39 +82,11 @@ def isBool(value):
         
     return False,None
 
-def getAliasList(mltries):
-    #TODO traversal the whole tries
-
-    #TODO only keep name/Alias
-
-    #TODO return the dict
-
-    pass #TODO
-
-def _getFirstAvailableIndex(dico, forbidden):
-    #TODO whaaaa l'algo de merde...
-
-    index = 0
-    while i > 1000:
-        if i in dico:
-            continue
-
-        if i in forbidden:
-            continue
-
-        return i
-
-    raise DefaultPyshellException("no more index available for this event", CORE_ERROR)
-
 class Event(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
 
-        self.stringCmdList = [] #TODO must be a dict, to keep specific index on a command
-            #TODO trouver une structure de données adéquate
-                #trouver le premier indice libre
-                #lister les indices dans l'ordre
-
+        self.stringCmdList = [] 
         self.stopOnError                     = True
         self.argFromEventOnlyForFirstCommand = False
         self.useArgFromEvent                 = True
@@ -134,9 +98,9 @@ class Event(UniCommand):
         self.setTransient(transient)
         
         #specific command system
-        self.fixedIndex       = set() #can not move an existing command to or from this index
-        self.noRemovableIndex = set() #a command at this index is not removable
-        self.readonlyIndex    = set() #a command at this index is not editable
+        self.lockedTo = -1 #TODO can't update command bellow and at this index
+            #TODO make setter/getter
+                #set must check the size of the list, can not set a number bigger than the list
     
     ### PRE/POST process ###
     @shellMethod(args=listArgChecker(ArgChecker()))
@@ -161,8 +125,11 @@ class Event(UniCommand):
 
         #TODO execute commands
             #create new engine for each command
-
-        pass
+        
+        #TODO return the result of last command in the alias
+            #need to update engine to be able to do that
+        
+        pass #TODO
 
     ###### get/set method
         
@@ -232,6 +199,15 @@ class Event(UniCommand):
     #### business method
     
     def setCommand(self, index, commandStringList):
+        #TODO event is readonly ?
+    
+        #TODO is bellow locked index ?
+        
+        #TODO add commad at index
+        
+        #TODO return real index
+            #if list containt 5 and we try to insert at 7, real index will be 5 
+        
         pass #TODO
 
     def addCommand(self, commandStringList):
@@ -239,22 +215,23 @@ class Event(UniCommand):
 
         #TODO event is readonly ?
 
-        #TODO compute the first available index
-            #be careful to existing index
-
         self.stringCmdList.append( commandStringList )
+        
+        #TODO return real index
         
     def addPipeCommand(self, index, commandStringList):
         #TODO event is readonly ?
         
-        #TODO command is readonly ?
-    
+        #TODO is bellow locked index ?
+        
+        #TODO is valid commandString ?
+        
         pass #TODO
         
     def removePipeCommand(self, index):
         #TODO event is readonly ?
         
-        #TODO command is readonly ?
+        #TODO is bellow locked index ?
         
         #TODO remove the last part of a command is equal to remove it
             #so the command is removable ?
@@ -262,7 +239,9 @@ class Event(UniCommand):
         pass #TODO
         
     def removeCommand(self, index):
-        #TODO is removable ?
+        #TODO event is readonly ?
+    
+        #TODO is bellow locked index ?
     
         try:
             del self.stringCmdList[index]
@@ -270,10 +249,9 @@ class Event(UniCommand):
             pass #do nothing
         
     def moveCommand(self,fromIndex, toIndex):
-        #TODO is index movable ?
-        
-        #TODO is index free ?
-            #be careful in case of big move
+        #TODO event is readonly ?
+    
+        #TODO is bellow locked index ?
     
         try:
             self.stringCmdList[fromIndex]

@@ -188,6 +188,7 @@ def load(mltries, filePath):
                 setattr(alias,option,boolValue)
             
             #TODO there is other thing to parse
+                #lockedTo
 
             else:
                 #is it an index key ?
@@ -235,6 +236,7 @@ def save(mltries, filePath): #TODO adapt
         config.set(eventName, "executeOnPre",                    eventObject.executeOnPre)
         
         #TODO store new fields in event
+            #lockedTo
 
         #write each command in order
         #TODO will be a map soon, need to adapt that

@@ -236,6 +236,8 @@ class ParameterManager(object):
                         config.set(contextName, name, value)
         
         #create config directory
+        #TODO manage if the directory already exist or if it is a file
+            #TODO manage it in the other place where config is saved
         if not os.path.exists(os.path.dirname(self.filePath)):
             os.makedirs(os.path.dirname(self.filePath))
 

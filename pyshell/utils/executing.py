@@ -24,6 +24,9 @@ from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3
 
 #TODO
+    #faire un executing en mode "thread"
+        #ou modifier le executing pour gérer ça
+
     #TODO in preParseLine, manage space escape like ‘\ ‘
 
 def preParseNotPipedCommand(line):
