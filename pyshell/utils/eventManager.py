@@ -16,6 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO use that (or remove them)
 EVENT_ON_STARTUP      = "onstartup" #at application launch
 EVENT_AT_EXIT         = "atexit" #at application exit
 EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
@@ -26,7 +27,7 @@ from pyshell.utils.exception   import DefaultPyshellException, USER_ERROR, ListO
 from pyshell.utils.utils       import raiseIfInvalidKeyList
 from pyshell.command.command   import UniCommand
 from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import ArgChecker,listArgChecker
+from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
 
 try:
     pyrev = sys.version_info.major
@@ -39,11 +40,9 @@ else:
     import configparser as ConfigParser
 
 #TODO TODO TODO TODO TODO
-    #check whole security, is everything used ?
-        #readonlye, transient, removable, ...
-        #lockable index, not removable command, etc.
+    #removable boolean is not checked if event is removed from tries...
 
-    #firing/executing system
+    #firing/executing system (not in this module anymore)
         #for piped command
             #with a "&" at the end of a script line
             #with a "fire" at the beginning of a script line
@@ -52,7 +51,7 @@ else:
             #with one of the two solution above
             #with a specific command from alias addon 
 
-    #keep track of running event and be able to kill one or all of them
+    #keep track of running event and be able to kill one or all of them (not in this module anymore)
             
     #find a new name, not really an alias, and not really an event
         #an event is just an alias running in backgroun, so we can keep alias
@@ -81,6 +80,18 @@ def isBool(value):
         return True,False
         
     return False,None
+    
+def getAbsoluteIndex(index, listSize):
+    if index > 0:
+        return index
+    
+    index = len(listSize) + index
+    
+    #python work like that
+    if index < 0:
+        return 0
+    
+    return index
 
 class Event(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
@@ -98,39 +109,48 @@ class Event(UniCommand):
         self.setTransient(transient)
         
         #specific command system
-        self.lockedTo = -1 #TODO can't update command bellow and at this index
-            #TODO make setter/getter
-                #set must check the size of the list, can not set a number bigger than the list
+        self.lockedTo = -1
     
     ### PRE/POST process ###
-    @shellMethod(args=listArgChecker(ArgChecker()))
-    def _pre(self, args):
+    @shellMethod(args       = listArgChecker(ArgChecker()),
+                 parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+    def _pre(self, args, parameters):
         if not self.executeOnPre:
             return args
 
-        return self._execute(args)
+        return self._execute(args, parameters)
 
-    @shellMethod(args=listArgChecker(ArgChecker()))
-    def _post(self, args):
+    @shellMethod(args       = listArgChecker(ArgChecker()),
+                 parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+    def _post(self, args, parameters):
         if self.executeOnPre:
             return args
 
-        return self._execute(args)
+        return self._execute(args, parameters)
 
-    def _execute(self, args):
-        #TODO make a copy of the current event
-            #could be updated during its execution in another thread
-
-        #TODO manage stopOnError, useArgFromEvent
-
-        #TODO execute commands
-            #create new engine for each command
+    def _execute(self, args, parameters):
+        #make a copy of the current event
+        e = self.clone() #could be updated during its execution in another thread
         
+        for cmd in e.stringCmdList:
+            if e.useArgFromEvent:
+                if e.argFromEventOnlyForFirstCommand:
+                    e.useArgFromEvent = False
+                
+                cmd[0].extend(args)
+                        
+            if not executeCommand(cmd, parameters, False) and stopOnError:
+                #TODO need to raise, otherelse, the upper engine will not stop
+                    #just raise a stop error without any message to print, just stop it
+            
+                break
+                
         #TODO return the result of last command in the alias
             #need to update engine to be able to do that
+            #engine.getLastResult()
         
-        pass #TODO
-
+        return ()
+        
     ###### get/set method
         
     def setReadOnly(self, value):
@@ -175,6 +195,20 @@ class Event(UniCommand):
     
         self.executeOnPre = value
         
+    def setLockedTo(self, value):
+        try:
+            value = int(value)
+        except ValueError as va:
+            raise ParameterException("(Event) setLockedTo, expected an integer value as parameter: "+str(va))
+    
+        if value < -1 or value >= len(self.stringCmdList):
+            if len(self.stringCmdList) == 0:
+                raise ParameterException("(Event) setLockedTo, only -1 is allowed because event list is empty, got '"+str(value)+"'")
+            else:
+                raise ParameterException("(Event) setLockedTo, only a value from -1 to '"+str(len(self.stringCmdList) - 1)+"' is allowed, got '"+str(value)+"'")
+            
+        self.lockedTo = value
+        
     def isStopOnError(self):
         return self.stopOnError
         
@@ -196,52 +230,37 @@ class Event(UniCommand):
     def isTransient(self):
         return self.transient
         
+    def getLockedTo(self):
+        return self.lockedTo
+        
     #### business method
     
     def setCommand(self, index, commandStringList):
-        #TODO event is readonly ?
-    
-        #TODO is bellow locked index ?
-        
-        #TODO add commad at index
-        
-        #TODO return real index
-            #if list containt 5 and we try to insert at 7, real index will be 5 
-        
-        pass #TODO
+        self._checkAccess("setCommand", (index,), False)
+        raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "setCommand")
+        self.stringCmdList[index] = [commandStringList] 
+        return getAbsoluteIndex(index, len(self.stringCmdList))
 
     def addCommand(self, commandStringList):
+        self._checkAccess("addCommand")
         raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "addCommand") 
-
-        #TODO event is readonly ?
-
         self.stringCmdList.append( commandStringList )
-        
-        #TODO return real index
+        return len(self.stringCmdList) - 1
         
     def addPipeCommand(self, index, commandStringList):
-        #TODO event is readonly ?
-        
-        #TODO is bellow locked index ?
-        
-        #TODO is valid commandString ?
-        
-        pass #TODO
+        self._checkAccess("addPipeCommand", (index,))
+        raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "addPipeCommand")
+        self.stringCmdList[index].append(commandStringList)
+        return getAbsoluteIndex(index, len(self.stringCmdList))
         
     def removePipeCommand(self, index):
-        #TODO event is readonly ?
-        
-        #TODO is bellow locked index ?
-        
-        #TODO remove the last part of a command is equal to remove it
-            #so the command is removable ?
-    
-        pass #TODO
+        self._checkAccess("removePipeCommand", (index,))
+        del self.stringCmdList[index][-1]
+        if len(self.stringCmdList[index]) == 0:
+            del self.stringCmdList[index]
         
     def removeCommand(self, index):
-        #TODO event is readonly ?
-    
-        #TODO is bellow locked index ?
+        self._checkAccess("removeCommand", (index,))
     
         try:
             del self.stringCmdList[index]
@@ -249,41 +268,9 @@ class Event(UniCommand):
             pass #do nothing
         
     def moveCommand(self,fromIndex, toIndex):
-        #TODO event is readonly ?
-    
-        #TODO is bellow locked index ?
-    
-        try:
-            self.stringCmdList[fromIndex]
-        except IndexError:
-            if len(self.stringCmdList) == 0:
-                message = "command list is empty"
-            elif len(self.stringCmdList) == 1:
-                message = "only index 0 is available"
-            else:
-                message = "a value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
-        
-            raise ParameterException("(Event) moveCommand, invalid index 'from',"+message+" , got '"+str(fromIndex)+"'")
-        
-        #transforme to positive index if needed
-        if fromIndex < 0:
-            fromIndex = len(self.stringCmdList) + fromIndex
-        
-        try:
-            self.stringCmdList[toIndex]
-        except IndexError:
-            if len(self.stringCmdList) == 0:
-                message = "command list is empty"
-            elif len(self.stringCmdList) == 1:
-                message = "only index 0 is available"
-            else:
-                message = "a value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
-        
-            raise ParameterException("(Event) moveCommand, invalid index 'to',"+message+" , got '"+str(fromIndex)+"'")
-            
-        #transforme to positive index if needed
-        if toIndex < 0:
-            toIndex = len(self.stringCmdList) + toIndex
+        self._checkAccess("moveCommand", (fromIndex,toIndex,))
+        fromIndex = getAbsoluteIndex(fromIndex, len(self.stringCmdList))
+        toIndex = getAbsoluteIndex(toIndex, len(self.stringCmdList))
             
         if fromIndex == toIndex:
             return
@@ -293,6 +280,35 @@ class Event(UniCommand):
             toIndex -= 1
             
         self.stringCmdList.insert(toIndex, self.stringCmdList.pop(fromIndex))
+    
+    def _checkAccess(self,methName, indexToCheck = (), raiseIfOutOfBound = True):
+        if self.isReadOnly():
+            raise ParameterException("(Event) "+methName+", this event is readonly, can not do any update on its content")
+            
+        for index in indexToCheck:
+            #check validity
+            try:
+                self.stringCmdList[index]
+            except IndexError:
+                if raiseIfOutOfBound:
+                    pass #TODO use message in comment
+            except TypeError as te:
+                raise ParameterException("(Event) "+methName+", invalid index: "+str(te))
+        
+            #TODO make absolute index
+        
+            #check access
+            if index <= self.lockedTo:
+                pass #TODO raise use message in comment
+                
+                """if len(self.stringCmdList) == 0:
+                    message = "command list is empty"
+                elif len(self.stringCmdList) == 1:
+                    message = "only index 0 is available"
+                else:
+                    message = "a value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
+            
+                raise ParameterException("(Event) moveCommand, invalid index 'from',"+message+" , got '"+str(fromIndex)+"'")"""
         
     def upCommand(self,index):
         self.moveCommand(index,index-1)
@@ -308,5 +324,9 @@ class Event(UniCommand):
         e.argFromEventOnlyForFirstCommand = self.argFromEventOnlyForFirstCommand
         e.useArgFromEvent                 = self.useArgFromEvent
         e.executeOnPre                    = self.executeOnPre
+        e.readonly                        = self.readonly
+        e.removable                       = self.removable
+        e.transient                       = self.transient
+        e.lockedTo                        = self.lockedTo
         
         return e

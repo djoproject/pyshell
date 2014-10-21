@@ -158,16 +158,23 @@ def parseCommand(parsedCmd, mltries):
 #
 # @return, true if no severe error or correct process, false if severe error
 #
-def executeCommand(cmd, params):
+def executeCommand(cmd, params, preParse = True ):
     "execute the engine object"
 
     try:
+        if preParse:
+            cmdPreParsed = preParseLine(cmd)
+        else:
+            cmdPreParsed = cmd
+    
         #parse and check the string list
-        cmdStringList = parseArgument(preParseLine(cmd), params)
+        cmdStringList = parseArgument(cmdPreParsed, params)
 
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
             return False
+
+        #TODO print an error if levelTries is not available AND stop
 
         #convert token string to command objects and argument strings
         rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue())

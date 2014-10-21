@@ -90,6 +90,7 @@ class engineV3(object):
         self.selfkillreason   = None 
         self.topPreIndexOpp   = None
         self.topProcessToPre  = False
+        self.lastResult       = None
 
         #init stack with a None data, on the subcmd 0 of the command 0, with a preprocess action
         self.stack.push([EMPTY_DATA_TOKEN], [0], PREPROCESS_INSTRUCTION) #init data to start the engine
@@ -792,6 +793,9 @@ class engineV3(object):
     
     def getEnv(self):
         return self.env
+        
+    def getLastResult(self):
+        return self.lastResult
     
 ### ENGINE core meth ###
 
@@ -893,7 +897,10 @@ class engineV3(object):
                 #manage result
                 if len(top[1]) > 1: #not on the root node
                      to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,) #just remove one item in the path to get the next postprocess to execute
-            
+                else: #so this is the last post for this data
+                    if self.stack.size() == 1: #and there is no more data to process
+                        self.lastResult = r
+                    
             else:
                 raise executionException("(engine) execute, unknwon process command '"+str(insType)+"'")
         
