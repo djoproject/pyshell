@@ -118,7 +118,7 @@ class GlobalLoader(AbstractLoader):
 
         currentState = self.subAddons[subAddonName][1]
         if currentState.state not in allowedState:
-            raise LoadException("(GlobalLoader) methodName, sub loader '"+str(subAddonName)+"' "+invalidStateMessage)
+            raise LoadException("(GlobalLoader) '"+methodName+"', sub loader '"+str(subAddonName)+"' "+invalidStateMessage)
 
         for loaderName, loader in self.subAddons[subAddonName][0].items():
             meth_toCall = getattr(loader, methodName)

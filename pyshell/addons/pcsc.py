@@ -213,6 +213,7 @@ def _checkList(l, index, item_type):
 
 ## FUNCTION SECTION ##
 
+#TODO not used but useful...
 @shellMethod(bytes=listArgChecker(IntegerArgChecker(0,255)))
 def printATR(bytes):
     "convert a string of bytes into a human readable comprehension of the ATR"
@@ -318,6 +319,8 @@ def connectReader(index=0,cards = None, connections = None,loaded=False, autoloa
     readerToUse = _checkList(readers(), index, "reader")
     
     connection = readerToUse.createConnection()
+    
+    #FIXME if an error occurs here, the exception raised does not give the id of the reader
     connection.connect()#create a connection to the card
 
     connection_list = connections.getValue()[:]
@@ -451,11 +454,13 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
         onreader = 0
     
         for card in cards:
-            if card.reader == reader:
+            print type(card.reader), "|", type(reader), "|", card.reader == reader
+            if str(card.reader) == str(reader): #FIXME seems to always return True
+                print "plop"
                 onreader += 1
                 
         for con in connections:
-            if con.getReader() == reader:
+            if str(con.getReader()) == str(reader):
                 connected += 1
                 
         to_ret.append( (str(index), str(reader), str(onreader), str(connected),) )

@@ -69,7 +69,10 @@ def addValuesFun(key, values, parameters, parent):
 
 def getParameter(key,parameters,parent=None):
     if not parameters.hasParameter(key, parent):
-        raise Exception("Unknow parameter key '"+str(key)+"'")
+        if parent is None:
+            raise Exception("Unknow parameter key '"+str(key)+"'")
+        else:
+            raise Exception("Unknow parameter key '"+str(key)+"' for parent '"+str(parent)+"'")
 
     return parameters.getParameter(key, parent)
     

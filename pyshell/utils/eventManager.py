@@ -25,7 +25,9 @@ EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils       import raiseIfInvalidKeyList
+from pyshell.utils.executing   import executeCommand
 from pyshell.command.command   import UniCommand
+from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
 
@@ -39,9 +41,17 @@ if pyrev == 2:
 else:
     import configparser as ConfigParser
 
-#TODO TODO TODO TODO TODO
-    #removable boolean is not checked if event is removed from tries...
+#TODO
+    #BUG piping does not work
 
+    # "removable" boolean is not checked if event is removed from tries...
+            
+    #find a new name, not really an alias, and not really an event
+        #an event is just an alias running in backgroun, so we can keep alias
+    
+    #rename all variable like stringCmdList, it is difficult to understand what is what
+
+#TODO somewhere else
     #firing/executing system (not in this module anymore)
         #for piped command
             #with a "&" at the end of a script line
@@ -51,41 +61,15 @@ else:
             #with one of the two solution above
             #with a specific command from alias addon 
 
-    #keep track of running event and be able to kill one or all of them (not in this module anymore)
-            
-    #find a new name, not really an alias, and not really an event
-        #an event is just an alias running in backgroun, so we can keep alias
-    
-    #rename all variable like stringCmdList, it is difficult to understand what is what
+    #keep track of running event and be able to kill one or all of them (not in this module anymore)    
 
 ### UTILS COMMAND ###
-
-def isInt(value):
-    try:
-        i = int(value) 
-        return True, i 
-    except ValueError:
-        pass
-    
-    return False, None
-    
-def isBool(value):
-    if type(value) != str and type(value) != unicode:
-        return False, None
-        
-    if value.lower() == "true":
-        return True,True
-        
-    if value.lower() == "false":
-        return True,False
-        
-    return False,None
     
 def getAbsoluteIndex(index, listSize):
     if index > 0:
         return index
     
-    index = len(listSize) + index
+    index = listSize + index
     
     #python work like that
     if index < 0:
@@ -131,6 +115,7 @@ class Event(UniCommand):
     def _execute(self, args, parameters):
         #make a copy of the current event
         e = self.clone() #could be updated during its execution in another thread
+        engine = None
         
         for cmd in e.stringCmdList:
             if e.useArgFromEvent:
@@ -138,18 +123,21 @@ class Event(UniCommand):
                     e.useArgFromEvent = False
                 
                 cmd[0].extend(args)
-                        
-            if not executeCommand(cmd, parameters, False) and stopOnError:
-                #TODO need to raise, otherelse, the upper engine will not stop
-                    #just raise a stop error without any message to print, just stop it
             
-                break
-                
-        #TODO return the result of last command in the alias
-            #need to update engine to be able to do that
-            #engine.getLastResult()
+            state, engine = executeCommand(cmd, parameters, False)  
+            if not state and e.stopOnError:
+                raise engineInterruptionException("internal command has been interrupted")
+            
+        #return the result of last command in the alias
+        if engine == None:
+            return ()
+            
+        lastResult = engine.getLastResult()
         
-        return ()
+        if lastResult == None: #FIXME pas sur, on devrait pouvoir renvoyer None
+            return ()
+            
+        return lastResult
         
     ###### get/set method
         
@@ -238,8 +226,15 @@ class Event(UniCommand):
     def setCommand(self, index, commandStringList):
         self._checkAccess("setCommand", (index,), False)
         raiseIfInvalidKeyList(commandStringList, ParameterException,"Event", "setCommand")
-        self.stringCmdList[index] = [commandStringList] 
-        return getAbsoluteIndex(index, len(self.stringCmdList))
+        index = getAbsoluteIndex(index, len(self.stringCmdList))
+        
+        if index >= len(self.stringCmdList):
+            self.stringCmdList.append( [commandStringList] )
+            return len(self.stringCmdList) - 1
+        else:
+            self.stringCmdList[index] = [commandStringList] 
+        
+        return index
 
     def addCommand(self, commandStringList):
         self._checkAccess("addCommand")
@@ -291,24 +286,30 @@ class Event(UniCommand):
                 self.stringCmdList[index]
             except IndexError:
                 if raiseIfOutOfBound:
-                    pass #TODO use message in comment
+                    if len(self.stringCmdList) == 0:
+                        message = "Command list is empty"
+                    elif len(self.stringCmdList) == 1:
+                        message = "Only index 0 is available"
+                    else:
+                        message = "A value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
+                
+                    raise ParameterException("(Event) "+methName+", index out of bound. "+message+", got '"+str(index)+"'")
             except TypeError as te:
                 raise ParameterException("(Event) "+methName+", invalid index: "+str(te))
         
-            #TODO make absolute index
+            #make absolute index
+            index = getAbsoluteIndex(index, len(self.stringCmdList))
         
             #check access
-            if index <= self.lockedTo:
-                pass #TODO raise use message in comment
-                
-                """if len(self.stringCmdList) == 0:
-                    message = "command list is empty"
+            if index <= self.lockedTo:                
+                if len(self.stringCmdList) == 0:
+                    message = "Command list is empty"
                 elif len(self.stringCmdList) == 1:
-                    message = "only index 0 is available"
+                    message = "Only index 0 is available"
                 else:
-                    message = "a value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
+                    message = "A value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
             
-                raise ParameterException("(Event) moveCommand, invalid index 'from',"+message+" , got '"+str(fromIndex)+"'")"""
+                raise ParameterException("(Event) "+methName+", invalid index. "+message+", got '"+str(index)+"'")
         
     def upCommand(self,index):
         self.moveCommand(index,index-1)
@@ -317,7 +318,7 @@ class Event(UniCommand):
         self.moveCommand(index,index+1)
         
     def clone(self):
-        e = Event()
+        e = Event(self.name)
     
         e.stringCmdList                   = self.stringCmdList[:]
         e.stopOnError                     = self.stopOnError

@@ -34,6 +34,7 @@
                 #start, stop, restart, kill, list, ...
                 #be able to manage these action from command line
 
+#TODO some of these internal/external import are no more needed, filter them
 #system library
 import readline
 import os

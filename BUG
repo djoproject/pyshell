@@ -59,5 +59,6 @@ I) autocompletion bug
     the "ca" is replaced with "a"
     
 J) aucun message d'erreur n'est affiché quand certains arguments ne sont pas consommé
-    
+
+K) quand une carte est insérée, dans le listing des readers, elle apparait comme étant sur chaque reader    
     

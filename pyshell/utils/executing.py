@@ -22,6 +22,8 @@ from pyshell.arg.exception     import *
 from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3
+from pyshell.utils.parameter   import VarParameter
+import traceback
 
 #TODO
     #faire un executing en mode "thread"
@@ -30,33 +32,34 @@ from pyshell.command.engine    import engineV3
     #TODO in preParseLine, manage space escape like ‘\ ‘
 
 def preParseNotPipedCommand(line):
+    "parse line that looks like 'aaa bbb ccc'"
 
-	#remove blank char at the ends
-	line = line.strip(' \t\n\r')
+    #remove blank char at the ends
+    line = line.strip(' \t\n\r')
 
-	if len(line) == 0:
-		return ()
+    if len(line) == 0:
+        return ()
 
-	#split on space
-	line = line.split(" ")
+    #split on space
+    line = line.split(" ")
 
-	#fo each token
-	parsedLine = []
-	for token in line:
+    #fo each token
+    parsedLine = []
+    for token in line:
 
-		#clean token
-		clearedToken = token.strip(' \t\n\r')
+        #clean token
+        clearedToken = token.strip(' \t\n\r')
 
-		#remove empty token
-		if len(clearedToken) == 0:
-			continue
+        #remove empty token
+        if len(clearedToken) == 0:
+            continue
 
-		parsedLine.append(clearedToken)
+        parsedLine.append(clearedToken)
 
-	return parsedLine
+    return parsedLine
 
 def preParseLine(line):
-    "parse a line to a list of list of string, without converting the arg element"
+    "parse line that looks like 'aaa bbb ccc | ddd eee fff | ggg hhh iii'"
 
     line = line.split("|")
     toret = []
@@ -73,7 +76,7 @@ def preParseLine(line):
     return toret
 
 def parseArgument(preParsedCmd, params):
-    "replace argument like `$toto` into their value in parameter"
+    "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
 
     parsedCmd = []
     unknowVarError = set()
@@ -110,15 +113,16 @@ def parseArgument(preParsedCmd, params):
         parsedCmd.append(newRawCmd)
 
     if len(unknowVarError) > 0:
-    	toRaise = ListOfException()
-    	for uniqueError in unknowVarError:
-    		toRaise.addException( DefaultPyshellException(uniqueError, USER_WARNING) )
+        toRaise = ListOfException()
+        for uniqueError in unknowVarError:
+            toRaise.addException( DefaultPyshellException(uniqueError, USER_WARNING) )
 
         return toRaise
 
     return parsedCmd
 
 def parseCommand(parsedCmd, mltries):
+    "indentify command name and args from output of method parseArgument"
 
     ## look after command in tries ##
     rawCommandList = []   
@@ -158,6 +162,11 @@ def parseCommand(parsedCmd, mltries):
 #
 # @return, true if no severe error or correct process, false if severe error
 #
+# TODO
+#   should be easy to run in a new thread or not
+#   command are not thread safe...
+#       be careful if running in a new thread, each command has a state not sharable for each execution
+# 
 def executeCommand(cmd, params, preParse = True ):
     "execute the engine object"
 
@@ -184,7 +193,7 @@ def executeCommand(cmd, params, preParse = True ):
         
         #execute 
         engine.execute()
-        return True
+        return True, engine
         
     except executionInitException as eie:
         error("Fail to init an execution object: "+str(eie.value))
@@ -201,9 +210,9 @@ def executeCommand(cmd, params, preParse = True ):
         warning("Error while parsing argument: "+str(ae.value))
     except ListOfException as loe:
         if len(loe.exceptions) > 0:
-            error("List of exception:")
+            error("List of exception(s):")
             for e in loe.exceptions:
-                printException(e)
+                printException(e) #TODO print a space before exception
                 
     except Exception as e:
         printException(e)
@@ -212,7 +221,7 @@ def executeCommand(cmd, params, preParse = True ):
     if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
         error(traceback.format_exc())
 
-    return False
+    return False, None
 
 
 

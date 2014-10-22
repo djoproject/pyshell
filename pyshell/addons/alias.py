@@ -21,10 +21,10 @@ from pyshell.loader.command     import registerCommand, registerSetGlobalPrefix,
 from pyshell.arg.argchecker     import parameterChecker, filePathArgChecker
 from pyshell.utils.constants    import ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY
 from pyshell.utils.eventManager import Event  
-from pyshell.utils.executing    import preParseNotPipedCommand
-from pyshell.utils.exception    import ParameterLoadingException
+from pyshell.utils.executing    import preParseNotPipedCommand, preParseLine
+from pyshell.utils.exception    import ParameterLoadingException, ListOfException
 from pyshell.loader.parameter   import registerSetEnvironment
-from pyshell.utils.parameter           import EnvironmentParameter
+from pyshell.utils.parameter    import EnvironmentParameter
 import sys, os
 
 try:
@@ -134,12 +134,33 @@ else:
             
 ## FUNCTION SECTION ##
 
+def isInt(value):
+    try:
+        return True, int(value) 
+    except ValueError:
+        pass
+    
+    return False, None
+    
+def isBool(value):
+    if type(value) != str and type(value) != unicode:
+        return False, None
+        
+    if value.lower() == "true":
+        return True,True
+        
+    if value.lower() == "false":
+        return True,False
+        
+    return False,None
+
 @shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME),
              filePath = parameterChecker("alias_filepath", ENVIRONMENT_NAME))
 def load(mltries, filePath):
 
     #load file
     filePath = filePath.getValue()
+    mltries = mltries.getValue()
     
     if not os.path.exists(filePath):
         return
@@ -173,23 +194,34 @@ def load(mltries, filePath):
                 continue
         else:
             alreadyExist = False
-            alias = Event()
+            alias = Event(" ".join(parsedSection))
         
-        onError = False
+        onError  = False
+        lockedTo = -1
         for option in config.options(section):
             value = config.get(section, option)
-            if option in ["stopOnError","argFromEventOnlyForFirstCommand","useArgFromEvent", "executeOnPre"] :
+            methDeco = {"stoponerror":alias.setStopOnError,
+                        "argfromeventonlyforfirstcommand":alias.setArgFromEventOnlyForFirstCommand,
+                        "useargfromevent":alias.setUseArgFromEvent,
+                        "executeonpre":alias.setExecuteOnPre,
+                        "removable":alias.setRemovable,
+                        "readonly":alias.setReadOnly}
+                        
+            if option in methDeco:
                 validBool, boolValue = isBool(value)
                 if not validBool:
                     errorList.addException(ParameterLoadingException("a boolean value was expected for parameter '"+str(option)+"' of alias '"+str(section)+"', got '"+str(value)+"'"))
                     onError = True
                     continue
                 
-                setattr(alias,option,boolValue)
-            
-            #TODO there is other thing to parse
-                #lockedTo
+                methDeco[option](boolValue)
+                #setattr(alias,option,boolValue)
+            elif option == "lockedto":
+                validInt, intValue = isInt(value)
 
+                if not validBool:
+                    errorList.addException(ParameterLoadingException("an integer value was expected for parameter 'lockedTo' of alias '"+str(section)+"', got '"+str(value)+"'"))
+                    onError = True
             else:
                 #is it an index key ?
                 validInt, intValue = isInt(option)
@@ -205,14 +237,18 @@ def load(mltries, filePath):
 
                 #add cmd
                 try:
-                    event.setCommand(intValue, preParsedCmd[0])
-
+                    alias.setCommand(intValue, preParsedCmd[0])
                     for i in xrange(1, len(preParsedCmd)):
-                        event.addPipeCommand(intValue, preParsedCmd[0])
-
+                        alias.addPipeCommand(intValue, preParsedCmd[i])
                 except Exception as ex:
                     errorList.addException(ex) #TODO find a way to include section name
                     onError = True 
+        
+        try:
+            alias.setLockedTo(lockedTo)
+        except Exception as ex:
+            errorList.addException(ex) #TODO find a way to include section name
+            onError = True 
         
         if not onError and not alreadyExist:
             mltries.insert(parsedSection, alias)
@@ -221,30 +257,48 @@ def load(mltries, filePath):
     if errorList.isThrowable():
         raise errorList
 
+def _saveTraversal(path, node, config, level):
+    if not node.isValueSet():
+        return config
+
+    if not isinstance(node.value, Event):
+        return config
+
+    eventObject = node.value
+    
+    if eventObject.isTransient():
+        return config
+        
+    eventName = " ".join(path)
+    
+    config.add_section(eventName)
+    config.set(eventName, "stopOnError",                     str(eventObject.stopOnError))
+    config.set(eventName, "argFromEventOnlyForFirstCommand", str(eventObject.argFromEventOnlyForFirstCommand))
+    config.set(eventName, "useArgFromEvent",                 str(eventObject.useArgFromEvent))
+    config.set(eventName, "executeOnPre",                    str(eventObject.executeOnPre))
+    config.set(eventName, "lockedTo",                        str(eventObject.lockedTo))
+    config.set(eventName, "readonly",                        str(eventObject.readonly))
+    config.set(eventName, "removable",                       str(eventObject.removable))
+    
+    index = 0
+    for cmd in eventObject.stringCmdList:
+        tmp = []
+        for subcmd in cmd:
+            tmp.append(" ".join(subcmd))
+        
+        config.set(eventName, str(index), " | ".join(tmp))
+        index += 1
+
+    return config
+
 @shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME),
              filePath = parameterChecker("alias_filepath", ENVIRONMENT_NAME))
-def save(mltries, filePath): #TODO adapt
+def save(mltries, filePath):
     config = ConfigParser.RawConfigParser()
     
-    for eventName, eventObject in self.events.items(): #TODO
-        config.add_section(eventName)
-        
-        #set event properties
-        config.set(eventName, "stopOnError",                     eventObject.stopOnError)
-        config.set(eventName, "argFromEventOnlyForFirstCommand", eventObject.argFromEventOnlyForFirstCommand)
-        config.set(eventName, "useArgFromEvent",                 eventObject.useArgFromEvent)
-        config.set(eventName, "executeOnPre",                    eventObject.executeOnPre)
-        
-        #TODO store new fields in event
-            #lockedTo
-
-        #write each command in order
-        #TODO will be a map soon, need to adapt that
-        index = 0
-        for cmd in eventObject.stringCmdList:
-            config.set(eventName, str(index), " ".join(cmd))
-            index += 1
-        
+    mltries = mltries.getValue()
+    mltries.genericBreadthFirstTraversal(_saveTraversal, config, True,True, (), True)
+    filePath = filePath.getValue()
     with open(filePath, 'wb') as configfile:
         config.write(configfile)
 
@@ -262,9 +316,19 @@ def _listTraversal(path, node, state, level):
 def listAlias(mltries):
     mltries = mltries.getValue()
     result = mltries.genericBreadthFirstTraversal(_listTraversal, {}, True,True, (), True)
-
-    for k,v in result:
-        print k,v
+    
+    for k,v in result.items():
+        print " ".join(k)
+        
+        for cmd in v.stringCmdList:
+            tmp = []
+            for subcmd in cmd:
+                tmp.append(" ".join(subcmd))
+            
+            print "    "+" | ".join(tmp)
+        
+def listAliasContent(idAlias, mltries):
+    pass #TODO
 
 def execute(name):
     pass #TODO
