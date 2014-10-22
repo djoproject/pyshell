@@ -219,9 +219,11 @@ def load(mltries, filePath):
             elif option == "lockedto":
                 validInt, intValue = isInt(value)
 
-                if not validBool:
+                if not validInt:
                     errorList.addException(ParameterLoadingException("an integer value was expected for parameter 'lockedTo' of alias '"+str(section)+"', got '"+str(value)+"'"))
                     onError = True
+                    continue
+                lockedTo = intValue
             else:
                 #is it an index key ?
                 validInt, intValue = isInt(option)
@@ -237,9 +239,9 @@ def load(mltries, filePath):
 
                 #add cmd
                 try:
-                    alias.setCommand(intValue, preParsedCmd[0])
+                    realid = alias.setCommand(intValue, preParsedCmd[0])
                     for i in xrange(1, len(preParsedCmd)):
-                        alias.addPipeCommand(intValue, preParsedCmd[i])
+                        alias.addPipeCommand(realid, preParsedCmd[i])
                 except Exception as ex:
                     errorList.addException(ex) #TODO find a way to include section name
                     onError = True 
