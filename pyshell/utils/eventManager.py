@@ -42,6 +42,16 @@ else:
     import configparser as ConfigParser
 
 #TODO
+    #for the onStartUpEvent
+        #create a static, not updatable transient event
+        #that will load the event file
+        #then call a subevent onStartUpEvent loaded from file
+        
+        #need to do that because it is not possible to execute and load onStartUpEvent at the same time
+
+    #replace argument passing with a special arg
+        #so only command with this special arg could have argument passed to event 
+
     #BUG piping does not work
 
     # "removable" boolean is not checked if event is removed from tries...
