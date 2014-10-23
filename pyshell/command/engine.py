@@ -899,8 +899,13 @@ class engineV3(object):
                      to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,) #just remove one item in the path to get the next postprocess to execute
                 else: #so this is the last post for this data
                     if self.stack.size() == 1: #and there is no more data to process
-                        self.lastResult = r
-                    
+                        if isinstance(r, MultiOutput):
+                            self.lastResult = r
+                        else:    
+                            if len(r) > 0 and r[0] is EMPTY_DATA_TOKEN:
+                                self.lastResult = ()
+                            else:
+                                self.lastResult = r                              
             else:
                 raise executionException("(engine) execute, unknwon process command '"+str(insType)+"'")
         

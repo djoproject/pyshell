@@ -56,6 +56,9 @@ class Command(object):
     #this method is called on every processing to reset the internal state
     def reset(self):
         pass  #TO OVERRIDE if needed
+        
+    def clone(self):
+        pass #TO OVERRIDE if needed
 
 #
 # a multicommand will produce several process with only one call
@@ -177,6 +180,21 @@ class MultiCommand(list):
             c.reset()
             self[i] = (c,a,True,)  
 
+    def clone(self):
+        cl = MultiCommand(self.name, self.showInHelp)
+        cl.helpMessage  = self.helpMessage
+        cl.usageBuilder = self.usageBuilder
+        cl.reset()
+        
+        for i in range(0, len(self)-self.dymamicCount):
+            c,a,e = self[i]
+            cmdClone = c.clone()
+            cmdClone.preCount = cmdClone.proCount = cmdClone.postCount = 0
+            cmdClone.reset()
+            cl.append( (cmdClone, a, e,) )
+            
+        return cl
+
     def addDynamicCommand(self,c,onlyAddOnce=True, useArgs = True, enabled = True):
         #cmd must be an instance of Command
         if not isinstance(c, Command):
@@ -237,5 +255,9 @@ class UniCommand(MultiCommand):
 
     def addStaticCommand(self, cmd, useArgs = True):
         pass # block the procedure to add more commands
+        
+    def clone(self):
+        cmd, useArg, enabled = self[0]
+        return UniCommand(self.name, cmd.preProcess, cmd.process, cmd.postProcess, self.showInHelp)
 
 

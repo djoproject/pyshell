@@ -20,7 +20,7 @@ from pyshell.arg.decorator      import shellMethod
 from pyshell.loader.command     import registerCommand, registerSetGlobalPrefix, registerStopHelpTraversalAt
 from pyshell.arg.argchecker     import parameterChecker, filePathArgChecker
 from pyshell.utils.constants    import ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY
-from pyshell.utils.eventManager import Event  
+from pyshell.utils.aliasManager import Alias  
 from pyshell.utils.executing    import preParseNotPipedCommand, preParseLine
 from pyshell.utils.exception    import ParameterLoadingException, ListOfException
 from pyshell.loader.parameter   import registerSetEnvironment
@@ -185,7 +185,7 @@ def load(mltries, filePath):
             alreadyExist = True
             alias = mltriesSearchResult.getValue()
 
-            if not isinstance(alias, Event):
+            if not isinstance(alias, Alias):
                 errorList.addException(ParameterLoadingException("a section holds an already existing path: '"+" ".join(parsedSection)+"'"))
                 continue
 
@@ -194,15 +194,13 @@ def load(mltries, filePath):
                 continue
         else:
             alreadyExist = False
-            alias = Event(" ".join(parsedSection))
+            alias = Alias(" ".join(parsedSection))
         
         onError  = False
         lockedTo = -1
         for option in config.options(section):
             value = config.get(section, option)
             methDeco = {"stoponerror":alias.setStopOnError,
-                        "argfromeventonlyforfirstcommand":alias.setArgFromEventOnlyForFirstCommand,
-                        "useargfromevent":alias.setUseArgFromEvent,
                         "executeonpre":alias.setExecuteOnPre,
                         "removable":alias.setRemovable,
                         "readonly":alias.setReadOnly}
@@ -233,6 +231,7 @@ def load(mltries, filePath):
                     continue
                 
                 #parse cmd
+                #TODO some of the error are just warning and shouldn't disable the insertion
                 preParsedCmd = preParseLine(value)
                 if len(preParsedCmd) == 0:
                     continue
@@ -263,32 +262,30 @@ def _saveTraversal(path, node, config, level):
     if not node.isValueSet():
         return config
 
-    if not isinstance(node.value, Event):
+    if not isinstance(node.value, Alias):
         return config
 
-    eventObject = node.value
+    aliasObject = node.value
     
-    if eventObject.isTransient():
+    if aliasObject.isTransient():
         return config
         
-    eventName = " ".join(path)
+    aliasName = " ".join(path)
     
-    config.add_section(eventName)
-    config.set(eventName, "stopOnError",                     str(eventObject.stopOnError))
-    config.set(eventName, "argFromEventOnlyForFirstCommand", str(eventObject.argFromEventOnlyForFirstCommand))
-    config.set(eventName, "useArgFromEvent",                 str(eventObject.useArgFromEvent))
-    config.set(eventName, "executeOnPre",                    str(eventObject.executeOnPre))
-    config.set(eventName, "lockedTo",                        str(eventObject.lockedTo))
-    config.set(eventName, "readonly",                        str(eventObject.readonly))
-    config.set(eventName, "removable",                       str(eventObject.removable))
+    config.add_section(aliasName)
+    config.set(aliasName, "stopOnError",                     str(aliasObject.stopOnError))
+    config.set(aliasName, "executeOnPre",                    str(aliasObject.executeOnPre))
+    config.set(aliasName, "lockedTo",                        str(aliasObject.lockedTo))
+    config.set(aliasName, "readonly",                        str(aliasObject.readonly))
+    config.set(aliasName, "removable",                       str(aliasObject.removable))
     
     index = 0
-    for cmd in eventObject.stringCmdList:
+    for cmd in aliasObject.stringCmdList:
         tmp = []
         for subcmd in cmd:
             tmp.append(" ".join(subcmd))
         
-        config.set(eventName, str(index), " | ".join(tmp))
+        config.set(aliasName, str(index), " | ".join(tmp))
         index += 1
 
     return config
@@ -308,7 +305,7 @@ def _listTraversal(path, node, state, level):
     if not node.isValueSet():
         return state
 
-    if not isinstance(node.value, Event):
+    if not isinstance(node.value, Alias):
         return state
 
     state[tuple(path)] = node.value
@@ -345,6 +342,8 @@ def createAlias(name, command):
     pass #TODO
 
 def removeAlias(idAlias):
+    #TODO don't forget to check removable properties
+
     pass #TODO
     
 def addMethodToAlias(idAlias, command):

@@ -1,4 +1,9 @@
 #############################
+### Bash like             ###
+#############################  
+shif, set, loop, if, goto, ...
+
+#############################
 ### keystore              ###
 #############################    
     be able to cypher it
@@ -108,9 +113,9 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     PRBLM to solve
         where to use binded argument ?
             in pre, in pro or in post ?
+            
+            in first real entering point, where come from the usage information
                 
-#########################################################################################################################
-
 #####################
 ### print service ###
 #####################
@@ -230,50 +235,29 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #type de framew
         #...
 
+##################################################################################################################################
 ##### futur work (part 1) ########################################################################################################
+##################################################################################################################################
+
     (threading/event/thread-safe/application-safe/...)
     
     work in progress, see file EventManager and parameter
 
-#################
-### ALIAS     ###
-#################
-    (see alias addon file and eventManager file)
-        #les alias et les events sont très proches, la seule différence et le thread d'execution (le courant pour l'alias, un nouveau pour le thread)
-        #le travail est donc fort commun
+#####################
+### alias manager ###
+#####################
 
-	#alias pointant sur 1..n commande(s)
-	    append alias NAME cmd+args
-	    remove alias NAME
-	
-        faire une liste d'alias'
-            description dans le code
-            
-        #un alias peu être utilisé dans un autre alias
-            #eviter les boucles
-                #pas possible si on empêche la creation d'un alias sur une commande qui n'existe pas
-        
-        #probleme lors de la suppression de l'objet pointé
-            #politique de suppression : on_cascade/interactive/error/nothing ?
-            
-        #eviter d'avoir une reference dans l'objet pointé
-            #comment savoir qu'il est pointé vers un alias alors ?
-            #maintenir un dic avec les mappings ?
-            #checker lors de chaque suppression de commande ?
-            
-        #on doit être capable de stocker des args avec l'alias
-            #tout en pouvant toujours lui en passer en l'appelant
-                
-    PRBLM to solve
-        addon creation at once
-        deletion politics 
-        dependencies deletion politics
+    main core element are ready
+    still need to find a way to use easyly the alias editing in command line
+    implementer "set" et "shift" comme dans un vrai bash
+        dans le std
 
 ################################
 ### Parameter Thread safe    ###
 ################################
     
-    pouvoir desactiver un lock dans un parameter ?
+    pouvoir desactiver un lock dans un parameter ? intérêt ?
+        Brainstorming todo
     
 #####################
 ### event manager ###
@@ -321,9 +305,14 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     #pour l'instant les ressource seront lockée pour un single process
         #pas pour une commande, ni une multicommande, ni une piped commande, ni un aliasevent, ni ...
         #est ce une bonne idée ?
+        
+    #What about parameter only accessible in a single thread ?
+        a parameter object only accessible in thread environment, not in the whole app 
 
+##################################################################################################################################
 ##### futur work (part 2) ########################################################################################################
-    
+##################################################################################################################################
+
 #############################
 ### state machine process ### OLD NAME : workflow, application
 #############################

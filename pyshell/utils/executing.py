@@ -24,12 +24,40 @@ from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3
 from pyshell.utils.parameter   import VarParameter
 import traceback
+from tries.exception import triesException
 
 #TODO
     #faire un executing en mode "thread"
         #ou modifier le executing pour gérer ça
 
     #TODO in preParseLine, manage space escape like ‘\ ‘
+    
+    #firing/executing system
+        #for piped command
+            #with a "&" at the end of a script line
+            #with a "fire" at the beginning of a script line
+
+        #with only an alias name
+            #with one of the two solution above
+            #with a specific command from alias addon 
+
+    #keep track of running event and be able to kill one or all of them
+    
+    #for the onStartUpEvent
+        #create a static, not updatable transient event
+        #that will load the event file
+        #then call a subevent onStartUpEvent loaded from file
+        
+        #need to do that because it is not possible to execute and load onStartUpEvent at the same time
+        
+    #should clone command object before to run in a thread
+        #because internal state of these oject are not shareble
+
+#TODO use that (or remove them)
+EVENT_ON_STARTUP      = "onstartup" #at application launch
+EVENT_AT_EXIT         = "atexit" #at application exit
+EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
+EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
 def preParseNotPipedCommand(line):
     "parse line that looks like 'aaa bbb ccc'"
@@ -75,7 +103,7 @@ def preParseLine(line):
 
     return toret
 
-def parseArgument(preParsedCmd, params):
+def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
     "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
 
     parsedCmd = []
@@ -91,17 +119,48 @@ def parseArgument(preParsedCmd, params):
                 stringToken = stringToken[1:]
 
                 if not params.hasParameter(stringToken):
+                
+                    #is it an element of the current execution ?
+                    if commandName is not None:
+                        if stringToken == "0": #script name
+                            newRawCmd.append( commandName )
+                            continue
+                    
+                    if commandArg is not None:
+                        if stringToken == "*": #all arg in one string
+                            if len(commandArg) > 0:
+                                newRawCmd.append(' '.join(str(x) for x in commandArg))
+                            continue
+                        elif stringToken == "@": #all arg
+                            newRawCmd.extend( commandArg )
+                            continue
+                        elif stringToken == "#": #arg count
+                            newRawCmd.append( str(len(commandArg)) )
+                            continue
+                            
+                    #TODO
+                        """if stringToken == "?": #value returned by the last command
+                            #TODO
+                            continue
+                        elif stringToken == "$": #current pid
+                            #TODO
+                            continue
+                        elif stringToken == "!": #last pid started in background
+                            #TODO
+                            continue"""
+                    
                     unknowVarError.add("Unknown var '"+stringToken+"'")
                     continue
+                
+                else:
+                    param = params.getParameter(stringToken)
                     
-                param = params.getParameter(stringToken)
-                
-                if not isinstance(param, VarParameter):
-                    unknowVarError.add("specified key '"+stringToken+"' correspond to a type different of a var")
-                    continue
-                
-                #because it is a VarParameter, it is always a list type
-                newRawCmd.extend(param.getValue())   
+                    if not isinstance(param, VarParameter):
+                        unknowVarError.add("specified key '"+stringToken+"' correspond to a type different of a var")
+                        continue
+                    
+                    #because it is a VarParameter, it is always a list type
+                    newRawCmd.extend(param.getValue())   
                 
             elif stringToken.startswith("\$"):
                 #remove "\"
@@ -140,7 +199,7 @@ def parseCommand(parsedCmd, mltries):
             tokenIndex = len(searchResult.existingPath) - 1
             tries = searchResult.existingPath[tokenIndex][1].localTries
             keylist = tries.getKeyList(finalCmd[tokenIndex])
-
+            
             raise DefaultPyshellException("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
 
         elif not searchResult.isAvalueOnTheLastTokenFound():
@@ -167,7 +226,7 @@ def parseCommand(parsedCmd, mltries):
 #   command are not thread safe...
 #       be careful if running in a new thread, each command has a state not sharable for each execution
 # 
-def executeCommand(cmd, params, preParse = True ):
+def executeCommand(cmd, params, preParse = True , processName=None, processArg=None):
     "execute the engine object"
 
     try:
@@ -177,13 +236,13 @@ def executeCommand(cmd, params, preParse = True ):
             cmdPreParsed = cmd
     
         #parse and check the string list
-        cmdStringList = parseArgument(cmdPreParsed, params)
+        cmdStringList = parseArgument(cmdPreParsed, params, processName, processArg)
 
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
             return False
 
-        #TODO print an error if levelTries is not available AND stop
+        #TODO print an error if levelTries is not available THEN stop
 
         #convert token string to command objects and argument strings
         rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue())
@@ -212,13 +271,14 @@ def executeCommand(cmd, params, preParse = True ):
         if len(loe.exceptions) > 0:
             error("List of exception(s):")
             for e in loe.exceptions:
-                printException(e) #TODO print a space before exception
+                printException(e) #TODO print a space before each exceptions
                 
     except Exception as e:
         printException(e)
 
     #print stack trace if debug is enabled
     if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+        #TODO print an empty line before stack trace
         error(traceback.format_exc())
 
     return False, None
