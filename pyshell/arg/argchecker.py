@@ -296,7 +296,7 @@ class IntegerArgChecker(ArgChecker):
             if len(self.bases) == 1:
                 message = "Only a number in base <"+str(self.bases[0])+"> is allowed"
             else:
-                message = "Only a number in bases <"+", ".join(str(x) for x in list_of_ints)+"> is allowed"
+                message = "Only a number in bases <"+", ".join(str(x) for x in self.bases)+"> is allowed"
         
             self._raiseArgException("this arg is not a valid "+self.typeName.lower()+", got <"+str(value)+">. "+message, argNumber, argNameToBind)
 

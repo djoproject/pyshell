@@ -91,6 +91,8 @@ class Alias(UniCommand):
         
         for cmd in e.stringCmdList:        
             state, engine = executeCommand(cmd, parameters, False, e.name, args)  
+            
+            #TODO stop on ERROR, not on WARNING
             if not state and e.stopOnError:
                 raise engineInterruptionException("internal command has been interrupted")
             

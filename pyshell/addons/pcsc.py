@@ -273,12 +273,19 @@ def loadPCSC(cards, autoload, loaded,autoconnect):
 def transmit(data, connection_index=0, connections = None):
     "transmit a list of bytes to a card connection"
 
+    #print data
+
     #TODO manage every SW here
         #setErrorCheckingChain to the connection object
         #maybe could be interesting to set it at connection creation
 
     connectionToUse = _checkList(connections.getValue(), connection_index, "connection")
-    return connectionToUse.transmit(data)
+    
+    data, sw1, sw2 = connectionToUse.transmit(data)
+    
+    #print "sw1=%.2x sw2=%.2x"%(sw1, sw2)
+    
+    return data
     
     #TODO if connection is broken, disconnect and remove from the list
         #how to know it ?
@@ -454,7 +461,6 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
         onreader = 0
     
         for card in cards:
-            print type(card.reader), "|", type(reader), "|", card.reader == reader
             if str(card.reader) == str(reader): #FIXME seems to always return True
                 print "plop"
                 onreader += 1

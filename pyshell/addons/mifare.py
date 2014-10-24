@@ -19,8 +19,7 @@
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix, registerSetTempPrefix
 from apdu.tag.mifareUltralight import MifareUltralightAPDUBuilder
 from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import IntegerArgChecker
-
+from pyshell.arg.argchecker    import IntegerArgChecker, LimitedInteger, listArgChecker
 
 #TODO
     #ultralight c authentication is missing
@@ -34,7 +33,9 @@ from pyshell.arg.argchecker    import IntegerArgChecker
 @shellMethod(sector = IntegerArgChecker(0))
 def mifareUltraLightRead(sector = 0):
     return MifareUltralightAPDUBuilder.readSector(sector)
-    
+
+@shellMethod(sector = IntegerArgChecker(0),
+             data   = listArgChecker(IntegerArgChecker(0,255),1)) #TODO retry with LimitedInteger
 def mifareUltraLightWrite(sector, data, compatibility = False):
     if compatibility:
         return MifareUltralightAPDUBuilder.CompatibilityWrite(data, sector)
