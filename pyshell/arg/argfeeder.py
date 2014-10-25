@@ -51,12 +51,24 @@ class ArgFeeder(ArgsChecker):
             raise argInitializationException("(ArgFeeder) argTypeList must be a valid instance of an ordered dictionnary")
         
         self.argTypeList = argTypeList
-        
+    
+    def manageMappedArg(self, name, checker, args):
+        if checker.maximumSize != None and len(args) > checker.maximumSize:
+            args = args[:checker.maximumSize]
+
+        if checker.minimumSize != None and len(args) < checker.minimumSize:
+            raise argException("(ArgFeeder) not enough data for the dash mapped argument '"+name+"', expected at least '"+str(checker.minimumSize)+"', got '"+str(len(args))+"'")
+
+        if checker.minimumSize == checker.maximumSize == 1:
+            args = args[0]
+                
+        return checker.getValue(args,None, name)
+
     #
     # @argsList, une liste de n'importe quoi
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
-    def checkArgs(self,argsList, engine=None):
+    def checkArgs(self,argsList, mappedArgs, engine=None):
         if not hasattr(argsList,"__iter__"):#if not isinstance(argsList,list):
             # argsList must be a string
             #if type(argsList) != str and type(argsList) != unicode:
@@ -73,6 +85,12 @@ class ArgFeeder(ArgsChecker):
         for (name,checker) in self.argTypeList.iteritems():
             #set the engine
             checker.setEngine(engine)
+
+            #is it a mapped args ?
+            if name in mappedArgs:
+                ret[name] = self.manageMappedArg(name, checker, mappedArgs[name])
+                argCheckerIndex += 1
+                continue
         
             #is there a minimum limit
             if checker.minimumSize != None:
@@ -109,11 +127,17 @@ class ArgFeeder(ArgsChecker):
             (name,checker) = items_list[i]
             checker.setEngine(engine)
 
-            if checker.hasDefaultValue(name):
-                ret[name] = checker.getDefaultValue(name)
-            else:
-                raise argException("(ArgFeeder) some arguments aren't bounded, missing data : '"+name+"'")
+            #is it a mapped args ?
+            if name in mappedArgs:
+                ret[name] = self.manageMappedArg(name, checker, mappedArgs[name])
+                continue
 
+            #is there a default value ?
+            if not checker.hasDefaultValue(name):
+                raise argException("(ArgFeeder) some arguments aren't bounded, missing data : '"+name+"'")
+            
+            ret[name] = checker.getDefaultValue(name)
+            
         #don't care about unused data in argsList, if every parameter are binded, we are happy :)
 
         return ret

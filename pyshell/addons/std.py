@@ -20,7 +20,7 @@ from tries.exception                   import triesException
 from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand
 from pyshell.arg.decorator             import shellMethod
 from pyshell.command.command           import MultiOutput
-from pyshell.simpleProcess.postProcess import printResultHandler, stringListResultHandler
+from pyshell.simpleProcess.postProcess import listFlatResultHandler, stringListResultHandler
 from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
 from pyshell.utils.constants           import ENVIRONMENT_NAME
 from pyshell.utils.exception           import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
@@ -255,16 +255,23 @@ def generator(start=0,stop=100,step=1, multiOutput = True):
         return MultiOutput(range(start,stop,step))
     else:
         return range(start,stop,step)
+
+"""@shellMethod(data = ,
+            from = ,
+            to = )
+def filter(data, from = 0, to=None):
+    pass #TODO"""
+
         
 ### REGISTER SECTION ###
 
 registerCommand( ("exit",) ,                          pro=exitFun)
 registerCommand( ("quit",) ,                          pro=exitFun)
 registerStopHelpTraversalAt( ("quit",) )
-registerCommand( ("echo",) ,                          pro=echo,         post=printResultHandler)
-registerCommand( ("echo16",) ,                        pro=echo16,       post=printResultHandler)
-registerCommand( ("toascii",) ,                       pro=intToAscii,   post=printResultHandler)
-registerCommand( ("usage",) ,                         pro=usageFun,     post=printResultHandler)
+registerCommand( ("echo",) ,                          pro=echo,         post=listFlatResultHandler)
+registerCommand( ("echo16",) ,                        pro=echo16,       post=listFlatResultHandler)
+registerCommand( ("toascii",) ,                       pro=intToAscii,   post=listFlatResultHandler)
+registerCommand( ("usage",) ,                         pro=usageFun,     post=listFlatResultHandler)
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
 registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)
 registerStopHelpTraversalAt( ("?",) )

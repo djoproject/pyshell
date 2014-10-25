@@ -19,12 +19,19 @@
 from pyshell.utils.exception   import *
 from pyshell.command.exception import *
 from pyshell.arg.exception     import *
+from pyshell.arg.argchecker    import booleanValueArgChecker
 from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME
 from pyshell.utils.printing    import warning, error, printException
-from pyshell.command.engine    import engineV3
+from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from pyshell.utils.parameter   import VarParameter
 import traceback
 from tries.exception import triesException
+
+import sys
+if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
+    from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
+else:
+    from collections import OrderedDict 
 
 #TODO
     #faire un executing en mode "thread"
@@ -58,6 +65,82 @@ EVENT_ON_STARTUP      = "onstartup" #at application launch
 EVENT_AT_EXIT         = "atexit" #at application exit
 EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
+
+
+def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
+    paramFound           = {}
+    remainingArgs        = []
+    whereToStore         = []
+    
+    lastParamFoundName    = None
+    lastParamFoundChecker = None
+
+    for i in xrange(0, len(inputArgs)):
+        ### manage parameter ###
+        if lastParamFoundChecker != None and lastParamFoundChecker.maximumSize != None and len(whereToStore) == lastParamFoundChecker.maximumSize:
+            #no need to check booleanchecker, whereToStore is not empty if the code reach this stateent with booleanchecker
+            paramFound[lastParamFoundName] = tuple(whereToStore)
+            lastParamFoundChecker = lastParamFoundName = None
+            whereToStore = []
+    
+        ### standard management ###
+        #exclusion character
+        if inputArgs[i].startswith(exclusion + prefix):
+            whereToStore.append(inputArgs[i][1:])
+            continue
+        
+        #not a param token
+        if not inputArgs[i].startswith(prefix):
+            whereToStore.append(inputArgs[i])
+            continue
+        
+        #is it a negative number ?
+        number = True
+        try:
+            float(inputArgs[i])
+        except ValueError:
+            number = False
+            
+        if number:
+            whereToStore.append(inputArgs[i])
+            continue
+        
+        ### params token found ###
+        if lastParamFoundChecker != None:
+            if isinstance(lastParamFoundChecker, booleanValueArgChecker) and len(whereToStore) == 0:
+                whereToStore.append("true")
+
+            paramFound[lastParamFoundName] = tuple(whereToStore)
+            lastParamFoundChecker = lastParamFoundName = None
+        else:
+            remainingArgs.extend(whereToStore)
+
+        whereToStore = []
+        paramName = inputArgs[i][1:]
+        
+        #not a param key, manage it like a string
+        if paramName not in argTypeList:
+            whereToStore.append(inputArgs[i])
+            continue
+        
+        argChecker = argTypeList[paramName]
+        
+        #does not continue care about empty params (like engine, params, ...)
+        if argChecker.maximumSize == 0:
+            continue
+        
+        lastParamFoundChecker = argChecker
+        lastParamFoundName    = paramName
+
+    if lastParamFoundChecker != None:
+        if isinstance(lastParamFoundChecker, booleanValueArgChecker) and len(whereToStore) == 0:
+            whereToStore.append("true")
+
+        paramFound[lastParamFoundName] = tuple(whereToStore)
+    else:
+        remainingArgs.extend(whereToStore)
+
+    return paramFound, remainingArgs
 
 def preParseNotPipedCommand(line):
     "parse line that looks like 'aaa bbb ccc'"
@@ -217,6 +300,44 @@ def parseCommand(parsedCmd, mltries):
     
     return rawCommandList, rawArgList
 
+def extractDashedParams(rawCommandList, rawArgList):
+    newRawArgList = []
+    mappedArgs = []
+    for i in range(0, len(rawCommandList)):
+        multiCmd = rawCommandList[i]
+
+        #empty command list
+        if len(multiCmd) == 0:
+            continue
+
+        #get multi-command entry command
+        firstSingleCommand,useArgs,enabled = multiCmd[0]
+
+        #extract arfeeder
+        if (hasattr(firstSingleCommand.preProcess, "isDefault") and firstSingleCommand.preProcess.isDefault) or not hasattr(firstSingleCommand.preProcess, "checker"):
+            if (hasattr(firstSingleCommand.process, "isDefault") and firstSingleCommand.process.isDefault) or not hasattr(firstSingleCommand.process, "checker"):
+                if (hasattr(firstSingleCommand.postProcess, "isDefault") and firstSingleCommand.postProcess.isDefault) or not hasattr(firstSingleCommand.postProcess, "checker"):
+                    mappedArgs.append( (EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS, ) )
+                    continue
+                else:
+                    feeder = firstSingleCommand.postProcess.checker
+                    indexToSet = 0
+            else:
+                feeder = firstSingleCommand.process.checker
+                indexToSet = 1
+        else:
+            feeder = firstSingleCommand.postProcess.checker
+            indexToSet = 2
+
+        localMappedArgs = [EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS]
+        paramFound, remainingArgs = parseDashedParams(rawArgList[i], feeder.argTypeList)
+        localMappedArgs[indexToSet] = paramFound
+
+        newRawArgList.append(remainingArgs)
+        mappedArgs.append( tuple(localMappedArgs) )
+
+    return newRawArgList, mappedArgs
+
 #
 #
 # @return, true if no severe error or correct process, false if severe error
@@ -242,13 +363,12 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         if len(cmdStringList) == 0:
             return False
 
-        #TODO print an error if levelTries is not available THEN stop
-
         #convert token string to command objects and argument strings
-        rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue())
-        
+        rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
+        rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
+
         #prepare an engine
-        engine = engineV3(rawCommandList, rawArgList, params)
+        engine = engineV3(rawCommandList, rawArgList, mappedArgs, params)
         
         #execute 
         engine.execute()

@@ -48,16 +48,20 @@ class _emptyDataToken(object):
     pass
     
 EMPTY_DATA_TOKEN = _emptyDataToken()
+EMPTY_MAPPED_ARGS = {}
 
 class engineV3(object):
     ### INIT ###
-    def __init__(self, cmdList, argsList, env=None):#, cmdControlMapping=True):
+    def __init__(self, cmdList, argsList, mappedArgsList, env=None):#, cmdControlMapping=True):
         #cmd must be a not empty list
         if cmdList == None or not isinstance(cmdList, list) or len(cmdList) == 0:
             raise executionInitException("(engine) init, command list is not a valid populated list")
 
         if argsList == None or not isinstance(argsList, list) or len(argsList) != len(cmdList):
             raise executionInitException("(engine) init, arg list is not a valid populated list of equal size with the command list")
+
+        if mappedArgsList == None or not isinstance(mappedArgsList, list) or len(mappedArgsList) != len(cmdList):
+            raise executionInitException("(engine) init, mapped arg list is not a valid populated list of equal size with the command list")
 
         #reset every commands
         for i in xrange(0,len(cmdList)):
@@ -74,8 +78,9 @@ class engineV3(object):
             #reset the information stored in the command from a previous execution
             c.reset()
         
-        self.argsList = argsList
-        self.cmdList = cmdList #list of MultiCommand
+        self.argsList       = argsList
+        self.cmdList        = cmdList #list of MultiCommand
+        self.mappedArgsList = mappedArgsList
         
         #check env variable
         if env == None:
@@ -485,6 +490,7 @@ class engineV3(object):
         
         isAValidIndex(self.argsList, cmdID,"flushArgs", "arg list")
         self.argsList[cmdID] = None
+        self.mappedArgsList[cmdID] = (EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS, )
     
     def addSubCommand(self, cmd, cmdID = None, onlyAddOnce = True, useArgs = True):
         #is a valid cmd ?
@@ -841,14 +847,19 @@ class engineV3(object):
             ### EXECUTE command ###
             to_stack = None #prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
 
+            if useArgs:
+                indexOnTop = self.stack.cmdIndexOnTop()
+                args       = self.argsList[indexOnTop]
+                mappedArgs = self.mappedArgsList[indexOnTop]
+            else:
+                args = None
+                mappedArgs = EMPTY_MAPPED_ARGS
+
             ## PRE PROCESS
             if insType == PREPROCESS_INSTRUCTION: #pre  
-                if useArgs:
-                    args = self.argsList[self.stack.cmdIndexOnTop()]
-                else:
-                    args = None
+                
 
-                r = self._executeMethod(cmd, subcmd.preProcess, top, args)
+                r = self._executeMethod(cmd, subcmd.preProcess, top, args, mappedArgs[0])
                 subcmd.preCount += 1
                 
                 new_path = top[1][:] #copy the path
@@ -879,7 +890,7 @@ class engineV3(object):
             
             ## PROCESS ##
             elif insType == PROCESS_INSTRUCTION: #pro
-                r = self._executeMethod(cmd, subcmd.process, top)
+                r = self._executeMethod(cmd, subcmd.process, top, None, mappedArgs[1])
                 subcmd.proCount += 1
                 
                 #manage result
@@ -891,7 +902,7 @@ class engineV3(object):
             
             ## POST PROCESS ##
             elif insType == POSTPROCESS_INSTRUCTION: #post
-                r = self._executeMethod(cmd, subcmd.postProcess, top)
+                r = self._executeMethod(cmd, subcmd.postProcess, top, None, mappedArgs[2])
                 subcmd.postCount += 1
                 
                 #manage result
@@ -960,7 +971,7 @@ class engineV3(object):
             if startingIndex == currentSubCmdIndex:
                 return executeOnNextData, -1
             
-    def _executeMethod(self, cmd,subcmd, stackState, args = None):
+    def _executeMethod(self, cmd,subcmd, stackState, args = None, mappedArgs = EMPTY_MAPPED_ARGS):
         nextData = stackState[0][0]
 
         #prepare data
@@ -978,8 +989,10 @@ class engineV3(object):
             args = ()
 
         #execute checker
-        if hasattr(subcmd, "checker"):         
-            data = subcmd.checker.checkArgs(args, self)
+        if hasattr(subcmd, "checker"):
+            #TODO use mappedArgs in checker
+
+            data = subcmd.checker.checkArgs(args, mappedArgs, self)
             
             #find lockable object            
             lockableList = []
@@ -997,7 +1010,6 @@ class engineV3(object):
         else:
             data = {}
             lock = FALSELOCK
-        
 
         #execute Xprocess
         with lock:

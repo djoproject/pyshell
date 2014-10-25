@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.decorator     import shellMethod
+from pyshell.arg.decorator     import shellMethod, defaultMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker
 from pyshell.command.exception import commandException
 from pyshell.command.utils     import isAValidIndex
@@ -24,7 +24,7 @@ from pyshell.command.utils     import isAValidIndex
 class MultiOutput(list): #just a marker class to differentiate an standard list from a multiple output 
     pass
 
-#
+"""#
 # this method check the args with respect to meth
 #
 # @argument args, the arguments to apply
@@ -35,21 +35,24 @@ def selfArgChecker(args,meth):
     if hasattr(meth, "checker"):
         return meth.checker.checkArgs(args)
     else:
-        return {} #no available binding
+        return {} #no available binding"""
 
 class Command(object):
     #default preProcess
     @shellMethod(args=listArgChecker(ArgChecker()))
+    @defaultMethod()
     def preProcess(self,args):
         return args
 
     #default process
     @shellMethod(args=listArgChecker(ArgChecker()))
+    @defaultMethod()
     def process(self,args):
         return args
     
     #default postProcess
     @shellMethod(args=listArgChecker(ArgChecker()))
+    @defaultMethod()
     def postProcess(self,args):
         return args
     

@@ -86,6 +86,13 @@ class funAnalyser(object):
 ##### DECORATOR ###############################################################################
 ###############################################################################################
 
+def defaultMethod(state = True):
+    def decorator(fun):
+        fun.isDefault = state
+        return fun
+
+    return decorator
+
 def shellMethod(**argList):
     #no need to check collision key, it's a dictionary
 
@@ -119,15 +126,17 @@ def shellMethod(**argList):
                 checker = argList[argname]
                 del argList[argname]
                 
+                """
+                #FIXME remove this condition as soon as a parametrization system will be deployed
                 #check the compatibilty with the previous argument checker
                 if checker.needData() and len(argCheckerList) > 0:
                     previousName,previousChecker = list(argCheckerList.items())[-1]
                     
                     #check if the previous checker remain a few arg to the following or not
-                    #FIXME remove this condition as soon as a parametrization system will be deployed
-                    if previousChecker.isVariableSize() and previousChecker.maximumSize == None:
+                                        if previousChecker.isVariableSize() and previousChecker.maximumSize == None:
                         raise decoratorException("(decorator) the previous argument '"+str(previousName)+"' has an infinite variable size, you can't add a new argment '"+str(argname)+"' at function '"+fun.__name__+"'")
-            
+                """
+
                 argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)                
             elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
                 argCheckerList[argname] = defaultValueChecker(analyzed_fun.get_default(argname))

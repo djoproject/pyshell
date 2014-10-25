@@ -33,6 +33,7 @@ def stringListResultHandler(result):
         
     printShell(ret[:-1])
 
+#TODO should be removed qnd replaced by listFlatResultHandler
 @shellMethod(result=ArgChecker())
 def printResultHandler(result=None):
     if result != None:
