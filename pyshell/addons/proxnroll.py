@@ -39,6 +39,7 @@ from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesA
 
 from pyshell.addons.pcsc               import printATR #FIXME create a dependancy... 
 from pyshell.loader.dependancies       import registerDependOnAddon
+from pyshell.utils.printing            import printShell
 
 ## FUNCTION SECTION ##
 
@@ -127,7 +128,7 @@ def mifareAuthenticate(blockNumber, KeyIndex, isTypeA="a", InVolatile="volatile"
 
 @shellMethod(blockNumber=IntegerArgChecker(0,0xff),
              Key=keyStoreTranslatorArgChecker(6))
-def mifareRead(blockNumber, Key=None):
+def mifareRead(blockNumber=0, Key=None):
     return ProxnrollAPDUBuilder.mifareClassicRead(blockNumber, Key)
 
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0,255)),
@@ -135,6 +136,13 @@ def mifareRead(blockNumber, Key=None):
              Key=keyStoreTranslatorArgChecker(6))
 def mifareUpdate(datas, blockNumber, Key=None):
     return ProxnrollAPDUBuilder.mifareClassifWrite(blockNumber, Key,datas)
+
+@shellMethod(datas=listArgChecker(IntegerArgChecker(0,255),3))
+def parseDataCardType(datas):
+    #TODO a print is used inside of this method, replace with printing system
+    ss, nn = ProxnrollAPDUBuilder.parseDataCardType(datas)
+    
+    printShell("Procole : "+ss + ", Type : " + nn)
 
 ## REGISTER ##
 
@@ -171,7 +179,7 @@ registerSetTempPrefix( ("card",  ) )
 registerCommand( ( "serial",),             pre=ProxnrollAPDUBuilder.getDataCardSerialNumber,       pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "ats",),                pre=ProxnrollAPDUBuilder.getDataCardATS,                pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "completeIdentifier",), pre=ProxnrollAPDUBuilder.getDataCardCompleteIdentifier, pro=stopAsMainProcess, post=printBytesAsString)
-registerCommand( ( "type",),               pre=ProxnrollAPDUBuilder.getDataCardType,               pro=stopAsMainProcess, post=ProxnrollAPDUBuilder.parseDataCardType)
+registerCommand( ( "type",),               pre=ProxnrollAPDUBuilder.getDataCardType,               pro=stopAsMainProcess, post=parseDataCardType)
 registerCommand( ( "shortSerial",),        pre=ProxnrollAPDUBuilder.getDataCardShortSerialNumber,  pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "atr",),                pre=ProxnrollAPDUBuilder.getDataCardATR,                pro=stopAsMainProcess, post=printATR)
 registerStopHelpTraversalAt( ("card",) )

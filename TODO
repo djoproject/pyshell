@@ -125,6 +125,9 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 ############
 
     #adapter l'ensemble du code existant au nouveau shell
+        #l'ensemble du code de rfidshell a été transféré dans apdu
+            #non débuggé !!!
+        #il reste à faire les addons pour pyshell
         #in progress
 
     #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h

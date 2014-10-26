@@ -39,7 +39,7 @@ class FalseLock(object):
     def __enter__(self):
         return self
         
-    def __exit__(self):
+    def __exit__(self, type, value, traceback):
         pass
         
 FALSELOCK = FalseLock()
@@ -1011,7 +1011,7 @@ class engineV3(object):
             data = {}
             lock = FALSELOCK
 
-        #execute Xprocess
+        #execute Xprocess (X for pre/pro/post)
         with lock:
             self._isInProcess = True
             try:

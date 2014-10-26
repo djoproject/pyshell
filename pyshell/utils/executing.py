@@ -346,6 +346,7 @@ def extractDashedParams(rawCommandList, rawArgList):
             if ((hasattr(firstSingleCommand.process, "isDefault") and firstSingleCommand.process.isDefault)) or not hasattr(firstSingleCommand.process, "checker"):
                 if ((hasattr(firstSingleCommand.postProcess, "isDefault") and firstSingleCommand.postProcess.isDefault)) or not hasattr(firstSingleCommand.postProcess, "checker"):
                     mappedArgs.append( (EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS, ) )
+                    newRawArgList.append( [] )
                     continue
                 else:
                     feeder = firstSingleCommand.postProcess.checker

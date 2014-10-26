@@ -218,13 +218,13 @@ def _checkList(l, index, item_type):
 def printATR(bytes):
     "convert a string of bytes into a human readable comprehension of the ATR"
     if bytes == None or not isinstance(bytes,list) or len(bytes) < 1:
-        Executer.printOnShell("The value is not a valid ATR")
+        printShell("The value is not a valid ATR")
         return
     
     atr = ATR(bytes)
     
     with Printer.getInstance(): #use of this critical section because dump produce some print without control
-        printShell(atr+"\n")
+        printShell(str(atr)+"\n")
         atr.dump()
         printShell('T15 supported: ', atr.isT15Supported())
 

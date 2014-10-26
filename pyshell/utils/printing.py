@@ -48,8 +48,8 @@ class Printer(object):
     def __enter__(self):
         return Printer._printerLock.__enter__()
         
-    def __exit__(self):
-        return Printer._printerLock.__exit__()
+    def __exit__(self, type, value, traceback):
+        return Printer._printerLock.__exit__(type, value, traceback)
     
     def setREPLFunction(self, fun):
         if not hasattr(fun, "__call__"):
