@@ -232,8 +232,27 @@ class ArgChecker(object):
         raise argException("("+self.typeName+") "+ prefix + message)
     
 class stringArgChecker(ArgChecker):
-    def __init__(self, typeName = STRINGCHECKER_TYPENAME):
+    def __init__(self, minimumStringSize=1, maximumStringSize = None, typeName = STRINGCHECKER_TYPENAME):
         ArgChecker.__init__(self,1,1,True, typeName)
+
+        if type(minimumStringSize) != int:
+            raise argInitializationException("("+self.typeName+") Minimum string size must be an integer, got type '"+str(type(minimumStringSize))+"' with the following value <"+str(minimumStringSize)+">")
+            
+        if minimumStringSize < 1:
+            raise argInitializationException("("+self.typeName+") Minimum string size must be a positive value bigger than 0, got <"+str(minimumStringSize)+">")
+    
+        if maximumStringSize != None:
+            if type(maximumStringSize) != int:
+                raise argInitializationException("("+self.typeName+") Maximum string size must be an integer, got type '"+str(type(maximumStringSize))+"' with the following value <"+str(maximumStringSize)+">") 
+        
+            if maximumStringSize < 1:
+                raise argInitializationException("("+self.typeName+") Maximum string size must be a positive value bigger than 0, got <"+str(maximumStringSize)+">") 
+    
+        if minimumStringSize != None and maximumStringSize != None and maximumStringSize < minimumStringSize:
+            raise argInitializationException("("+self.typeName+") Maximum string size <"+str(maximumSize)+"> can not be smaller than Minimum string size <"+str(minimumStringSize)+">") 
+    
+        self.minimumStringSize = minimumStringSize
+        self.maximumStringSize = maximumStringSize
 
     def getValue(self, value,argNumber=None, argNameToBind=None):
         value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
@@ -242,11 +261,17 @@ class stringArgChecker(ArgChecker):
             self._raiseArgException("the string arg can't be None", argNumber, argNameToBind)
 
         if type(value) != str and type(value) != unicode:
-            if hasattr(value, "__str__"):
-                return str(value)
-        
-            self._raiseArgException("this value '"+str(value)+"' is not a valid string, got type '"+str(type(value))+"'", argNumber, argNameToBind)
-    
+            if not hasattr(value, "__str__"):
+                self._raiseArgException("this value '"+str(value)+"' is not a valid string, got type '"+str(type(value))+"'", argNumber, argNameToBind)
+            
+            value = str(value)
+
+        if len(value) < self.minimumStringSize:
+            self._raiseArgException("this value '"+str(value)+"' is a too small string, got size '"+str(len(value))+"' with value '"+str(value)+"', minimal allowed size is '"+str(self.minimumStringSize)+"'", argNumber, argNameToBind)
+
+        if self.maximumStringSize is not None and len(value) > self.maximumStringSize:
+            self._raiseArgException("this value '"+str(value)+"' is a too big string, got size '"+str(len(value))+"' with value '"+str(value)+"', maximal allowed size is '"+str(self.maximumStringSize)+"'", argNumber, argNameToBind)
+
         return value
     
     def getUsage(self):
@@ -347,7 +372,7 @@ class binaryArgChecker(IntegerArgChecker):
 
 class tokenValueArgChecker(stringArgChecker):
     def __init__(self, tokenDict, typename=TOKENCHECKER_TYPENAME):
-        stringArgChecker.__init__(self, typename)
+        stringArgChecker.__init__(self,1,None, typename)
         if not isinstance(tokenDict, dict):
             raise argInitializationException("("+self.typeName+") tokenDict must be a dictionary, got '"+str(type(tokenDict))+"'")
         
@@ -727,7 +752,7 @@ class filePathArgChecker(stringArgChecker):
     #just check a path, no operation are executed here, it is the job of the addon to perform change
 
     def __init__(self, exist=None, readable=None, writtable=None, isFile=None):
-        stringArgChecker.__init__(self, FILEPATHCHECKER_TYPENAME)
+        stringArgChecker.__init__(self, 1,None, FILEPATHCHECKER_TYPENAME)
     
         if exist is not None and type(exist) != bool:
             raise argInitializationException("("+self.typeName+") exist must be None or a boolean, got '"+str(type(exist))+"'")
@@ -843,7 +868,7 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
     "retrieve a key from the keystore"
 
     def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
-        stringArgChecker.__init__(self, KEYTRANSLATORCHECKER_TYPENAME)
+        stringArgChecker.__init__(self, 1,None, KEYTRANSLATORCHECKER_TYPENAME)
         
         if keySize != None:
             if type(keySize) != int:

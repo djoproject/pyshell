@@ -35,24 +35,24 @@ def exitFun():
 def echo(args):
     "echo all the args"
     
-    s = ""
+    s = []
     for a in args:
-        s += str(a)+" "
+        s.append(str(a))
         
-    return s
+    return listFlatResultHandler(s)
 
 @shellMethod(args=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def echo16(args):
     "echo all the args in hexa"
     
-    s = ""
+    s = []
     for a in args:
         try:
-            s += "0x%x "%int(a)
+            s.append("0x%x"%int(a))
         except ValueError:
-            s += str(a)+" "
+            s.append(str(a))
 
-    return s
+    return listFlatResultHandler(s)
 
 @shellMethod(args=listArgChecker(defaultInstanceArgChecker.getIntegerArgCheckerInstance()))
 def intToAscii(args):
@@ -64,7 +64,7 @@ def intToAscii(args):
         except ValueError:
             s += str(a)
 
-    return s
+    return listFlatResultHandler( (s, ) )
     
 @shellMethod(args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), 
              mltries = parameterChecker("levelTries", ENVIRONMENT_NAME))
@@ -268,9 +268,14 @@ def filter(data, from = 0, to=None):
 registerCommand( ("exit",) ,                          pro=exitFun)
 registerCommand( ("quit",) ,                          pro=exitFun)
 registerStopHelpTraversalAt( ("quit",) )
-registerCommand( ("echo",) ,                          pro=echo,         post=listFlatResultHandler)
-registerCommand( ("echo16",) ,                        pro=echo16,       post=listFlatResultHandler)
-registerCommand( ("toascii",) ,                       pro=intToAscii,   post=listFlatResultHandler)
+
+#TODO bof bof d'avoir ces trois là en post, ça crée des trucs bizarres
+    #genre: echo16 | prox test -expected 5 1 2 3 4 | pcsc transmit
+
+registerCommand( ("echo",) ,                          post=echo)
+registerCommand( ("echo16",) ,                        post=echo16)
+registerCommand( ("toascii",) ,                       post=intToAscii)
+
 registerCommand( ("usage",) ,                         pro=usageFun,     post=listFlatResultHandler)
 registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
 registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)

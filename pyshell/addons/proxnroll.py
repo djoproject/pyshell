@@ -58,36 +58,35 @@ def stopAsMainProcess(anything):
 @shellMethod(address=IntegerArgChecker(0,255),
              expected=IntegerArgChecker(0,255))
 def read(address = 0,expected=0):
-    
     return ProxnrollAPDUBuilder.readBinary(address,expected)
 
-@shellMethod(address=IntegerArgChecker(0,65535),
-             datas=listArgChecker(IntegerArgChecker(0,255))) #XXX could be pretty to set address to second and set a default value, need parameter binding
-def update(address, datas):
+@shellMethod(datas   = listArgChecker(IntegerArgChecker(0,255)),
+             address = IntegerArgChecker(0,65535))
+def update(datas, address):
     return ProxnrollAPDUBuilder.updateBinary(datas, address)
     
-@shellMethod(expected=IntegerArgChecker(0,255), #FIXME should be facultative, wait dashParam
-             delay=IntegerArgChecker(0,255), #FIXME should be facultative, wait dashParam
-             datas=listArgChecker(IntegerArgChecker(0,255)))
-def test(expected=0, delay=0, datas= ()):
+@shellMethod(datas=listArgChecker(IntegerArgChecker(0,255)),
+             expected=IntegerArgChecker(0,255),
+             delay=IntegerArgChecker(0,255))
+def test(datas, expected=0, delay=0):
     return ProxnrollAPDUBuilder.test(expected, delay, datas)
 
-@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.protocolType), #FIXME should be facultative, wait dashParam
-             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout), #FIXME should be facultative, wait dashParam
-             datas       =listArgChecker(IntegerArgChecker(0,255)))
-def encapsulateStandard(protocolType, timeoutType, datas):
+@shellMethod(datas        = listArgChecker(IntegerArgChecker(0,255)),
+             protocolType = tokenValueArgChecker(ProxnrollAPDUBuilder.protocolType),
+             timeoutType  = tokenValueArgChecker(ProxnrollAPDUBuilder.timeout))
+def encapsulateStandard(datas, protocolType = "ISO14443_TCL", timeoutType="Default"):
+    return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
+ 
+@shellMethod(datas        = listArgChecker(IntegerArgChecker(0,255)),
+             protocolType = tokenValueArgChecker(ProxnrollAPDUBuilder.redirection),
+             timeoutType  = tokenValueArgChecker(ProxnrollAPDUBuilder.timeout))
+def encapsulateRedirection(datas, protocolType = "MainSlot", timeoutType="Default"):
     return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
 
-@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.redirection), #FIXME should be facultative, wait dashParam
-             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout), #FIXME should be facultative, wait dashParam
-             datas       =listArgChecker(IntegerArgChecker(0,255)))
-def encapsulateRedirection(protocolType, timeoutType, datas):
-    return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
-
-@shellMethod(protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.lastByte), #FIXME should be facultative, wait dashParam
-             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout), #FIXME should be facultative, wait dashParam
-             datas       =listArgChecker(IntegerArgChecker(0,255)))
-def encapsulatePartial(protocolType, timeoutType, datas):
+@shellMethod(datas       =listArgChecker(IntegerArgChecker(0,255)),
+             protocolType=tokenValueArgChecker(ProxnrollAPDUBuilder.lastByte),
+             timeoutType =tokenValueArgChecker(ProxnrollAPDUBuilder.timeout))
+def encapsulatePartial(datas, protocolType="complete", timeoutType="Default"):
     return ProxnrollAPDUBuilder.encapsulate(datas, protocolType, timeoutType)
 
 @shellMethod(speed=booleanValueArgChecker("9600", "115200"))
@@ -131,10 +130,10 @@ def mifareAuthenticate(blockNumber, KeyIndex, isTypeA="a", InVolatile="volatile"
 def mifareRead(blockNumber, Key=None):
     return ProxnrollAPDUBuilder.mifareClassicRead(blockNumber, Key)
 
-@shellMethod(blockNumber=IntegerArgChecker(0,0xff),
-             Key=keyStoreTranslatorArgChecker(6), #FIXME should be at the end of the mehtod prototype ans called with parameter 
-             datas=listArgChecker(IntegerArgChecker(0,255)))
-def mifareUpdate(blockNumber, Key, datas): #FIXME Key could be None
+@shellMethod(datas=listArgChecker(IntegerArgChecker(0,255)),
+             blockNumber=IntegerArgChecker(0,0xff),
+             Key=keyStoreTranslatorArgChecker(6))
+def mifareUpdate(datas, blockNumber, Key=None):
     return ProxnrollAPDUBuilder.mifareClassifWrite(blockNumber, Key,datas)
 
 ## REGISTER ##

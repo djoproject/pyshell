@@ -19,7 +19,7 @@
 from pyshell.utils.exception   import *
 from pyshell.command.exception import *
 from pyshell.arg.exception     import *
-from pyshell.arg.argchecker    import booleanValueArgChecker
+from pyshell.arg.argchecker    import booleanValueArgChecker, defaultInstanceArgChecker
 from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
@@ -66,6 +66,12 @@ EVENT_AT_EXIT         = "atexit" #at application exit
 EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
+def _isValidBooleanValueForChecker(value):
+    try:
+        defaultInstanceArgChecker.getbooleanValueArgCheckerInstance().getValue(value)
+        return True
+    except Exception:
+        return False
 
 def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
     paramFound           = {}
@@ -79,6 +85,12 @@ def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
         ### manage parameter ###
         if lastParamFoundChecker != None and lastParamFoundChecker.maximumSize != None and len(whereToStore) == lastParamFoundChecker.maximumSize:
             #no need to check booleanchecker, whereToStore is not empty if the code reach this stateent with booleanchecker
+            
+            if isinstance(lastParamFoundChecker, booleanValueArgChecker):
+                if not _isValidBooleanValueForChecker(whereToStore[0]):
+                    remainingArgs.append(whereToStore[0])
+                    whereToStore = ("true",)
+
             paramFound[lastParamFoundName] = tuple(whereToStore)
             lastParamFoundChecker = lastParamFoundName = None
             whereToStore = []
@@ -86,12 +98,19 @@ def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
         ### standard management ###
         #exclusion character
         if inputArgs[i].startswith(exclusion + prefix):
-            whereToStore.append(inputArgs[i][1:])
+            whereToStore.append(inputArgs[i][len(exclusion):])
             continue
         
         #not a param token
         if not inputArgs[i].startswith(prefix):
             whereToStore.append(inputArgs[i])
+            continue
+
+        paramName = inputArgs[i][len(prefix):]
+
+        #prefix string only
+        if len(paramName) == 0:
+            whereToStore.append(prefix)
             continue
         
         #is it a negative number ?
@@ -104,11 +123,22 @@ def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
         if number:
             whereToStore.append(inputArgs[i])
             continue
-        
+
+        #not a param key, manage it like a string
+        if paramName not in argTypeList:
+            print paramName, argTypeList
+            whereToStore.append(inputArgs[i])
+            continue
+
         ### params token found ###
         if lastParamFoundChecker != None:
-            if isinstance(lastParamFoundChecker, booleanValueArgChecker) and len(whereToStore) == 0:
-                whereToStore.append("true")
+            if isinstance(lastParamFoundChecker, booleanValueArgChecker):
+                if len(whereToStore) == 0:
+                    whereToStore.append("true")
+                else:
+                    if not _isValidBooleanValueForChecker(whereToStore[0]):
+                        remainingArgs.append(whereToStore[0])
+                        whereToStore = ("true",)
 
             paramFound[lastParamFoundName] = tuple(whereToStore)
             lastParamFoundChecker = lastParamFoundName = None
@@ -116,25 +146,23 @@ def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
             remainingArgs.extend(whereToStore)
 
         whereToStore = []
-        paramName = inputArgs[i][1:]
-        
-        #not a param key, manage it like a string
-        if paramName not in argTypeList:
-            whereToStore.append(inputArgs[i])
-            continue
-        
-        argChecker = argTypeList[paramName]
+        argChecker   = argTypeList[paramName]
         
         #does not continue care about empty params (like engine, params, ...)
-        if argChecker.maximumSize == 0:
+        if argTypeList[paramName].maximumSize == 0:
             continue
         
         lastParamFoundChecker = argChecker
         lastParamFoundName    = paramName
 
     if lastParamFoundChecker != None:
-        if isinstance(lastParamFoundChecker, booleanValueArgChecker) and len(whereToStore) == 0:
-            whereToStore.append("true")
+        if isinstance(lastParamFoundChecker, booleanValueArgChecker):
+            if len(whereToStore) == 0:
+                whereToStore.append("true")
+            else:
+                if not _isValidBooleanValueForChecker(whereToStore[0]):
+                    remainingArgs.append(whereToStore[0])
+                    whereToStore = ("true",)
 
         paramFound[lastParamFoundName] = tuple(whereToStore)
     else:
@@ -314,20 +342,20 @@ def extractDashedParams(rawCommandList, rawArgList):
         firstSingleCommand,useArgs,enabled = multiCmd[0]
 
         #extract arfeeder
-        if (hasattr(firstSingleCommand.preProcess, "isDefault") and firstSingleCommand.preProcess.isDefault) or not hasattr(firstSingleCommand.preProcess, "checker"):
-            if (hasattr(firstSingleCommand.process, "isDefault") and firstSingleCommand.process.isDefault) or not hasattr(firstSingleCommand.process, "checker"):
-                if (hasattr(firstSingleCommand.postProcess, "isDefault") and firstSingleCommand.postProcess.isDefault) or not hasattr(firstSingleCommand.postProcess, "checker"):
+        if ((hasattr(firstSingleCommand.preProcess, "isDefault") and firstSingleCommand.preProcess.isDefault)) or not hasattr(firstSingleCommand.preProcess, "checker"):
+            if ((hasattr(firstSingleCommand.process, "isDefault") and firstSingleCommand.process.isDefault)) or not hasattr(firstSingleCommand.process, "checker"):
+                if ((hasattr(firstSingleCommand.postProcess, "isDefault") and firstSingleCommand.postProcess.isDefault)) or not hasattr(firstSingleCommand.postProcess, "checker"):
                     mappedArgs.append( (EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS, ) )
                     continue
                 else:
                     feeder = firstSingleCommand.postProcess.checker
-                    indexToSet = 0
+                    indexToSet = 2
             else:
                 feeder = firstSingleCommand.process.checker
                 indexToSet = 1
         else:
-            feeder = firstSingleCommand.postProcess.checker
-            indexToSet = 2
+            feeder = firstSingleCommand.preProcess.checker
+            indexToSet = 0
 
         localMappedArgs = [EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS]
         paramFound, remainingArgs = parseDashedParams(rawArgList[i], feeder.argTypeList)
@@ -399,6 +427,7 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
     #print stack trace if debug is enabled
     if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
         #TODO print an empty line before stack trace
+        #TODO print with the same color as the printed exception
         error(traceback.format_exc())
 
     return False, None

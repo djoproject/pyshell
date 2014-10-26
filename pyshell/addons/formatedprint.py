@@ -34,8 +34,8 @@ from math                              import log
 from pyshell.utils.exception           import USER_ERROR, DefaultPyshellException
 
 @shellMethod(varLists  = listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),
-            parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-            #,bytePerLine = IntegerArgChecker(4)) #FIXME
+            parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+            bytePerLine = IntegerArgChecker(4))
 def compareByteList(varLists, bytePerLine = 4, parameters = None):
     #TODO
         #it is possible to inject something else than byte in the list, check them
@@ -201,8 +201,8 @@ def compareByteList(varLists, bytePerLine = 4, parameters = None):
         
 
 @shellMethod(bytelist = listArgChecker(IntegerArgChecker(0,255)),
-             execution_context = contextParameterChecker("execution"))
-             #FIXME ,bytePerLine =IntegerArgChecker(4,16))
+             execution_context = contextParameterChecker("execution"),
+             bytePerLine =IntegerArgChecker(4,16))
 def printByteTable(bytelist, bytePerLine = 5,execution_context=None):
     if len(bytelist) == 0:
         warning("empty list of byte")

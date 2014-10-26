@@ -125,19 +125,8 @@ def shellMethod(**argList):
             if argname in argList: #check if the argname is in the argList
                 checker = argList[argname]
                 del argList[argname]
-                
-                """
-                #FIXME remove this condition as soon as a parametrization system will be deployed
-                #check the compatibilty with the previous argument checker
-                if checker.needData() and len(argCheckerList) > 0:
-                    previousName,previousChecker = list(argCheckerList.items())[-1]
-                    
-                    #check if the previous checker remain a few arg to the following or not
-                                        if previousChecker.isVariableSize() and previousChecker.maximumSize == None:
-                        raise decoratorException("(decorator) the previous argument '"+str(previousName)+"' has an infinite variable size, you can't add a new argment '"+str(argname)+"' at function '"+fun.__name__+"'")
-                """
-
-                argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)                
+                argCheckerList[argname] = analyzed_fun.setCheckerDefault(argname,checker)
+                                
             elif analyzed_fun.has_default(argname): #check if the arg has a DEFAULT value
                 argCheckerList[argname] = defaultValueChecker(analyzed_fun.get_default(argname))
             else:

@@ -23,13 +23,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 
     look after dictionary init { everywhere in the code
 
-##################
-### argchecker ###
-##################
-
--string
-    min size
-
 ################
 ### executer ###
 ################
@@ -43,78 +36,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 #################      
     #gérer les commentaires
         #voir shell.py
-
-#################################
-### parameter in command call ###
-#################################
-
-    ??? Executeur ou ArgChecherS ? entre les deux ?
-    -permettre a l'utilisateur de binder uniquement certains argument
-        exemple:
-            cmd(a,b,c=None,d=None,e=None)
-            
-        cmd ValueA ValueB -e ValueE
-        
-        attention aux nombres négatif -5, -42.23, ...
-        attention au cas ou on a un arg en dernier de liste
-        attention au cas ou on a deux (ou plusieurs) param qui se suivent -a -c -d
-
-        PRBLM on a un risque de perte d'information si on utilise le - comme marqueur de parametre
-            si on melange les argument avec parametre et ceux sans
-            example : cmd toto(<string> ... <string>2) tata:<string>
-                toto -tata d a b c 
-                    -tata is a part of the list or the last argument ?
-            
-            def "nom de param" :
-                - commence par un tiret
-                - est directement suivi (donc pas d'espace) par le prefix du nom d'un argument existant
-                - est suivi par au moins un non "non de param" (ne repondant pas aux deux criteres precedents)
-                    exception pour le boolean, la presence sans valeur implique "True"
-            
-            SOLUTION 1
-                le tiret est un caractere reservé
-                on peut l'escaper en faisant \-
-                    et si on veut recuperer \-, on devra encoder \\-, etc.
-                    
-            SOLUTION 2
-                les arguments parametré le sont uniquement a la fin
-                on commence a parser à partir de la fin jusqu'a ne plus trouver d'arg parametre
-                et on recommence a parser a partir du debut les args manquant
-                
-            SOLUTION 3 <===
-                a) on identifie tous les params existant
-                    faire une liste des indices
-                b) on place les params erronés dans une liste (pour gestion en cas d'erreur)
-                c) on inteprète tous les params identifié
-                d) si pas d'erreur, on interprete tout ce qui reste avec l'ancienne methode
-                    les params erronés sont utilisables dans la liste comme un token normale
-                
-                englobe la solution 1 et 2
-                PROBLEM si on essaye de binder une liste avec liste infinie, ou avec une taille min inferieur a la max, et justement on transfere le min
-                    et qu'il y a encore des arguments après
-                    
-                    SOLUTION 1
-                        on s'arrete au prochain param token identifié
-                            et s'il n'y en a pas ? jusqu'au bout du flux ou de la limite
-
-                    SOLUTION 2 
-                        on defini une taille après le param genre -toto:5
-                            ça demande d'ajouter une info en + alors...
-                                c'est chiant
-
-    !!!! ne devrait rien changer au decorateur, ArgChecker et argFeeder !!!
-        ils fournissent juste un outils de verification de l'argument, des valeurs par defaut et des noms
-        le argFeeder se charge juste de faire le binding, les valeurs paramètrées doivent être retirée avant, on fait une couche suplémentaire par dessus
-            devra se trouver juste après la recherche de commande
-            et juste avant le argfeeder
-
-    #inclure la gestion des argument dynamique de type var au moment de la modif
-    
-    PRBLM to solve
-        where to use binded argument ?
-            in pre, in pro or in post ?
-            
-            in first real entering point, where come from the usage information
                 
 #####################
 ### print service ###

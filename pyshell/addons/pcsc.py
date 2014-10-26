@@ -268,7 +268,7 @@ def loadPCSC(cards, autoload, loaded,autoconnect):
     CardManager(cards, autoconnect)
 
 @shellMethod(data=listArgChecker(IntegerArgChecker(0,255)),
-             #connection_index= defaultInstanceArgChecker.getIntegerArgCheckerInstance() #FIXME DashPAram
+             connection_index= IntegerArgChecker(0),
              connections=environmentParameterChecker("pcsc_connexionlist"))
 def transmit(data, connection_index=0, connections = None):
     "transmit a list of bytes to a card connection"
@@ -283,7 +283,8 @@ def transmit(data, connection_index=0, connections = None):
     
     data, sw1, sw2 = connectionToUse.transmit(data)
     
-    #print "sw1=%.2x sw2=%.2x"%(sw1, sw2)
+    print "sw1=%.2x sw2=%.2x"%(sw1, sw2)
+    #print "data=",data
     
     return data
     
@@ -301,7 +302,7 @@ def connectCard(index=0, cards = None,connections = None,loaded=False, autoload=
     "create a connection over a specific card"
     loadPCSC(cards, autoload, loaded, autoconnect)
 
-    connectionToUse = _checkList(cards.getValue(), index, "card")
+    cardToUse = _checkList(cards.getValue(), index, "card")
     
     connection = cardToUse.createConnection()
     connection.connect()
@@ -461,8 +462,7 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
         onreader = 0
     
         for card in cards:
-            if str(card.reader) == str(reader): #FIXME seems to always return True
-                print "plop"
+            if str(card.reader) == str(reader):
                 onreader += 1
                 
         for con in connections:
