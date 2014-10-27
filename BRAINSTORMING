@@ -1,0 +1,103 @@
+###################################################################################################################
+####################### CONDITIONNAL/LOOP #########################################################################
+###################################################################################################################
+    interest of conditionnal and iterative statement ?
+        really interesting 
+        but recreate wheels without improvment...
+        interresting for event/scripting but not for shell
+        
+    IDEA 1 : don't implement any iterative/conditionnal stuff in shell process
+        focus only on scriptToPython solution
+            purpose of this is to be able to call shell method through python script
+            
+        shell will only have a purpose of small script testing or quick human action
+        
+        yeah but what about event ? some event could like to have conditionnal part
+            be able to call python code as event ?
+        
+    IDEA 2 : implement an addon to manage IF/GOTO/LOOP
+        really easy to implement in addon ?
+            seems to be easier to manage it in alias object
+            
+        every thing should be alias object
+            main shell
+            script from outside
+            alias form alias file
+            
+        there is no statement begin/end in shell
+            indicateur could be marker (toto:) or line number
+            
+        or conditional statement can only call event
+            not seems to be a good idea...
+            what about loop ?
+
+###################################################################################################################
+####################### PRINTING ##################################################################################
+###################################################################################################################
+    LIMIT
+        python2 clearly limits the power of the printing, it is another problem in python3
+            no possibility to override the output because of readline low level library
+            
+        possibility
+            -keep a system with know limit and issues
+            
+            -try to print the information in another way
+                -splitted shell
+                -two opened shell
+                - ?
+
+
+    IDEA
+        -faire un gestionnaire d'event
+            on enregistre des events dans une liste
+            tant qu'il n'y a pas de flush on affiche rien
+            
+            plusieurs thread peuvent pusher des events dedans
+                quand afficher ?
+                    -au premier flush 
+                        -risque parfois d'avoir des affichages bizares
+                            car on va afficher en partie les events d'un autre thread
+                            
+                    -au dernier flush
+                        -risque de ne jamais avoir l'affichage
+                        -sauf si on met un timeout
+            
+            -et il suffira de bloquer l'autocompl pdt l'affichage
+            -ne résoud pas la redirection de l'output...
+
+    printing control
+        main thread (always only one)
+            readline OR main routine (shell)
+                never both
+        
+        secondary threadS (could be several of it)
+            event routine
+            event not related to routine (e.g. new card thread)
+                should trigger a routine event
+
+    What can output something ?
+        print
+            can create a custom function and use a lock
+        autocompletion
+            no control on print
+                because print occurs inside of the readline library
+            
+            can replace completion printing method and use a lock inside
+                
+        printing the input in shell
+            no control on print
+                because print occur in the readline(?) or bash(?)
+
+    what will be great to have
+        set a lock on the output
+        no more stuff to use in the user space
+        
+    What does not work
+        replace print function
+            not doable for the whole application
+        encapsulate stdout
+            broke autocompletion
+        
+    What could work
+        use custom print function in
+    

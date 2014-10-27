@@ -1,7 +1,27 @@
 #############################
+### Help/usage            ###
+#############################
+
+    #try to integrate default value in usage
+    
+    #allow helping description on several lines
+        #maybe it already works but need to test
+        #the problem is the help print with several different command, only one line is allowed
+            #and currently, there is no filtering
+        
+    #show in helping message, some example of method call
+    
+    #show in help message which params need to be used with a dash
+
+#############################
 ### Bash like             ###
 #############################  
-shif, set, loop, if, goto, ...
+
+#needed for alias
+    shif, set
+
+#go outside of shell scope, really needed ? (see brainstorming)
+    loop, if, goto, ...
 
 #############################
 ### keystore              ###
@@ -22,6 +42,13 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         -...
 
     look after dictionary init { everywhere in the code
+    
+    IDEA
+        faire une fonction qui gère les ambiguité
+            construire un message d'erreur generique a toute l'applic
+            ce message contiendra l'ensemble des possibilités (ou un subset)
+            
+            l'objectif est de réduire la duplication de code du au tries pour la gestion des ambiguité
 
 ################
 ### executer ###
@@ -36,6 +63,12 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 #################      
     #gérer les commentaires
         #voir shell.py
+        
+    #echo/echo16/toascii execut themself only in postprocess now
+        #this is the better place to be executed
+        #but this kind of function does not work: prox read 0 | pcs tran | echo16
+            #the solution is echo16 | prox read 0 | pcs tran
+                #not intuitive at all...
                 
 #####################
 ### print service ###
@@ -76,49 +109,6 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #flush and close at exit
         #si on fait un close, il faut retirer l'event at_exit
 
-    PRBLM
-        multithreading
-        shell/script/thread concurrent
-        affichage unique
-        
-        conflict avec readline
-            besoin de bricoler pour afficher des event asynchrones
-            
-        conflict avec l'autocompletion
-            l'output d'origine doit être rétabli sinon l'autocomplet ne fonctionne pas
-            ça pourrait être interessant de comprendre pourquoi ça merde
-                faire une question sur stackoverflow
-        
-    SOLUTION 1
-        faire un manager d'affichage qui prend la place du default output
-            il possede:
-                une reference vers l'ancien affichage
-                l'id du main thread
-                un lock 
-                
-            lorsqu'un write survient
-                si script OU daemon
-                    utilise print
-                
-                si shell
-                    on verouille le lock            
-                            
-                    si thread principale
-                        utilise le print principale
-                    
-                    si thread secondaire
-                        utilise REPL
-                    
-                    unlock        
-                    
-            lorsqu'un autocomplete survient
-                on lock
-                restauration de l'ancien output
-                execution de l'autocomplete
-                restauration du manager d'output
-                unlock
-        
-        ça resoud définitivement le problème de l'affichage d'info dans le multiprocess
 
 ############
 ### rfid ###
@@ -175,6 +165,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     still need to find a way to use easyly the alias editing in command line
     implementer "set" et "shift" comme dans un vrai bash
         dans le std
+        
+    stored file is just ugly...
 
 ################################
 ### Parameter Thread safe    ###

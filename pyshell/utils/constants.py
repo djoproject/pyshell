@@ -31,3 +31,4 @@ PARAMETER_NAME           = "parameter"
 DEFAULT_SEPARATOR        = ","
 ADDONLIST_KEY            = "loader_addon"
 DEFAULT_SUBADDON_NAME    = "default"
+TAB_SIZE                 = 4

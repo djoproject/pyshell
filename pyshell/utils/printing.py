@@ -182,12 +182,13 @@ def printException(exception, prefix = None, stackTrace = None):
     if isinstance(exception, PyshellException):
         if exception.severity >= NOTICE:
             notice(prefix + str(exception) + stackTrace)
-            return
+            return notice
         elif exception.severity >= WARNING:
             warning(prefix + str(exception) + stackTrace)
-            return
+            return warning
 
     error(prefix + str(exception) + stackTrace)
+    return error
 
 def formatException(exception):
     printer = Printer.getInstance()

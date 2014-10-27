@@ -24,7 +24,7 @@ from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from pyshell.utils.parameter   import VarParameter
-import traceback
+import traceback, threading
 from tries.exception import triesException
 
 import sys
@@ -367,18 +367,17 @@ def extractDashedParams(rawCommandList, rawArgList):
 
     return newRawArgList, mappedArgs
 
+def fireCommand(cmd, params, preParse = True , processName=None, processArg=None):
+    t = threading.Thread(None, executeCommand, None, (cmd,params,preParse,processName,processArg,))
+    t.start()
+
 #
 #
 # @return, true if no severe error or correct process, false if severe error
 #
-# TODO
-#   should be easy to run in a new thread or not
-#   command are not thread safe...
-#       be careful if running in a new thread, each command has a state not sharable for each execution
-# 
 def executeCommand(cmd, params, preParse = True , processName=None, processArg=None):
     "execute the engine object"
-
+    stackTraceColor = error
     try:
         if preParse:
             cmdPreParsed = preParseLine(cmd)
@@ -396,8 +395,13 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
         rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
 
+        #clone command
+        newRawCommandList = []
+        for c in rawCommandList:
+            newRawCommandList.append(c.clone())
+
         #prepare an engine
-        engine = engineV3(rawCommandList, rawArgList, mappedArgs, params)
+        engine = engineV3(newRawCommandList, rawArgList, mappedArgs, params)
         
         #execute 
         engine.execute()
@@ -414,22 +418,29 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
             error("Abnormal execution abort, reason: "+str(eien.value))
         else:
             warning("Normal execution abort, reason: "+str(eien.value))
+            stackTraceColor = warning
     except argException as ae:
         warning("Error while parsing argument: "+str(ae.value))
+        stackTraceColor = warning
     except ListOfException as loe:
         if len(loe.exceptions) > 0:
+            if params.hasParameter("tabsize", ENVIRONMENT_NAME):
+                tabSize = params.getParameter("tabsize", ENVIRONMENT_NAME).getValue()
+            else:
+                tabSize = TAB_SIZE
+            
+            space = " " * tabSize
+        
             error("List of exception(s):")
             for e in loe.exceptions:
-                printException(e) #TODO print a space before each exceptions
+                printException(e, space)
                 
     except Exception as e:
-        printException(e)
+        stackTraceColor = printException(e)
 
     #print stack trace if debug is enabled
     if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-        #TODO print an empty line before stack trace
-        #TODO print with the same color as the printed exception
-        error(traceback.format_exc())
+        stackTraceColor("\n"+traceback.format_exc())
 
     return False, None
 

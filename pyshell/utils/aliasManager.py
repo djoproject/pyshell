@@ -89,7 +89,9 @@ class Alias(UniCommand):
         e = self.clone() #could be updated during its execution in another thread
         engine = None
         
-        for cmd in e.stringCmdList:        
+        #for cmd in e.stringCmdList:
+        for i in xrange(0,len(e.stringCmdList)):
+            cmd = e.stringCmdList[i]
             state, engine = executeCommand(cmd, parameters, False, e.name, args)  
             
             #TODO stop on ERROR, not on WARNING

@@ -38,6 +38,9 @@ from pyshell.command.exception         import engineInterruptionException
 from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
 
 from pyshell.addons.pcsc               import printATR #FIXME create a dependancy... 
+                                                           #TODO remove it and only return a list of byte
+                                                           #use piping to call the method from pcsc
+                                                           
 from pyshell.loader.dependancies       import registerDependOnAddon
 from pyshell.utils.printing            import printShell
 

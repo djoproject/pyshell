@@ -56,7 +56,7 @@ from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, USER_WARNING
-from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY
+from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY, TAB_SIZE
 from pyshell.utils.utils       import getTerminalSize
 from pyshell.utils.printing    import Printer, warning, error, printException
 from pyshell.utils.valuable    import SimpleValuable
@@ -70,7 +70,7 @@ class CommandExecuter():
 
         #init original params
         self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("tabsize",             EnvironmentParameter(value=4, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("tabsize",             EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("levelTries",          EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
         keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
         self.params.setParameter("keystoreFile",        keyStorePath, ENVIRONMENT_NAME)
