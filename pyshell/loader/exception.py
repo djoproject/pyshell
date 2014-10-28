@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import AbstractListableException, PyshellException, USER_ERROR, PARSE_WARNING
+from pyshell.utils.exception import DefaultPyshellException, PyshellException, USER_ERROR, PARSE_WARNING
 
 class RegisterException(PyshellException):
     def __init__(self,value):
@@ -26,9 +26,9 @@ class RegisterException(PyshellException):
     def __str__(self):
         return str(self.value)
 
-class LoadException(AbstractListableException):
+class LoadException(DefaultPyshellException):
     def __init__(self,value):
-        AbstractListableException.__init__(self,None, PARSE_WARNING)
+        DefaultPyshellException.__init__(self,None, PARSE_WARNING)
         self.value = value
 
     def __str__(self):

@@ -158,6 +158,15 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     work in progress, see file EventManager and parameter
 
 #####################
+### parameter     ###
+#####################
+
+    variable should be unique in each thread
+        but what about variable storage ?
+            store them at the beginning of a stored alias
+                but how to know if a var definition is from the system or from the file when we need to store it again ?
+
+#####################
 ### alias manager ###
 #####################
 
@@ -280,6 +289,23 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     
     #need to have a loop instruction
         #or could simply use the loop instruction in shell
+
+    #manage deaemon system
+        #think about log file, how and where to store it
+
+        #-add argument to software entering point
+            #-d start as daemon
+                #by default, a daemon must be a loop
+                #think to a system able to stop it easily   
+                    #stop the daemon from command
+                    #another argument -k (?)       
+            
+            #always need a file
+                #could be possible to set it in parameter
+
+            #create an addon to manage daemon
+                #start, stop, restart, kill, list, ...
+                #be able to manage these action from command line
 
 ######################
 ### code generator ###

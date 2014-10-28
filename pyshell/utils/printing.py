@@ -23,6 +23,9 @@
 
     #coloration system should be moved here and only used here
         #with a kind of formating method
+        
+    #faire deux types de coloration, sur fond sombre ou sur fond clair
+        #ou faire une variable de'environment de constrate
 
 import threading, sys
 from pyshell.utils.valuable   import Valuable, DefaultValuable
@@ -32,6 +35,39 @@ import re
 
 _EMPTYSTRING = ""
 
+MAUVE     = '\033[95m'
+BLUE      = '\033[94m'
+GREEN     = '\033[92m'
+ORANGE    = '\033[93m'
+RED       = '\033[91m'
+ENDC      = '\033[0m'
+BOLT      = '\033[1m'
+UNDERLINE = '\033[4m'
+
+def red(text):
+    return RED+text+ENDC
+    
+def blue(text):
+    return BLUE+text+ENDC
+    
+def green(text):
+    return GREEN+text+ENDC
+    
+def orange(text):
+    return ORANGE+text+ENDC
+    
+def mauve(text):
+    return MAUVE+text+ENDC
+
+def nocolor(text):
+    return text
+    
+def bolt(text):
+    return BOLT+text+ENDC
+    
+def underline(text):
+    return UNDERLINE+text+ENDC
+    
 class Printer(object):
     _printerLock = threading.RLock()
     _instance = None

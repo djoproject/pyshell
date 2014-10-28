@@ -126,7 +126,6 @@ def parseDashedParams(inputArgs, argTypeList, prefix= "-", exclusion = "\\"):
 
         #not a param key, manage it like a string
         if paramName not in argTypeList:
-            print paramName, argTypeList
             whereToStore.append(inputArgs[i])
             continue
 
@@ -378,6 +377,8 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
 def executeCommand(cmd, params, preParse = True , processName=None, processArg=None):
     "execute the engine object"
     stackTraceColor = error
+    lastException   = None
+    engine          = None
     try:
         if preParse:
             cmdPreParsed = preParseLine(cmd)
@@ -405,23 +406,27 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         
         #execute 
         engine.execute()
-        return True, engine
-        
     except executionInitException as eie:
         error("Fail to init an execution object: "+str(eie.value))
+        lastException = eie
     except executionException as ee:
         error("Fail to execute: "+str(eie.value))
+        lastException = ee
     except commandException as ce:
         error("Error in command method: "+str(ce.value))
+        lastException = ce
     except engineInterruptionException as eien:
         if eien.abnormal:
             error("Abnormal execution abort, reason: "+str(eien.value))
         else:
             warning("Normal execution abort, reason: "+str(eien.value))
             stackTraceColor = warning
+        
+        lastException = eien
     except argException as ae:
         warning("Error while parsing argument: "+str(ae.value))
         stackTraceColor = warning
+        lastException = ae
     except ListOfException as loe:
         if len(loe.exceptions) > 0:
             if params.hasParameter("tabsize", ENVIRONMENT_NAME):
@@ -434,15 +439,17 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
             error("List of exception(s):")
             for e in loe.exceptions:
                 printException(e, space)
-                
+        
+        lastException = loe
     except Exception as e:
         stackTraceColor = printException(e)
+        lastException = e
 
     #print stack trace if debug is enabled
     if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
         stackTraceColor("\n"+traceback.format_exc())
 
-    return False, None
+    return lastException, engine
 
 
 

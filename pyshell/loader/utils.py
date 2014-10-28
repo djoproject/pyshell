@@ -18,7 +18,7 @@
 
 import inspect,traceback
 from pyshell.loader.exception import RegisterException,LoadException
-from pyshell.utils.exception  import ListOfException, AbstractListableException
+from pyshell.utils.exception  import ListOfException
 from pyshell.utils.constants  import DEFAULT_SUBADDON_NAME
 
 

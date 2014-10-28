@@ -16,9 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #remove AbstractListableException from the system
-
 ERROR         = 0
 CORE_ERROR    = 1
 USER_ERROR    = 2
@@ -42,7 +39,7 @@ class PyshellException(Exception):
         self.severity = severity
         
 class DefaultPyshellException(PyshellException):
-    def __init__(self, value,severity = ERROR):
+    def __init__(self, value = None,severity = ERROR):
         PyshellException.__init__(self,severity)
         self.value = value
 
@@ -58,26 +55,18 @@ class ParameterException(PyshellException):
     def __str__(self):
         return str(self.value)
         
-class AbstractListableException(PyshellException):
-    def __init__(self,value=None, severity=ERROR):
-        PyshellException.__init__(self, severity)
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
-
-class ListOfException(AbstractListableException):
+class ListOfException(DefaultPyshellException):
     def __init__(self, severity=ERROR):
-        AbstractListableException.__init__(self,None, severity)
+        DefaultPyshellException.__init__(self,None, severity)
         self.exceptions = []
 
     def addException(self,exception):
         if isinstance(exception, ListOfException):
             self.exceptions.extend(exception)
-        elif isinstance(exception, Exception):#AbstractListableException):
+        elif isinstance(exception, Exception):
             self.exceptions.append(exception)
         else:
-            raise Exception("(ListOfException) addException, can only store exception of type AbstractListableException or ListOfException, got '"+str(type(exception))+"'")
+            raise Exception("(ListOfException) addException, can only store exception of type Exception or ListOfException, got '"+str(type(exception))+"'")
         
     def isThrowable(self):
         return len(self.exceptions) > 0
@@ -92,9 +81,9 @@ class ListOfException(AbstractListableException):
             
         return to_ret
         
-class ParameterLoadingException(AbstractListableException):
+class ParameterLoadingException(DefaultPyshellException):
     def __init__(self,value):
-        AbstractListableException.__init__(self,None, PARSE_WARNING)
+        DefaultPyshellException.__init__(self,None, PARSE_WARNING)
         self.value = value
 
     def __str__(self):
@@ -108,9 +97,9 @@ class KeyStoreException(PyshellException):
     def __str__(self):
         return str(self.value)
 
-class KeyStoreLoadingException(AbstractListableException):
+class KeyStoreLoadingException(DefaultPyshellException):
     def __init__(self,value):
-        AbstractListableException.__init__(self,None, PARSE_WARNING)
+        DefaultPyshellException.__init__(self,None, PARSE_WARNING)
         self.value = value
 
     def __str__(self):

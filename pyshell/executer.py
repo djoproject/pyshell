@@ -16,25 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #manage deaemon system
-        #think about log file, how and where to store it
-
-        #-add argument
-            #-d start as daemon
-                #by default, a daemon must be a loop
-                #think to a system able to stop it easily   
-                    #stop the daemon from command
-                    #another argument -k (?)       
-            
-            #always need a file
-                #could be possible to set it in parameter
-
-            #create an addon to manage daemon
-                #start, stop, restart, kill, list, ...
-                #be able to manage these action from command line
-
-#TODO some of these internal/external import are no more needed, filter them
 #system library
 import readline
 import os
@@ -49,19 +30,16 @@ from tries import multiLevelTries
 from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
-from pyshell.command.exception import *
-from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
 from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.keystore    import KeyStore
-from pyshell.utils.exception   import ListOfException, DefaultPyshellException, USER_WARNING
+from pyshell.utils.exception   import ListOfException
 from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY, TAB_SIZE
 from pyshell.utils.utils       import getTerminalSize
 from pyshell.utils.printing    import Printer, warning, error, printException
 from pyshell.utils.valuable    import SimpleValuable
 from pyshell.utils.executing   import executeCommand, preParseLine
-from pyshell.addons.addon      import loadAddonFun
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -290,8 +268,12 @@ class CommandExecuter():
                 
             printException(pex, msg_prefix, st)
 
-
     def executeFile(self,filename):
+        #TODO load the file into an alias manager
+            #then execute it
+            
+        #TODO be able to set granularity error with args
+    
         shellOnExit = False
         self.params.getParameter("execution", CONTEXT_NAME).setIndexValue("script")
         
@@ -302,8 +284,10 @@ class CommandExecuter():
                 for line in f:
                     if line.trim() == "noexit":
                         shellOnExit = True
-                
-                    executeCommand(line,self.params)
+                    
+                    #TODO stop on error (see alias manager)
+                    lastException, engine = executeCommand(line,self.params)
+                    
         except Exception as ex:
             st = None
             if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:

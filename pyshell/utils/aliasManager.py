@@ -16,6 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #define the granularity where to stop
+    #don't return True or False after the execution of an engine but the granularity of the last error
+        #then stop or not the alias
+        #why not return the last exception ?
+
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils       import raiseIfInvalidKeyList
@@ -92,9 +98,9 @@ class Alias(UniCommand):
         #for cmd in e.stringCmdList:
         for i in xrange(0,len(e.stringCmdList)):
             cmd = e.stringCmdList[i]
-            state, engine = executeCommand(cmd, parameters, False, e.name, args)  
+            lastException, engine = executeCommand(cmd, parameters, False, e.name, args)  
             
-            #TODO stop on ERROR, not on WARNING
+            #TODO "stop" management (see TODO at the beginning of this file)
             if not state and e.stopOnError:
                 raise engineInterruptionException("internal command has been interrupted")
             

@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
-from pyshell.utils.exception import ListOfException, AbstractListableException
+from pyshell.utils.exception import ListOfException, PyshellException
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
 from pyshell.utils.valuable  import Valuable
 from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
@@ -152,7 +152,7 @@ class ParameterManager(object):
                 #try to parse the parameter
                 try:
                     argument_dico = specialSectionClassToUse.parse(config, section)
-                except AbstractListableException as ale:
+                except PyshellException as ale:
                     errorList.addException(ale)
                     continue
                 
