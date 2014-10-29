@@ -16,9 +16,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO should move to utils package
+
 from pyshell.arg.decorator  import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, ArgChecker
-from pyshell.utils.utils    import toHexString
+#from pyshell.utils.utils    import toHexString
 from pyshell.utils.printing import printShell
 import re
 
@@ -33,7 +35,7 @@ def stringListResultHandler(result):
         
     printShell(ret[:-1])
 
-#TODO should be removed qnd replaced by listFlatResultHandler
+#TODO should be removed and replaced by listFlatResultHandler
 @shellMethod(result=ArgChecker())
 def printResultHandler(result=None):
     if result != None:
@@ -74,8 +76,12 @@ def printStringCharResult(string):
 def printBytesAsString(byteList):
     if len(byteList) == 0:
         return byteList
-
-    printShell(toHexString(byteList))
+        
+    ret = ""
+    for b in byteList:
+        ret += "%-0.2X"%b
+        
+    printShell(ret)
     
     return byteList
 

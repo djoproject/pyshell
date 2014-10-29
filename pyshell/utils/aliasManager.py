@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #define the granularity where to stop
+    #define the granularity where to stop (an integer)
     #don't return True or False after the execution of an engine but the granularity of the last error
         #then stop or not the alias
         #why not return the last exception ?

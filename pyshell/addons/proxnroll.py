@@ -30,19 +30,19 @@
         #maybe we want to use them after the prox post process
 
 
-from apdu.readers.proxnroll            import ProxnrollAPDUBuilder
-from pyshell.loader.command            import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix, registerSetTempPrefix
-from pyshell.arg.decorator             import shellMethod
-from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, tokenValueArgChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
-from pyshell.command.exception         import engineInterruptionException
-from pyshell.simpleProcess.postProcess import printStringCharResult, printBytesAsString
+from apdu.readers.proxnroll      import ProxnrollAPDUBuilder
+from pyshell.loader.command      import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix, registerSetTempPrefix
+from pyshell.arg.decorator       import shellMethod
+from pyshell.arg.argchecker      import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, tokenValueArgChecker, booleanValueArgChecker, keyStoreTranslatorArgChecker
+from pyshell.command.exception   import engineInterruptionException
+from pyshell.utils.postProcess   import printStringCharResult, printBytesAsString
 
-from pyshell.addons.pcsc               import printATR #FIXME create a dependancy... 
+from pyshell.addons.pcsc         import printATR #FIXME create a dependancy... 
                                                            #TODO remove it and only return a list of byte
                                                            #use piping to call the method from pcsc
                                                            
-from pyshell.loader.dependancies       import registerDependOnAddon
-from pyshell.utils.printing            import printShell
+from pyshell.loader.dependancies import registerDependOnAddon
+from pyshell.utils.printing      import printShell
 
 ## FUNCTION SECTION ##
 

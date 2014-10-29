@@ -48,16 +48,16 @@
         #start on loading of pcsc, not on addon loading
         
                     
-from pyshell.loader.command            import registerCommand, registerSetGlobalPrefix, registerSetTempPrefix, registerStopHelpTraversalAt
-from pyshell.arg.decorator             import shellMethod
-from pyshell.arg.argchecker            import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker, contextParameterChecker, tokenValueArgChecker
-from pyshell.simpleProcess.postProcess import printColumn
-from pyshell.loader.parameter          import registerSetEnvironment
-from pyshell.utils.parameter           import EnvironmentParameter
-from pyshell.utils.coloration          import bolt, nocolor
-from pyshell.utils.printing            import Printer, notice, printShell
-from pyshell.utils.exception           import DefaultPyshellException, LIBRARY_ERROR
-from apdu.misc.apdu                    import toHexString
+from pyshell.loader.command    import registerCommand, registerSetGlobalPrefix, registerSetTempPrefix, registerStopHelpTraversalAt
+from pyshell.arg.decorator     import shellMethod
+from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, environmentParameterChecker, contextParameterChecker, tokenValueArgChecker
+from pyshell.utils.postProcess import printColumn
+from pyshell.loader.parameter  import registerSetEnvironment
+from pyshell.utils.parameter   import EnvironmentParameter
+from pyshell.utils.coloration  import bolt, nocolor
+from pyshell.utils.printing    import Printer, notice, printShell
+from pyshell.utils.exception   import DefaultPyshellException, LIBRARY_ERROR
+from apdu.misc.apdu            import toHexString
 
 try:
     from smartcard.System                 import readers

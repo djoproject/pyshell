@@ -16,39 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#FIXME toHexString already exist in apdu.misc.util...
- 
-from string import rstrip
 import os
-
-PACK = 1
-HEX = 2
-UPPERCASE = 4
-COMMA = 8
-
-def toHexString(bytes=[], format=0):
-    #for byte in tuple(bytes): 
-    #    pass 
-
-    if not isinstance(bytes,list): 
-        raise TypeError('not a list of bytes') 
-
-    if bytes == None or bytes == []: 
-        return "" 
-    else: 
-        pformat = "%-0.2X" 
-        if COMMA & format: 
-            pformat = pformat + "," 
-        pformat = pformat + " " 
-        if PACK & format: 
-            pformat = rstrip(pformat) 
-        if HEX & format: 
-            if UPPERCASE & format: 
-                pformat = "0X" + pformat 
-            else: 
-                pformat = "0x" + pformat 
-                    
-        return rstrip(rstrip(reduce(lambda a, b: a + pformat % ((b + 256) % 256), [""] + bytes)), ',')
         
 def ioctl_GWINSZ(fd):
     try:
