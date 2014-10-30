@@ -21,7 +21,7 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker, parameterChecke
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.keystore   import registerKey
 from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
-from pyshell.utils.coloration  import green, bolt, nocolor
+from pyshell.utils.printing  import green, bolt, nocolor #TODO
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 
 ## DECLARATION PART ##

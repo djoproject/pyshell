@@ -25,12 +25,6 @@ import os, sys
 from threading import Lock
 
 #TODO
-    #context/env manager ?
-        #how to manage concurrency?
-        
-    #convert parent dico and subelement dico in tries
-        #and manage every consequences (ambiguity)
-        
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
         #store in three separate files ?

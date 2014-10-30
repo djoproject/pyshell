@@ -25,7 +25,7 @@ from pyshell.utils.postProcess import printColumn, stringListResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter   import EnvironmentParameter
 from pyshell.utils.constants   import ENVIRONMENT_NAME, ADDONLIST_KEY
-from pyshell.utils.coloration  import green, orange, bolt, nocolor, red
+from pyshell.utils.printing    import green, orange, bolt, nocolor, red #TODO
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException
 

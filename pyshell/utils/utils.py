@@ -50,7 +50,8 @@ def raiseIfInvalidKeyList(keyList, exceptionClass,packageName, methName):
         if type(key) != str and type(key) != unicode:
             raise exceptionClass("("+packageName+") "+methName+", only string or unicode key are allowed")
         
-        #TODO trim key
+        #trim key
+        key = key.strip()
         
         if len(key) == 0:
             raise exceptionClass("("+packageName+") "+methName+", empty key is not allowed")

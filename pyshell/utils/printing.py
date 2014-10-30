@@ -20,54 +20,35 @@
     #disable coloration if redirect to file
         #os.fstat(0) == os.fstat(1)
         #http://stackoverflow.com/questions/1512457/determining-if-stdout-for-a-python-process-is-redirected
-
-    #coloration system should be moved here and only used here
-        #with a kind of formating method
         
     #faire deux types de coloration, sur fond sombre ou sur fond clair
         #ou faire une variable de'environment de constrate
+        #voir commentaire en #3X
 
 import threading, sys
 from pyshell.utils.valuable   import Valuable, DefaultValuable
-from pyshell.utils.coloration import red, orange, green
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException
 import re
 
 _EMPTYSTRING = ""
 
-MAUVE     = '\033[95m'
-BLUE      = '\033[94m'
-GREEN     = '\033[92m'
-ORANGE    = '\033[93m'
-RED       = '\033[91m'
+#http://misc.flogisoft.com/bash/tip_colors_and_formatting
+LIGHTMAUVE     = '\033[95m'
+LIGHTBLUE      = '\033[94m'
+LIGHTGREEN     = '\033[92m'
+LIGHTORANGE    = '\033[93m'
+LIGHTRED       = '\033[91m'
+
+DARKMAUVE     = '\033[35m'
+DARKBLUE      = '\033[34m'
+DARKGREEN     = '\033[32m'
+DARKORANGE    = '\033[33m'
+DARKRED       = '\033[31m'
+
 ENDC      = '\033[0m'
 BOLT      = '\033[1m'
 UNDERLINE = '\033[4m'
 
-def red(text):
-    return RED+text+ENDC
-    
-def blue(text):
-    return BLUE+text+ENDC
-    
-def green(text):
-    return GREEN+text+ENDC
-    
-def orange(text):
-    return ORANGE+text+ENDC
-    
-def mauve(text):
-    return MAUVE+text+ENDC
-
-def nocolor(text):
-    return text
-    
-def bolt(text):
-    return BOLT+text+ENDC
-    
-def underline(text):
-    return UNDERLINE+text+ENDC
-    
 class Printer(object):
     _printerLock = threading.RLock()
     _instance = None
@@ -80,6 +61,7 @@ class Printer(object):
         self.shellContext        = DefaultValuable(None)
         self.promptShowedContext = DefaultValuable(False)
         self.spacingContext      = DefaultValuable(0)
+        self.backgroundContext   = DefaultValuable(None)
     
     def __enter__(self):
         return Printer._printerLock.__enter__()
@@ -110,8 +92,20 @@ class Printer(object):
             raise Exception("(Printer) setSpacingContext, invalid spacing context, must be an instance of valuable")
     
         self.spacingContext = context
+        
+    def setBakcgroundContext(self, context):    
+        if not isinstance(context, Valuable):
+            raise Exception("(Printer) setBakcgroundContext, invalid background context, must be an instance of valuable")
     
-    def isInShell(self): #FIXME valuable does not have getSelectedValue method...
+        self.backgroundContext = context
+    
+    def isDarkBackGround(self):
+        return self.backgroundContext.getSelectedValue() == "black"
+        
+    def isLightBackGround(self):
+        return self.backgroundContext.getSelectedValue() == "light"
+    
+    def isInShell(self): #FIXME valuable does not have getSelectedValue method..., create a new abstract object
         return self.shellContext.getSelectedValue() == "shell"
     
     def isPromptShowed(self):
@@ -126,7 +120,7 @@ class Printer(object):
                     
         return Printer._instance
 
-    def _print(self, out):
+    def cprint(self, out):
         if out is None:
             return
         
@@ -145,6 +139,47 @@ class Printer(object):
                 self.replWriteFunction(out)
             else:
                 print(out)
+    
+    def _formatColor(self, text, light, dark):
+        if not self.isInShell():
+            return text
+
+        if self.isLightBackGround():
+            return light+text+ENDC
+        
+        if self.isDarkBackGround():
+            return dark+text+ENDC
+            
+        return text
+
+    def _format(self, text, effect):
+        if not self.isInShell():
+            return text
+            
+        return effect+text+ENDC
+
+    def formatRed(self, text):
+        return self._formatColor(text, LIGHTRED, DARKRED)
+        
+    def formatBlue(self, text):
+        return self._formatColor(text, LIGHTBLUE, DARKBLUE)
+        
+    def formatGreen(self, text):
+        return self._formatColor(text, LIGHTGREEN, DARKGREEN)
+        
+    def formatOrange(self, text):
+        return self._formatColor(text, LIGHTORANGE, DARKORANGE)
+        
+    def formatMauve(self, text):
+        return self._formatColor(text, LIGHTMAUVE, DARKMAUVE)
+        
+    def formatBolt(self, text):
+        return self._format(text, BOLT)
+        
+    def formatUnderline(self, text):
+        return self._format(text, UNDERLINE)
+    
+    #TODO use the new functions
     
     def info(self, string):
         self._print(string)

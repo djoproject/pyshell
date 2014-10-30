@@ -1,4 +1,21 @@
 ###################################################################################################################
+####################### REDIRECT OUTPUT   #########################################################################
+###################################################################################################################
+
+we want to be able to redirect output without executing process on the last command
+
+    E.G. prox read 0 | pcs tran | echo16
+        this will not execute method pro from pcs tran but empty method pro from echo16
+        so no instruction will be sent to the card
+        
+    SOLUTION 1: implement double piping
+        prox read 0 | pcs tran || echo16
+        
+        "prox read 0 | pcs tran " will be executed alone
+            then the result will be forward to a new engine with "echo16" 
+         
+
+###################################################################################################################
 ####################### CONDITIONNAL/LOOP #########################################################################
 ###################################################################################################################
     interest of conditionnal and iterative statement ?

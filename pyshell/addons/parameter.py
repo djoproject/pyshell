@@ -23,10 +23,10 @@
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
 from pyshell.utils.parameter   import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
-from pyshell.utils.postProcess import printResultHandler, stringListResultHandler,listResultHandler,printColumn
+from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.coloration  import green, bolt, nocolor, orange
+from pyshell.utils.printing    import green, bolt, nocolor, orange #TODO
 from pyshell.utils.exception   import DefaultPyshellException
 
 ## FUNCTION SECTION ##
@@ -492,13 +492,13 @@ registerCommand( ("get",) ,                pre=getContextValues, pro=listResultH
 registerCommand( ("set",) ,                post=setContextValuesFun)
 registerCommand( ("create",) ,             post=createContextValuesFun)
 registerCommand( ("add",) ,                post=addContextValuesFun)
-registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=printResultHandler)
-registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=printResultHandler)
+registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=listFlatResultHandler)
+registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=listFlatResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
 registerCommand( ("list",) ,               pre=listContexts, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
-registerCommand( ("properties","get"),     pre=getContextProperties, pro=printResultHandler)
+registerCommand( ("properties","get"),     pre=getContextProperties, pro=listFlatResultHandler)
 registerStopHelpTraversalAt( ("context",) )
 
 #env 
@@ -512,7 +512,7 @@ registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
 registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
 
 registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
-registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=printResultHandler) 
+registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=listFlatResultHandler) 
 registerStopHelpTraversalAt( ("environment",) ) 
 
 #parameter

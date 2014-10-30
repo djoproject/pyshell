@@ -54,7 +54,7 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, 
 from pyshell.utils.postProcess import printColumn
 from pyshell.loader.parameter  import registerSetEnvironment
 from pyshell.utils.parameter   import EnvironmentParameter
-from pyshell.utils.coloration  import bolt, nocolor
+from pyshell.utils.printing    import bolt, nocolor #TODO
 from pyshell.utils.printing    import Printer, notice, printShell
 from pyshell.utils.exception   import DefaultPyshellException, LIBRARY_ERROR
 from apdu.misc.apdu            import toHexString
