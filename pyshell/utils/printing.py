@@ -16,19 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO        
-    #disable coloration if redirect to file
-        #os.fstat(0) == os.fstat(1)
-        #http://stackoverflow.com/questions/1512457/determining-if-stdout-for-a-python-process-is-redirected
-        
-    #faire deux types de coloration, sur fond sombre ou sur fond clair
-        #ou faire une variable de'environment de constrate
-        #voir commentaire en #3X
-
-import threading, sys
+import threading, sys, re, os
 from pyshell.utils.valuable   import Valuable, DefaultValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException
-import re
 
 _EMPTYSTRING = ""
 
@@ -39,15 +29,17 @@ LIGHTGREEN     = '\033[92m'
 LIGHTORANGE    = '\033[93m'
 LIGHTRED       = '\033[91m'
 
-DARKMAUVE     = '\033[35m'
-DARKBLUE      = '\033[34m'
-DARKGREEN     = '\033[32m'
-DARKORANGE    = '\033[33m'
-DARKRED       = '\033[31m'
+DARKMAUVE      = '\033[35m'
+DARKBLUE       = '\033[34m'
+DARKGREEN      = '\033[32m'
+DARKORANGE     = '\033[33m'
+DARKRED        = '\033[31m'
 
-ENDC      = '\033[0m'
-BOLT      = '\033[1m'
-UNDERLINE = '\033[4m'
+ENDC           = '\033[0m'
+BOLT           = '\033[1m'
+UNDERLINE      = '\033[4m'
+
+ANSI_ESCAPE = re.compile(r'\x1b[^m]*m')
 
 class Printer(object):
     _printerLock = threading.RLock()
@@ -61,7 +53,7 @@ class Printer(object):
         self.shellContext        = DefaultValuable(None)
         self.promptShowedContext = DefaultValuable(False)
         self.spacingContext      = DefaultValuable(0)
-        self.backgroundContext   = DefaultValuable(None)
+        self.backgroundContext   = DefaultValuable("black")#TODO None)
     
     def __enter__(self):
         return Printer._printerLock.__enter__()
@@ -93,7 +85,7 @@ class Printer(object):
     
         self.spacingContext = context
         
-    def setBakcgroundContext(self, context):    
+    def setBakcgroundContext(self, context): #TODO use it
         if not isinstance(context, Valuable):
             raise Exception("(Printer) setBakcgroundContext, invalid background context, must be an instance of valuable")
     
@@ -105,7 +97,7 @@ class Printer(object):
     def isLightBackGround(self):
         return self.backgroundContext.getSelectedValue() == "light"
     
-    def isInShell(self): #FIXME valuable does not have getSelectedValue method..., create a new abstract object
+    def isInShell(self): #TODO valuable does not have getSelectedValue method..., create a new abstract object
         return self.shellContext.getSelectedValue() == "shell"
     
     def isPromptShowed(self):
@@ -124,7 +116,9 @@ class Printer(object):
         if out is None:
             return
         
-        #TODO remove ansi annotation if not in shell mode or if stdout is redirected to a file
+        #remove ansi annotation if not in shell mode or if stdout is redirected to a file
+        if not self.isInShell() or ( not self.isDarkBackGround() and not self.isLightBackGround()) or not (os.fstat(0) == os.fstat(1)):
+            out = ANSI_ESCAPE.sub('', str(out))
         
         outs = out.split("\n")
         out = ""
@@ -178,35 +172,21 @@ class Printer(object):
         
     def formatUnderline(self, text):
         return self._format(text, UNDERLINE)
-    
-    #TODO use the new functions
-    
+        
     def info(self, string):
-        self._print(string)
+        self.cprint(string)
     
     def notice(self, string):
-        if self.isInShell():
-            self._print(green(string))
-        else:
-            self._print(string)
+        self.cprint(self.formatGreen(string))
         
     def warning(self, string):
-        if self.isInShell():
-            self._print(orange(string))
-        else:
-            self._print(string)
+        self.cprint(self.formatOrange(string))
         
     def error(self, string):
-        if self.isInShell():
-            self._print(red(string))
-        else:
-            self._print(string)
+        self.cprint(self.formatRed(string))
         
     def debug(self, string):
-        if self.isInShell():
-            self._print(orange(string))
-        else:
-            self._print(string)
+        self.cprint(self.formatOrange(string))
     
 def _toLineString(args, kwargs):
     s = ' '.join(str(x) for x in args)
@@ -217,6 +197,34 @@ def _toLineString(args, kwargs):
             return s + " " + s2
         return s
     return s2 
+
+def formatRed(text):
+    printer = Printer.getInstance()
+    return printer.formatRed(text)
+
+def formatBlue(text):
+    printer = Printer.getInstance()
+    return printer.formatBlue(text)
+    
+def formatGreen(text):
+    printer = Printer.getInstance()
+    return printer.formatGreen(text)
+    
+def formatOrange(text):
+    printer = Printer.getInstance()
+    return printer.formatOrange(text)
+    
+def formatMauve(text):
+    printer = Printer.getInstance()
+    return printer.formatMauve(text)
+    
+def formatBolt(text):
+    printer = Printer.getInstance()
+    return printer.formatBolt(text)
+    
+def formatUnderline(text):
+    printer = Printer.getInstance()
+    return printer.formatUnderline(text)
 
 def printShell(*args, **kwargs):
     printer = Printer.getInstance()
@@ -275,7 +283,6 @@ def formatException(exception):
         return red(str(exception))
 
 def strLength(string):
-    ansi_escape = re.compile(r'\x1b[^m]*m')
-    return len(ansi_escape.sub('', str(string)))
+    return len(ANSI_ESCAPE.sub('', str(string)))
 
 

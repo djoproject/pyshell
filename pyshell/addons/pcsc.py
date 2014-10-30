@@ -54,8 +54,7 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, 
 from pyshell.utils.postProcess import printColumn
 from pyshell.loader.parameter  import registerSetEnvironment
 from pyshell.utils.parameter   import EnvironmentParameter
-from pyshell.utils.printing    import bolt, nocolor #TODO
-from pyshell.utils.printing    import Printer, notice, printShell
+from pyshell.utils.printing    import Printer, notice, printShell, formatBolt
 from pyshell.utils.exception   import DefaultPyshellException, LIBRARY_ERROR
 from apdu.misc.apdu            import toHexString
 
@@ -355,9 +354,8 @@ def disconnect(index=0, connections = None):
         connection_list.remove(connectionToUse)
         connections.setValue(connection_list)
 
-@shellMethod(connections = environmentParameterChecker("pcsc_connexionlist"),
-             execution_context = contextParameterChecker("execution"))
-def getConnected(connections, execution_context):
+@shellMethod(connections = environmentParameterChecker("pcsc_connexionlist"))
+def getConnected(connections):
     "list the existing connection(s)"    
     
     connection_list = connections.getValue()
@@ -365,13 +363,8 @@ def getConnected(connections, execution_context):
     if len(connection_list) == 0:
         return ()
     
-    if execution_context.getSelectedValue() == "shell":
-        title = bolt 
-    else:
-        title = nocolor
-    
     to_ret = []
-    to_ret.append( (title("ID"), title("Reader name"), title("Protocol"), title("ATR"), ) )
+    to_ret.append( (formatBolt("ID"), formatBolt("Reader name"), formatBolt("Protocol"), formatBolt("ATR"), ) )
     
     index = 0
     for con in connection_list:        
@@ -394,9 +387,8 @@ def getConnected(connections, execution_context):
     return to_ret
 
 @shellMethod(cards = environmentParameterChecker("pcsc_cardlist"),
-             connections = environmentParameterChecker("pcsc_connexionlist"),
-             execution_context = contextParameterChecker("execution"))
-def getAvailableCard(cards,connections, execution_context):
+             connections = environmentParameterChecker("pcsc_connexionlist"))
+def getAvailableCard(cards,connections):
     "list available card(s) on the system connected or not"
 
     #FIXME if not loaded, even if a card if available, the list will be empty
@@ -405,14 +397,9 @@ def getAvailableCard(cards,connections, execution_context):
 
     if len(card_list) == 0:
         return ()
-    
-    if execution_context.getSelectedValue() == "shell":
-        title = bolt 
-    else:
-        title = nocolor
-    
+        
     to_ret = []
-    to_ret.append( (title("ID"), title("Reader name"), title("Connected"), title("ATR"), ) )
+    to_ret.append( (formatBolt("ID"), formatBolt("Reader name"), formatBolt("Connected"), formatBolt("ATR"), ) )
     
     index = 0
     connections = connections.getValue()
@@ -431,11 +418,10 @@ def getAvailableCard(cards,connections, execution_context):
 
 @shellMethod(cards             = environmentParameterChecker("pcsc_cardlist"),
              connections       = environmentParameterChecker("pcsc_connexionlist"),
-             execution_context = contextParameterChecker("execution"),
              autoload          = environmentParameterChecker("pcsc_autoload"),
              loaded            = environmentParameterChecker("pcsc_contextready"),
              autoconnect       = environmentParameterChecker("pcsc_autoconnect"))
-def getAvailableReader(cards, connections,execution_context, autoload=False, loaded=False, autoconnect=False):
+def getAvailableReader(cards, connections, autoload=False, loaded=False, autoconnect=False):
     "list available reader(s)"
 
     loadPCSC(cards, autoload, loaded, autoconnect)
@@ -444,14 +430,9 @@ def getAvailableReader(cards, connections,execution_context, autoload=False, loa
     
     if len(r) == 0:
         return ()
-    
-    if execution_context.getSelectedValue() == "shell":
-        title = bolt 
-    else:
-        title = nocolor
-    
+        
     to_ret = []
-    to_ret.append( (title("ID"),title("Reader name"), title("Card on reader"), title("Card connected"),) )
+    to_ret.append( (formatBolt("ID"),formatBolt("Reader name"), formatBolt("Card on reader"), formatBolt("Card connected"),) )
     
     cards = cards.getValue()
     connections = connections.getValue()

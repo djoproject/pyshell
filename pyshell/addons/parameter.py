@@ -26,7 +26,7 @@ from pyshell.utils.parameter   import EnvironmentParameter, ContextParameter, Va
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME
-from pyshell.utils.printing    import green, bolt, nocolor, orange #TODO
+from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.utils.exception   import DefaultPyshellException
 
 ## FUNCTION SECTION ##
@@ -136,7 +136,7 @@ def listParameter(parameter, parent=None, key=None, printParent = True, allParen
             
     return to_ret"""
 
-def _listGeneric(parameter, parent, key, execution_context, formatValueFun, getTitleFun, forbidenParent = ()):
+def _listGeneric(parameter, parent, key, formatValueFun, getTitleFun, forbidenParent = ()):
     #TODO re-apply a width limit on the printing
         #use it in printing ?
             #nope because we maybe want to print something on the several line
@@ -156,13 +156,6 @@ def _listGeneric(parameter, parent, key, execution_context, formatValueFun, getT
     else:
         parents = parameter.params.keys()
         
-    if execution_context.getSelectedValue() == "shell":
-        title  = bolt
-        values = orange
-    else:
-        title  = nocolor
-        values = nocolor
-
     toRet = []
     for k in parents:
         if k in forbidenParent:
@@ -172,16 +165,16 @@ def _listGeneric(parameter, parent, key, execution_context, formatValueFun, getT
             if key not in parameter.params[k]:
                 continue
             
-            toRet.append( formatValueFun(k, key, parameter.params[k][key], values) )
+            toRet.append( formatValueFun(k, key, parameter.params[k][key], formatOrange) )
             break
         
         for subk,subv in parameter.params[k].items():
-            toRet.append( formatValueFun(k, subk, subv, values) )
+            toRet.append( formatValueFun(k, subk, subv, formatOrange) )
     
     if len(toRet) == 0:
         return [("No var available",)]
     
-    toRet.insert(0, getTitleFun(title) )
+    toRet.insert(0, getTitleFun(formatBolt) )
     return toRet
 
 def _parameterRowFormating(parent, key, paramItem, valueFormatingFun):
@@ -199,10 +192,9 @@ def _parameterGetTitle(titleFormatingFun):
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              parent    = stringArgChecker(),
-             key       = stringArgChecker(),
-             execution_context = contextParameterChecker("execution"))
-def listParameter(parameter, parent=None, key=None,execution_context=None):
-    return _listGeneric(parameter, parent, key, execution_context, _parameterRowFormating, _parameterGetTitle)
+             key       = stringArgChecker())
+def listParameter(parameter, parent=None, key=None):
+    return _listGeneric(parameter, parent, key, _parameterRowFormating, _parameterGetTitle)
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def loadParameter(parameter):
@@ -303,10 +295,9 @@ def _envGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("IsList"), titleFormatingFun("Value(s)"), )
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker(),
-             execution_context = contextParameterChecker("execution"))
-def listEnvs(parameter, key=None, execution_context=None):
-    return _listGeneric(parameter, ENVIRONMENT_NAME, key, execution_context, _envRowFormating, _envGetTitle)
+             key       = stringArgChecker())
+def listEnvs(parameter, key=None):
+    return _listGeneric(parameter, ENVIRONMENT_NAME, key, _envRowFormating, _envGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -399,10 +390,9 @@ def _conGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("Index"), titleFormatingFun("Value"), titleFormatingFun("Values"), )
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker(),
-             execution_context = contextParameterChecker("execution"))
-def listContexts(parameter, key=None, execution_context=None):
-    return _listGeneric(parameter, CONTEXT_NAME, key, execution_context, _conRowFormating, _conGetTitle)
+             key       = stringArgChecker())
+def listContexts(parameter, key=None):
+    return _listGeneric(parameter, CONTEXT_NAME, key, _conRowFormating, _conGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -470,10 +460,9 @@ def _varGetTitle(titleFormatingFun):
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              parent    = stringArgChecker(),
-             key       = stringArgChecker(),
-             execution_context = contextParameterChecker("execution"))
-def listVars(parameter, parent=None, key=None, execution_context=None):
-    return _listGeneric(parameter, parent, key, execution_context, _varRowFormating, _varGetTitle, FORBIDEN_SECTION_NAME)
+             key       = stringArgChecker())
+def listVars(parameter, parent=None, key=None):
+    return _listGeneric(parameter, parent, key, _varRowFormating, _varGetTitle, FORBIDEN_SECTION_NAME)
 
 #################################### REGISTER SECTION #################################### 
 

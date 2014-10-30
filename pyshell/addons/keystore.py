@@ -21,7 +21,7 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker, parameterChecke
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.keystore   import registerKey
 from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
-from pyshell.utils.printing  import green, bolt, nocolor #TODO
+from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 
 ## DECLARATION PART ##
@@ -43,30 +43,21 @@ def getKey(key, start=0, end=None, keyStore=None):
     "get a key"
     return key.getKey(start, end)
 
-@shellMethod(keyStore          = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME),
-             execution_context = contextParameterChecker("execution"))
-def listKey(keyStore, execution_context):
+@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+def listKey(keyStore):
     "list available key in the keystore"
     
-    keyStore = keyStore.getValue()
-        
-    if execution_context.getSelectedValue() == "shell":
-        info  = green
-        title = bolt
-    else:
-        info  = nocolor
-        title = nocolor
-    
+    keyStore = keyStore.getValue()    
     toRet = []
     
     for k in keyStore.getKeyList():
         key = keyStore.getKey(k)
-        toRet.append( (k,key.getTypeString(),str(key.getKeySize()),info(str(key)), ) )
+        toRet.append( (k,key.getTypeString(),str(key.getKeySize()),formatGreen(str(key)), ) )
     
     if len(toRet) == 0:
         return [("No key available",)]
     
-    toRet.insert(0, (title("Key name"),title("Type"),title("Size"), title("Value"), ) )
+    toRet.insert(0, (formatBolt("Key name"),formatBolt("Type"),formatBolt("Size"), formatBolt("Value"), ) )
     return toRet
 
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),

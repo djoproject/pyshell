@@ -79,6 +79,7 @@ def printBytesAsString(byteList):
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
+    #TODO utiliser le length from printing
     ansi_escape = re.compile(r'\x1b[^m]*m')
 
     if len(listOfLine) == 0:

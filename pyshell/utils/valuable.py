@@ -26,6 +26,9 @@ class DefaultValuable(Valuable):
 
     def getValue(self):
         return self.value
+
+    def getSelectedValue(self):
+        return self.value
         
 class SimpleValuable(Valuable):
     def __init__(self, value = None):
@@ -36,3 +39,6 @@ class SimpleValuable(Valuable):
         
     def setValue(self, value):
         self.value = value
+
+    def getSelectedValue(self):
+        return self.value

@@ -29,8 +29,7 @@ from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, contextParameterChecker, parameterDynamicChecker
 from pyshell.utils.postProcess import printColumn
 from pyshell.utils.exception   import USER_ERROR, DefaultPyshellException
-from pyshell.utils.printing    import printShell, warning, strLength
-from pyshell.utils.coloration  import orange, green,bolt, red
+from pyshell.utils.printing    import printShell, warning, strLength, formatOrange, formatRed
 from math                      import log
 
 @shellMethod(varLists  = listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),
@@ -140,38 +139,38 @@ def compareByteList(varLists, bytePerLine = 4, parameters = None):
             #high
             if len(commonBytesHight) == 1:
                 if i >= len(varListValue):
-                    lineParts[j] += orange("xx ")
+                    lineParts[j] += formatOrange("xx ")
                     continue
 
                 lineParts[j] += "%x"%((int(varListValue[i])&0xF0)>>4)
 
             elif len(commonBytesHight) == len(varListValue):
                 if i >= len(varListValue):
-                    lineParts[j] += orange("xx ")
+                    lineParts[j] += formatOrange("xx ")
                     continue
 
-                lineParts[j] += red("%x"%((int(varListValue[i])&0xF0)>>4))
+                lineParts[j] += formatRed("%x"%((int(varListValue[i])&0xF0)>>4))
             else:
                 if i >= len(varListValue):
-                    lineParts[j] += orange("xx ")
+                    lineParts[j] += formatOrange("xx ")
                     continue
 
                 if varListValue[i] == maxKeyHigh:
                     lineParts[j] += "%x"%((int(varListValue[i])&0xF0)>>4)
                 else:
-                    lineParts[j] += red("%x"%((int(varListValue[i])&0xF0)>>4))
+                    lineParts[j] += formatRed("%x"%((int(varListValue[i])&0xF0)>>4))
 
             #low
             if len(commonBytesLow) == 1:
                 lineParts[j] += "%x "%(int(varListValue[i])&0x0F)
 
             elif len(commonBytesLow) == len(varListValue):
-                lineParts[j] += red("%x "%(int(varListValue[i])&0x0F))
+                lineParts[j] += formatRed("%x "%(int(varListValue[i])&0x0F))
             else:
                 if varListValue[i] == maxKeyLow:
                     lineParts[j] += "%x "%(int(varListValue[i])&0x0F)
                 else:
-                    lineParts[j] += red("%x "%(int(varListValue[i])&0x0F))
+                    lineParts[j] += formatRed("%x "%(int(varListValue[i])&0x0F))
         
         #new line
         if (i+1)% (bytePerLine) == 0:
@@ -201,19 +200,11 @@ def compareByteList(varLists, bytePerLine = 4, parameters = None):
         
 
 @shellMethod(bytelist = listArgChecker(IntegerArgChecker(0,255)),
-             execution_context = contextParameterChecker("execution"),
              bytePerLine =IntegerArgChecker(4,16))
-def printByteTable(bytelist, bytePerLine = 5,execution_context=None):
+def printByteTable(bytelist, bytePerLine = 5):
     if len(bytelist) == 0:
         warning("empty list of byte")
-    
-    if execution_context.getSelectedValue() == "shell":
-        title = bolt
-        unknownChar = orange
-    else:
-        title = nocolor
-        unknownChar = nocolor
-    
+        
     byteColumnSize = 3 * bytePerLine
     asciiColumnSize = bytePerLine + 2
     decimalColumnSize = 4 * bytePerLine + 1
@@ -238,7 +229,7 @@ def printByteTable(bytelist, bytePerLine = 5,execution_context=None):
             hexa += tmp+" "
             
             if h < 33 or h > 126:
-                ascii += unknownChar(".") 
+                ascii += formatOrange(".") 
             else:
                 ascii += chr(h)
             

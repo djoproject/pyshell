@@ -25,9 +25,8 @@ from pyshell.utils.postProcess import printColumn, stringListResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter   import EnvironmentParameter
 from pyshell.utils.constants   import ENVIRONMENT_NAME, ADDONLIST_KEY
-from pyshell.utils.printing    import green, orange, bolt, nocolor, red #TODO
 from pyshell.utils.exception   import ListOfException
-from pyshell.utils.printing    import notice, formatException
+from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
 
 ADDON_PREFIX  = "pyshell.addons."
 
@@ -67,24 +66,11 @@ def _formatState(state, printok, printwarning, printerror):
     else:
         return printerror(state)
 
-@shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY),
-             execution_context = contextParameterChecker("execution"))
-def listAddonFun(addon_dico, execution_context):
+@shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY))
+def listAddonFun(addon_dico):
     "list the available addons"
     
     addon_dico = addon_dico.getValue()
-    
-    #define print style
-    if execution_context.getSelectedValue() == "shell":
-        printok      = green
-        printwarning = orange
-        printerror   = red
-        title        = bolt
-    else:
-        printok      = nocolor
-        printwarning = nocolor
-        printerror   = nocolor
-        title        = nocolor
 
     #create addon list from default addon directory
     local_addon = []
@@ -100,17 +86,17 @@ def listAddonFun(addon_dico, execution_context):
             local_addon.remove(name)
         
         for subAddonName, (subloader,state, ) in loader.subAddons.items():
-            l.append( (name, subAddonName, _formatState(state.state, printok, printwarning, printerror ), ) )
+            l.append( (name, subAddonName, _formatState(state.state, formatGreen, formatOrange, formatRed ), ) )
 
     for name in local_addon:
-        l.append( (name,"",printwarning(GlobalLoaderLoadingState.STATE_UNLOADED), ) )
+        l.append( (name,"",formatOrange(GlobalLoaderLoadingState.STATE_UNLOADED), ) )
 
     l.sort()
 
     if len(l) == 0:
         return [("No addon available",)]
     
-    l.insert(0, (title("Addon name"),title("Sub part"),title("State"), ) )
+    l.insert(0, (formatBolt("Addon name"),formatBolt("Sub part"),formatBolt("State"), ) )
     return l
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
@@ -175,23 +161,11 @@ def hardReload(name, parameters, subAddon = None):
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              addon_dico=environmentParameterChecker(ADDONLIST_KEY),
-             tabsize=environmentParameterChecker("tabsize"),
-             execution_context = contextParameterChecker("execution"))
-def getAddonInformation(name, addon_dico, tabsize, execution_context):
+             tabsize=environmentParameterChecker("tabsize"))
+def getAddonInformation(name, addon_dico, tabsize, ):
     "print all available information about an addon"
 
     tab = " "*tabsize.getValue()
-
-    if execution_context.getSelectedValue() == "shell":
-        printok      = green
-        printwarning = orange
-        printerror   = red
-        title        = bolt
-    else:
-        printok      = nocolor
-        printwarning = nocolor
-        printerror   = nocolor
-        title        = nocolor
 
     #if not in the list, try to load it
     addon_dico = addon_dico.getValue()
@@ -203,33 +177,33 @@ def getAddonInformation(name, addon_dico, tabsize, execution_context):
     lines = []
     #extract information from _loaders
         #current name
-    lines.append(title("Addon")+" '"+str(name)+"'")
+    lines.append(formatBolt("Addon")+" '"+str(name)+"'")
 
     #each sub addon
     for subAddonName, (subloaders, status, ) in addon.subAddons.items():
         #current status
-        lines.append(tab+title("Sub addon")+" '"+str(subAddonName)+"': "+_formatState(status.state, printok, printwarning, printerror ) )
+        lines.append(tab+formatBolt("Sub addon")+" '"+str(subAddonName)+"': "+_formatState(status.state, formatGreen, formatOrange, formatRed ) )
 
         #loader in each subbadon
         for name, loader in subloaders.items():
             #print information error for each loader
             if loader.lastException is not None:
                 if isinstance(loader.lastException, ListOfException):
-                    lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = "+printerror(str(len(loader.lastException.exceptions)))+")")
+                    lines.append(tab*2 + formatBolt("Loader")+" '"+str(name) + "' (error count = "+formatRed(str(len(loader.lastException.exceptions)))+")")
 
                     for exc in loader.lastException.exceptions:
-                        lines.append(tab*5 + "*" + formatException(exc, printok, printwarning, printerror))
+                        lines.append(tab*5 + "*" + formatException(exc, formatGreen, formatOrange, formatRed))
 
                 else:
-                    lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = "+printerror("1")+")")
-                    lines.append(tab*3 + printerror(str(loader.lastException)))
+                    lines.append(tab*2 + formatBolt("Loader")+" '"+str(name) + "' (error count = "+formatRed("1")+")")
+                    lines.append(tab*3 + formatRed(str(loader.lastException)))
                     
                     if hasattr(loader.lastException, "stackTrace") and loader.lastException is not None:
                         lastExceptionSplitted = loader.lastException.split("\n")
                         for string in lastExceptionSplitted:
                             lines.append(tab*3 + string)
             else:
-                lines.append(tab*2 + title("Loader")+" '"+str(name) + "' (error count = 0)")
+                lines.append(tab*2 + formatBolt("Loader")+" '"+str(name) + "' (error count = 0)")
 
     return lines
 
@@ -293,23 +267,17 @@ def removeOnStartUp(addonName, addonListOnStartUp):
         addonList.remove(addonName)
         addonListOnStartUp.setValue(addonList)
         
-@shellMethod(addonListOnStartUp = environmentParameterChecker("addonToLoad"),
-             execution_context = contextParameterChecker("execution"))
-def listOnStartUp(addonListOnStartUp,execution_context):
+@shellMethod(addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+def listOnStartUp(addonListOnStartUp):
     "list addon enabled on startup"
 
     addons = addonListOnStartUp.getValue()
     
     if len(addons) == 0:
         return ()
-    
-    if execution_context.getSelectedValue() == "shell":
-        title        = bolt
-    else:
-        title        = nocolor
-    
+        
     r = []
-    r.append( (title("Order"), title("Addon name"),) )
+    r.append( (formatBolt("Order"), formatBolt("Addon name"),) )
     for i in range(0,len(addons)):
         r.append( (str(i), str(addons[i]), ) )
     
