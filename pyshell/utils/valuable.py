@@ -20,7 +20,11 @@ class Valuable(object):
     def getValue(self):
         pass #TO OVERRIDE
         
-class DefaultValuable(Valuable):
+class SelectableValuable(Valuable):
+    def getSelectedValue(self):
+        pass #TO OVERRIDE
+        
+class DefaultValuable(SelectableValuable):
     def __init__(self, value):
         self.value = value
 
@@ -30,7 +34,7 @@ class DefaultValuable(Valuable):
     def getSelectedValue(self):
         return self.value
         
-class SimpleValuable(Valuable):
+class SimpleValuable(SelectableValuable):
     def __init__(self, value = None):
         self.value = value
 

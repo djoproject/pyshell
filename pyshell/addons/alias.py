@@ -200,8 +200,7 @@ def load(mltries, filePath):
         lockedTo = -1
         for option in config.options(section):
             value = config.get(section, option)
-            methDeco = {"stoponerror":alias.setStopOnError,
-                        "executeonpre":alias.setExecuteOnPre,
+            methDeco = {"executeonpre":alias.setExecuteOnPre,
                         "removable":alias.setRemovable,
                         "readonly":alias.setReadOnly}
                         
@@ -222,6 +221,17 @@ def load(mltries, filePath):
                     onError = True
                     continue
                 lockedTo = intValue
+            elif option == "errorgranularity":
+                validInt, intValue = isInt(value)
+
+                if not validInt:
+                    alias.setErrorGranularity(None)
+                else:
+                    try:
+                        alias.setErrorGranularity(intValue)
+                    except Exception as ex:
+                        errorList.addException(ex)
+                        onError = True
             else:
                 #is it an index key ?
                 validInt, intValue = isInt(option)
@@ -273,7 +283,7 @@ def _saveTraversal(path, node, config, level):
     aliasName = " ".join(path)
     
     config.add_section(aliasName)
-    config.set(aliasName, "stopOnError",                     str(aliasObject.stopOnError))
+    config.set(aliasName, "errorGranularity",                str(aliasObject.errorGranularity))
     config.set(aliasName, "executeOnPre",                    str(aliasObject.executeOnPre))
     config.set(aliasName, "lockedTo",                        str(aliasObject.lockedTo))
     config.set(aliasName, "readonly",                        str(aliasObject.readonly))

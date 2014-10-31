@@ -19,10 +19,13 @@
 from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
 from pyshell.utils.exception import ListOfException, PyshellException
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
-from pyshell.utils.valuable  import Valuable
+from pyshell.utils.valuable  import Valuable, SelectableValuable
 from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
-import os, sys
 from threading import Lock
+import os, sys
+
+#BUG
+    #plus moyen de sauvegarder l'index de la coloration (ou bien de le loader)
 
 #TODO
     #split context/envir/variabl in separate data structure
@@ -30,8 +33,12 @@ from threading import Lock
         #store in three separate files ?
 
     #implement "add value" method to context/envi list
-        #used and implemented in addon/parameter.py
+        #used and implemented in addon/parameter.py, loader/parameter.py
         #used in ?
+        
+    #context should inherit from SelectableValuable
+    
+    #load/save should move to addon
     
 try:
     pyrev = sys.version_info.major
@@ -93,9 +100,9 @@ def _getBool(config, section, option, defaultValue):
 
 class ParameterManager(object):
     def __init__(self, filePath = None):
-        self.params = {}
-        self.params[CONTEXT_NAME] = {}
-        self.params[ENVIRONMENT_NAME] = {}
+        self.params = {} #TODO should be tries
+        self.params[CONTEXT_NAME] = {} #TODO should be tries and not in params
+        self.params[ENVIRONMENT_NAME] = {} #TODO should be tries and not in params
         self.filePath = filePath
 
     def load(self):
@@ -370,7 +377,7 @@ class EnvironmentParameter(Parameter):
 
     def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
         Parameter.__init__(self, transient)
-        self.setReadOnly(readonly)
+        self.readonly = False
         self.setRemovable(removable)
 
         #typ must be argChecker
@@ -380,10 +387,21 @@ class EnvironmentParameter(Parameter):
         self.isListType = isinstance(typ, listArgChecker)
         self.setListSeparator(sep)
         self.typ = typ
-        self._setValue(value)
+        self.setValue(value)
         
         self.lock   = None
         self.lockID = -1
+        
+        self.setReadOnly(readonly)
+
+    def _raiseIfReadOnly(self, methName = None):
+        if self.readonly:
+            if methName is not None:
+                methName = " "+methName+", "
+            else:
+                methName = ""
+                
+            raise ParameterException("("+self.__name__+") "+methName+"read only parameter")
 
     def _initLock(self):
         if self.lock is None:
@@ -402,22 +420,50 @@ class EnvironmentParameter(Parameter):
         return self.lockID
         
     def isLockEnable(self):
-        return True #TODO be able to diable it ?
+        return True #TODO be able to disable it ?
     
-    #TODO replace in all code part, the test isinstance(typ, listArgChecker) 
     def isAListType(self):
         return self.isListType
     
-    #TODO replace brutal add value everywhere in the code
     def addValues(self, values):
-        pass #TODO
-        
-    #TODO replace brutal remove value everywhere in the code
-    def removeValue(self, value):
-        pass #TODO remove a value if list type
-            #TODO be carefull, need to recompute index in context class
+        #must be "not readonly"
+        self._raiseIfReadOnly("addValues")
     
+        #typ must be list
+        if not self.isAListType():
+            raise ParameterException("(EnvironmentParameter) addValues, can only add value to a list parameter")
+    
+        #values must be iterable
+        if not hasattr(values, "__iter__"):
+            values = (values, )
+        
+        #each value must be a valid element from checker
+        values = self.typ.getValue(values)
+    
+        #append values
+        self.value.extend(values)
+    
+    def removeValues(self, values):
+        #must be "not readonly"
+        self._raiseIfReadOnly("removeValues")
+    
+        #typ must be list
+        if not self.isAListType():
+            raise ParameterException("(EnvironmentParameter) removeValues, can only remove value to a list parameter")
+        
+        #values must be iterable
+        if not hasattr(values, "__iter__"):
+            values = (values, )
+        
+        #remove first occurence of each value
+        values = self.typ.getValue(values)
+        for v in values:
+            if v in self.value:
+                self.value.remove(v)
+        
     def setListSeparator(self, sep):
+        self._raiseIfReadOnly("setListSeparator")
+    
         if sep == None or (type(sep) != str and type(sep) != unicode):
             raise ParameterException("(EnvironmentParameter) setListSeparator, separator must be a string, get "+str(type(sep)))
             
@@ -430,12 +476,8 @@ class EnvironmentParameter(Parameter):
         return self.value
 
     def setValue(self, value):
-        if self.readonly:
-            raise ParameterException("(EnvironmentParameter) setValue, read only parameter")
-
-        self._setValue(value)
-
-    def _setValue(self,value):
+        self._raiseIfReadOnly("setValue")
+        
         if self.typ is None:
             self.value = value
         else:
@@ -454,6 +496,8 @@ class EnvironmentParameter(Parameter):
         self.readonly = state
 
     def setRemovable(self, state):
+        self._raiseIfReadOnly("setRemovable")
+    
         if type(state) != bool:
             raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
@@ -526,22 +570,30 @@ class EnvironmentParameter(Parameter):
         return ENVIRONMENT_NAME
         
     def setFromFile(self,valuesDictionary):
+        self._raiseIfReadOnly("setFromFile")
+    
         Parameter.setFromFile(self, valuesDictionary)
         
         if "value" in valuesDictionary:
-            self._setValue(valuesDictionary["value"])
-            
-        if "readonly" in valuesDictionary:
-            self.setReadOnly(valuesDictionary["readonly"])
+            self.setValue(valuesDictionary["value"])
             
         if "removable" in valuesDictionary:
             self.setRemovable(valuesDictionary["removable"])
+            
+        if "readonly" in valuesDictionary:
+            self.setReadOnly(valuesDictionary["readonly"])
             
     def __repr__(self):
         return "Environment, value:"+str(self.value)
             
 
-class ContextParameter(EnvironmentParameter):
+class ContextParameter(EnvironmentParameter, SelectableValuable):
+
+    #TODO must be an set, not a list
+        #which method must be overriden ? none (?)
+        #which method must be updated ? setValue, addValues
+        #a = list(set(a))
+
     def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True, sep=","):
 
         if not isinstance(typ,listArgChecker):
@@ -555,8 +607,9 @@ class ContextParameter(EnvironmentParameter):
         self.tryToSetIndex(index)
         self.setTransientIndex(transientIndex)
                 
-    def _setValue(self,value):
-        EnvironmentParameter._setValue(self,value)
+    def setValue(self,value):
+        EnvironmentParameter.setValue(self,value)
+        self.value = list(set(self.value))
         self.tryToSetDefaultIndex(self.defaultIndex)
         self.tryToSetIndex(self.index)
 
@@ -597,6 +650,8 @@ class ContextParameter(EnvironmentParameter):
         return self.value[self.index]
         
     def setTransientIndex(self,state):
+        self._raiseIfReadOnly("setTransientIndex")
+    
         if type(state) != bool:
             raise ParameterException("(ContextParameter) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
             
@@ -606,6 +661,8 @@ class ContextParameter(EnvironmentParameter):
         return self.transientIndex
         
     def setDefaultIndex(self,defaultIndex):
+        self._raiseIfReadOnly("setDefaultIndex")
+    
         try:
             self.value[defaultIndex]
         except IndexError:
@@ -616,6 +673,8 @@ class ContextParameter(EnvironmentParameter):
         self.defaultIndex = defaultIndex
         
     def tryToSetDefaultIndex(self,defaultIndex):
+        self._raiseIfReadOnly("tryToSetDefaultIndex")
+            
         try:
             self.value[defaultIndex]
             self.defaultIndex = defaultIndex
@@ -643,6 +702,22 @@ class ContextParameter(EnvironmentParameter):
     def reset(self):
         self.index = self.defaultIndex
 
+    def addValues(self, values):
+        EnvironmentParameter.addValues(self,values)
+        self.value = list(set(self.value))
+                
+    def removeValues(self, values):
+        #must stay at least one item in list
+        if len(self.value) == 1:
+            raise ParameterException("(ContextParameter) removeValues, can remove more value from this context, at least one value must stay in the list")
+        
+        #remove
+        EnvironmentParameter.removeValues(self, values)
+        
+        #recompute index if needed
+        self.tryToSetDefaultIndex(self.defaultIndex)
+        self.tryToSetIndex(self.index)
+
     @staticmethod
     def isParsable(config, section):
         return EnvironmentParameter.isParsable(config, section) and config.has_option(section, "defaultIndex")
@@ -668,8 +743,6 @@ class ContextParameter(EnvironmentParameter):
         return CONTEXT_NAME
         
     def setFromFile(self,valuesDictionary):
-        EnvironmentParameter.setFromFile(self, valuesDictionary)
-        
         if "defaultIndex" in valuesDictionary:
             self.setDefaultIndex(valuesDictionary["defaultIndex"])
             
@@ -681,6 +754,8 @@ class ContextParameter(EnvironmentParameter):
         else:
             self.setIndex(self.defaultIndex)
             
+        EnvironmentParameter.setFromFile(self, valuesDictionary)
+            
     def __repr__(self):
         return "Context, available values: "+str(self.value)+", selected index: "+str(self.index)+", selected value: "+str(self.value[self.index])
     
@@ -688,6 +763,8 @@ class ContextParameter(EnvironmentParameter):
         return str(self.value[self.index])
         
 class VarParameter(EnvironmentParameter):
+    #TODO no lock for var ?
+
     def __init__(self,value):
         tmp_value_parsed = [value] #TODO what occur if it is a list or not ?
         parsed_value = []

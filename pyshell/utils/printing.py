@@ -17,8 +17,9 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import threading, sys, re, os
-from pyshell.utils.valuable   import Valuable, DefaultValuable
+from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException
+from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT
 
 _EMPTYSTRING = ""
 
@@ -53,7 +54,7 @@ class Printer(object):
         self.shellContext        = DefaultValuable(None)
         self.promptShowedContext = DefaultValuable(False)
         self.spacingContext      = DefaultValuable(0)
-        self.backgroundContext   = DefaultValuable("black")#TODO None)
+        self.backgroundContext   = DefaultValuable(None)
     
     def __enter__(self):
         return Printer._printerLock.__enter__()
@@ -68,37 +69,37 @@ class Printer(object):
         self.replWriteFunction = fun
     
     def setShellContext(self, context):    
-        if not isinstance(context, Valuable):
-            raise Exception("(Printer) setShellContext, invalid shell context, must be an instance of valuable")
+        if not isinstance(context, SelectableValuable):
+            raise Exception("(Printer) setShellContext, invalid shell context, must be an instance of SelectableValuable")
     
         self.shellContext = context
     
     def setPromptShowedContext(self, context):    
         if not isinstance(context, Valuable):
-            raise Exception("(Printer) setPromptShowedContext, invalid running context, must be an instance of valuable")
+            raise Exception("(Printer) setPromptShowedContext, invalid running context, must be an instance of Valuable")
     
         self.promptShowedContext = context
         
     def setSpacingContext(self, context):    
         if not isinstance(context, Valuable):
-            raise Exception("(Printer) setSpacingContext, invalid spacing context, must be an instance of valuable")
+            raise Exception("(Printer) setSpacingContext, invalid spacing context, must be an instance of Valuable")
     
         self.spacingContext = context
         
-    def setBakcgroundContext(self, context): #TODO use it
-        if not isinstance(context, Valuable):
-            raise Exception("(Printer) setBakcgroundContext, invalid background context, must be an instance of valuable")
+    def setBakcgroundContext(self, context):
+        if not isinstance(context, SelectableValuable):
+            raise Exception("(Printer) setBakcgroundContext, invalid background context, must be an instance of SelectableValuable")
     
         self.backgroundContext = context
     
     def isDarkBackGround(self):
-        return self.backgroundContext.getSelectedValue() == "black"
+        return self.backgroundContext.getSelectedValue() == CONTEXT_COLORATION_DARK
         
     def isLightBackGround(self):
-        return self.backgroundContext.getSelectedValue() == "light"
+        return self.backgroundContext.getSelectedValue() == CONTEXT_COLORATION_LIGHT
     
-    def isInShell(self): #TODO valuable does not have getSelectedValue method..., create a new abstract object
-        return self.shellContext.getSelectedValue() == "shell"
+    def isInShell(self):
+        return self.shellContext.getSelectedValue() == CONTEXT_EXECUTION_SHELL
     
     def isPromptShowed(self):
         return self.promptShowedContext.getValue()

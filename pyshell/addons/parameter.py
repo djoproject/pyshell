@@ -19,6 +19,9 @@
 #TODO
     #listing with parent and key
         #does it work correctly ?
+        
+    #implement "add" function in var
+        #create the var if does not exist
 
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
@@ -61,10 +64,11 @@ def getProperties(key, propertyName, parameters, parent):
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
+#TODO a part of this logic has moves into utils/parameter, adapt this code
 def addValuesFun(key, values, parameters, parent):
     param = getParameter(key, parameters, parent)
 
-    if not isinstance(param.typ, listArgChecker):
+    if not param.isAListType():
         raise Exception("This "+str(parent)+" parameter has not a list checker, can not add value")
 
     old_values = param.getValue()[:]
@@ -247,7 +251,7 @@ def setEnvironmentValuesFun(key, values, parameters):
     
     envParam = getParameter(key, parameters, ENVIRONMENT_NAME)
 
-    if isinstance(envParam.typ, listArgChecker):
+    if envParam.isAListType():
         envParam.setValue(values)
     else:
         envParam.setValue(values[0])

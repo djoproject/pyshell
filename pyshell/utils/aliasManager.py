@@ -16,14 +16,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #define the granularity where to stop (an integer)
-    #don't return True or False after the execution of an engine but the granularity of the last error
-        #then stop or not the alias
-        #why not return the last exception ?
-
 import threading, sys
-from pyshell.utils.exception   import DefaultPyshellException, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
+from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils       import raiseIfInvalidKeyList
 from pyshell.utils.executing   import executeCommand
 from pyshell.command.command   import UniCommand
@@ -59,9 +53,9 @@ class Alias(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
 
-        self.stringCmdList = [] 
-        self.stopOnError                     = True
-        self.executeOnPre                    = True
+        self.stringCmdList    = [] 
+        self.errorGranularity = None
+        self.executeOnPre     = True
         
         #global lock system
         self.setReadOnly(readonly)
@@ -100,9 +94,12 @@ class Alias(UniCommand):
             cmd = e.stringCmdList[i]
             lastException, engine = executeCommand(cmd, parameters, False, e.name, args)  
             
-            #TODO "stop" management (see TODO at the beginning of this file)
-            if not state and e.stopOnError:
-                raise engineInterruptionException("internal command has been interrupted")
+            if lastException != None: 
+                if not isinstance(lastException, PyshellException):
+                    raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
+                    
+                if e.errorGranularity is None or lastException.severity <= e.errorGranularity:
+                    raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
             
         #return the result of last command in the alias
         if engine == None:
@@ -130,11 +127,11 @@ class Alias(UniCommand):
             
         self.transient = value  
     
-    def setStopOnError(self, value):
-        if type(value) != bool:
-            raise ParameterException("(Alias) setStopOnError, expected a boolean value as parameter, got '"+str(type(value))+"'")
+    def setErrorGranularity(self, value):
+        if value is not None and (type(value) != int or value < 0):
+            raise ParameterException("(Alias) setErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
     
-        self.stopOnError = value
+        self.errorGranularity = value
         
     def setExecuteOnPre (self, value):
         if type(value) != bool:
@@ -156,8 +153,8 @@ class Alias(UniCommand):
             
         self.lockedTo = value
         
-    def isStopOnError(self):
-        return self.stopOnError
+    def getErrorGranularity(self):
+        return self.errorGranularity
         
     def isExecuteOnPre(self):
         return self.executeOnPre
@@ -274,7 +271,7 @@ class Alias(UniCommand):
         e = Alias(self.name)
     
         e.stringCmdList                   = self.stringCmdList[:]
-        e.stopOnError                     = self.stopOnError
+        e.errorGranularity                     = self.errorGranularity
         e.executeOnPre                    = self.executeOnPre
         e.readonly                        = self.readonly
         e.removable                       = self.removable

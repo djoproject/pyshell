@@ -19,7 +19,7 @@
 from pyshell.arg.decorator  import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, ArgChecker
 #from pyshell.utils.utils    import toHexString
-from pyshell.utils.printing import printShell
+from pyshell.utils.printing import printShell, strLength
 import re
 
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance())  )
@@ -79,9 +79,6 @@ def printBytesAsString(byteList):
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
-    #TODO utiliser le length from printing
-    ansi_escape = re.compile(r'\x1b[^m]*m')
-
     if len(listOfLine) == 0:
         return
 
@@ -97,15 +94,15 @@ def printColumn(listOfLine):
         
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
             if 0 not in size:
-                size[0] = len(ansi_escape.sub('', str(line))) + spaceToAdd
+                size[0] = strLength(str(line)) + spaceToAdd
             else:
-                size[0] = max(size[0],len(ansi_escape.sub('', str(line))) + spaceToAdd)
+                size[0] = max(size[0],strLength(str(line)) + spaceToAdd)
         else:
             for column_index in range(0,len(line)):
                 if column_index not in size:
-                    size[column_index] = len(ansi_escape.sub('', str(line[column_index]))) + spaceToAdd
+                    size[column_index] = strLength(str(line[column_index])) + spaceToAdd
                 else:
-                    size[column_index] = max(size[column_index], len(ansi_escape.sub('', str(line[column_index])))+spaceToAdd )
+                    size[column_index] = max(size[column_index], strLength (str(line[column_index])) +spaceToAdd )
     
     to_print = ""
     #print table
@@ -123,7 +120,7 @@ def printColumn(listOfLine):
         else:
             line_to_print = ""
             for column_index in range(0,len(line)):
-                padding = size[column_index] - len(ansi_escape.sub('', str(line[column_index]))) - len(defaultPrefix)
+                padding = size[column_index] - strLength(str(line[column_index])) - len(defaultPrefix)
                 
                 #no padding on last column
                 if column_index == len(size) - 1:

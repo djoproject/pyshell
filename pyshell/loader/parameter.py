@@ -89,6 +89,7 @@ class ParamaterLoader(AbstractLoader):
         self.valueToUnset  = None
         self.valueToRemove = None
 
+    #TODO a part of this logic has moves into utils/parameter, adapt this code
     def _removeValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
         if not parameterManager.hasParameter(keyName,parentName):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': unknow key name"))
@@ -96,7 +97,7 @@ class ParamaterLoader(AbstractLoader):
         
         envObject = parameterManager.getParameter(keyName, parentName)
 
-        if not isinstance(envObject.typ, listArgChecker):
+        if not envObject.isAListType():
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': not a list parameter"))
             return
 
@@ -120,7 +121,8 @@ class ParamaterLoader(AbstractLoader):
         #force to rebuilt index for context
         if isinstance(envObject, ContextParameter):
             envObject.setIndex(envObject.index)
-        
+    
+    #TODO a part of this logic has moves into utils/parameter, adapt this code
     def _addValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
         if not parameterManager.hasParameter(keyName,parentName):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': unknow key name"))
@@ -128,7 +130,7 @@ class ParamaterLoader(AbstractLoader):
         
         envObject = parameterManager.getParameter(keyName, parentName)
 
-        if not isinstance(envObject.typ, listArgChecker):
+        if not listArgChecker.isAListType():
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': not a list parameter"))
             return
 

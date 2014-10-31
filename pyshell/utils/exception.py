@@ -16,23 +16,24 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#ordered from worst (0) to insignifiant (inf)
 ERROR         = 0
 CORE_ERROR    = 1
-USER_ERROR    = 2
+LIBRARY_ERROR = 2
 PARSE_ERROR   = 3
-LIBRARY_ERROR = 4
+USER_ERROR    = 4
 
 WARNING         = 10
 CORE_WARNING    = 11
-USER_WARNING    = 12
+LIBRARY_WARNING = 12
 PARSE_WARNING   = 13
-LIBRARY_WARNING = 14
+USER_WARNING    = 14
 
 NOTICE         = 20
 CORE_NOTICE    = 21
-USER_NOTICE    = 22
+LIBRARY_NOTICE = 22
 PARSE_NOTICE   = 23
-LIBRARY_NOTICE = 24
+USER_NOTICE    = 24
 
 class PyshellException(Exception):
     def __init__(self,severity = ERROR):

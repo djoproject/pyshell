@@ -35,7 +35,7 @@ from pyshell.addons            import addon
 from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.keystore    import KeyStore
 from pyshell.utils.exception   import ListOfException
-from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY, TAB_SIZE
+from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY, TAB_SIZE, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE
 from pyshell.utils.utils       import getTerminalSize
 from pyshell.utils.printing    import Printer, warning, error, printException
 from pyshell.utils.valuable    import SimpleValuable
@@ -55,12 +55,13 @@ class CommandExecuter():
         self.keystore = KeyStore(keyStorePath)
         self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=self.keystore,transient=True,readonly=True, removable=False), ENVIRONMENT_NAME) 
         self.params.setParameter("saveKeys",            EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("debug",               ContextParameter(value=(0,1,2,3,4,), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("debug",               ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("execution",           ContextParameter(value=("shell", "script", "daemon",), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter("execution",           ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.addon",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
+        self.params.setParameter("coloration",          ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         
         #prepare the printing system
         printer = Printer.getInstance()
@@ -69,6 +70,7 @@ class CommandExecuter():
         self.promptWaitingValuable = SimpleValuable(False)
         printer.setPromptShowedContext(self.promptWaitingValuable)
         printer.setSpacingContext(self.params.getParameter("tabsize",ENVIRONMENT_NAME))
+        printer.setBakcgroundContext(self.params.getParameter("coloration",CONTEXT_NAME))
                 
         #try to load parameter file
         with self.ExceptionManager("Fail to load parameters file"):
@@ -127,7 +129,7 @@ class CommandExecuter():
 
         readline.set_completer(self.complete)
         
-        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue("shell")
+        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SHELL)
         
         #mainloop
         while True:
@@ -270,12 +272,13 @@ class CommandExecuter():
 
     def executeFile(self,filename):
         #TODO load the file into an alias manager
+            #load the whole file ???
             #then execute it
             
         #TODO be able to set granularity error with args
     
         shellOnExit = False
-        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue("script")
+        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         
         try:
             with open(filename, 'wb') as f:
