@@ -130,7 +130,7 @@ class GlobalLoader(AbstractLoader):
                 loader.lastException = ex
                 exceptions.addException(ex)
                 loader.lastException.stackTrace = traceback.format_exc()
-    
+        
         if exceptions.isThrowable():
             currentState.state = nextStateIfError
             raise exceptions

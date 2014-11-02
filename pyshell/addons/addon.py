@@ -192,7 +192,7 @@ def getAddonInformation(name, addon_dico, tabsize, ):
                     lines.append(tab*2 + formatBolt("Loader")+" '"+str(name) + "' (error count = "+formatRed(str(len(loader.lastException.exceptions)))+")")
 
                     for exc in loader.lastException.exceptions:
-                        lines.append(tab*5 + "*" + formatException(exc, formatGreen, formatOrange, formatRed))
+                        lines.append(tab*5 + "*" + formatException(exc))
 
                 else:
                     lines.append(tab*2 + formatBolt("Loader")+" '"+str(name) + "' (error count = "+formatRed("1")+")")

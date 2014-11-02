@@ -271,17 +271,13 @@ def printException(exception, prefix = None, stackTrace = None):
     return error
 
 def formatException(exception):
-    printer = Printer.getInstance()
-    if not self.isInShell():
-        return str(exception)
-
     if isinstance(exception, PyshellException):
         if exception.severity >= NOTICE:
-            return green(str(exception))
+            return formatGreen(str(exception))
         elif exception.severity >= WARNING:
-            return orange(str(exception))
+            return formatOrange(str(exception))
         
-        return red(str(exception))
+    return formatRed(str(exception))
 
 def strLength(string):
     return len(ANSI_ESCAPE.sub('', str(string)))

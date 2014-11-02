@@ -63,7 +63,7 @@ class ListOfException(DefaultPyshellException):
 
     def addException(self,exception):
         if isinstance(exception, ListOfException):
-            self.exceptions.extend(exception)
+            self.exceptions.extend(exception.exceptions)
         elif isinstance(exception, Exception):
             self.exceptions.append(exception)
         else:

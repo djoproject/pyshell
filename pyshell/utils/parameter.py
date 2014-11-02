@@ -24,9 +24,6 @@ from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGOR
 from threading import Lock
 import os, sys
 
-#BUG
-    #plus moyen de sauvegarder l'index de la coloration (ou bien de le loader)
-
 #TODO
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
@@ -35,10 +32,15 @@ import os, sys
     #implement "add value" method to context/envi list
         #used and implemented in addon/parameter.py, loader/parameter.py
         #used in ?
-        
-    #context should inherit from SelectableValuable
-    
-    #load/save should move to addon
+            
+    #load/save 
+        #should move to addon
+        #if parameter is readonly AND exists
+            #don't load anything from file for this parameter
+                #except context index (if context)
+
+            #so if readonly, no need to store object ?
+                #no information is stored about the seed, so store it anyway
     
 try:
     pyrev = sys.version_info.major
@@ -300,6 +302,7 @@ class ParameterManager(object):
         if parent not in self.params or name not in self.params[parent]:
             raise ParameterException("(ParameterManager) unsetParameter, parameter name '"+str(name)+"'  does not exist")
 
+        print parent, name, self.params[parent][name].isRemovable()
         if not self.params[parent][name].isRemovable():
             raise ParameterException("(ParameterManager) setParameter, this parameter is not removable")
 
@@ -585,15 +588,13 @@ class EnvironmentParameter(Parameter):
             
     def __repr__(self):
         return "Environment, value:"+str(self.value)
-            
+
+def _convertToSetList(orig):
+    seen = set()
+    seen_add = seen.add
+    return [ x for x in orig if not (x in seen or seen_add(x))]
 
 class ContextParameter(EnvironmentParameter, SelectableValuable):
-
-    #TODO must be an set, not a list
-        #which method must be overriden ? none (?)
-        #which method must be updated ? setValue, addValues
-        #a = list(set(a))
-
     def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True, sep=","):
 
         if not isinstance(typ,listArgChecker):
@@ -609,7 +610,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
                 
     def setValue(self,value):
         EnvironmentParameter.setValue(self,value)
-        self.value = list(set(self.value))
+        self.value = _convertToSetList(self.value)
         self.tryToSetDefaultIndex(self.defaultIndex)
         self.tryToSetIndex(self.index)
 
@@ -704,7 +705,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
 
     def addValues(self, values):
         EnvironmentParameter.addValues(self,values)
-        self.value = list(set(self.value))
+        self.value = _convertToSetList(self.value)
                 
     def removeValues(self, values):
         #must stay at least one item in list

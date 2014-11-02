@@ -446,7 +446,7 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         lastException = e
 
     #print stack trace if debug is enabled
-    if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+    if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0 and lastException is not None:
         stackTraceColor("\n"+traceback.format_exc())
 
     return lastException, engine

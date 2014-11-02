@@ -19,9 +19,6 @@
 #TODO
     #listing with parent and key
         #does it work correctly ?
-        
-    #implement "add" function in var
-        #create the var if does not exist
 
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
@@ -64,8 +61,7 @@ def getProperties(key, propertyName, parameters, parent):
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
-#TODO a part of this logic has moves into utils/parameter, adapt this code
-def addValuesFun(key, values, parameters, parent):
+"""def addValuesFun(key, values, parameters, parent):
     param = getParameter(key, parameters, parent)
 
     if not param.isAListType():
@@ -73,7 +69,7 @@ def addValuesFun(key, values, parameters, parent):
 
     old_values = param.getValue()[:]
     old_values.extend(values)
-    param.setValue(old_values)
+    param.setValue(old_values)"""
 
 def getParameter(key,parameters,parent=None):
     if not parameters.hasParameter(key, parent):
@@ -232,6 +228,14 @@ def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=F
 #################################### env management#################################### 
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def subtractEnvironmentValuesFun(key, values, parameters):
+    "remove some elements from an environment parameter"
+    param = getParameter(key, parameters, ENVIRONMENT_NAME)
+    param.removeValues(values)
+
+@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def removeEnvironmentContextValues(key, parameters):
     "remove an environment parameter"
@@ -287,7 +291,8 @@ def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, pa
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def addEnvironmentValuesFun(key, values, parameters):
     "add values to an environment parameter list"
-    addValuesFun(key, values, parameters, ENVIRONMENT_NAME)
+    param = getParameter(key, parameters, ENVIRONMENT_NAME)
+    param.addValues(values)
 
 def _envRowFormating(parent, key, envItem, valueFormatingFun):
     if envItem.isAListType():
@@ -321,6 +326,14 @@ def getEnvironmentProperties(key, propertyName, parameter):
     return getProperties(key, propertyName, parameter, ENVIRONMENT_NAME)
 
 #################################### context management #################################### 
+
+@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def subtractContextValuesFun(key, values, parameters):
+    "remove some elements from a context parameter"
+    param = getParameter(key, parameters, CONTEXT_NAME)
+    param.removeValues(values)
 
 @shellMethod(valueType       = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
                                                "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
@@ -356,10 +369,12 @@ def setContextValuesFun(key, values, parameter):
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def addContextValuesFun(key, values, parameter):
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def addContextValuesFun(key, values, parameters):
     "add values to a context parameter list"    
-    addValuesFun(key, values, parameter, CONTEXT_NAME)
+    #addValuesFun(key, values, parameters, CONTEXT_NAME)
+    param = getParameter(key, parameters, CONTEXT_NAME)
+    param.addValues(values)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              value     = defaultInstanceArgChecker.getArgCheckerInstance(),
@@ -419,6 +434,36 @@ def getContextProperties(key, propertyName, parameter):
 
 #################################### var management #################################### 
 
+@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parent     = stringArgChecker(),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def subtractValuesVar(key, values, parent = None, parameters=None):
+
+    #parent must be different of forbidden name
+    if parent in FORBIDEN_SECTION_NAME:
+        raise Exception("parent '"+str(parent)+"' can not be used in var system")
+
+    param = getParameter(key, parameters, parent)
+    param.removeValues(values)
+
+@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parent     = stringArgChecker(),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def addValuesVar(key, values, parent=None, parameters=None):
+    "add values to a var"    
+
+    #parent must be different of forbidden name
+    if parent in FORBIDEN_SECTION_NAME:
+        raise Exception("parent '"+str(parent)+"' can not be used in var system")
+
+    if parameters.hasParameter(key, parent):
+        param = getParameter(key, parameters, parent)
+        param.addValues(values)
+    else:
+        parameters.setParameter(key,VarParameter(values), parent)
+
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
              parent    = stringArgChecker(),
@@ -470,21 +515,24 @@ def listVars(parameter, parent=None, key=None):
 
 #################################### REGISTER SECTION #################################### 
 
-#var
+#var 
 registerSetTempPrefix( ("var", ) )
 registerCommand( ("set",) ,                    post=setVar)
 registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetVar)
 registerCommand( ("list",) ,                   pre=listVars, pro=printColumn)
+registerCommand( ("add",) ,                    pro=addValuesVar)
+registerCommand( ("subtract",) ,               post=subtractValuesVar)
 registerStopHelpTraversalAt( ("var",) )
 
-#context
+#context 
 registerSetTempPrefix( ("context", ) )
 registerCommand( ("unset",) ,              pro=removeContextValues)
 registerCommand( ("get",) ,                pre=getContextValues, pro=listResultHandler)
 registerCommand( ("set",) ,                post=setContextValuesFun)
 registerCommand( ("create",) ,             post=createContextValuesFun)
 registerCommand( ("add",) ,                post=addContextValuesFun)
+registerCommand( ("subtract",) ,           post=subtractContextValuesFun)
 registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=listFlatResultHandler)
 registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=listFlatResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
@@ -503,7 +551,7 @@ registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultH
 registerCommand( ("unset",) ,          pro=removeEnvironmentContextValues)
 registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
 registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
-
+registerCommand( ("subtract",) ,       post=subtractEnvironmentValuesFun)
 registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
 registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=listFlatResultHandler) 
 registerStopHelpTraversalAt( ("environment",) ) 
