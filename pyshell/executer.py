@@ -39,6 +39,8 @@ from pyshell.utils.aliasManager import Alias
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
+        #TODO split into 3 or 4 sub metho
+
         #create param manager
         self.params = ParameterManager()
 
@@ -84,7 +86,7 @@ class CommandExecuter():
         _atstartup.addCommand( ("parameter", "load", ) )
         _atstartup.addCommand( ("addon",     "unload", "pyshell.addons.parameter", ) )
         _atstartup.addCommand( ("addon",     "onstartup", "load", ) )
-        _atstartup.addCommand( ("atstartup", ) )
+        _atstartup.addCommand( (EVENT_ON_STARTUP, ) )
         
         _atstartup.setReadOnly(True)
         mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )

@@ -84,14 +84,14 @@ class Alias(UniCommand):
 
         return self._execute(args, parameters)
 
-    def _innerExecute(self, cmd):
-        lastException, engine = executeCommand(cmd, parameters, False, e.name, args)  
+    def _innerExecute(self, cmd, args, parameters):
+        lastException, engine = executeCommand(cmd, parameters, False, self.name, args)  
         
         if lastException != None: 
             if not isinstance(lastException, PyshellException):
                 raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
             
-            if e.errorGranularity is not None and lastException.severity <= e.errorGranularity:
+            if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
                 raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
         
         return lastException, engine
@@ -103,7 +103,7 @@ class Alias(UniCommand):
         
         #for cmd in e.stringCmdList:
         for i in xrange(0,len(e.stringCmdList)):
-            lastException, engine = self._innerExecute(e.stringCmdList[i])
+            lastException, engine = e._innerExecute(e.stringCmdList[i], args, parameters)
 
         #return the result of last command in the alias
         if engine == None:
@@ -286,6 +286,8 @@ class Alias(UniCommand):
         
         
 class AliasFile(Alias):
+    #TODO faire une class abstract alias
+
     def __init__(self, filePath, showInHelp = True, readonly = False, removable = True, transient = False):
         Alias.__init__("execute "+str(filePath), showInHelp, readonly, removable, transient )
         
@@ -299,7 +301,7 @@ class AliasFile(Alias):
         
         #for cmd in e.stringCmdList:
         for i in xrange(0,len(e.stringCmdList)):
-            lastException, engine = self._innerExecute(e.stringCmdList[i])
+            lastException, engine = self._innerExecute(e.stringCmdList[i]) #TODO more args
 
         #return the result of last command in the alias
         if engine == None:
@@ -311,27 +313,28 @@ class AliasFile(Alias):
         raise Exception("Not allowed to call setCommand with AliasFile object")
 
     def addCommand(self, commandStringList):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call addCommand with AliasFile object")
         
     def addPipeCommand(self, index, commandStringList):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call addPipeCommand with AliasFile object")
         
     def removePipeCommand(self, index):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call removePipeCommand with AliasFile object")
         
     def removeCommand(self, index):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call removeCommand with AliasFile object")
         
     def moveCommand(self,fromIndex, toIndex):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call moveCommand with AliasFile object")
     
     def upCommand(self,index):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call upCommand with AliasFile object")
         
     def downCommand(self,index):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
+        raise Exception("Not allowed to call downCommand with AliasFile object")
     
     #TODO
     #def clone(self):
     #    Alias.clone(self)
+    #TODO utiliser copy ou deepcopy
     

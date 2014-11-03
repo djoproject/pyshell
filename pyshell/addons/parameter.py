@@ -31,7 +31,7 @@
 
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
-from pyshell.utils.parameter   import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME, RESOLVE_SPECIAL_SECTION_ORDER
+from pyshell.utils.parameter   import Parameter, EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME, RESOLVE_SPECIAL_SECTION_ORDER
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME
