@@ -40,3 +40,13 @@ CONTEXT_EXECUTION_DAEMON = "daemon"
 CONTEXT_COLORATION_LIGHT = "light"
 CONTEXT_COLORATION_DARK  = "dark"
 CONTEXT_COLORATION_NONE  = "none"
+
+EVENT__ON_STARTUP     = "_onstartup" #at application launch
+EVENT_ON_STARTUP      = "onstartup" #at application launch
+EVENT_AT_EXIT         = "atexit" #at application exit
+
+#TODO use that (or remove them)
+EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
+EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
+
+

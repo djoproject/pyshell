@@ -17,40 +17,18 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
-from pyshell.utils.exception import ListOfException, PyshellException
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
 from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
 from threading import Lock
-import os, sys
 
 #TODO
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
         #store in three separate files ?
-
-    #implement "add value" method to context/envi list
-        #used and implemented in addon/parameter.py, loader/parameter.py
-        #used in ?
-            
-    #load/save 
-        #should move to addon
-        #if parameter is readonly AND exists
-            #don't load anything from file for this parameter
-                #except context index (if context)
-
-            #so if readonly, no need to store object ?
-                #no information is stored about the seed, so store it anyway
     
-try:
-    pyrev = sys.version_info.major
-except AttributeError:
-    pyrev = sys.version_info[0]
-
-if pyrev == 2:
-    import ConfigParser 
-else:
-    import configparser as ConfigParser
+    #store in tries
+            
 
 INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
                           "int"   : defaultInstanceArgChecker.getIntegerArgCheckerInstance,
@@ -101,152 +79,10 @@ def _getBool(config, section, option, defaultValue):
     return ret
 
 class ParameterManager(object):
-    def __init__(self, filePath = None):
+    def __init__(self):
         self.params = {} #TODO should be tries
         self.params[CONTEXT_NAME] = {} #TODO should be tries and not in params
         self.params[ENVIRONMENT_NAME] = {} #TODO should be tries and not in params
-        self.filePath = filePath
-
-    def load(self):
-        if self.filePath is None:
-            return
-    
-        #load params
-        config = None
-        if os.path.exists(self.filePath):
-            config = ConfigParser.RawConfigParser()
-            try:
-                config.read(self.filePath)
-            except Exception as ex:
-                raise ParameterLoadingException("(ParameterManager) load, fail to read parameter file : "+str(ex))
-        else:
-            #is there at least one parameter in one of the existing category ?
-            emptyParameter = True
-            for parentCategoryName,categoryList in self.params.items():
-                if len(self.params[parentCategoryName]) > 0:
-                    emptyParameter = False
-                    break
-            
-            #if no parameter file, try to create it, then return
-            if not emptyParameter:
-                try:
-                    self.save()
-                except Exception as ex:
-                    raise ParameterLoadingException("(ParameterManager) load, parameter file does not exist, fail to create it"+str(ex))
-                return
-
-        #read and parse, for each section
-        errorList = ListOfException()
-        for section in config.sections():
-            specialSectionClassToUse = None
-            for specialSectionClass in RESOLVE_SPECIAL_SECTION_ORDER:
-                if not specialSectionClass.isParsable(config, section):
-                    continue
-                    
-                specialSectionClassToUse = specialSectionClass
-                break
-            if specialSectionClassToUse != None:
-            
-                #a parent category with a similar name can not already exist (because of the structure of the parameter file)
-                if section in self.params:
-                    errorList.addException(ParameterLoadingException("Section '"+str(section)+"', a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
-                    continue
-                
-                #try to parse the parameter
-                try:
-                    argument_dico = specialSectionClassToUse.parse(config, section)
-                except PyshellException as ale:
-                    errorList.addException(ale)
-                    continue
-                
-                if section in self.params[specialSectionClassToUse.getStaticName()]:
-                    try:
-                        self.params[specialSectionClassToUse.getStaticName()][section].setFromFile(argument_dico)
-                    except Exception as ex:
-                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
-                        
-                else:
-                    try:
-                        self.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
-                    except Exception as ex:
-                        errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
-                        continue
-        
-            ### GENERIC ### 
-            else:
-                if section in FORBIDEN_SECTION_NAME:
-                    errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name '"+str(section)+"' not allowed"))
-                    continue
-            
-                #if section in 
-
-                for option in config.options(section):
-                    if section not in self.params:
-                        self.params[section] = {}
-                    
-                    self.params[section][option] = VarParameter(config.get(section, option))
-                    
-                    """if option in self.params[section]:
-                        if isinstance(self.params[section][option], Parameter):
-                            self.params[section][option].setValue(config.get(section, option))
-                            continue        
-                            
-                    self.params[section][option] = EnvironmentParameter(value=config.get(section, option))"""
-        
-        #manage errorList
-        if errorList.isThrowable():
-            raise errorList
-
-    def save(self):
-        if self.filePath is None:
-            return
-    
-        #manage standard parameter
-        config = ConfigParser.RawConfigParser()
-        for parent, childs in self.params.items():   
-            if parent in FORBIDEN_SECTION_NAME:
-                continue
-            
-            if parent == None:
-                parent = MAIN_CATEGORY
-            
-            for childName, childValue in childs.items():
-                if isinstance(childValue, Parameter):
-                    if childValue.isTransient():
-                        continue
-                """
-                    value = str(childValue.getValue())
-                else:"""
-                
-                value = str(childValue)
-            
-                if not config.has_section(parent):
-                    config.add_section(parent)
-
-                config.set(parent, childName, value)
-        
-        #manage context and environment
-        for s in FORBIDEN_SECTION_NAME:
-            if s in self.params:
-                for contextName, contextValue in self.params[s].items():
-                    if contextValue.isTransient():
-                        continue
-                
-                    if not config.has_section(contextName):
-                        config.add_section(contextName)
-
-                    for name, value in contextValue.getParameterSerializableField().items():
-                        config.set(contextName, name, value)
-        
-        #create config directory
-        #TODO manage if the directory already exist or if it is a file
-            #TODO manage it in the other place where config is saved
-        if not os.path.exists(os.path.dirname(self.filePath)):
-            os.makedirs(os.path.dirname(self.filePath))
-
-        #save file
-        with open(self.filePath, 'wb') as configfile:
-            config.write(configfile)
 
     def setParameter(self,name, param, parent = None):
         if parent == None:
@@ -765,6 +601,9 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         
 class VarParameter(EnvironmentParameter):
     #TODO no lock for var ?
+        #if var only exist in one thread, yes no lock
+        #but if var exist for the whole application, need lock
+        #brainstorming
 
     def __init__(self,value):
         tmp_value_parsed = [value] #TODO what occur if it is a list or not ?

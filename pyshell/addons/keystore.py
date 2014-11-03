@@ -74,12 +74,12 @@ def cleanKeyStore(keyStore=None):
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def saveKeyStore(keyStore=None):
     "save keystore from file"
-    keyStore.getValue().save()
+    keyStore.getValue().save() #TODO move save code here
 
 @shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
 def loadKeyStore(keyStore=None):
     "load keystore from file"
-    keyStore.getValue().load()
+    keyStore.getValue().load() #TODO move load code here
 
 @shellMethod(key   = defaultInstanceArgChecker.getKeyTranslatorChecker(),
              state = booleanValueArgChecker())

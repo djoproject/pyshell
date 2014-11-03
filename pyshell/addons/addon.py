@@ -325,6 +325,25 @@ def setAddonPositionInList(addonName, position, addonListOnStartUp):
     addonList.remove(addonName)
     addonList.insert(max(position,0), addonName)
 
+@shellMethod(addonListOnStartUp = environmentParameterChecker("addonToLoad"),
+             params = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def loadAddonOnStartUp(addonListOnStartUp, params):
+
+    addonList = addonListOnStartUp.getValue()
+
+    errorList = ListOfException()
+    for addonName in addonList:
+        try:
+            loadAddonFun(addonName, params)
+        except Exception as ex:
+            errorList.addException(ex) #TODO the information about the failing addon is lost here...
+            
+    if errorList.isThrowable():
+        raise errorList
+    
+    #with self.ExceptionManager("fail to load addon '"+str(addonName)+"'"):
+    #    addon.loadAddonFun(addonName, self.params)
+
 ### REGISTER SECTION ###
 
 registerSetGlobalPrefix( ("addon", ) )
@@ -345,5 +364,6 @@ registerCommand( ("list",) ,                  pro=listOnStartUp, post=printColum
 registerCommand( ("up",) ,                    pro=upAddonInList)
 registerCommand( ("down",) ,                  pro=downAddonInList)
 registerCommand( ("index",) ,                 pro=setAddonPositionInList)
+registerCommand( ("load",) ,                  pro=loadAddonOnStartUp)
 registerStopHelpTraversalAt( ("onstartup",) )
 registerStopHelpTraversalAt( () )

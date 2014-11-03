@@ -17,12 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #system library
-import readline
-import os
-import sys
-import atexit
-import getopt
-import traceback
+import readline, os, sys, atexit, getopt, traceback
 from contextlib import contextmanager
 
 #tries library
@@ -30,26 +25,29 @@ from tries import multiLevelTries
 from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
-from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
-from pyshell.addons            import addon
-from pyshell.utils.parameter   import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
-from pyshell.utils.keystore    import KeyStore
-from pyshell.utils.exception   import ListOfException
-from pyshell.utils.constants   import ADDONLIST_KEY, DEFAULT_KEYSTORE_FILE, KEYSTORE_SECTION_NAME, DEFAULT_PARAMETER_FILE, CONTEXT_NAME, ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY, TAB_SIZE, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE
-from pyshell.utils.utils       import getTerminalSize
-from pyshell.utils.printing    import Printer, warning, error, printException
-from pyshell.utils.valuable    import SimpleValuable
-from pyshell.utils.executing   import executeCommand, preParseLine
+from pyshell.arg.argchecker     import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
+from pyshell.addons             import addon
+from pyshell.utils.parameter    import ParameterManager, EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.utils.keystore     import KeyStore
+from pyshell.utils.exception    import ListOfException
+from pyshell.utils.constants    import *
+from pyshell.utils.utils        import getTerminalSize
+from pyshell.utils.printing     import Printer, warning, error, printException
+from pyshell.utils.valuable     import SimpleValuable
+from pyshell.utils.executing    import executeCommand, preParseLine
+from pyshell.utils.aliasManager import Alias
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
         #create param manager
-        self.params = ParameterManager(paramFile)
+        self.params = ParameterManager()
 
-        #init original params
+        ## init original params ##
+        self.params.setParameter("parameterFile",       EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=True,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("tabsize",             EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("levelTries",          EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
+        mltries = multiLevelTries()
+        self.params.setParameter("levelTries",          EnvironmentParameter(value=mltries,transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
         keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
         self.params.setParameter("keystoreFile",        keyStorePath, ENVIRONMENT_NAME)
         self.keystore = KeyStore(keyStorePath)
@@ -57,14 +55,14 @@ class CommandExecuter():
         self.params.setParameter("saveKeys",            EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.addon",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.keystore",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
         
         self.params.setParameter("debug",               ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("execution",           ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("coloration",          ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         
-        #prepare the printing system
+        ## prepare the printing system ##
         printer = Printer.getInstance()
         printer.setShellContext(self.params.getParameter("execution",CONTEXT_NAME))
         printer.setREPLFunction(self.printAsynchronousOnShellV2)
@@ -72,54 +70,49 @@ class CommandExecuter():
         printer.setPromptShowedContext(self.promptWaitingValuable)
         printer.setSpacingContext(self.params.getParameter("tabsize",ENVIRONMENT_NAME))
         printer.setBakcgroundContext(self.params.getParameter("coloration",CONTEXT_NAME))
-                
-        #try to load parameter file
-        with self.ExceptionManager("Fail to load parameters file"):
-            self.params.load()
-
-        #load and manage history file
-        #FIXME move on start'up event
-        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
-            try:
-                readline.read_history_file(self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue())
-            except IOError:
-                pass
         
-        #try to load keystore
-        #FIXME move on start'up event
-        if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
-            with self.ExceptionManager("Fail to load keystore file"):
-                self.keystore.load()
+        #load addon addon (if not loaded, can't do anything)
+        with self.ExceptionManager("fail to load addon 'pyshell.addons.addon'"):
+            addon.loadAddonFun("pyshell.addons.addon", self.params)
+            #TODO should exit if faillure, no ?
+                    
+        ## prepare atStartUp ##
+        _atstartup = Alias(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        _atstartup.setErrorGranularity(None) #never stop, don't care about error
         
-        #load other addon
-        #FIXME move to onStartUp event when the event manager will be ready
-        for addonName in self.params.getParameter("addonToLoad",ENVIRONMENT_NAME).getValue():
-            with self.ExceptionManager("fail to load addon '"+str(addonName)+"'"):
-                addon.loadAddonFun(addonName, self.params)
-
-        #save at exit
-        #FIXME move to atExit  event when the event manager will be ready
-        atexit.register(self.saveParams)
-        atexit.register(self.saveKeyStore)
-        atexit.register(self.saveHistory)
+        _atstartup.addCommand( ("addon",     "load", "pyshell.addons.parameter", ) )
+        _atstartup.addCommand( ("parameter", "load", ) )
+        _atstartup.addCommand( ("addon",     "unload", "pyshell.addons.parameter", ) )
+        _atstartup.addCommand( ("addon",     "onstartup", "load", ) )
+        _atstartup.addCommand( ("atstartup", ) )
+        
+        _atstartup.setReadOnly(True)
+        mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )
+        
+        atstartup = Alias(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        atstartup.setErrorGranularity(None) #never stop, don't care about error
+        atstartup.addCommand( ("history","load", ) )
+        atstartup.addCommand( ("key",    "load", ) )
+        mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
+        
+        ## prepare atExit ##
+        atExit = Alias(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
+        atExit.setErrorGranularity(None) #never stop, don't care about error
+        
+        atExit.addCommand( ("parameter", "save",) )
+        atExit.addCommand( ("history",   "save",) )
+        atExit.addCommand( ("key",       "save",) )
+        
+        atExit.setReadOnly(True)
+        mltries.insert( (EVENT_AT_EXIT, ), atExit )
+        atexit.register(self.AtExit)
+        
+        ## execute atStartUp ##
+        executeCommand(EVENT__ON_STARTUP,self.params)
     
-    def saveHistory(self):
-        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
-            path = self.params.getParameter("historyFile",ENVIRONMENT_NAME).getValue()
-
-            if not os.path.exists(os.path.dirname(path)):
-                os.makedirs(os.path.dirname(path))
-
-            readline.write_history_file(path)
-    
-    def saveParams(self):
-        if self.params.getParameter("useHistory",ENVIRONMENT_NAME).getValue():
-            self.params.save()
+    def AtExit(self):
+        executeCommand(EVENT_AT_EXIT,self.params)
             
-    def saveKeyStore(self):
-        if self.params.getParameter("saveKeys",ENVIRONMENT_NAME).getValue():
-            self.keystore.save()
-        
     def mainLoop(self):
         #enable autocompletion
         if 'libedit' in readline.__doc__:
@@ -274,6 +267,8 @@ class CommandExecuter():
     def executeFile(self,filename):
         #TODO load the file into an alias manager
             #load the whole file ???
+                #or load part after part, create an extended class of alias to manage aliasFile
+                
             #then execute it
             
         #TODO be able to set granularity error with args

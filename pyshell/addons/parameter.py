@@ -19,15 +19,35 @@
 #TODO
     #listing with parent and key
         #does it work correctly ?
+        
+    #load/save 
+        #if parameter is readonly AND exists
+            #don't load anything from file for this parameter
+                #except context index (if context)
+
+            #so if readonly, no need to store object ?
+                #no information is stored about the seed, so store it anyway
+                    #seed could be addon or system
 
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
-from pyshell.utils.parameter   import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME
+from pyshell.utils.parameter   import EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME, RESOLVE_SPECIAL_SECTION_ORDER
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME
 from pyshell.utils.printing    import formatBolt, formatOrange
-from pyshell.utils.exception   import DefaultPyshellException
+from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
+import os, sys
+
+try:
+    pyrev = sys.version_info.major
+except AttributeError:
+    pyrev = sys.version_info[0]
+
+if pyrev == 2:
+    import ConfigParser 
+else:
+    import configparser as ConfigParser
 
 ## FUNCTION SECTION ##
 
@@ -196,15 +216,149 @@ def _parameterGetTitle(titleFormatingFun):
 def listParameter(parameter, parent=None, key=None):
     return _listGeneric(parameter, parent, key, _parameterRowFormating, _parameterGetTitle)
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def loadParameter(parameter):
+@shellMethod(filePath  = parameterChecker("parameterFile", ENVIRONMENT_NAME),
+             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def loadParameter(filePath, parameter):
     "load parameters from the settings file"
-    parameter.load()
+    
+    filePath = filePath.getValue()
+    
+    #load params
+    config = None
+    if os.path.exists(filePath):
+        config = ConfigParser.RawConfigParser()
+        try:
+            config.read(filePath)
+        except Exception as ex:
+            raise ParameterLoadingException("(ParameterManager) load, fail to read parameter file : "+str(ex))
+    else:
+        #is there at least one parameter in one of the existing category ?
+        emptyParameter = True
+        for parentCategoryName,categoryList in parameter.params.items():
+            if len(parameter.params[parentCategoryName]) > 0:
+                emptyParameter = False
+                break
+        
+        #if no parameter file, try to create it, then return
+        if not emptyParameter:
+            try:
+                save(filePath, parameter)
+            except Exception as ex:
+                raise ParameterLoadingException("(ParameterManager) load, parameter file does not exist, fail to create it"+str(ex))
+            return
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def saveParameter(parameter):
+    #read and parse, for each section
+    errorList = ListOfException()
+    for section in config.sections():
+        specialSectionClassToUse = None
+        for specialSectionClass in RESOLVE_SPECIAL_SECTION_ORDER:
+            if not specialSectionClass.isParsable(config, section):
+                continue
+                
+            specialSectionClassToUse = specialSectionClass
+            break
+        if specialSectionClassToUse != None:
+        
+            #a parent category with a similar name can not already exist (because of the structure of the parameter file)
+            if section in parameter.params:
+                errorList.addException(ParameterLoadingException("Section '"+str(section)+"', a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
+                continue
+            
+            #try to parse the parameter
+            try:
+                argument_dico = specialSectionClassToUse.parse(config, section)
+            except PyshellException as ale:
+                errorList.addException(ale)
+                continue
+            
+            if section in parameter.params[specialSectionClassToUse.getStaticName()]:
+                try:
+                    parameter.params[specialSectionClassToUse.getStaticName()][section].setFromFile(argument_dico)
+                except Exception as ex:
+                    errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
+                    
+            else:
+                try:
+                    parameter.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
+                except Exception as ex:
+                    errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
+                    continue
+    
+        ### GENERIC ### 
+        else:
+            if section in FORBIDEN_SECTION_NAME:
+                errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name '"+str(section)+"' not allowed"))
+                continue
+        
+            #if section in 
+
+            for option in config.options(section):
+                if section not in parameter.params:
+                    parameter.params[section] = {}
+                
+                parameter.params[section][option] = VarParameter(config.get(section, option))
+    
+    #manage errorList
+    if errorList.isThrowable():
+        raise errorList
+    
+    #parameter.load()
+
+@shellMethod(filePath  = parameterChecker("parameterFile", ENVIRONMENT_NAME),
+             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def saveParameter(filePath, parameter):
     "save not transient parameters to the settings file"
-    parameter.save()
+
+    filePath = filePath.getValue()
+
+    #manage standard parameter
+    config = ConfigParser.RawConfigParser()
+    for parent, childs in parameter.params.items():   
+        if parent in FORBIDEN_SECTION_NAME:
+            continue
+        
+        if parent == None:
+            parent = MAIN_CATEGORY
+        
+        for childName, childValue in childs.items():
+            if isinstance(childValue, Parameter):
+                if childValue.isTransient():
+                    continue
+            """
+                value = str(childValue.getValue())
+            else:"""
+            
+            value = str(childValue)
+        
+            if not config.has_section(parent):
+                config.add_section(parent)
+
+            config.set(parent, childName, value)
+    
+    #manage context and environment
+    for s in FORBIDEN_SECTION_NAME:
+        if s in parameter.params:
+            for contextName, contextValue in parameter.params[s].items():
+                if contextValue.isTransient():
+                    continue
+            
+                if not config.has_section(contextName):
+                    config.add_section(contextName)
+
+                for name, value in contextValue.getParameterSerializableField().items():
+                    config.set(contextName, name, value)
+    
+    #create config directory
+    #TODO manage if the directory already exist or if it is a file
+        #TODO manage it in the other place where config is saved
+    if not os.path.exists(os.path.dirname(filePath)):
+        os.makedirs(os.path.dirname(filePath))
+
+    #save file
+    with open(filePath, 'wb') as configfile:
+        config.write(configfile)
+    
+    #parameter.save()
         
 def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=False, parameters=None, listEnabled = False): 
     #build checker

@@ -24,7 +24,7 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, 
 from pyshell.utils.constants   import ENVIRONMENT_NAME
 from pyshell.utils.exception   import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
 from pyshell.utils.postProcess import listFlatResultHandler, stringListResultHandler
-
+import readline, os
 ## FUNCTION SECTION ##
 
 def exitFun():
@@ -255,6 +255,29 @@ def generator(start=0,stop=100,step=1, multiOutput = True):
         return MultiOutput(range(start,stop,step))
     else:
         return range(start,stop,step)
+@shellMethod(useHistory  = parameterChecker("useHistory", ENVIRONMENT_NAME),
+             historyFile = parameterChecker("historyFile", ENVIRONMENT_NAME))
+def historyLoad(useHistory, historyFile):
+    "save readline history"
+    
+    if useHistory.getValue():
+        try:
+            readline.read_history_file(historyFile.getValue())
+        except IOError:
+            pass
+    
+@shellMethod(useHistory  = parameterChecker("useHistory", ENVIRONMENT_NAME),
+             historyFile = parameterChecker("historyFile", ENVIRONMENT_NAME))
+def historySave(useHistory, historyFile):
+    "load readline history"
+    
+    if useHistory.getValue():
+        path = historyFile.getValue()
+
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+
+        readline.write_history_file(path)
 
 """@shellMethod(data = ,
             from = ,
@@ -281,5 +304,7 @@ registerCommand( ("help",) ,                          pro=helpFun,      post=str
 registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)
 registerStopHelpTraversalAt( ("?",) )
 registerCommand( ("range",) ,                         pre=generator)
+registerCommand( ("history","load",) ,                pro=historyLoad)
+registerCommand( ("history","save",) ,                pro=historySave)
 
 

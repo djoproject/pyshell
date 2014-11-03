@@ -89,7 +89,6 @@ class ParamaterLoader(AbstractLoader):
         self.valueToUnset  = None
         self.valueToRemove = None
 
-    #TODO a part of this logic has moves into utils/parameter, adapt this code
     def _removeValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
         if not parameterManager.hasParameter(keyName,parentName):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': unknow key name"))
@@ -101,31 +100,6 @@ class ParamaterLoader(AbstractLoader):
             envObject.removeValues(valueToAdd)
         except Exception as ex:
             listOfExceptions.addException(ex)
-
-        """if not envObject.isAListType():
-            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': not a list parameter"))
-            return
-
-        #value must be a list
-        if not hasattr(value, "__iter__"):
-            value = (value,)
-
-        #object is readonly ?
-        if envObject.isReadOnly():
-            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': object is readonly"))
-        
-        #check values
-        for v in value:
-            if v not in envObject.value:
-                listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(v)+"' to "+str(parentName)+" '"+str(keyName)+"': value does not exist"))
-                continue
-
-            #remove value
-            envObject.value.remove(v)
-
-        #force to rebuilt index for context
-        if isinstance(envObject, ContextParameter):
-            envObject.setIndex(envObject.index)"""
     
     def _addValueTo(self, parameterManager, keyName, valueToAdd, parentName, listOfExceptions):
         if not parameterManager.hasParameter(keyName,parentName):
@@ -138,46 +112,6 @@ class ParamaterLoader(AbstractLoader):
             envObject.addValues(valueToAdd)
         except Exception as ex:
             listOfExceptions.addException(ex)
-
-        """if not listArgChecker.isAListType():
-            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': not a list parameter"))
-            return
-
-        #value must be a list
-        if not hasattr(value, "__iter__"):
-            value = (value,)
-
-        #object is readonly ?
-        if envObject.isReadOnly():
-            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': object is readonly"))
-        
-        #check values
-        ValuesToAdd = []
-        for v in value:
-            if v in envObject.value:
-                listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(v)+"' to "+str(parentName)+" '"+str(keyName)+"': value already exists"))
-                continue
-
-            #check value validity
-            try:
-                envObject.typ.checker.getValue(v,None,"Context "+keyName)
-            except argException as argE:
-                listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to "+str(parentName)+" '"+str(keyName)+"': invalid value type, "+str(argE)))
-                continue
-                
-            ValuesToAdd.append(v)
-        
-        oldValues = envobject.getValue()[:]
-        oldValues.extend(ValuesToAdd)
-            
-        try:
-            envobject.setValue(oldValues)
-            self.valueToRemove.append(  (keyName, ValuesToAdd, parentName, )  )
-        except argException as argE:
-            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(v)+"' to "+str(parentName)+" '"+str(keyName)+"': invalid values, "+str(argE)))
-        except ParameterException as pe:
-            listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(v)+"' to "+str(parentName)+" '"+str(keyName)+"': "+str(pe)))
-        """
 
     def _unsetValueTo(self, parameterManager, exist,oldValue,keyName,parentName,value, listOfExceptions):
         

@@ -50,22 +50,6 @@ else:
 
     #keep track of running event and be able to kill one or all of them
     
-    #for the onStartUpEvent
-        #create a static, not updatable transient event
-        #that will load the event file
-        #then call a subevent onStartUpEvent loaded from file
-        
-        #need to do that because it is not possible to execute and load onStartUpEvent at the same time
-        
-    #should clone command object before to run in a thread
-        #because internal state of these oject are not shareble
-
-#TODO use that (or remove them)
-EVENT_ON_STARTUP      = "onstartup" #at application launch
-EVENT_AT_EXIT         = "atexit" #at application exit
-EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
-EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
-
 def _isValidBooleanValueForChecker(value):
     try:
         defaultInstanceArgChecker.getbooleanValueArgCheckerInstance().getValue(value)
@@ -384,14 +368,14 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
             cmdPreParsed = preParseLine(cmd)
         else:
             cmdPreParsed = cmd
-    
+            
         #parse and check the string list
         cmdStringList = parseArgument(cmdPreParsed, params, processName, processArg)
-
+        
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
             return False
-
+        
         #convert token string to command objects and argument strings
         rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
         rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
