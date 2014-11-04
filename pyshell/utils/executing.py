@@ -431,7 +431,7 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
 
     #print stack trace if debug is enabled
     #TODO this part should move to printException function
-    if True or params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0 and lastException is not None:
+    if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0 and lastException is not None:
         stackTraceColor("\n"+traceback.format_exc())
 
     return lastException, engine

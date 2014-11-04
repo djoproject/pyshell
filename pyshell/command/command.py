@@ -62,8 +62,12 @@ class Command(object):
         
     def clone(self, From=None):
         if From is None:
-            return Command()
-            
+            From = Command()
+        
+        From.preProcess  = self.preProcess
+        From.process     = self.process
+        From.postProcess = self.postProcess
+
         return From
 
 #
@@ -193,6 +197,7 @@ class MultiCommand(list):
         From.showInHelp = From.showInHelp
         From.helpMessage  = self.helpMessage
         From.usageBuilder = self.usageBuilder
+        del From[:]
         From.reset()
         
         for i in range(0, len(self)-self.dymamicCount):
@@ -254,7 +259,6 @@ class MultiCommand(list):
 # special command class, with only one command (the starting point)
 #
 class UniCommand(MultiCommand):
-    #def __init__(self,name,helpMessage,showInHelp=True):
     def __init__(self,name,preProcess=None,process=None,postProcess=None,showInHelp=True):
         MultiCommand.__init__(self,name,showInHelp)
         MultiCommand.addProcess(self,preProcess,process,postProcess)
@@ -267,12 +271,8 @@ class UniCommand(MultiCommand):
         
     def clone(self, From=None):
         if From is None:
-            From = UniCommand(self.name)
-            
-        
-        
-    def clone(self): #TODO
-        cmd, useArg, enabled = self[0]
-        return UniCommand(self.name, cmd.preProcess, cmd.process, cmd.postProcess, self.showInHelp)
+            cmd, useArg, enabled = self[0]
+            From = UniCommand(self.name, cmd.preProcess, cmd.process, cmd.postProcess, self.showInHelp)
 
+        return MultiCommand.clone(self,From)
 

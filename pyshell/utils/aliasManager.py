@@ -16,10 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #use copy.copy in Command object in place of clone.
-
-import threading, sys, copy
+import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils       import raiseIfInvalidKeyList
 from pyshell.utils.executing   import executeCommand
@@ -187,15 +184,12 @@ class AliasFromList(Alias):
         return lastException, engine
             
     def execute(self, args, parameters):
-        #make a copy of the current alias       
-        e = copy.deepcopy(self) #could be updated during its execution in another thread #TODO is it enough to use copy ?
-            #TODO FIXME deepcopy is too much
-            
+        #e = self.clone() #make a copy of the current alias      
         engine = None
         
-        #for cmd in e.stringCmdList:
-        for i in xrange(0,len(e.stringCmdList)):
-            lastException, engine = e._innerExecute(e.stringCmdList[i], args, parameters)
+        #for cmd in self.stringCmdList:
+        for i in xrange(0,len(self.stringCmdList)):
+            lastException, engine = self._innerExecute(self.stringCmdList[i], args, parameters)
 
         #return the result of last command in the alias
         if engine == None:
@@ -316,12 +310,11 @@ class AliasFile(Alias):
     #TODO adapt, read command from file, not from list
     def _execute(self, args, parameters):
         #make a copy of the current alias
-        e = self.clone()
         engine = None
         
-        #for cmd in e.stringCmdList:
-        for i in xrange(0,len(e.stringCmdList)):
-            lastException, engine = self._innerExecute(e.stringCmdList[i]) #TODO more args
+        #for cmd in self.stringCmdList:
+        for i in xrange(0,len(self.stringCmdList)):
+            lastException, engine = self._innerExecute(self.stringCmdList[i]) #TODO more args
 
         #return the result of last command in the alias
         if engine == None:
