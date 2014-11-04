@@ -16,7 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading, sys
+#TODO
+    #use copy.copy in Command object in place of clone.
+
+import threading, sys, copy
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils       import raiseIfInvalidKeyList
 from pyshell.utils.executing   import executeCommand
@@ -52,8 +55,7 @@ def getAbsoluteIndex(index, listSize):
 class Alias(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
-
-        self.stringCmdList    = [] 
+        
         self.errorGranularity = sys.maxint
         self.executeOnPre     = True
         
@@ -62,9 +64,6 @@ class Alias(UniCommand):
         self.setRemovable(removable)
         self.setTransient(transient)
         
-        #specific command system
-        self.lockedTo = -1
-    
     ### PRE/POST process ###
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
@@ -74,7 +73,7 @@ class Alias(UniCommand):
         if not self.executeOnPre:
             return args
 
-        return self._execute(args, parameters)
+        return self.execute(args, parameters)
 
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
@@ -82,37 +81,13 @@ class Alias(UniCommand):
         if self.executeOnPre:
             return args
 
-        return self._execute(args, parameters)
-
-    def _innerExecute(self, cmd, args, parameters):
-        lastException, engine = executeCommand(cmd, parameters, False, self.name, args)  
+        return self.execute(args, parameters)
         
-        if lastException != None: 
-            if not isinstance(lastException, PyshellException):
-                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
-            
-            if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
-                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
-        
-        return lastException, engine
-            
-    def _execute(self, args, parameters):
-        #make a copy of the current alias
-        e = self.clone() #could be updated during its execution in another thread
-        engine = None
-        
-        #for cmd in e.stringCmdList:
-        for i in xrange(0,len(e.stringCmdList)):
-            lastException, engine = e._innerExecute(e.stringCmdList[i], args, parameters)
-
-        #return the result of last command in the alias
-        if engine == None:
-            return ()
-            
-        return engine.getLastResult()
+    def execute(self, args, parameters):
+        pass #XXX TO OVERRIDE
         
     ###### get/set method
-        
+    
     def setReadOnly(self, value):
         if type(value) != bool:
             raise ParameterException("(Alias) setReadOnly, expected a bool type as state, got '"+str(type(value))+"'")
@@ -142,21 +117,7 @@ class Alias(UniCommand):
             raise ParameterException("(Alias) setExecuteOnPre, expected a boolean value as parameter, got '"+str(type(value))+"'")
     
         self.executeOnPre = value
-        
-    def setLockedTo(self, value):
-        try:
-            value = int(value)
-        except ValueError as va:
-            raise ParameterException("(Alias) setLockedTo, expected an integer value as parameter: "+str(va))
-    
-        if value < -1 or value >= len(self.stringCmdList):
-            if len(self.stringCmdList) == 0:
-                raise ParameterException("(Alias) setLockedTo, only -1 is allowed because alias list is empty, got '"+str(value)+"'")
-            else:
-                raise ParameterException("(Alias) setLockedTo, only a value from -1 to '"+str(len(self.stringCmdList) - 1)+"' is allowed, got '"+str(value)+"'")
-            
-        self.lockedTo = value
-        
+                
     def getErrorGranularity(self):
         return self.errorGranularity
         
@@ -172,9 +133,76 @@ class Alias(UniCommand):
     def isTransient(self):
         return self.transient
         
+    def clone(self, From=None):
+        if From is None:
+            From = Alias(self.name)
+        
+        From.errorGranularity = self.errorGranularity
+        From.executeOnPre     = self.executeOnPre
+        From.readonly         = self.readonly
+        From.removable        = self.removable
+        From.transient        = self.transient
+        
+        return UniCommand.clone(self,From)
+            
+class AliasFromList(Alias):
+    def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
+        Alias.__init__(self, name, showInHelp, readonly, removable, transient)
+        
+        #specific command system
+        self.stringCmdList    = [] 
+        self.lockedTo = -1
+    
+    def setLockedTo(self, value):
+        try:
+            value = int(value)
+        except ValueError as va:
+            raise ParameterException("(Alias) setLockedTo, expected an integer value as parameter: "+str(va))
+    
+        if value < -1 or value >= len(self.stringCmdList):
+            if len(self.stringCmdList) == 0:
+                raise ParameterException("(Alias) setLockedTo, only -1 is allowed because alias list is empty, got '"+str(value)+"'")
+            else:
+                raise ParameterException("(Alias) setLockedTo, only a value from -1 to '"+str(len(self.stringCmdList) - 1)+"' is allowed, got '"+str(value)+"'")
+            
+        self.lockedTo = value
+        
     def getLockedTo(self):
         return self.lockedTo
         
+    def getStringCmdList(self):
+        return self.stringCmdList
+    
+    #TODO try to find a generic way to do that...
+    def _innerExecute(self, cmd, args, parameters):
+        lastException, engine = executeCommand(cmd, parameters, False, self.name, args)  
+        
+        if lastException != None: 
+            if not isinstance(lastException, PyshellException):
+                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
+            
+            if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
+                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
+        
+        return lastException, engine
+            
+    def execute(self, args, parameters):
+        #make a copy of the current alias       
+        e = copy.deepcopy(self) #could be updated during its execution in another thread #TODO is it enough to use copy ?
+            #TODO FIXME deepcopy is too much
+            
+        engine = None
+        
+        #for cmd in e.stringCmdList:
+        for i in xrange(0,len(e.stringCmdList)):
+            lastException, engine = e._innerExecute(e.stringCmdList[i], args, parameters)
+
+        #return the result of last command in the alias
+        if engine == None:
+            return ()
+            
+        return engine.getLastResult()
+                
     #### business method
     
     def setCommand(self, index, commandStringList):
@@ -270,33 +298,25 @@ class Alias(UniCommand):
         
     def downCommand(self,index):
         self.moveCommand(index,index+1)
-        
-    def clone(self):
-        e = Alias(self.name)
     
-        e.stringCmdList                   = self.stringCmdList[:]
-        e.errorGranularity                = self.errorGranularity
-        e.executeOnPre                    = self.executeOnPre
-        e.readonly                        = self.readonly
-        e.removable                       = self.removable
-        e.transient                       = self.transient
-        e.lockedTo                        = self.lockedTo
+    def clone(self, From=None):
+        if From is None:
+            From = AliasFromList(self.name)
         
-        return e
+        From.stringCmdList = self.stringCmdList[:]
+        From.lockedTo      = self.lockedTo
         
+        return Alias.clone(self,From)       
         
 class AliasFile(Alias):
-    #TODO faire une class abstract alias
-
     def __init__(self, filePath, showInHelp = True, readonly = False, removable = True, transient = False):
         Alias.__init__("execute "+str(filePath), showInHelp, readonly, removable, transient )
-        
         self.filePath = filePath
     
     #TODO adapt, read command from file, not from list
     def _execute(self, args, parameters):
         #make a copy of the current alias
-        e = self.clone() #could be updated during its execution in another thread
+        e = self.clone()
         engine = None
         
         #for cmd in e.stringCmdList:
@@ -308,33 +328,10 @@ class AliasFile(Alias):
             return ()
             
         return engine.getLastResult()
-        
-    def setCommand(self, index, commandStringList):
-        raise Exception("Not allowed to call setCommand with AliasFile object")
-
-    def addCommand(self, commandStringList):
-        raise Exception("Not allowed to call addCommand with AliasFile object")
-        
-    def addPipeCommand(self, index, commandStringList):
-        raise Exception("Not allowed to call addPipeCommand with AliasFile object")
-        
-    def removePipeCommand(self, index):
-        raise Exception("Not allowed to call removePipeCommand with AliasFile object")
-        
-    def removeCommand(self, index):
-        raise Exception("Not allowed to call removeCommand with AliasFile object")
-        
-    def moveCommand(self,fromIndex, toIndex):
-        raise Exception("Not allowed to call moveCommand with AliasFile object")
     
-    def upCommand(self,index):
-        raise Exception("Not allowed to call upCommand with AliasFile object")
-        
-    def downCommand(self,index):
-        raise Exception("Not allowed to call downCommand with AliasFile object")
-    
-    #TODO
-    #def clone(self):
-    #    Alias.clone(self)
-    #TODO utiliser copy ou deepcopy
+    def clone(self, From=None):
+        if From is None:
+            From = AliasFile(self.filePath)
+            
+        return Alias.clone(self,From)
     

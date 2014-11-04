@@ -60,8 +60,11 @@ class Command(object):
     def reset(self):
         pass  #TO OVERRIDE if needed
         
-    def clone(self):
-        pass #TO OVERRIDE if needed
+    def clone(self, From=None):
+        if From is None:
+            return Command()
+            
+        return From
 
 #
 # a multicommand will produce several process with only one call
@@ -183,20 +186,23 @@ class MultiCommand(list):
             c.reset()
             self[i] = (c,a,True,)  
 
-    def clone(self):
-        cl = MultiCommand(self.name, self.showInHelp)
-        cl.helpMessage  = self.helpMessage
-        cl.usageBuilder = self.usageBuilder
-        cl.reset()
+    def clone(self, From=None):
+        if From is None:
+            From = MultiCommand(self.name, self.showInHelp)
+            
+        From.showInHelp = From.showInHelp
+        From.helpMessage  = self.helpMessage
+        From.usageBuilder = self.usageBuilder
+        From.reset()
         
         for i in range(0, len(self)-self.dymamicCount):
             c,a,e = self[i]
             cmdClone = c.clone()
             cmdClone.preCount = cmdClone.proCount = cmdClone.postCount = 0
             cmdClone.reset()
-            cl.append( (cmdClone, a, e,) )
+            From.append( (cmdClone, a, e,) )
             
-        return cl
+        return From
 
     def addDynamicCommand(self,c,onlyAddOnce=True, useArgs = True, enabled = True):
         #cmd must be an instance of Command
@@ -259,7 +265,13 @@ class UniCommand(MultiCommand):
     def addStaticCommand(self, cmd, useArgs = True):
         pass # block the procedure to add more commands
         
-    def clone(self):
+    def clone(self, From=None):
+        if From is None:
+            From = UniCommand(self.name)
+            
+        
+        
+    def clone(self): #TODO
         cmd, useArg, enabled = self[0]
         return UniCommand(self.name, cmd.preProcess, cmd.process, cmd.postProcess, self.showInHelp)
 

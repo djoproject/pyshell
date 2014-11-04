@@ -35,12 +35,25 @@ from pyshell.utils.utils        import getTerminalSize
 from pyshell.utils.printing     import Printer, warning, error, printException
 from pyshell.utils.valuable     import SimpleValuable
 from pyshell.utils.executing    import executeCommand, preParseLine
-from pyshell.utils.aliasManager import Alias
+from pyshell.utils.aliasManager import AliasFromList
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
-        #TODO split into 3 or 4 sub metho
+        self._initParams(paramFile)
+        self._initPrinter()
+        
+        #load addon addon (if not loaded, can't do anything)
+        with self.ExceptionManager("fail to load addon 'pyshell.addons.addon'"):
+            addon.loadAddonFun("pyshell.addons.addon", self.params)
+            #TODO should exit if faillure, no ?
+                    
+        self._initStartUpEvent()
+        self._initExitEvent()
+        
+        ## execute atStartUp ##
+        executeCommand(EVENT__ON_STARTUP,self.params)
 
+    def _initParams(self, paramFile):
         #create param manager
         self.params = ParameterManager()
 
@@ -48,8 +61,7 @@ class CommandExecuter():
         self.params.setParameter("parameterFile",       EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=True,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter("tabsize",             EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        mltries = multiLevelTries()
-        self.params.setParameter("levelTries",          EnvironmentParameter(value=mltries,transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter("levelTries",          EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
         keyStorePath = EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False)
         self.params.setParameter("keystoreFile",        keyStorePath, ENVIRONMENT_NAME)
         self.keystore = KeyStore(keyStorePath)
@@ -63,7 +75,8 @@ class CommandExecuter():
         self.params.setParameter("debug",               ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("execution",           ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("coloration",          ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        
+    
+    def _initPrinter(self):
         ## prepare the printing system ##
         printer = Printer.getInstance()
         printer.setShellContext(self.params.getParameter("execution",CONTEXT_NAME))
@@ -72,14 +85,11 @@ class CommandExecuter():
         printer.setPromptShowedContext(self.promptWaitingValuable)
         printer.setSpacingContext(self.params.getParameter("tabsize",ENVIRONMENT_NAME))
         printer.setBakcgroundContext(self.params.getParameter("coloration",CONTEXT_NAME))
-        
-        #load addon addon (if not loaded, can't do anything)
-        with self.ExceptionManager("fail to load addon 'pyshell.addons.addon'"):
-            addon.loadAddonFun("pyshell.addons.addon", self.params)
-            #TODO should exit if faillure, no ?
-                    
+
+    def _initStartUpEvent(self):
         ## prepare atStartUp ##
-        _atstartup = Alias(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        mltries = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()
+        _atstartup = AliasFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         _atstartup.setErrorGranularity(None) #never stop, don't care about error
         
         _atstartup.addCommand( ("addon",     "load", "pyshell.addons.parameter", ) )
@@ -91,14 +101,17 @@ class CommandExecuter():
         _atstartup.setReadOnly(True)
         mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )
         
-        atstartup = Alias(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        atstartup = AliasFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         atstartup.setErrorGranularity(None) #never stop, don't care about error
         atstartup.addCommand( ("history","load", ) )
         atstartup.addCommand( ("key",    "load", ) )
         mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
-        
+
+    def _initExitEvent(self):
+        mltries = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()
+    
         ## prepare atExit ##
-        atExit = Alias(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
+        atExit = AliasFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
         atExit.setErrorGranularity(None) #never stop, don't care about error
         
         atExit.addCommand( ("parameter", "save",) )
@@ -109,9 +122,6 @@ class CommandExecuter():
         mltries.insert( (EVENT_AT_EXIT, ), atExit )
         atexit.register(self.AtExit)
         
-        ## execute atStartUp ##
-        executeCommand(EVENT__ON_STARTUP,self.params)
-    
     def AtExit(self):
         executeCommand(EVENT_AT_EXIT,self.params)
             
