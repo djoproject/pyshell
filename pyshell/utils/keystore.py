@@ -18,28 +18,10 @@
 
 from tries                   import tries
 from tries.exception         import ambiguousPathException
-import sys,os
-from math                    import log
-from pyshell.utils.valuable  import Valuable
-from pyshell.utils.constants import KEYSTORE_SECTION_NAME
-from pyshell.utils.exception import KeyStoreLoadingException, KeyStoreException, ListOfException
-
-try:
-    pyrev = sys.version_info.major
-except AttributeError:
-    pyrev = sys.version_info[0]
-
-if pyrev == 2:
-    import ConfigParser 
-else:
-    import configparser as ConfigParser
+from pyshell.utils.exception import KeyStoreException
 
 class KeyStore(object):
-    def __init__(self,filePath = None):
-        if filePath != None and not isinstance(filePath,Valuable):
-            raise KeyStoreException("(KeyStore) __init__, filePath must be a Valuable object")
-    
-        self.filePath = filePath
+    def __init__(self):
         self.tries = tries()
     
     def __str__(self):
@@ -47,63 +29,7 @@ class KeyStore(object):
         
     def __repr__(self):
         return str(self.tries.countValue())+" key(s) stored"
-    
-    def load(self):
-        #if no path, no load
-        if self.filePath == None:
-            return
         
-        #if no file, no load, no keystore file, loading not possible but no error
-        if not os.path.exists(self.filePath.getValue()):
-            return
-        
-        #try to load the keystore
-        config = ConfigParser.RawConfigParser()
-        try:
-            config.read(self.filePath.getValue())
-        except Exception as ex:
-            raise KeyStoreLoadingException("(KeyStore) load, fail to read parameter file '"+str(self.filePath.getValue())+"' : "+str(ex))
-        
-        #main section available ?
-        if not config.has_section(KEYSTORE_SECTION_NAME):
-            raise KeyStoreLoadingException("(KeyStore) load, config file '"+str(self.filePath.getValue())+"' is valid but does not hold keystore section")
-        
-        exceptions = ListOfException()
-        for keyName in config.options(KEYSTORE_SECTION_NAME):
-            try:
-                self.tries.insert(keyName, Key(config.get(KEYSTORE_SECTION_NAME, keyName), transient=False))
-            except Exception as ex:
-                exceptions.append( KeyStoreLoadingException("(KeyStore) load, fail to load key '"+str(keyName)+"' : "+str(ex)))
-
-        if exceptions.isThrowable():
-            raise exceptions
-        
-    def save(self):
-        if self.filePath is None:
-            return
-        
-        config = ConfigParser.RawConfigParser()
-        config.add_section(KEYSTORE_SECTION_NAME)
-        
-        keyCount = 0
-        for k,v in self.tries.getKeyValue().items():
-            if v.transient:
-                continue
-        
-            config.set(KEYSTORE_SECTION_NAME, k, str(v))
-            keyCount+= 1
-        
-        if keyCount == 0 and not os.path.exists(self.filePath.getValue()):
-            return
-            
-        #create config directory
-        if not os.path.exists(os.path.dirname(self.filePath.getValue())):
-            os.makedirs(os.path.dirname(self.filePath.getValue()))
-
-        #save key store
-        with open(self.filePath.getValue(), 'wb') as configfile:
-            config.write(configfile)
-    
     def hasKey(self, keyNamePrefix):
         try:
             node = self.tries.search(keyNamePrefix)
@@ -111,8 +37,8 @@ class KeyStore(object):
         except ambiguousPathException as ape:
             raise KeyStoreException("(KeyStore) hasKey, Ambiguous key name", ape)
         
-    def setKey(self, keyname, keyString):
-        self.setKeyInstance(keyname, Key(keyString))
+    def setKey(self, keyname, keyString, transient=True):
+        self.setKeyInstance(keyname, Key(keyString, transient))
     
     def setKeyInstance(self, keyname, instance):
         if not isinstance(instance, Key):

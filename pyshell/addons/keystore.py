@@ -23,6 +23,18 @@ from pyshell.loader.keystore   import registerKey
 from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
 from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
+from pyshell.utils.exception   import KeyStoreLoadingException, ListOfException
+
+import sys, os
+try:
+    pyrev = sys.version_info.major
+except AttributeError:
+    pyrev = sys.version_info[0]
+
+if pyrev == 2:
+    import ConfigParser 
+else:
+    import configparser as ConfigParser
 
 ## DECLARATION PART ##
 
@@ -71,15 +83,69 @@ def cleanKeyStore(keyStore=None):
     "remove every keys from the keystore"
     keyStore.getValue().removeAll()
     
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
-def saveKeyStore(keyStore=None):
+@shellMethod(filePath = parameterChecker("keystoreFile", ENVIRONMENT_NAME),
+             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+def saveKeyStore(filePath, keyStore=None):
     "save keystore from file"
-    keyStore.getValue().save() #TODO move save code here
 
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
-def loadKeyStore(keyStore=None):
+    filePath = filePath.getValue()
+    keyStore = keyStore.getValue()
+    
+    config = ConfigParser.RawConfigParser()
+    config.add_section(KEYSTORE_SECTION_NAME)
+    
+    keyCount = 0
+    for k,v in keyStore.tries.getKeyValue().items():
+        if v.transient:
+            continue
+    
+        config.set(KEYSTORE_SECTION_NAME, k, str(v))
+        keyCount+= 1
+    
+    if keyCount == 0 and not os.path.exists(filePath):
+        return
+        
+    #create config directory
+    if not os.path.exists(os.path.dirname(filePath)):
+        os.makedirs(os.path.dirname(filePath))
+
+    #save key store
+    with open(filePath, 'wb') as configfile:
+        config.write(configfile)
+
+@shellMethod(filePath = parameterChecker("keystoreFile", ENVIRONMENT_NAME),
+             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+def loadKeyStore(filePath, keyStore=None):
     "load keystore from file"
-    keyStore.getValue().load() #TODO move load code here
+
+    filePath = filePath.getValue()
+    keyStore = keyStore.getValue()
+    
+    #if no file, no load, no keystore file, loading not possible but no error
+    if not os.path.exists(filePath):
+        return
+    
+    #try to load the keystore
+    config = ConfigParser.RawConfigParser()
+    try:
+        config.read(filePath)
+    except Exception as ex:
+        raise KeyStoreLoadingException("(KeyStore) load, fail to read parameter file '"+str(filePath)+"' : "+str(ex))
+    
+    #main section available ?
+    if not config.has_section(KEYSTORE_SECTION_NAME):
+        raise KeyStoreLoadingException("(KeyStore) load, config file '"+str(filePath)+"' is valid but does not hold keystore section")
+    
+    exceptions = ListOfException()
+    for keyName in config.options(KEYSTORE_SECTION_NAME):
+        try:
+            keyStore.setKey(keyName,config.get(KEYSTORE_SECTION_NAME, keyName), False)
+        except Exception as ex:
+            exceptions.append( KeyStoreLoadingException("(KeyStore) load, fail to load key '"+str(keyName)+"' : "+str(ex)))
+
+    if exceptions.isThrowable():
+        raise exceptions
+
 
 @shellMethod(key   = defaultInstanceArgChecker.getKeyTranslatorChecker(),
              state = booleanValueArgChecker())
