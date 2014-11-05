@@ -35,7 +35,7 @@ from pyshell.utils.utils        import getTerminalSize
 from pyshell.utils.printing     import Printer, warning, error, printException
 from pyshell.utils.valuable     import SimpleValuable
 from pyshell.utils.executing    import executeCommand, preParseLine
-from pyshell.utils.aliasManager import AliasFromList
+from pyshell.utils.aliasManager import AliasFromList, AliasFromFile
 
 class CommandExecuter():
     def __init__(self, paramFile = None):
@@ -43,9 +43,14 @@ class CommandExecuter():
         self._initPrinter()
         
         #load addon addon (if not loaded, can't do anything)
+        loaded = False
         with self.ExceptionManager("fail to load addon 'pyshell.addons.addon'"):
             addon.loadAddonFun("pyshell.addons.addon", self.params)
-            #TODO should exit if faillure, no ?
+            loaded = True
+        
+        if not loaded:
+            print("fail to load addon loader, can not do anything with the application without this loader")
+            exit(-1)
                     
         self._initStartUpEvent()
         self._initExitEvent()
@@ -72,7 +77,7 @@ class CommandExecuter():
         self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.keystore",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
         self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
         
-        self.params.setParameter("debug",               ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("execution",           ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
         self.params.setParameter("coloration",          ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
     
@@ -249,7 +254,7 @@ class CommandExecuter():
             return finalKeys[index]
             
         except Exception as ex:
-            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+            if self.params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME).getSelectedValue() > 0:
                 printException(ex,None, traceback.format_exc())
 
         return None
@@ -271,42 +276,18 @@ class CommandExecuter():
                 msg_prefix += ": "
 
             st = None
-            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
+            if self.params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME).getSelectedValue() > 0:
                 st = traceback.format_exc()
                 
             printException(pex, msg_prefix, st)
 
-    def executeFile(self,filename):
-        #TODO load the file into an alias manager
-            #load the whole file ???
-                #or load part after part, create an extended class of alias to manage aliasFile
-                
-            #then execute it
-            
-        #TODO be able to set granularity error with args
-    
-        shellOnExit = False
+    def executeFile(self,filename, granularity = None):            
         self.params.getParameter("execution", CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        afile = AliasFromFile(filename)
+        afile.setErrorGranularity(granularity)
         
-        try:
-            with open(filename, 'wb') as f:
-                config.write(configfile)
-                
-                for line in f:
-                    if line.trim() == "noexit":
-                        shellOnExit = True
-                    
-                    #TODO stop on error (see alias manager)
-                    lastException, engine = executeCommand(line,self.params)
-                    
-        except Exception as ex:
-            st = None
-            if self.params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0:
-                st = traceback.format_exc()
-                
-            printException(ex, "An error occured during the script execution: ", st)
-        
-        return shellOnExit
+        with self.ExceptionManager("An error occured during the script execution: "):
+            afile._execute(args = (), parameters=self.params)
 
 ####################################################################################################
 #no need to use printing system on the following function because shell is not yet running
@@ -320,17 +301,18 @@ def help():
     print("")
     print("Python Custom Shell Executer v1.0")
     print("")
-    print("-h, --help:      print this help message")
-    print("-p, --parameter: define a custom parameter file")
-    print("-s, --script:    define a script to execute")
-    print("-n, --no-exit:   start the shell after the script")
+    print("-h, --help:        print this help message")
+    print("-p, --parameter:   define a custom parameter file")
+    print("-s, --script:      define a script to execute")
+    print("-n, --no-exit:     start the shell after the script")
+    print("-g, --granularity: set the error granularity for file script")
     print("")
 
 if __name__ == "__main__":
     #manage args
     opts = ()
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hp:s:n", ["help", "parameter=", "script=", "no-exit"])
+        opts, args = getopt.getopt(sys.argv[1:], "hp:s:ng:", ["help", "parameter=", "script=", "no-exit", "granularity="])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(str(err)) # will print something like "option -a not recognized"
@@ -343,6 +325,7 @@ if __name__ == "__main__":
     ParameterFile   = None
     ScriptFile      = None
     ExitAfterScript = True
+    Granularity     = sys.maxint
     
     for o, a in opts:
         if o in ("-h", "--help"):
@@ -354,6 +337,13 @@ if __name__ == "__main__":
             ScriptFile = a
         elif o in ("-n", "--no-exit"):
             ExitAfterScript = False
+        elif o in ("-g", "--granularity"):
+            try:
+                Granularity = int(a)
+            except ValueError as ve:
+                print("invalid value for granularity: "+str(ve))
+                usage()
+                exit(-1)
         else:
             print("unknown parameter: "+str(o))
     
@@ -364,7 +354,7 @@ if __name__ == "__main__":
     executer = CommandExecuter(ParameterFile)
     
     if ScriptFile != None:
-        ExitAfterScript = not self.executeFile(ScriptFile)
+        executer.executeFile(ScriptFile, Granularity)
     else:
         ExitAfterScript = False
     

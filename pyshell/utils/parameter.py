@@ -25,7 +25,7 @@ from threading import Lock
 #TODO
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
-        #store in three separate files ?
+        #store in three separate files ? XXX
     
     #store in tries
             

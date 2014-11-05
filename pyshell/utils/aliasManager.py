@@ -60,6 +60,7 @@ class Alias(UniCommand):
         self.setReadOnly(readonly)
         self.setRemovable(removable)
         self.setTransient(transient)
+        self.needToBepreParsed = False
         
     ### PRE/POST process ###
     @shellMethod(args       = listArgChecker(ArgChecker()),
@@ -81,7 +82,19 @@ class Alias(UniCommand):
         return self.execute(args, parameters)
         
     def execute(self, args, parameters):
-        pass #XXX TO OVERRIDE
+        pass #XXX TO OVERRIDE and use _innerExecute
+        
+    def _innerExecute(self, cmd, args, parameters):
+        lastException, engine = executeCommand(cmd, parameters, self.needToBepreParsed, self.name, args)  
+
+        if lastException != None: 
+            if not isinstance(lastException, PyshellException):
+                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
+            
+            if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
+                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
+        
+        return lastException, engine
         
     ###### get/set method
     
@@ -169,20 +182,7 @@ class AliasFromList(Alias):
         
     def getStringCmdList(self):
         return self.stringCmdList
-    
-    #TODO try to find a generic way to do that...
-    def _innerExecute(self, cmd, args, parameters):
-        lastException, engine = executeCommand(cmd, parameters, False, self.name, args)  
-        
-        if lastException != None: 
-            if not isinstance(lastException, PyshellException):
-                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
-            
-            if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
-                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
-        
-        return lastException, engine
-            
+                
     def execute(self, args, parameters):
         #e = self.clone() #make a copy of the current alias      
         engine = None
@@ -302,19 +302,20 @@ class AliasFromList(Alias):
         
         return Alias.clone(self,From)       
         
-class AliasFile(Alias):
+class AliasFromFile(Alias):
     def __init__(self, filePath, showInHelp = True, readonly = False, removable = True, transient = False):
-        Alias.__init__("execute "+str(filePath), showInHelp, readonly, removable, transient )
+        Alias.__init__(self, "execute "+str(filePath), showInHelp, readonly, removable, transient )
         self.filePath = filePath
+        self.needToBepreParsed = True
     
-    #TODO adapt, read command from file, not from list
     def _execute(self, args, parameters):
         #make a copy of the current alias
         engine = None
         
         #for cmd in self.stringCmdList:
-        for i in xrange(0,len(self.stringCmdList)):
-            lastException, engine = self._innerExecute(self.stringCmdList[i]) #TODO more args
+        with open(self.filePath) as f:
+            for line in f:
+                lastException, engine = self._innerExecute(line, args, parameters) 
 
         #return the result of last command in the alias
         if engine == None:

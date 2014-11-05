@@ -20,7 +20,7 @@ from pyshell.utils.exception   import *
 from pyshell.command.exception import *
 from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import booleanValueArgChecker, defaultInstanceArgChecker
-from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME
+from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME, DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from pyshell.utils.parameter   import VarParameter
@@ -361,7 +361,7 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
 def executeCommand(cmd, params, preParse = True , processName=None, processArg=None):
     "execute the engine object"
     stackTraceColor = error
-    lastException   = None
+    ex              = None
     engine          = None
     try:
         if preParse:
@@ -374,7 +374,7 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
-            return False
+            return ex, engine
         
         #convert token string to command objects and argument strings
         rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
@@ -390,29 +390,23 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         
         #execute 
         engine.execute()
-    except executionInitException as eie:
-        error("Fail to init an execution object: "+str(eie.value))
-        lastException = eie
-    except executionException as ee:
-        error("Fail to execute: "+str(eie.value))
-        lastException = ee
-    except commandException as ce:
-        error("Error in command method: "+str(ce.value))
-        lastException = ce
-    except engineInterruptionException as eien:
-        if eien.abnormal:
-            error("Abnormal execution abort, reason: "+str(eien.value))
+    except executionInitException as ex:
+        error("Fail to init an execution object: "+str(ex.value))
+    except executionException as ex:
+        error("Fail to execute: "+str(ex.value))
+    except commandException as ex:
+        error("Error in command method: "+str(ex.value))
+    except engineInterruptionException as ex:
+        if ex.abnormal:
+            error("Abnormal execution abort, reason: "+str(ex.value))
         else:
-            warning("Normal execution abort, reason: "+str(eien.value))
+            warning("Normal execution abort, reason: "+str(ex.value))
             stackTraceColor = warning
-        
-        lastException = eien
-    except argException as ae:
-        warning("Error while parsing argument: "+str(ae.value))
+    except argException as ex:
+        warning("Error while parsing argument: "+str(ex.value))
         stackTraceColor = warning
-        lastException = ae
-    except ListOfException as loe:
-        if len(loe.exceptions) > 0:
+    except ListOfException as ex:
+        if len(ex.exceptions) > 0:
             if params.hasParameter("tabsize", ENVIRONMENT_NAME):
                 tabSize = params.getParameter("tabsize", ENVIRONMENT_NAME).getValue()
             else:
@@ -421,20 +415,17 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
             space = " " * tabSize
         
             error("List of exception(s):")
-            for e in loe.exceptions:
+            for e in ex.exceptions:
                 printException(e, space)
-        
-        lastException = loe
-    except Exception as e:
-        stackTraceColor = printException(e)
-        lastException = e
+    except Exception as ex:
+        stackTraceColor = printException(ex)
 
     #print stack trace if debug is enabled
     #TODO this part should move to printException function
-    if params.getParameter("debug",CONTEXT_NAME).getSelectedValue() > 0 and lastException is not None:
+    if params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME).getSelectedValue() > 0 and lastException is not None:
         stackTraceColor("\n"+traceback.format_exc())
 
-    return lastException, engine
+    return ex, engine
 
 
 
