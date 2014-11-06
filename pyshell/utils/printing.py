@@ -16,9 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading, sys, re, os
+import threading, sys, re, os, traceback
 from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
-from pyshell.utils.exception  import NOTICE, WARNING, PyshellException
+from pyshell.utils.exception  import NOTICE, WARNING, PyshellException, ListOfException
 from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT
 
 _EMPTYSTRING = ""
@@ -55,6 +55,7 @@ class Printer(object):
         self.promptShowedContext = DefaultValuable(False)
         self.spacingContext      = DefaultValuable(0)
         self.backgroundContext   = DefaultValuable(None)
+        self.debugContext        = DefaultValuable(0)
     
     def __enter__(self):
         return Printer._printerLock.__enter__()
@@ -92,6 +93,12 @@ class Printer(object):
     
         self.backgroundContext = context
     
+    def setDebugContext(self, context):
+        if not isinstance(context, SelectableValuable):
+            raise Exception("(Printer) setBakcgroundContext, invalid debug context, must be an instance of SelectableValuable")
+    
+        self.debugContext = context
+
     def isDarkBackGround(self):
         return self.backgroundContext.getSelectedValue() == CONTEXT_COLORATION_DARK
         
@@ -103,6 +110,12 @@ class Printer(object):
     
     def isPromptShowed(self):
         return self.promptShowedContext.getValue()
+
+    def isDebugEnabled(self):
+        return self.debugContext.getSelectedValue() > 0
+
+    def getDebugLevel(self):
+        return self.debugContext.getSelectedValue()
     
     @staticmethod
     def getInstance():
@@ -249,35 +262,60 @@ def error(*args, **kwargs):
 def debug(*args, **kwargs):
     printer = Printer.getInstance()
     printer.debug(_toLineString(args, kwargs))
+
+def printException(exception, prefix = None):
+    printShell(formatException(exception, prefix))
     
-def printException(exception, prefix = None, stackTrace = None):
+def formatException(exception, prefix = None):
+    if exception is None:
+        return _EMPTYSTRING
+
+    printer = Printer.getInstance()
+
     if prefix is None:
         prefix = _EMPTYSTRING
         
-    if stackTrace is None:
-        stackTrace = _EMPTYSTRING
+    if isinstance(exception, PyshellException):
+        if isinstance(exception, ListOfException):
+            if len(exception.exceptions) == 0:
+                return _EMPTYSTRING
+
+            toprint = ""
+            printFun = printer.formatRed
+            if prefix != _EMPTYSTRING:
+                toprint += printer.formatRed(prefix)
+
+            #TODO compute tab
+            """
+            if params.hasParameter(ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_NAME):
+                tabSize = params.getParameter(ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_NAME).getValue()
+            else:
+                tabSize = TAB_SIZE
+            
+            space = " " * tabSize
+            """
+
+            for e in exception.exceptions:
+                toprint += "\n"+formatException(e, space)
+
+        else: 
+            if exception.severity >= NOTICE:
+                printFun = printer.formatGreen
+                toprint  = printer.formatGreen(prefix + str(exception))
+            elif exception.severity >= WARNING:
+                printFun = printer.formatOrange
+                toprint  = printer.formatOrange(prefix + str(exception))
+            else:
+                printFun = printer.formatRed
+                toprint  = printer.formatRed(prefix + str(exception))
     else:
-        stackTrace = "\n\n"+stackTrace
+        printFun = printer.formatRed
+        toprint  = printer.formatRed(prefix + str(exception))
 
-    if isinstance(exception, PyshellException):
-        if exception.severity >= NOTICE:
-            notice(prefix + str(exception) + stackTrace)
-            return notice
-        elif exception.severity >= WARNING:
-            warning(prefix + str(exception) + stackTrace)
-            return warning
+    if printer.isDebugEnabled():
+        toprint += printFun("\n\n"+traceback.format_exc())
 
-    error(prefix + str(exception) + stackTrace)
-    return error
-
-def formatException(exception):
-    if isinstance(exception, PyshellException):
-        if exception.severity >= NOTICE:
-            return formatGreen(str(exception))
-        elif exception.severity >= WARNING:
-            return formatOrange(str(exception))
-        
-    return formatRed(str(exception))
+    return toprint
 
 def strLength(string):
     return len(ANSI_ESCAPE.sub('', str(string)))

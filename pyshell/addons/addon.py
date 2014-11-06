@@ -24,7 +24,7 @@ import os, sys
 from pyshell.utils.postProcess import printColumn, stringListResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter   import EnvironmentParameter
-from pyshell.utils.constants   import ENVIRONMENT_NAME, ADDONLIST_KEY
+from pyshell.utils.constants   import ENVIRONMENT_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
 
@@ -243,7 +243,7 @@ def subLoaderReload(name, subLoaderName, parameters, subAddon = None):
     notice("sub loader '"+str(subLoaderName)+"' reloaded !")
 
 @shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+             addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def addOnStartUp(addonName, addonListOnStartUp):
     "add an addon loading on startup"
     
@@ -257,7 +257,7 @@ def addOnStartUp(addonName, addonListOnStartUp):
         addonListOnStartUp.setValue(addonList)
 
 @shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+             addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def removeOnStartUp(addonName, addonListOnStartUp):
     "remove an addon loading from startup"    
     
@@ -267,7 +267,7 @@ def removeOnStartUp(addonName, addonListOnStartUp):
         addonList.remove(addonName)
         addonListOnStartUp.setValue(addonList)
         
-@shellMethod(addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+@shellMethod(addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def listOnStartUp(addonListOnStartUp):
     "list addon enabled on startup"
 
@@ -284,7 +284,7 @@ def listOnStartUp(addonListOnStartUp):
     return r
 
 @shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+             addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def downAddonInList(addonName, addonListOnStartUp):
     "reduce the loading priority at startup for an addon"
 
@@ -298,7 +298,7 @@ def downAddonInList(addonName, addonListOnStartUp):
     addonList.insert(position+1, addonName)
     
 @shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+             addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def upAddonInList(addonName, addonListOnStartUp):
     "increase the loading priority at startup for an addon"
 
@@ -313,7 +313,7 @@ def upAddonInList(addonName, addonListOnStartUp):
     
 @shellMethod(addonName          = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              position           = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             addonListOnStartUp = environmentParameterChecker("addonToLoad"))
+             addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def setAddonPositionInList(addonName, position, addonListOnStartUp):
     "set the loading position at startup for an addon"
 
@@ -325,7 +325,7 @@ def setAddonPositionInList(addonName, position, addonListOnStartUp):
     addonList.remove(addonName)
     addonList.insert(max(position,0), addonName)
 
-@shellMethod(addonListOnStartUp = environmentParameterChecker("addonToLoad"),
+@shellMethod(addonListOnStartUp = environmentParameterChecker(ENVIRONMENT_ADDON_TO_LOAD_KEY),
              params = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def loadAddonOnStartUp(addonListOnStartUp, params):
 

@@ -19,7 +19,7 @@
 from pyshell.arg.decorator      import shellMethod
 from pyshell.loader.command     import registerCommand, registerSetGlobalPrefix, registerStopHelpTraversalAt
 from pyshell.arg.argchecker     import parameterChecker, filePathArgChecker
-from pyshell.utils.constants    import ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY
+from pyshell.utils.constants    import ENVIRONMENT_NAME, DEFAULT_CONFIG_DIRECTORY, ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.aliasManager import Alias  
 from pyshell.utils.executing    import preParseNotPipedCommand, preParseLine
 from pyshell.utils.exception    import ParameterLoadingException, ListOfException
@@ -154,7 +154,7 @@ def isBool(value):
         
     return False,None
 
-@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME),
+@shellMethod(mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME),
              filePath = parameterChecker("alias_filepath", ENVIRONMENT_NAME))
 def load(mltries, filePath):
 
@@ -300,7 +300,7 @@ def _saveTraversal(path, node, config, level):
 
     return config
 
-@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME),
+@shellMethod(mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME),
              filePath = parameterChecker("alias_filepath", ENVIRONMENT_NAME))
 def save(mltries, filePath):
     config = ConfigParser.RawConfigParser()
@@ -321,7 +321,7 @@ def _listTraversal(path, node, state, level):
     state[tuple(path)] = node.value
     return state
 
-@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME))
+@shellMethod(mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME))
 def listAlias(mltries):
     mltries = mltries.getValue()
     result = mltries.genericBreadthFirstTraversal(_listTraversal, {}, True,True, (), True)

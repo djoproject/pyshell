@@ -63,36 +63,36 @@ class CommandExecuter():
         self.params = ParameterManager()
 
         ## init original params ##
-        #TODO move parameter key name to constant variable
-        self.params.setParameter("parameterFile",       EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=True,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("prompt",              EnvironmentParameter(value="pyshell:>", typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("tabsize",             EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("levelTries",          EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("keystoreFile",        EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter(KEYSTORE_SECTION_NAME, EnvironmentParameter(value=KeyStore(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME) 
-        self.params.setParameter("saveKeys",            EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("historyFile",         EnvironmentParameter(value=os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_history"), typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("useHistory",          EnvironmentParameter(value=True, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter("addonToLoad",         EnvironmentParameter(value=("pyshell.addons.std","pyshell.addons.keystore",), typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
-        self.params.setParameter(ADDONLIST_KEY,         EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,    EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=True,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_PROMPT_KEY,            EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT, typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_TAB_SIZE_KEY,          EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_KEY_STORE_FILE_KEY,    EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(KEYSTORE_SECTION_NAME,             EnvironmentParameter(value=KeyStore(),transient=True,readonly=True, removable=False), ENVIRONMENT_NAME) 
+        self.params.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,         EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY, EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_USE_HISTORY_KEY,       EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,     EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT, typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), ENVIRONMENT_NAME)
+        self.params.setParameter(ADDONLIST_KEY,                     EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), ENVIRONMENT_NAME)
         
         self.params.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("execution",           ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
-        self.params.setParameter("coloration",          ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter(CONTEXT_EXECUTION_KEY, ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False), CONTEXT_NAME)
+        self.params.setParameter(CONTEXT_COLORATION_KEY,ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False), CONTEXT_NAME)
     
     def _initPrinter(self):
         ## prepare the printing system ##
         printer = Printer.getInstance()
-        printer.setShellContext(self.params.getParameter("execution",CONTEXT_NAME))
+        printer.setShellContext(self.params.getParameter(CONTEXT_EXECUTION_KEY,CONTEXT_NAME))
         printer.setREPLFunction(self.printAsynchronousOnShellV2)
         self.promptWaitingValuable = SimpleValuable(False)
         printer.setPromptShowedContext(self.promptWaitingValuable)
-        printer.setSpacingContext(self.params.getParameter("tabsize",ENVIRONMENT_NAME))
-        printer.setBakcgroundContext(self.params.getParameter("coloration",CONTEXT_NAME))
+        printer.setSpacingContext(self.params.getParameter(ENVIRONMENT_TAB_SIZE_KEY,ENVIRONMENT_NAME))
+        printer.setBakcgroundContext(self.params.getParameter(CONTEXT_COLORATION_KEY,CONTEXT_NAME))
+        printer.setDebugContext(self.params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME))
 
     def _initStartUpEvent(self):
         ## prepare atStartUp ##
-        mltries = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()
+        mltries = self.params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue()
         _atstartup = AliasFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         _atstartup.setErrorGranularity(None) #never stop, don't care about error
         
@@ -112,7 +112,7 @@ class CommandExecuter():
         mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
 
     def _initExitEvent(self):
-        mltries = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()
+        mltries = self.params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue()
     
         ## prepare atExit ##
         atExit = AliasFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
@@ -139,14 +139,14 @@ class CommandExecuter():
 
         readline.set_completer(self.complete)
         
-        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.params.getParameter(CONTEXT_EXECUTION_KEY, CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SHELL)
         
         #mainloop
         while True:
             #read prompt
             self.promptWaitingValuable.setValue(True)
             try:
-                cmd = raw_input(self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue())
+                cmd = raw_input(self.params.getParameter(ENVIRONMENT_PROMPT_KEY,ENVIRONMENT_NAME).getValue())
             except SyntaxError as se:
                 self.promptWaitingValuable.setValue(False)
                 error(se, "syntax error")
@@ -161,7 +161,7 @@ class CommandExecuter():
             executeCommand(cmd, self.params)        
     
     def printAsynchronousOnShellV2(self,message):
-        prompt = self.params.getParameter("prompt",ENVIRONMENT_NAME).getValue()
+        prompt = self.params.getParameter(ENVIRONMENT_PROMPT_KEY,ENVIRONMENT_NAME).getValue()
         #this is needed because after an input, the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
             size = len(prompt)
@@ -192,7 +192,7 @@ class CommandExecuter():
                 #only print root tokens
             if len(cmdStringList) == 0:
                 fullline = ()
-                dic = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().buildDictionnary(fullline, True, True, False)
+                dic = self.params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue().buildDictionnary(fullline, True, True, False)
 
                 toret = {}
                 for k in dic.keys():
@@ -205,7 +205,7 @@ class CommandExecuter():
             fullline = cmdStringList[-1]
 
             ## manage ambiguity ##
-            advancedResult = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().advancedSearch(fullline, False)
+            advancedResult = self.params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue().advancedSearch(fullline, False)
             if advancedResult.isAmbiguous():
                 tokenIndex = len(advancedResult.existingPath) - 1
 
@@ -222,7 +222,7 @@ class CommandExecuter():
                     keys.append(tmp)
             else:
                 try:
-                    dic = self.params.getParameter("levelTries",ENVIRONMENT_NAME).getValue().buildDictionnary(fullline, True, True, False)
+                    dic = self.params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue().buildDictionnary(fullline, True, True, False)
                 except pathNotExistsTriesException as pnete:
                     return None
 
@@ -254,7 +254,7 @@ class CommandExecuter():
             
         except Exception as ex:
             if self.params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME).getSelectedValue() > 0:
-                printException(ex,None, traceback.format_exc())
+                printException(ex)
 
         return None
 
@@ -264,24 +264,18 @@ class CommandExecuter():
             yield
         except ListOfException as loe:
             if msg_prefix is None:
-                msg_prefix = "List of exception"
-            
-            error(msg_prefix+": ")
-            for e in loe.exceptions:
-                printException(e,"    ")
-            
+                msg_prefix = "List of exception: "
+
+            printException(pex, msg_prefix)
+                        
         except Exception as pex:
             if msg_prefix is not None:
                 msg_prefix += ": "
 
-            st = None
-            if self.params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME).getSelectedValue() > 0:
-                st = traceback.format_exc()
-                
-            printException(pex, msg_prefix, st)
+            printException(pex, msg_prefix)
 
     def executeFile(self,filename, granularity = None):            
-        self.params.getParameter("execution", CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.params.getParameter(CONTEXT_EXECUTION_KEY, CONTEXT_NAME).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         afile = AliasFromFile(filename)
         afile.setErrorGranularity(granularity)
         

@@ -20,11 +20,11 @@ from pyshell.utils.exception   import *
 from pyshell.command.exception import *
 from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import booleanValueArgChecker, defaultInstanceArgChecker
-from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME, DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME, DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from pyshell.utils.parameter   import VarParameter
-import traceback, threading
+import threading
 from tries.exception import triesException
 
 import sys
@@ -374,13 +374,13 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:
-            return ex, engine
+            return None, None
         
         #convert token string to command objects and argument strings
-        rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter("levelTries",ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
+        rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
         rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
 
-        #clone command
+        #clone command/alias to manage concurrency state
         newRawCommandList = []
         for c in rawCommandList:
             newRawCommandList.append(c.clone())
@@ -391,39 +391,22 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         #execute 
         engine.execute()
     except executionInitException as ex:
-        error("Fail to init an execution object: "+str(ex.value))
+        printException(ex,"Fail to init an execution object: ")
     except executionException as ex:
-        error("Fail to execute: "+str(ex.value))
+        printException(ex, "Fail to execute: ")
     except commandException as ex:
-        error("Error in command method: "+str(ex.value))
+        printException(ex, "Error in command method: ")
     except engineInterruptionException as ex:
         if ex.abnormal:
-            error("Abnormal execution abort, reason: "+str(ex.value))
+            printException(ex, "Abnormal execution abort, reason: ")
         else:
-            warning("Normal execution abort, reason: "+str(ex.value))
-            stackTraceColor = warning
+            printException(ex, "Normal execution abort, reason: ")
     except argException as ex:
-        warning("Error while parsing argument: "+str(ex.value))
-        stackTraceColor = warning
+        printException(ex, "Error while parsing argument: ")
     except ListOfException as ex:
-        if len(ex.exceptions) > 0:
-            if params.hasParameter("tabsize", ENVIRONMENT_NAME):
-                tabSize = params.getParameter("tabsize", ENVIRONMENT_NAME).getValue()
-            else:
-                tabSize = TAB_SIZE
-            
-            space = " " * tabSize
-        
-            error("List of exception(s):")
-            for e in ex.exceptions:
-                printException(e, space)
+        printException(ex,"List of exception(s): ")
     except Exception as ex:
-        stackTraceColor = printException(ex)
-
-    #print stack trace if debug is enabled
-    #TODO this part should move to printException function
-    if params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME).getSelectedValue() > 0 and lastException is not None:
-        stackTraceColor("\n"+traceback.format_exc())
+        printException(ex)
 
     return ex, engine
 

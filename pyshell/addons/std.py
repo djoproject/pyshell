@@ -21,7 +21,7 @@ from pyshell.loader.command    import registerStopHelpTraversalAt, registerComma
 from pyshell.arg.decorator     import shellMethod
 from pyshell.command.command   import MultiOutput
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
-from pyshell.utils.constants   import ENVIRONMENT_NAME
+from pyshell.utils.constants   import ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.exception   import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
 from pyshell.utils.postProcess import listFlatResultHandler, stringListResultHandler
 import readline, os
@@ -67,7 +67,7 @@ def intToAscii(args):
     return listFlatResultHandler( (s, ) )
     
 @shellMethod(args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), 
-             mltries = parameterChecker("levelTries", ENVIRONMENT_NAME))
+             mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME))
 def usageFun(args, mltries):
     "print the usage of a fonction"
     
@@ -93,7 +93,7 @@ def usageFun(args, mltries):
     cmd = searchResult.getLastTokenFoundValue()
     return cmd.usage()
 
-@shellMethod(mltries = parameterChecker("levelTries", ENVIRONMENT_NAME), 
+@shellMethod(mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME), 
              args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def helpFun(mltries, args=None):
     "print the help"
@@ -255,29 +255,33 @@ def generator(start=0,stop=100,step=1, multiOutput = True):
         return MultiOutput(range(start,stop,step))
     else:
         return range(start,stop,step)
-@shellMethod(useHistory  = parameterChecker("useHistory", ENVIRONMENT_NAME),
-             historyFile = parameterChecker("historyFile", ENVIRONMENT_NAME))
+@shellMethod(useHistory  = parameterChecker(ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_NAME),
+             historyFile = parameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY, ENVIRONMENT_NAME))
 def historyLoad(useHistory, historyFile):
     "save readline history"
     
-    if useHistory.getValue():
-        try:
-            readline.read_history_file(historyFile.getValue())
-        except IOError:
-            pass
+    if not useHistory.getValue():
+        return
+
+    try:
+        readline.read_history_file(historyFile.getValue())
+    except IOError:
+        pass
     
-@shellMethod(useHistory  = parameterChecker("useHistory", ENVIRONMENT_NAME),
-             historyFile = parameterChecker("historyFile", ENVIRONMENT_NAME))
+@shellMethod(useHistory  = parameterChecker(ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_NAME),
+             historyFile = parameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY, ENVIRONMENT_NAME))
 def historySave(useHistory, historyFile):
     "load readline history"
     
-    if useHistory.getValue():
-        path = historyFile.getValue()
+    if not useHistory.getValue():
+        return
 
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+    path = historyFile.getValue()
 
-        readline.write_history_file(path)
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+
+    readline.write_history_file(path)
 
 """@shellMethod(data = ,
             from = ,

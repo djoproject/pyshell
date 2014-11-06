@@ -516,6 +516,7 @@ class completeEnvironmentChecker(ArgChecker):
     def erraseDefaultValue(self):
         pass
 
+#TODO this checker should not be use anywhere, use contextParameterChecker or environmentParameterChecker
 class parameterChecker(ArgChecker):
     def __init__(self,keyname, parent = None, typeName = PARAMETERCHECKER_TYPENAME):
         ArgChecker.__init__(self,0,0,False, typeName)

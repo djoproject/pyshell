@@ -18,30 +18,14 @@
 
 import os
 
+### MISC ###
 DEFAULT_CONFIG_DIRECTORY = os.path.join(os.path.expanduser("~"), ".pyshell")
-
-KEYSTORE_SECTION_NAME    = "keystore"
-DEFAULT_KEYSTORE_FILE    = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_keystore")
-
-CONTEXT_NAME             = "context"
-ENVIRONMENT_NAME         = "environment"
-DEFAULT_PARAMETER_FILE   = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshellrc")
 MAIN_CATEGORY            = "main"
 PARAMETER_NAME           = "parameter"
 DEFAULT_SEPARATOR        = ","
-ADDONLIST_KEY            = "loader_addon"
 DEFAULT_SUBADDON_NAME    = "default"
-TAB_SIZE                 = 4
-DEBUG_ENVIRONMENT_NAME   = "debug"
 
-CONTEXT_EXECUTION_SHELL  = "shell"
-CONTEXT_EXECUTION_SCRIPT = "script"
-CONTEXT_EXECUTION_DAEMON = "daemon"
-
-CONTEXT_COLORATION_LIGHT = "light"
-CONTEXT_COLORATION_DARK  = "dark"
-CONTEXT_COLORATION_NONE  = "none"
-
+### EVENT ###
 EVENT__ON_STARTUP     = "_onstartup" #at application launch
 EVENT_ON_STARTUP      = "onstartup" #at application launch
 EVENT_AT_EXIT         = "atexit" #at application exit
@@ -49,5 +33,54 @@ EVENT_AT_EXIT         = "atexit" #at application exit
 #TODO use that (or remove them)
 EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
+
+
+### ENVIRONMENT ###
+ENVIRONMENT_NAME                    = "environment"
+
+ENVIRONMENT_PARAMETER_FILE_KEY      = "parameterFile"
+DEFAULT_PARAMETER_FILE              = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshellrc")
+
+ENVIRONMENT_PROMPT_KEY              = "prompt"
+ENVIRONMENT_PROMPT_DEFAULT          = "pyshell:>"
+
+ENVIRONMENT_TAB_SIZE_KEY            = "tabsize"
+TAB_SIZE                            = 4
+
+ENVIRONMENT_LEVEL_TRIES_KEY         = "levelTries"
+
+ENVIRONMENT_KEY_STORE_FILE_KEY      = "keystoreFile"
+DEFAULT_KEYSTORE_FILE               = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_keystore")
+
+KEYSTORE_SECTION_NAME               = "keystore"
+
+ENVIRONMENT_SAVE_KEYS_KEY           = "saveKeys"
+ENVIRONMENT_SAVE_KEYS_DEFAULT       = True
+
+ENVIRONMENT_HISTORY_FILE_NAME_KEY   = "historyFile"
+ENVIRONMENT_HISTORY_FILE_NAME_VALUE = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_history")
+
+ENVIRONMENT_USE_HISTORY_KEY         = "useHistory"
+ENVIRONMENT_USE_HISTORY_VALUE       = True
+
+ENVIRONMENT_ADDON_TO_LOAD_KEY       = "addonToLoad"
+ENVIRONMENT_ADDON_TO_LOAD_DEFAULT   = ("pyshell.addons.std","pyshell.addons.keystore",)
+
+ADDONLIST_KEY                       = "loader_addon"
+
+### CONTEXT ###
+CONTEXT_NAME             = "context"
+
+DEBUG_ENVIRONMENT_NAME   = "debug"
+
+CONTEXT_EXECUTION_KEY    = "execution"
+CONTEXT_EXECUTION_SHELL  = "shell"
+CONTEXT_EXECUTION_SCRIPT = "script"
+CONTEXT_EXECUTION_DAEMON = "daemon"
+
+CONTEXT_COLORATION_KEY   = "coloration"
+CONTEXT_COLORATION_LIGHT = "light"
+CONTEXT_COLORATION_DARK  = "dark"
+CONTEXT_COLORATION_NONE  = "none"
 
 

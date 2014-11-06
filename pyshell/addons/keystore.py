@@ -17,10 +17,10 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import defaultInstanceArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker, contextParameterChecker
+from pyshell.arg.argchecker    import defaultInstanceArgChecker, environmentParameterChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.keystore   import registerKey
-from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME
+from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME, ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_SAVE_KEYS_KEY
 from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 from pyshell.utils.exception   import KeyStoreLoadingException, ListOfException
@@ -83,10 +83,14 @@ def cleanKeyStore(keyStore=None):
     "remove every keys from the keystore"
     keyStore.getValue().removeAll()
     
-@shellMethod(filePath = parameterChecker("keystoreFile", ENVIRONMENT_NAME),
-             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
-def saveKeyStore(filePath, keyStore=None):
+@shellMethod(filePath    = parameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_NAME),
+             useKeyStore = environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
+             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+def saveKeyStore(filePath, useKeyStore, keyStore=None):
     "save keystore from file"
+
+    if not useKeyStore.getValue():
+        return
 
     filePath = filePath.getValue()
     keyStore = keyStore.getValue()
@@ -113,10 +117,14 @@ def saveKeyStore(filePath, keyStore=None):
     with open(filePath, 'wb') as configfile:
         config.write(configfile)
 
-@shellMethod(filePath = parameterChecker("keystoreFile", ENVIRONMENT_NAME),
+@shellMethod(filePath = parameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_NAME),
+             useKeyStore = environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
              keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
-def loadKeyStore(filePath, keyStore=None):
+def loadKeyStore(filePath, useKeyStore, keyStore=None):
     "load keystore from file"
+
+    if not useKeyStore.getValue():
+        return
 
     filePath = filePath.getValue()
     keyStore = keyStore.getValue()

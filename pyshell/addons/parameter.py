@@ -34,7 +34,7 @@ from pyshell.arg.decorator     import shellMethod
 from pyshell.utils.parameter   import Parameter, EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME, RESOLVE_SPECIAL_SECTION_ORDER
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
-from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME
+from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME, ENVIRONMENT_PARAMETER_FILE_KEY
 from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
 import os, sys
@@ -216,7 +216,7 @@ def _parameterGetTitle(titleFormatingFun):
 def listParameter(parameter, parent=None, key=None):
     return _listGeneric(parameter, parent, key, _parameterRowFormating, _parameterGetTitle)
 
-@shellMethod(filePath  = parameterChecker("parameterFile", ENVIRONMENT_NAME),
+@shellMethod(filePath  = parameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY, ENVIRONMENT_NAME),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def loadParameter(filePath, parameter):
     "load parameters from the settings file"
@@ -304,7 +304,7 @@ def loadParameter(filePath, parameter):
     
     #parameter.load()
 
-@shellMethod(filePath  = parameterChecker("parameterFile", ENVIRONMENT_NAME),
+@shellMethod(filePath  = parameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY, ENVIRONMENT_NAME),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def saveParameter(filePath, parameter):
     "save not transient parameters to the settings file"
