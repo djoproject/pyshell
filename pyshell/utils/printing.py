@@ -19,7 +19,7 @@
 import threading, sys, re, os, traceback
 from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException, ListOfException
-from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT
+from pyshell.utils.constants  import CONTEXT_NAME,ENVIRONMENT_NAME,CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
 
 _EMPTYSTRING = ""
 
@@ -53,7 +53,7 @@ class Printer(object):
         self.replWriteFunction   = None
         self.shellContext        = DefaultValuable(None)
         self.promptShowedContext = DefaultValuable(False)
-        self.spacingContext      = DefaultValuable(0)
+        self.spacingContext      = DefaultValuable(TAB_SIZE)
         self.backgroundContext   = DefaultValuable(None)
         self.debugContext        = DefaultValuable(0)
     
@@ -68,6 +68,19 @@ class Printer(object):
             raise Exception("(Printer) setREPLFunction, invalid repl function, must be a callable object")
             
         self.replWriteFunction = fun
+    
+    def configureFromParameters(self, params):
+        if params.hasParameter(CONTEXT_EXECUTION_KEY,CONTEXT_NAME):
+            self.setShellContext(params.getParameter(CONTEXT_EXECUTION_KEY,CONTEXT_NAME))
+        
+        if params.hasParameter(ENVIRONMENT_TAB_SIZE_KEY,ENVIRONMENT_NAME):
+            self.setSpacingContext(params.getParameter(ENVIRONMENT_TAB_SIZE_KEY,ENVIRONMENT_NAME))
+        
+        if params.hasParameter(CONTEXT_COLORATION_KEY,CONTEXT_NAME):
+            self.setBakcgroundContext(params.getParameter(CONTEXT_COLORATION_KEY,CONTEXT_NAME))
+        
+        if params.hasParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME):
+            self.setDebugContext(params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME))
     
     def setShellContext(self, context):    
         if not isinstance(context, SelectableValuable):
@@ -199,7 +212,10 @@ class Printer(object):
     def error(self, string):
         self.cprint(self.formatRed(string))
         
-    def debug(self, string):
+    def debug(self, level, string):
+        if level > self.getDebugLevel():
+            return
+    
         self.cprint(self.formatOrange(string))
     
 def _toLineString(args, kwargs):
@@ -259,14 +275,14 @@ def error(*args, **kwargs):
     printer = Printer.getInstance()
     printer.error(_toLineString(args, kwargs))
 
-def debug(*args, **kwargs):
+def debug(level, *args, **kwargs):
     printer = Printer.getInstance()
-    printer.debug(_toLineString(args, kwargs))
+    printer.debug(level, _toLineString(args, kwargs))
 
 def printException(exception, prefix = None):
     printShell(formatException(exception, prefix))
     
-def formatException(exception, prefix = None):
+def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = True):
     if exception is None:
         return _EMPTYSTRING
 
@@ -285,18 +301,10 @@ def formatException(exception, prefix = None):
             if prefix != _EMPTYSTRING:
                 toprint += printer.formatRed(prefix)
 
-            #TODO compute tab
-            """
-            if params.hasParameter(ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_NAME):
-                tabSize = params.getParameter(ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_NAME).getValue()
-            else:
-                tabSize = TAB_SIZE
-            
-            space = " " * tabSize
-            """
+            space = " " * printer.spacingContext.getValue()
 
             for e in exception.exceptions:
-                toprint += "\n"+formatException(e, space)
+                toprint += "\n"+space+formatException(e, space, False)
 
         else: 
             if exception.severity >= NOTICE:
@@ -312,7 +320,7 @@ def formatException(exception, prefix = None):
         printFun = printer.formatRed
         toprint  = printer.formatRed(prefix + str(exception))
 
-    if printer.isDebugEnabled():
+    if printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
         toprint += printFun("\n\n"+traceback.format_exc())
 
     return toprint

@@ -74,28 +74,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 ### print service ###
 #####################
 
-	#an interface with a few meth
-		info
-		    le print classic
-		error
-		    faire un print specific qui va ecrire dans le flux d'erreur
-		    voir exemple sur internet
-		warn
-		    #TODO trouver une astuce
-		...
-		
-	    L'affichage "info" peut se faire à trois endroit:
-	        -simpleprocess
-	        -addons
-	        -executer
-	        
-        L'affichage "warning" et "error" peut se faire à un seul endroit:
-            -executer
-            
-            car ce sont les exceptions qui transporte la sévérité du message
-            et elle remonte jusqu'à l'executer
-		
-		#utiliser le package log
+	#an interface with a few meth		
+		#adapter printing pour pouvoir utiliser le package log
 		
     #gérer des trucs comme >, >>, 2>, 2>>, ...
         #changer le flux d'output pour la commande

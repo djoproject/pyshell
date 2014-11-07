@@ -16,6 +16,16 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#BNF GRAMMAR OF A COMMAND
+# 
+# <commands>   ::= <command> <threading> <EOL> | <command> "|" <commands>
+# <threading> ::= " &" | ""
+# <command>   ::= <token> | <token> " " <command>
+# <token>     ::= <string> | "$" <string> | "\$" <string>
+# <string>    ::= <text> | <text> "\ " <string> #TODO conflict with command rule
+#
+#
+
 from pyshell.utils.exception   import *
 from pyshell.command.exception import *
 from pyshell.arg.exception     import *
@@ -24,7 +34,7 @@ from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME, DEBUG_ENVI
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from pyshell.utils.parameter   import VarParameter
-import threading
+import threading, thread
 from tries.exception import triesException
 
 import sys
@@ -34,11 +44,10 @@ else:
     from collections import OrderedDict 
 
 #TODO
-    #faire un executing en mode "thread"
-        #ou modifier le executing pour gérer ça
+    #refactore parsing method, see 
+        #manage space escape like ‘\ ‘
+        #manage "&"
 
-    #TODO in preParseLine, manage space escape like ‘\ ‘
-    
     #firing/executing system
         #for piped command
             #with a "&" at the end of a script line
@@ -49,6 +58,8 @@ else:
             #with a specific command from alias addon 
 
     #keep track of running event and be able to kill one or all of them
+        #manage it in alias object with a static list
+            #an alias add itself in the list before to start then remove itself from the list at the end of its execution
     
 def _isValidBooleanValueForChecker(value):
     try:
@@ -231,17 +242,27 @@ def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
                         elif stringToken == "#": #arg count
                             newRawCmd.append( str(len(commandArg)) )
                             continue
+                    else:
+                        if stringToken == "*" or stringToken == "@": #all arg in one string
+                            continue
+                            continue
+                        elif stringToken == "#": #arg count
+                            newRawCmd.append( "0" )
+                            continue
                             
-                    #TODO
-                        """if stringToken == "?": #value returned by the last command
-                            #TODO
-                            continue
-                        elif stringToken == "$": #current pid
-                            #TODO
-                            continue
-                        elif stringToken == "!": #last pid started in background
-                            #TODO
-                            continue"""
+                #TODO
+                    #"""if stringToken == "?": #value returned by the last command
+                    #    #TODO
+                    #    continue"""
+                            
+                    if stringToken == "$": #current pid
+                        newRawCmd.append( str(thread.get_ident()) )
+                        continue
+                            
+                #TODO
+                    #"""elif stringToken == "!": #last pid started in background
+                    #    #TODO
+                    #    continue"""
                     
                     unknowVarError.add("Unknown var '"+stringToken+"'")
                     continue
@@ -270,7 +291,7 @@ def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
         for uniqueError in unknowVarError:
             toRaise.addException( DefaultPyshellException(uniqueError, USER_WARNING) )
 
-        return toRaise
+        raise toRaise
 
     return parsedCmd
 
@@ -354,7 +375,8 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
     t = threading.Thread(None, executeCommand, None, (cmd,params,preParse,processName,processArg,))
     t.start()
 
-#
+# TODO add processName at the error message
+#      Except if (in main AND in shell mode) OR None name
 #
 # @return, true if no severe error or correct process, false if severe error
 #

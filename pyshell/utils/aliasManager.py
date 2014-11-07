@@ -85,6 +85,7 @@ class Alias(UniCommand):
         pass #XXX TO OVERRIDE and use _innerExecute
         
     def _innerExecute(self, cmd, args, parameters):
+        #TODO with self.name, give file line or list index, and command name
         lastException, engine = executeCommand(cmd, parameters, self.needToBepreParsed, self.name, args)  
 
         if lastException != None: 

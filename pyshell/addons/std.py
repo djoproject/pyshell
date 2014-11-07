@@ -289,6 +289,15 @@ def historySave(useHistory, historyFile):
 def filter(data, from = 0, to=None):
     pass #TODO"""
 
+#TODO 
+    #shift and set
+        #should be in parameter
+        #two main case, arg are not stored at the same place:
+            #arg from call outside the python application
+                #store in params (? need to brainstorm, see TODO file)
+            #arg in an alias
+                #where to store them (? need to brainstorm, see TODO file)
+                    #currently in alias 
         
 ### REGISTER SECTION ###
 
@@ -298,6 +307,7 @@ registerStopHelpTraversalAt( ("quit",) )
 
 #TODO bof bof d'avoir ces trois là en post, ça crée des trucs bizarres
     #genre: echo16 | prox test -expected 5 1 2 3 4 | pcsc transmit
+    #see BRAINSTORMING file
 
 registerCommand( ("echo",) ,                          post=echo)
 registerCommand( ("echo16",) ,                        post=echo16)

@@ -56,11 +56,12 @@ class CommandExecuter():
         self._initExitEvent()
         
         ## execute atStartUp ##
-        executeCommand(EVENT__ON_STARTUP,self.params)
+        executeCommand(EVENT__ON_STARTUP,self.params) #TODO provide processName
 
     def _initParams(self, paramFile):
         #create param manager
         self.params = ParameterManager()
+        self.promptWaitingValuable = SimpleValuable(False)
 
         ## init original params ##
         self.params.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,    EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=True,readonly=False, removable=False), ENVIRONMENT_NAME)
@@ -82,13 +83,9 @@ class CommandExecuter():
     def _initPrinter(self):
         ## prepare the printing system ##
         printer = Printer.getInstance()
-        printer.setShellContext(self.params.getParameter(CONTEXT_EXECUTION_KEY,CONTEXT_NAME))
         printer.setREPLFunction(self.printAsynchronousOnShellV2)
-        self.promptWaitingValuable = SimpleValuable(False)
         printer.setPromptShowedContext(self.promptWaitingValuable)
-        printer.setSpacingContext(self.params.getParameter(ENVIRONMENT_TAB_SIZE_KEY,ENVIRONMENT_NAME))
-        printer.setBakcgroundContext(self.params.getParameter(CONTEXT_COLORATION_KEY,CONTEXT_NAME))
-        printer.setDebugContext(self.params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME))
+        printer.configureFromParameters(self.params)
 
     def _initStartUpEvent(self):
         ## prepare atStartUp ##
@@ -127,7 +124,7 @@ class CommandExecuter():
         atexit.register(self.AtExit)
         
     def AtExit(self):
-        executeCommand(EVENT_AT_EXIT,self.params)
+        executeCommand(EVENT_AT_EXIT,self.params) #TODO provide processName
             
     def mainLoop(self):
         #enable autocompletion
@@ -158,7 +155,7 @@ class CommandExecuter():
  
             #execute command
             self.promptWaitingValuable.setValue(False)
-            executeCommand(cmd, self.params)        
+            executeCommand(cmd, self.params) #TODO provide processName AND processArg from the outside of the sofware
     
     def printAsynchronousOnShellV2(self,message):
         prompt = self.params.getParameter(ENVIRONMENT_PROMPT_KEY,ENVIRONMENT_NAME).getValue()
