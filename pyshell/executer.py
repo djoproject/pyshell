@@ -51,12 +51,14 @@ class CommandExecuter():
         if not loaded:
             print("fail to load addon loader, can not do anything with the application without this loader")
             exit(-1)
-                    
+        
+        #TODO create default event here
+        
         self._initStartUpEvent()
         self._initExitEvent()
         
         ## execute atStartUp ##
-        executeCommand(EVENT__ON_STARTUP,self.params) #TODO provide processName
+        executeCommand(EVENT__ON_STARTUP,self.params, "__startup__") #TODO provide args from outside
 
     def _initParams(self, paramFile):
         #create param manager
@@ -124,7 +126,7 @@ class CommandExecuter():
         atexit.register(self.AtExit)
         
     def AtExit(self):
-        executeCommand(EVENT_AT_EXIT,self.params) #TODO provide processName
+        executeCommand(EVENT_AT_EXIT,self.params, "__atexit__") #TODO provide args from outside
             
     def mainLoop(self):
         #enable autocompletion
@@ -155,7 +157,7 @@ class CommandExecuter():
  
             #execute command
             self.promptWaitingValuable.setValue(False)
-            executeCommand(cmd, self.params) #TODO provide processName AND processArg from the outside of the sofware
+            executeCommand(cmd, self.params, "__shell__") #TODO provide processName AND processArg from the outside of the sofware
     
     def printAsynchronousOnShellV2(self,message):
         prompt = self.params.getParameter(ENVIRONMENT_PROMPT_KEY,ENVIRONMENT_NAME).getValue()

@@ -377,6 +377,18 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
 
 # TODO add processName at the error message
 #      Except if (in main AND in shell mode) OR None name
+#      OR add cmd name (or both)
+#
+#     possible to get cmd in progress with the engine stack
+#         even possible to know if it is in pre/pro/post
+#
+#     if (in shell mode AND main) OR processName is None
+#           don't print processName
+#     else: #in alias, script, daemon, ...
+#           if processName is None
+#               print cmd name
+#           else:
+#               print process name + cmd name
 #
 # @return, true if no severe error or correct process, false if severe error
 #

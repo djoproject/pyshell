@@ -29,11 +29,11 @@ DEFAULT_SUBADDON_NAME    = "default"
 EVENT__ON_STARTUP     = "_onstartup" #at application launch
 EVENT_ON_STARTUP      = "onstartup" #at application launch
 EVENT_AT_EXIT         = "atexit" #at application exit
-
-#TODO use that (or remove them)
 EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
+#TODO use it in executer
+EVENT_TO_CREATE_ON_STARTUP = (EVENT__ON_STARTUP, EVENT_ON_STARTUP, EVENT_AT_EXIT, EVENT_AT_ADDON_LOAD, EVENT_AT_ADDON_UNLOAD, )
 
 ### ENVIRONMENT ###
 ENVIRONMENT_NAME                    = "environment"

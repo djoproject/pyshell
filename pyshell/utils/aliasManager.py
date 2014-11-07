@@ -84,16 +84,15 @@ class Alias(UniCommand):
     def execute(self, args, parameters):
         pass #XXX TO OVERRIDE and use _innerExecute
         
-    def _innerExecute(self, cmd, args, parameters):
-        #TODO with self.name, give file line or list index, and command name
-        lastException, engine = executeCommand(cmd, parameters, self.needToBepreParsed, self.name, args)  
+    def _innerExecute(self, cmd, name, args, parameters):
+        lastException, engine = executeCommand(cmd, parameters, self.needToBepreParsed, name, args)  
 
         if lastException != None: 
             if not isinstance(lastException, PyshellException):
-                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception")
+                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception", abnormal=True)
             
             if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
-                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed")               
+                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed", abnormal=False)               
         
         return lastException, engine
         
@@ -190,7 +189,7 @@ class AliasFromList(Alias):
         
         #for cmd in self.stringCmdList:
         for i in xrange(0,len(self.stringCmdList)):
-            lastException, engine = self._innerExecute(self.stringCmdList[i], args, parameters)
+            lastException, engine = self._innerExecute(self.stringCmdList[i], self.name + " (index: "+str(i)+")", args, parameters)
 
         #return the result of last command in the alias
         if engine == None:
@@ -314,9 +313,11 @@ class AliasFromFile(Alias):
         engine = None
         
         #for cmd in self.stringCmdList:
+        index = 0
         with open(self.filePath) as f:
             for line in f:
-                lastException, engine = self._innerExecute(line, args, parameters) 
+                lastException, engine = self._innerExecute(line, self.name + " (line: "+str(index)+")", args, parameters) 
+                index += 1
 
         #return the result of last command in the alias
         if engine == None:
