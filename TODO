@@ -1,4 +1,29 @@
 #############################
+### MAJOR                 ###
+#############################
+    1) not possible to do that:
+        var add toto | echo 1 2 3
+
+    because token "toto" will be sent to the pre of var, then pre of echo, then processed in echo post, and ...
+        should be possible to set parameter for command var add, and set the key to toto
+        with an argchecker, if it is possible to get an access to the engine, could be possible to get access to the current command object
+
+    2) not possible to do that:
+        process | echo16
+
+    bacause pro of process will never be executed, only process of echo16 will be
+
+    SOLUTION1:
+        could be possible to get access to previous command and execute its pro from current args
+        COULD be possible to access to any command of the current engine execution
+
+    SOLUTION2:
+        double || to have similar behaviour as classical bash
+
+    SOLUTION3:
+        ... 
+
+#############################
 ### Help/usage            ###
 #############################
 

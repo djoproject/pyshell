@@ -29,11 +29,12 @@
                 #no information is stored about the seed, so store it anyway
                     #seed could be addon or system
 
+from pyshell.command.command   import UniCommand
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
+from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.parameter   import Parameter, EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME, RESOLVE_SPECIAL_SECTION_ORDER
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
-from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME, ENVIRONMENT_PARAMETER_FILE_KEY
 from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
@@ -601,12 +602,55 @@ def subtractValuesVar(key, values, parent = None, parameters=None):
     param = getParameter(key, parameters, parent)
     param.removeValues(values)
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parent     = stringArgChecker(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def addValuesVar(key, values, parent=None, parameters=None):
-    "add values to a var"    
+@shellMethod(key    = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parent = stringArgChecker(),
+             engine = defaultInstanceArgChecker.getEngineChecker())
+def pre_addValues(key, values, parent=None, engine=None):
+    
+    cmd = engine.getCurrentCommand()
+    cmd.dynamicParameter["key"]      = key
+    cmd.dynamicParameter["parent"]   = parent
+    cmd.dynamicParameter["disabled"] = False
+
+    return values
+
+@shellMethod(values = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             engine = defaultInstanceArgChecker.getEngineChecker())
+def pro_addValues(values, engine):
+
+    #if no previous command, default behaviour
+    if not engine.hasPreviousCommand():
+        return values
+
+    #if not, clone this command and add it at the end of cmd list
+    cmd = engine.getCurrentCommand()
+    cmdClone = cmd.clone()
+    engine.addCommand(cmdClone, convertProcessToPreProcess = True)
+
+    for k,v in cmd.dynamicParameter.items():
+        cmdClone.dynamicParameter[k] = v
+
+    cmd.dynamicParameter["disabled"] = True
+    cmdClone.dynamicParameter["disabled"] = True
+
+    #TODO execute previous
+
+    return values
+
+@shellMethod(values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             engine     = defaultInstanceArgChecker.getEngineChecker())
+def post_addValues(values, parameters=None, engine=None):
+    "add values to a var"   
+    
+    cmd = engine.getCurrentCommand()
+
+    if cmd.dynamicParameter["disabled"]:
+        return values
+
+    parent = cmd.dynamicParameter["parent"]
+    key = cmd.dynamicParameter["key"]
 
     #parent must be different of forbidden name
     if parent in FORBIDEN_SECTION_NAME:
@@ -618,8 +662,10 @@ def addValuesVar(key, values, parent=None, parameters=None):
     else:
         parameters.setParameter(key,VarParameter(values), parent)
 
+    return values
+
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
+             values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              parent    = stringArgChecker(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setVar(key, values, parameter, parent=None):
@@ -675,7 +721,7 @@ registerCommand( ("set",) ,                    post=setVar)
 registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetVar)
 registerCommand( ("list",) ,                   pre=listVars, pro=printColumn)
-registerCommand( ("add",) ,                    pro=addValuesVar)
+registerCommand( ("add",) ,                    pre=pre_addValues, pro=pro_addValues, post=post_addValues)
 registerCommand( ("subtract",) ,               post=subtractValuesVar)
 registerStopHelpTraversalAt( ("var",) )
 

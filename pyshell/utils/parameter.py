@@ -629,7 +629,7 @@ class VarParameter(EnvironmentParameter):
                 else:
                     tmp_value_parsed.append(str(v))
 
-        EnvironmentParameter.__init__(self,parsed_value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), transient = False, readonly = False, removable = True)    
+        EnvironmentParameter.__init__(self,parsed_value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = False, readonly = False, removable = True)    
     
     def __str__(self):
         to_ret = ""

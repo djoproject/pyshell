@@ -85,6 +85,8 @@ class MultiCommand(list):
         self.dymamicCount = 0
         
         self.preCount = self.proCount = self.postCount = 0
+
+        self.dynamicParameter = {}
         
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
         c = Command()
@@ -180,6 +182,8 @@ class MultiCommand(list):
         
         #reset counter
         self.preCount = self.proCount = self.postCount = 0
+
+        self.dynamicParameter = {}
         
         #reset every sub command
         for i in range(0,len(self)):

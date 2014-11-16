@@ -57,6 +57,8 @@ def setBuzzer(duration=2000):
 
 @shellMethod(anything=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def stopAsMainProcess(anything):
+    #TODO in place of printing an error, print a description of the apdu (class, ins, length, ...)
+
     raise engineInterruptionException("A proxnroll command can not be directly executed, this command need to be piped into a transmit command",False)
 
 @shellMethod(address=IntegerArgChecker(0,255),
@@ -64,9 +66,9 @@ def stopAsMainProcess(anything):
 def read(address = 0,expected=0):
     return ProxnrollAPDUBuilder.readBinary(address,expected)
 
-@shellMethod(datas   = listArgChecker(IntegerArgChecker(0,255)),
+@shellMethod(datas   = listArgChecker(IntegerArgChecker(0,255),1),
              address = IntegerArgChecker(0,65535))
-def update(datas, address):
+def update(datas, address=0):
     return ProxnrollAPDUBuilder.updateBinary(datas, address)
     
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0,255)),
@@ -137,7 +139,7 @@ def mifareRead(blockNumber=0, Key=None):
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0,255)),
              blockNumber=IntegerArgChecker(0,0xff),
              Key=keyStoreTranslatorArgChecker(6))
-def mifareUpdate(datas, blockNumber, Key=None):
+def mifareUpdate(datas, blockNumber=0, Key=None):
     return ProxnrollAPDUBuilder.mifareClassifWrite(blockNumber, Key,datas)
 
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0,255),3))

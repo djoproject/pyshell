@@ -509,7 +509,7 @@ registerStopHelpTraversalAt( () )
 
 registerCommand( ("list",) ,             pro=getConnected,       post=printColumn)
 registerCommand( ("disconnect",) ,       pro=disconnect)
-registerCommand( ("transmit",) ,         pro=transmit)
+registerCommand( ("transmit",) ,         pro=transmit) #TODO add a post to print raw data
 registerCommand( ("load",) ,             pro=loadPCSC)
 
 registerSetTempPrefix( ("reader", ) )

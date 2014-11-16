@@ -68,6 +68,7 @@ class defaultInstanceArgChecker(object):
     ENVCHECKER           = None
     KEYCHECKER           = None
     KEYTRANSLATORCHECKER = None
+    ENGINECHECKER        = None
     
     DEFAULTCHECKER_DICO  ={ARGCHECKER_TYPENAME          :None,
                            STRINGCHECKER_TYPENAME       :None,
@@ -76,7 +77,8 @@ class defaultInstanceArgChecker(object):
                            FLOATCHECKER_TYPENAME        :None,
                            ENVIRONMENTCHECKER_TYPENAME  :None,
                            KEYCHECKER_TYPENAME          :None,
-                           KEYTRANSLATORCHECKER_TYPENAME:None}
+                           KEYTRANSLATORCHECKER_TYPENAME:None,
+                           ENGINECHECKER_TYPENAME       :None}
 
     @staticmethod
     def _getCheckerInstance(key, classdef):
@@ -120,6 +122,9 @@ class defaultInstanceArgChecker(object):
     def getKeyTranslatorChecker():
         return defaultInstanceArgChecker._getCheckerInstance(KEYTRANSLATORCHECKER_TYPENAME, keyStoreTranslatorArgChecker)
 
+    @staticmethod
+    def getEngineChecker():
+        return defaultInstanceArgChecker._getCheckerInstance(ENGINECHECKER_TYPENAME, engineChecker)
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################
@@ -652,7 +657,8 @@ class listArgChecker(ArgChecker):
         
         #check the minimal size
         addAtEnd = []
-        if self.minimumSize != None and len(values) < self.minimumSize:            
+        if self.minimumSize is not None and len(values) < self.minimumSize: 
+            print len(values), self.minimumSize, values
             #checker has default value ?
             if self.checker.hasDefaultValue(argNameToBind):
                 #build the missing part with the default value

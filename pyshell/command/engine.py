@@ -258,12 +258,12 @@ class engineV3(object):
     def insertDataToProcess(self, data):
         self.stack.raiseIfEmpty("insertDataToProcess")
         
-        #the current process must be pos
+        #the current process must be post
         if self.stack.typeOnTop() != POSTPROCESS_INSTRUCTION:
             raise executionException("(engine) insertDataToProcess, only a process in postprocess state can execute this function")
             
         #the current process must be on a root path
-        if not self.isProcessCommand():
+        if not self.isCurrentProcessCommand(): #TODO FIXME, this is strange, in the error message we talk about root command but we check process command
             raise executionException("(engine) insertDataToProcess, only the root command can insert data to the process")
 
         #inject data
@@ -567,15 +567,28 @@ class engineV3(object):
         self.cmdList.append(cmd)
         
     def isCurrentRootCommand(self):
-        self.raiseIfInMethodExecution("isCurrentRootCommand")
         self.stack.raiseIfEmpty("isCurrentRootCommand")
         return self.stack.cmdIndexOnTop() == 0
 
-    def isProcessCommand(self):
-        self.raiseIfInMethodExecution("isProcessCommand")
-        self.stack.raiseIfEmpty("isProcessCommand")
+    def isCurrentProcessCommand(self):
+        self.stack.raiseIfEmpty("isCurrentProcessCommand")
         return self.stack.cmdIndexOnTop() == len(self.cmdList)-1
     
+    def getCurrentCommand(self):
+        self.stack.raiseIfEmpty("getCurrentCommand")
+        return self.cmdList[self.stack.cmdIndexOnTop()]
+
+    def hasPreviousCommand(self):
+        self.stack.raiseIfEmpty("hasPreviousCommand")
+        return self.stack.cmdIndexOnTop() > 0
+
+    def getPreviousCommand(self):
+        self.stack.raiseIfEmpty("getPreviousCommand")
+        if self.stack.cmdIndexOnTop() == 0:
+            raise executionException("(engine) getPreviousCommand, there is no previous command")
+
+        return self.cmdList[self.stack.cmdIndexOnTop()-1]
+
 ### SPLIT/MERGE meth ###
 
     def mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
@@ -892,7 +905,6 @@ class engineV3(object):
             elif insType == PROCESS_INSTRUCTION: #pro
                 r = self._executeMethod(cmd, subcmd.process, top, None, mappedArgs[1])
                 subcmd.proCount += 1
-                
                 #manage result
                 to_stack = (r, top[1][:], POSTPROCESS_INSTRUCTION,)
             
@@ -1051,8 +1063,17 @@ class engineV3(object):
             methName += ", "
         
         if self._isInProcess:
-            raise executionException("(engine) "+methName+"not allowed to execute this method inside a process")
+            raise executionException("(engine) "+methName+", not allowed to execute this method inside a process")
     
+    def raiseIfNotInMethodExecution(self, methName = None):
+        if methName == None:
+            methName = ""
+        else:
+            methName += ", "
+        
+        if not self._isInProcess:
+            raise executionException("(engine) "+methName+", not allowed to execute this method outside a process")
+
 ### DEBUG meth ###
     
     def getExecutionSnapshot(self):

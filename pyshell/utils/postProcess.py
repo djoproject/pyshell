@@ -56,6 +56,8 @@ def listFlatResultHandler(result):
     
     printShell(s[:-1])
 
+    return result
+
 @shellMethod(string=listArgChecker(IntegerArgChecker(0,255)))
 def printStringCharResult(string):
     s = ""

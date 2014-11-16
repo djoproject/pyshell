@@ -201,7 +201,7 @@ def compareByteList(varLists, bytePerLine = 4, parameters = None):
 
 @shellMethod(bytelist = listArgChecker(IntegerArgChecker(0,255)),
              bytePerLine =IntegerArgChecker(4,16))
-def printByteTable(bytelist, bytePerLine = 5):
+def printByteTable(bytelist, bytePerLine = 4):
     if len(bytelist) == 0:
         warning("empty list of byte")
         

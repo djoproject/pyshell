@@ -97,8 +97,8 @@ class CommandExecuter():
         
         _atstartup.addCommand( ("addon",     "load", "pyshell.addons.parameter", ) )
         _atstartup.addCommand( ("parameter", "load", ) )
-        _atstartup.addCommand( ("addon",     "unload", "pyshell.addons.parameter", ) )
-        _atstartup.addCommand( ("addon",     "onstartup", "load", ) )
+        _atstartup.addCommand( ("addon",     "unload", "pyshell.addons.parameter", ) ) #TODO don't unload it if in addon to load on startup
+        _atstartup.addCommand( ("addon",     "onstartup", "load", ) ) #TODO don't load parameter if already loaded
         _atstartup.addCommand( (EVENT_ON_STARTUP, ) )
         
         _atstartup.setReadOnly(True)

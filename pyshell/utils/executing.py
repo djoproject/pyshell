@@ -168,7 +168,9 @@ def preParseNotPipedCommand(line):
     "parse line that looks like 'aaa bbb ccc'"
 
     #remove blank char at the ends
-    line = line.strip(' \t\n\r')
+    #print "BEFORE", "<"+str(line)+">"
+    line = line.strip(' \t\n\r') #TODO FIXME does not remove space... (only on macos ?)
+    #print "AFTER", "<"+str(line)+">"
 
     if len(line) == 0:
         return ()
@@ -181,7 +183,7 @@ def preParseNotPipedCommand(line):
     for token in line:
 
         #clean token
-        clearedToken = token.strip(' \t\n\r')
+        clearedToken = token.strip(' \t\n\r') #TODO FIXME probably does not work too... (see previous)
 
         #remove empty token
         if len(clearedToken) == 0:
