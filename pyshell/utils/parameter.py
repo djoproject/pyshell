@@ -79,6 +79,12 @@ def _getBool(config, section, option, defaultValue):
     return ret
 
 class ParameterManager(object):
+    #TODO
+        #this object should be synchronized
+        #convert to MULTILEVELTRIES
+            #only two level: parent and key
+            #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
+
     def __init__(self):
         self.params = {} #TODO should be tries
         self.params[CONTEXT_NAME] = {} #TODO should be tries and not in params
@@ -138,14 +144,43 @@ class ParameterManager(object):
         if parent not in self.params or name not in self.params[parent]:
             raise ParameterException("(ParameterManager) unsetParameter, parameter name '"+str(name)+"'  does not exist")
 
-        print parent, name, self.params[parent][name].isRemovable()
         if not self.params[parent][name].isRemovable():
             raise ParameterException("(ParameterManager) setParameter, this parameter is not removable")
 
         del self.params[parent][name]
 
         if len(self.params[parent]) == 0:
-            del self.params[parent] 
+            del self.params[parent]
+        
+    #UNIQUE BY THREAD TODO implement it
+        #update setParameter
+            #if key exist and is not unique => raise
+            #if parameter is transient => raise
+            #remove/disable lock for the parameter
+            #add it in the current thread list, to be able to remove it easily when the thread will die
+        
+        #update unsetParameter
+            #if unique, only remove for the current thread
+            #otherelse, remove for the whole app
+        
+        #create flushThread
+            #remove every value created for the current thread
+                #overwrite readonly
+        
+        #create unMarkUnique, remove the tuple parent/key from the Unique system 
+            #raise if mark is in use
+            #otherelse remove mark
+            
+        #what about data structure ? TODO check that
+            #to mark an empty key
+                #inject a special empty parameter into the tries, or just an empty list
+                
+            #to keep several value for a parameter ?
+                #each thread can define its parameter type, etc.
+            
+            #to keep a list of key for an specific thread
+                #just a dictionnary of list
+                    #one list for each thread
 
 class Parameter(Valuable): #abstract
     def __init__(self, transient = False):
@@ -230,7 +265,6 @@ class EnvironmentParameter(Parameter):
         
         self.lock   = None
         self.lockID = -1
-        
         self.setReadOnly(readonly)
 
     def _raiseIfReadOnly(self, methName = None):
@@ -341,7 +375,7 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.removable = state
-
+        
     def getParameterSerializableField(self):
         toret = Parameter.getParameterSerializableField(self)
         toret["readonly"]  = str(self.readonly)
@@ -600,11 +634,6 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         return str(self.value[self.index])
         
 class VarParameter(EnvironmentParameter):
-    #TODO no lock for var ?
-        #if var only exist in one thread, yes no lock
-        #but if var exist for the whole application, need lock
-        #brainstorming
-
     def __init__(self,value):
         tmp_value_parsed = [value] #TODO what occur if it is a list or not ?
         parsed_value = []

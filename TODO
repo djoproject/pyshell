@@ -1,4 +1,25 @@
 #############################
+### QUESTION              ###
+#############################
+
+    how to parametrize on a return value ?
+        e.g. : echo 1 2 3 | write
+            if write has an address argument only available on dashed params ?
+            
+    a thread execution should have private variable
+        e.g. : to store status world mechanism
+        
+        variable only accessible in local scope ?
+            not necessary variable, could also be context/env/var
+            only transient, never stored
+            so lock is always disabled
+            must be flushed at the end of the thread execution (useless for the staying thread)
+            
+            PRETTY GOOD, TODO move to corresponding part
+            
+            QUESTION, What about the locking part for the properties access ?
+
+#############################
 ### MAJOR                 ###
 #############################
     1) not possible to do that:
@@ -7,6 +28,8 @@
     because token "toto" will be sent to the pre of var, then pre of echo, then processed in echo post, and ...
         should be possible to set parameter for command var add, and set the key to toto
         with an argchecker, if it is possible to get an access to the engine, could be possible to get access to the current command object
+
+        FIXED but need process in pre to store args
 
     2) not possible to do that:
         process | echo16

@@ -341,9 +341,6 @@ def loadAddonOnStartUp(addonListOnStartUp, params):
     if errorList.isThrowable():
         raise errorList
     
-    #with self.ExceptionManager("fail to load addon '"+str(addonName)+"'"):
-    #    addon.loadAddonFun(addonName, self.params)
-
 ### REGISTER SECTION ###
 
 registerSetGlobalPrefix( ("addon", ) )
