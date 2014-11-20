@@ -16,6 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #use wraps https://docs.python.org/2/library/functools.html#functools.wraps
+
 import sys
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
     from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the import path will change

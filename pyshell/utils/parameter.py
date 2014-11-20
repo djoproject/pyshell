@@ -20,14 +20,29 @@ from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, A
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
 from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
-from threading import Lock
+from threading import Lock, current_thread
+from functools import wraps
+from tries import multiLevelTries
+
+def synchronous():
+    def _synched(func):
+        @wraps(func)
+        def _synchronizer(self,*args, **kwargs):
+            self._internalLock.acquire()
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                self._internalLock.release()
+        return _synchronizer
+    return _synched
+
 
 #TODO
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
-        #store in three separate files ? XXX
+        #store in three separate files ? XXX brainstorming needed
     
-    #store in tries
+    #store in mltries
             
 
 INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
@@ -78,6 +93,201 @@ def _getBool(config, section, option, defaultValue):
 
     return ret
 
+class ParameterManager2(object):
+    #TODO
+        #when to use perfect match or not ?
+            #perfect in:
+                #insertion
+                    #otherelse, risk to overwrite existing parameter with prefix insertion
+                    
+                #unsetParameter, same problem as insertion
+                #flushThreadLocal
+                
+            #not perfect in :
+                #getParameter
+                
+            #can choose for :
+                #hasParameter
+
+    def __init__(self):
+        self._internalLock = Lock()
+        self.mltries = multiLevelTries()
+        self.threadLocalVar = {}
+    
+    def _getAdvanceResult(self, methName, name, parent, raiseIfNotFound = True, raiseIfAmbiguous = True):
+        if parent == None:
+            parent = MAIN_CATEGORY
+        
+        path           = (parent, name,)
+        advancedResult =  self.mltries.advancedSearch(path, False)
+        
+        if raiseIfAmbiguous and advancedResult.isAmbiguous():
+            pass #TODO raise ambiguous path, say which token is ambiguous and which are the possibilities
+        
+        if raiseIfNotFound and not advancedResult.isValueFound():
+            pass #TODO raise path does not exist, say which token is not found
+        
+        return advancedResult
+        
+    @synchronous()
+    def setParameter(self,name, param, parent = None, uniqueForThread = False):
+    
+        #check category
+        if parent == None:
+            parent = MAIN_CATEGORY
+        
+        if parent in FORBIDEN_SECTION_NAME:
+            #is context instance
+            if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
+            
+            #name can't be an existing section name (because of the struct of the file)
+            if name in self.params:
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name '"+str(name)+"', a similar item already has this name")
+        else:
+            #is generic instance 
+            if not isinstance(param, VarParameter):
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param)))
+        
+            #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
+            for forbidenName in FORBIDEN_SECTION_NAME:
+                if name in self.params[forbidenName]:
+                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name")
+            
+        #check safety and existing
+        advancedResult = self._getAdvanceResult("getParameter",name, parent, False, False)
+        if advancedResult.isValueFound():
+            value = advancedResult.getValue()
+            
+            if isinstance(value, dict):
+                if not uniqueForThread:
+                    pass #TODO raise, can not inject not unique, some unique value already exist
+            
+                tid = current_thread().ident
+                
+                if tid not in value:
+                    value[tid] = param
+                    
+                    if tid not in self.threadLocalVar:
+                        self.threadLocalVar[tid] = []
+                    self.threadLocalVar[tid].append( (parent, name, ) )
+                else:
+                    if value[tid].isReadOnly() or not value[tid].isRemovable():
+                        pass #TODO raise, not editable
+                        
+                    value[tid] = param
+            else:  
+                if uniqueForThread:
+                    pass #TODO raise, can not inject unique, a not unique already exist 
+            
+                if value.isReadOnly() or not value.isRemovable():
+                    pass #TODO raise, not editable
+                    
+                self.mltries.update( (parent, name, ), param )
+        else:
+            if uniqueForThread:
+                dic = {}
+                tid = current_thread().ident
+                dic[tid] = param
+                param = dic
+                
+            self.mltries.insert( (parent, name, ), param )
+            
+    @synchronous()
+    def getParameter(self, name, parent = None):
+        advancedResult = self._getAdvanceResult("getParameter",name, parent)
+        value = advancedResult.getValue()
+        
+        if isinstance(value, dict):
+            tid = current_thread().ident
+            
+            if tid not in value:
+                pass #TODO raise path does not exist
+                
+            return value[tid]
+        else:
+            return value
+    
+    @synchronous()
+    def hasParameter(self, name, parent = None, raiseIfAmbiguous = True):
+        advancedResult = self._getAdvanceResult("hasParameter",name, parent, False,raiseIfAmbiguous)
+                
+        if advancedResult.isValueFound():
+            value = advancedResult.getValue()
+            if isinstance(value, dict):
+                return current_thread().ident in value
+            return True
+        return False
+
+    @synchronous()
+    def unsetParameter(self, name, parent = None):
+        advancedResult = self._getAdvanceResult("unsetParameter", name, parent)
+        
+        if advancedResult.isValueFound():
+            value = advancedResult.getValue()
+            if isinstance(value, dict):
+                tid = current_thread().ident
+                if tid not in value:
+                    pass #TODO raise, not found for this thread
+                
+                if not value[tid].isRemovable():
+                    pass #TODO raise, object not removable
+                
+                #remove value from dic or remove dic if empty
+                if len(value) > 1:
+                    del value[tid]
+                else:
+                    mltries.remove( advancedResult.getFoundCompletePath() )
+                #TODO remove from thread local list
+                
+            else:
+                if not value.isRemovable():
+                    pass #TODO raise, object not removable
+            
+                mltries.remove( advancedResult.getFoundCompletePath() )
+    
+    @synchronous()
+    def flushThreadLocal(self):
+        tid = current_thread().ident
+        
+        if tid not in self.threadLocalVar:
+            return
+            
+        for path in self.threadLocalVar[tid]:
+        
+            #XXX this check is not usefull, shouldn't occur
+            if not self.hasParameter(path[0], path[1]): #TODO must be perfect match, no raise
+                continue
+                
+            advancedResult = self._getAdvanceResult("hasParameter",path[0], path[1], False, False)
+            value = advancedResult.getValue()
+            
+            #XXX this check is not usefull, shouldn't occur
+            if isinstance(value, dict):
+                pass #TODO raise, should always be a dict
+                
+            if len(value) > 1:
+                del value[tid]
+            else:
+                mltries.remove( path ) #TODO could raise ? don't think it could occur, at this point we know the path exist
+                    
+        del self.threadLocalVar[tid]
+    
+    """@synchronous()
+    def unMarkUnique(self, name, parent = None):
+        advancedResult = self._getAdvanceResult("unMarkUnique",name, parent)
+        value = advancedResult.getValue()
+        
+        if not isinstance(value, dict):
+            pass #TODO raise, not a marked path
+        
+        tid = current_thread().ident
+        if len(value) > 1 and (len(value) == 1 and tid not in value):
+            pass #TODO raise others thread still using this mark
+        
+        self.mltries.remove(advancedResult.getFoundCompletePath())"""
+            
+
 class ParameterManager(object):
     #TODO
         #this object should be synchronized
@@ -107,7 +317,7 @@ class ParameterManager(object):
             if not isinstance(param, VarParameter):
                 raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param)))
         
-            #parent can not be a name of a child of FORBIDEN_SECTION_NAME
+            #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
             for forbidenName in FORBIDEN_SECTION_NAME:
                 if name in self.params[forbidenName]:
                     raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name")
@@ -293,7 +503,7 @@ class EnvironmentParameter(Parameter):
         return self.lockID
         
     def isLockEnable(self):
-        return True #TODO be able to disable it ?
+        return True #TODO be able to disable it ? yes for uniqueBytThread
     
     def isAListType(self):
         return self.isListType

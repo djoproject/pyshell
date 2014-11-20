@@ -16,6 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #use wraps https://docs.python.org/2/library/functools.html#functools.wraps
+
 #use to mark a command that is allowed to return None
 def allowToReturnNone(enable=True):
     def decorator(fun):
