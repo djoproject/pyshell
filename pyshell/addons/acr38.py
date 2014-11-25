@@ -51,8 +51,8 @@ def checkPin(pin):
 ## I2C ##
     #TODO should be splited into 16k and 1024k ??? 
 
-@shellMethod(cardType=tokenValueArgChecker({"I2C_1KTO16K" : TYPE_I2C_1KTO16K,"I2C_32KTO1024K" : TYPE_I2C_32KTO1024K}))
-def I2C_UPTO16K_select(cardType = "I2C_1KTO16K"):
+@shellMethod(cardType=tokenValueArgChecker({"I2C_1KTO16K" : acr38uAPDUBuilder.TYPE_I2C_1KTO16K,"I2C_32KTO1024K" : acr38uAPDUBuilder.TYPE_I2C_32KTO1024K}))
+def I2C_select(cardType = "I2C_1KTO16K"):
     return acr38uAPDUBuilder.selectType(cardType)
 
 @shellMethod(size=tokenValueArgChecker(acr38uAPDUBuilder.I2C_PAGE_SIZE))
@@ -86,7 +86,7 @@ registerCommand( ( "select",),   pre=selectFun, pro=stopAsMainProcess)
 
 ## IC2 ##
 
-registerSetTempPrefix( ("ic2") )
+registerSetTempPrefix( ("ic2",) )
 registerCommand( ( "select",),     pre=I2C_select,         pro=stopAsMainProcess)
 registerCommand( ( "pagesize",),   pre=I2C_selectPageSize, pro=stopAsMainProcess)
 registerCommand( ( "read",),       pre=I2C_read,           pro=stopAsMainProcess)
