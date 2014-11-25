@@ -94,20 +94,22 @@ def _getBool(config, section, option, defaultValue):
     return ret
 
 class ParameterManager2(object):
-    #TODO
+    #TODO    
         #when to use perfect match or not ?
             #perfect in:
                 #insertion
                     #otherelse, risk to overwrite existing parameter with prefix insertion
                     
                 #unsetParameter, same problem as insertion
-                #flushThreadLocal
+                #flushThreadLocal (inside usage)
                 
             #not perfect in :
                 #getParameter
                 
             #can choose for :
                 #hasParameter
+                    #create a second method ?
+                    #OR add a boolean parameter ?
 
     def __init__(self):
         self._internalLock = Lock()
@@ -122,11 +124,22 @@ class ParameterManager2(object):
         advancedResult =  self.mltries.advancedSearch(path, False)
         
         if raiseIfAmbiguous and advancedResult.isAmbiguous():
-            pass #TODO raise ambiguous path, say which token is ambiguous and which are the possibilities
+            possiblePath = self.mltries.buildDictionnary(path, ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
+        
+            #ambiguous on parent or in child ?
+            if advancedResult.getTokenFoundCount() == 0: #parent
+                pass #TODO extract every unique parent
+            else: #child
+                pass #TODO extract every unique child (because only one parent)
+        
+            #TODO raise ambiguous path, say which token is ambiguous and which are the possibilities
         
         if raiseIfNotFound and not advancedResult.isValueFound():
-            pass #TODO raise path does not exist, say which token is not found
-        
+            if advancedResult.getTokenFoundCount() == 0: #parent
+                raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(parent)+"' is unknown for parameter path '"+" ".join(advancedResult.getFoundCompletePath())+"')
+            else: #child
+                raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(name)+"' is unknown for parameter path '"+" ".join(advancedResult.getFoundCompletePath())+"')
+                        
         return advancedResult
         
     @synchronous()
@@ -139,20 +152,20 @@ class ParameterManager2(object):
         if parent in FORBIDEN_SECTION_NAME:
             #is context instance
             if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param))) #TODO inject complete path in error message 
             
             #name can't be an existing section name (because of the struct of the file)
             if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name '"+str(name)+"', a similar item already has this name")
+                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name '"+str(name)+"', a similar item already has this name") #TODO inject complete path in error message
         else:
             #is generic instance 
             if not isinstance(param, VarParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param)))
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param))) #TODO inject complete path in error message
         
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
             for forbidenName in FORBIDEN_SECTION_NAME:
                 if name in self.params[forbidenName]:
-                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name")
+                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name") #TODO inject complete path in error message
             
         #check safety and existing
         advancedResult = self._getAdvanceResult("getParameter",name, parent, False, False)
@@ -161,7 +174,7 @@ class ParameterManager2(object):
             
             if isinstance(value, dict):
                 if not uniqueForThread:
-                    pass #TODO raise, can not inject not unique, some unique value already exist
+                    raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' with not unique by thread because this parameter is already used in other thread as unique by thread")
             
                 tid = current_thread().ident
                 
@@ -169,19 +182,19 @@ class ParameterManager2(object):
                     value[tid] = param
                     
                     if tid not in self.threadLocalVar:
-                        self.threadLocalVar[tid] = []
-                    self.threadLocalVar[tid].append( (parent, name, ) )
+                        self.threadLocalVar[tid] = set()
+                    self.threadLocalVar[tid].add( (parent, name, ) )
                 else:
                     if value[tid].isReadOnly() or not value[tid].isRemovable():
-                        pass #TODO raise, not editable
+                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
                         
                     value[tid] = param
             else:  
                 if uniqueForThread:
-                    pass #TODO raise, can not inject unique, a not unique already exist 
+                    raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' with unique by thread because this parameter is already used as not unique by thread")
             
                 if value.isReadOnly() or not value.isRemovable():
-                    pass #TODO raise, not editable
+                    raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
                     
                 self.mltries.update( (parent, name, ), param )
         else:
@@ -202,7 +215,7 @@ class ParameterManager2(object):
             tid = current_thread().ident
             
             if tid not in value:
-                pass #TODO raise path does not exist
+                raise ParameterException("(ParameterManager) getParameter, unknown parameter '"+parent+"'.'"+name+"'")
                 
             return value[tid]
         else:
@@ -228,21 +241,25 @@ class ParameterManager2(object):
             if isinstance(value, dict):
                 tid = current_thread().ident
                 if tid not in value:
-                    pass #TODO raise, not found for this thread
+                    raise ParameterException("(ParameterManager) unsetParameter, unknown parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
                 
                 if not value[tid].isRemovable():
-                    pass #TODO raise, object not removable
+                    raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
                 
                 #remove value from dic or remove dic if empty
                 if len(value) > 1:
                     del value[tid]
                 else:
                     mltries.remove( advancedResult.getFoundCompletePath() )
-                #TODO remove from thread local list
+                
+                #remove from thread local list
+                self.threadLocalVar[tid].remove(advancedResult.getFoundCompletePath())
+                if len(self.threadLocalVar[tid]) == 0:
+                    del self.threadLocalVar[tid]
                 
             else:
                 if not value.isRemovable():
-                    pass #TODO raise, object not removable
+                    raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
             
                 mltries.remove( advancedResult.getFoundCompletePath() )
     
@@ -253,42 +270,18 @@ class ParameterManager2(object):
         if tid not in self.threadLocalVar:
             return
             
-        for path in self.threadLocalVar[tid]:
-        
-            #XXX this check is not usefull, shouldn't occur
-            if not self.hasParameter(path[0], path[1]): #TODO must be perfect match, no raise
-                continue
-                
+        for path in self.threadLocalVar[tid]: #no error, missing value or invalid type is possible here, because of the process in set/unset
             advancedResult = self._getAdvanceResult("hasParameter",path[0], path[1], False, False)
             value = advancedResult.getValue()
-            
-            #XXX this check is not usefull, shouldn't occur
-            if isinstance(value, dict):
-                pass #TODO raise, should always be a dict
-                
+
             if len(value) > 1:
                 del value[tid]
             else:
-                mltries.remove( path ) #TODO could raise ? don't think it could occur, at this point we know the path exist
+                mltries.remove( path ) #can not raise, because every path exist
                     
-        del self.threadLocalVar[tid]
-    
-    """@synchronous()
-    def unMarkUnique(self, name, parent = None):
-        advancedResult = self._getAdvanceResult("unMarkUnique",name, parent)
-        value = advancedResult.getValue()
-        
-        if not isinstance(value, dict):
-            pass #TODO raise, not a marked path
-        
-        tid = current_thread().ident
-        if len(value) > 1 and (len(value) == 1 and tid not in value):
-            pass #TODO raise others thread still using this mark
-        
-        self.mltries.remove(advancedResult.getFoundCompletePath())"""
-            
+        del self.threadLocalVar[tid]            
 
-class ParameterManager(object):
+class ParameterManager(object): #XXX obsolete
     #TODO
         #this object should be synchronized
         #convert to MULTILEVELTRIES
