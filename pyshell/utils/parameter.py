@@ -94,7 +94,7 @@ def _getBool(config, section, option, defaultValue):
     return ret
 
 class ParameterManager2(object):
-    #TODO    
+    #TODO
         #when to use perfect match or not ?
             #perfect in:
                 #insertion
@@ -110,6 +110,24 @@ class ParameterManager2(object):
                 #hasParameter
                     #create a second method ?
                     #OR add a boolean parameter ?
+                    
+            #IDEA, can choose for everyone, with a default value
+                #but for set/unset, default value is perfect match
+                #for the others, it is not
+                
+        #file structure check at the biginning of set are only for the case of not transient object
+            #should only be applyed if parameter is not transient
+            
+            #PRBLM: a transient could become not transient
+                #SOLUTION 1: setTransient is a method of parameterManager
+                
+                #SOLUTION 2: each parameter hold a reference to parameterManager and realize the check
+                
+                #SOLUTION 3: three separate files
+                
+                #SOLUTION 4: think about a new file structure
+                
+                #...
 
     def __init__(self):
         self._internalLock = Lock()
@@ -128,17 +146,28 @@ class ParameterManager2(object):
         
             #ambiguous on parent or in child ?
             if advancedResult.getTokenFoundCount() == 0: #parent
-                pass #TODO extract every unique parent
+                ambiguousField       = "parent"
+                ambiguousFieldValue  = str(parent)
+                indexOfPossibleValue = 0
             else: #child
-                pass #TODO extract every unique child (because only one parent)
-        
-            #TODO raise ambiguous path, say which token is ambiguous and which are the possibilities
+                ambiguousField       = "key"
+                ambiguousFieldValue  = str(name)
+                indexOfPossibleValue = 1      
+                      
+            possibleValue = []
+            for k,v in possiblePath.items():
+                possibleParent.append(k[indexOfPossibleValue])
+                    
+            raise ParameterException("(ParameterManager) "+str(methName)+", parameter "+ambiguousField+" '"+ambiguousFieldValue+"' is ambiguous for path '"+" ".join(advancedResult.getFoundCompletePath())+", possible value are: '"+",".join(possibleValue)+"'")
         
         if raiseIfNotFound and not advancedResult.isValueFound():
             if advancedResult.getTokenFoundCount() == 0: #parent
-                raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(parent)+"' is unknown for parameter path '"+" ".join(advancedResult.getFoundCompletePath())+"')
+                unknownField      = "parent"
+                unknownFieldValue = str(parent)
             else: #child
-                raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(name)+"' is unknown for parameter path '"+" ".join(advancedResult.getFoundCompletePath())+"')
+                unknownField      = "key"
+                unknownFieldValue = str(name)
+            raise ParameterException("(ParameterManager) "+str(methName)+", parameter "+unknownField+" '"+unknownFieldValue+"' is unknown for path '"+" ".join(advancedResult.getFoundCompletePath())+"')
                         
         return advancedResult
         
@@ -149,24 +178,34 @@ class ParameterManager2(object):
         if parent == None:
             parent = MAIN_CATEGORY
         
+        ####
+        
         if parent in FORBIDEN_SECTION_NAME:
             #is context instance
             if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param))) #TODO inject complete path in error message 
+                raise ParameterException("(ParameterManager) setParameter, invalid paramer '"+str(parent)+" "+str(name)+"', an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
             
             #name can't be an existing section name (because of the struct of the file)
-            if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name '"+str(name)+"', a similar item already has this name") #TODO inject complete path in error message
+            #TODO check if path name exist in level 0 tries
+            
+            
+            if name in self.params: #TODO will not work... 
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', a similar item already has this name")
         else:
             #is generic instance 
             if not isinstance(param, VarParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param))) #TODO inject complete path in error message
+                raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', an instance of VarParameter was expected, got "+str(type(param)))
         
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
             for forbidenName in FORBIDEN_SECTION_NAME:
-                if name in self.params[forbidenName]:
-                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name") #TODO inject complete path in error message
+                #TODO check if path (forbidenName, name) exist
             
+            
+                if name in self.params[forbidenName]: #TODO will not work... 
+                    raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', because of the existance of '"+forbidenName+" "+name+"'")
+        
+        ####
+        
         #check safety and existing
         advancedResult = self._getAdvanceResult("getParameter",name, parent, False, False)
         if advancedResult.isValueFound():
