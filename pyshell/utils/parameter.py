@@ -40,10 +40,7 @@ def synchronous():
 #TODO
     #split context/envir/variabl in separate data structure
         #no need to store them in the same dico
-        #store in three separate files ? XXX brainstorming needed
-    
-    #store in mltries
-            
+        #store in three separate files ? XXX brainstorming needed            
 
 INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
                           "int"   : defaultInstanceArgChecker.getIntegerArgCheckerInstance,
@@ -95,6 +92,10 @@ def _getBool(config, section, option, defaultValue):
 
 class ParameterManager2(object):
     #TODO
+        #disable lockable argument for unique by thread
+
+        #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
+
         #when to use perfect match or not ?
             #perfect in:
                 #insertion
@@ -167,7 +168,7 @@ class ParameterManager2(object):
             else: #child
                 unknownField      = "key"
                 unknownFieldValue = str(name)
-            raise ParameterException("(ParameterManager) "+str(methName)+", parameter "+unknownField+" '"+unknownFieldValue+"' is unknown for path '"+" ".join(advancedResult.getFoundCompletePath())+"')
+            raise ParameterException("(ParameterManager) "+str(methName)+", parameter "+unknownField+" '"+unknownFieldValue+"' is unknown for path '"+" ".join(advancedResult.getFoundCompletePath())+"'")
                         
         return advancedResult
         
@@ -216,7 +217,8 @@ class ParameterManager2(object):
                     raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' with not unique by thread because this parameter is already used in other thread as unique by thread")
             
                 tid = current_thread().ident
-                
+                param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
+
                 if tid not in value:
                     value[tid] = param
                     
@@ -238,10 +240,11 @@ class ParameterManager2(object):
                 self.mltries.update( (parent, name, ), param )
         else:
             if uniqueForThread:
-                dic = {}
-                tid = current_thread().ident
-                dic[tid] = param
-                param = dic
+                dic            = {}
+                tid            = current_thread().ident
+                dic[tid]       = param
+                param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
+                param          = dic
                 
             self.mltries.insert( (parent, name, ), param )
             
@@ -321,16 +324,10 @@ class ParameterManager2(object):
         del self.threadLocalVar[tid]            
 
 class ParameterManager(object): #XXX obsolete
-    #TODO
-        #this object should be synchronized
-        #convert to MULTILEVELTRIES
-            #only two level: parent and key
-            #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
-
     def __init__(self):
-        self.params = {} #TODO should be tries
-        self.params[CONTEXT_NAME] = {} #TODO should be tries and not in params
-        self.params[ENVIRONMENT_NAME] = {} #TODO should be tries and not in params
+        self.params = {}
+        self.params[CONTEXT_NAME] = {}
+        self.params[ENVIRONMENT_NAME] = {}
 
     def setParameter(self,name, param, parent = None):
         if parent == None:
@@ -394,36 +391,6 @@ class ParameterManager(object): #XXX obsolete
         if len(self.params[parent]) == 0:
             del self.params[parent]
         
-    #UNIQUE BY THREAD TODO implement it
-        #update setParameter
-            #if key exist and is not unique => raise
-            #if parameter is transient => raise
-            #remove/disable lock for the parameter
-            #add it in the current thread list, to be able to remove it easily when the thread will die
-        
-        #update unsetParameter
-            #if unique, only remove for the current thread
-            #otherelse, remove for the whole app
-        
-        #create flushThread
-            #remove every value created for the current thread
-                #overwrite readonly
-        
-        #create unMarkUnique, remove the tuple parent/key from the Unique system 
-            #raise if mark is in use
-            #otherelse remove mark
-            
-        #what about data structure ? TODO check that
-            #to mark an empty key
-                #inject a special empty parameter into the tries, or just an empty list
-                
-            #to keep several value for a parameter ?
-                #each thread can define its parameter type, etc.
-            
-            #to keep a list of key for an specific thread
-                #just a dictionnary of list
-                    #one list for each thread
-
 class Parameter(Valuable): #abstract
     def __init__(self, transient = False):
         self.transient = transient
@@ -505,8 +472,9 @@ class EnvironmentParameter(Parameter):
         self.typ = typ
         self.setValue(value)
         
-        self.lock   = None
-        self.lockID = -1
+        self.lock     = None
+        self.lockID   = -1
+        self.lockable = True
         self.setReadOnly(readonly)
 
     def _raiseIfReadOnly(self, methName = None):
@@ -519,6 +487,9 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("("+self.__name__+") "+methName+"read only parameter")
 
     def _initLock(self):
+        if not self.lockable:
+            return
+
         if self.lock is None:
             with EnvironmentParameter._internalLock:
                 if self.lock is None:
@@ -535,7 +506,7 @@ class EnvironmentParameter(Parameter):
         return self.lockID
         
     def isLockEnable(self):
-        return True #TODO be able to disable it ? yes for uniqueBytThread
+        return self.lockable
     
     def isAListType(self):
         return self.isListType
