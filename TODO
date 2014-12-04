@@ -189,6 +189,15 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 ### parameter     ###
 #####################
 
+    load/save
+        le fichier rc ne devrait pas être un fichier de config mais pluôt un fichier de script
+            ou considérer comme un addon ?? pour gérer les unloads ?
+                permettrait de gérer les dépendances de ce dont on a besoin pour exécuter
+                
+        prévoir un "reset" pour remettre les paramètre à ceux de démarrage
+        
+        une commande dans le onstartup pour charger la config
+
     variable should be unique in each thread
         but what about variable storage ?
             store them at the beginning of a stored alias

@@ -92,8 +92,6 @@ def _getBool(config, section, option, defaultValue):
 
 class ParameterManager2(object):
     #TODO
-        #disable lockable argument for unique by thread
-
         #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
 
         #when to use perfect match or not ?
@@ -127,6 +125,8 @@ class ParameterManager2(object):
                 #SOLUTION 3: three separate files
                 
                 #SOLUTION 4: think about a new file structure
+                
+                #SOLUTION 5: create a init rc script in place of config file
                 
                 #...
 
@@ -187,10 +187,7 @@ class ParameterManager2(object):
                 raise ParameterException("(ParameterManager) setParameter, invalid paramer '"+str(parent)+" "+str(name)+"', an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
             
             #name can't be an existing section name (because of the struct of the file)
-            #TODO check if path name exist in level 0 tries
-            
-            
-            if name in self.params: #TODO will not work... 
+            if self.params.localTries.search(name,perfectMatch=True) is not None:
                 raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', a similar item already has this name")
         else:
             #is generic instance 
@@ -199,10 +196,7 @@ class ParameterManager2(object):
         
             #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
             for forbidenName in FORBIDEN_SECTION_NAME:
-                #TODO check if path (forbidenName, name) exist
-            
-            
-                if name in self.params[forbidenName]: #TODO will not work... 
+                if self.params.search( (forbidenName, name), onlyPerfectMatch = True) is not None:
                     raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', because of the existance of '"+forbidenName+" "+name+"'")
         
         ####
