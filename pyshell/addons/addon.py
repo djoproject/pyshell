@@ -24,7 +24,7 @@ import os, sys
 from pyshell.utils.postProcess import printColumn, stringListResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.parameter   import EnvironmentParameter
-from pyshell.utils.constants   import ENVIRONMENT_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY
+from pyshell.utils.constants   import ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
 
@@ -33,10 +33,10 @@ ADDON_PREFIX  = "pyshell.addons."
 ## FUNCTION SECTION ##
 
 def _tryToGetDicoFromParameters(parameters):
-    if not parameters.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+    if not parameters.environment.hasParameter(ADDONLIST_KEY):
         raise Exception("no addon list defined")
 
-    return parameters.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+    return parameters.environment.getParameter(ADDONLIST_KEY).getValue()
 
 def _tryToGetAddonFromDico(addon_dico, name):
     if name not in addon_dico:
@@ -51,10 +51,10 @@ def _tryToImportLoaderFromFile(name):
     try:
         mod = __import__(name,fromlist=["_loaders"])
     except ImportError as ie:
-        raise Exception("fail to load addon, reason: "+str(ie))
+        raise Exception("fail to load addon '"+str(name)+"', reason: "+str(ie))
 
     if not hasattr(mod, "_loaders"):
-        raise Exception("invalid addon, no loader found.  don't forget to register something in the addon")
+        raise Exception("invalid addon '"+str(name)+"', no loader found.  don't forget to register something in the addon")
 
     return mod._loaders
 
@@ -340,7 +340,9 @@ def loadAddonOnStartUp(addonListOnStartUp, params):
             
     if errorList.isThrowable():
         raise errorList
-    
+
+#TODO load all
+
 ### REGISTER SECTION ###
 
 registerSetGlobalPrefix( ("addon", ) )

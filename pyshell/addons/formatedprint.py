@@ -26,7 +26,7 @@
 
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetGlobalPrefix
 from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, contextParameterChecker, parameterDynamicChecker
+from pyshell.arg.argchecker    import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, contextParameterChecker
 from pyshell.utils.postProcess import printColumn
 from pyshell.utils.exception   import USER_ERROR, DefaultPyshellException
 from pyshell.utils.printing    import printShell, warning, strLength, formatOrange, formatRed

@@ -18,7 +18,7 @@
 
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import RegisterException, LoadException
-from pyshell.utils.constants  import ENVIRONMENT_NAME, ADDONLIST_KEY, DEFAULT_SUBADDON_NAME
+from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_SUBADDON_NAME
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, 3, subLoaderName)
@@ -44,10 +44,10 @@ class DependanciesLoader(AbstractLoader):
         if len(self.dep) == 0:
             return
         
-        if not parameterManager.hasParameter(ADDONLIST_KEY, ENVIRONMENT_NAME):
+        if not parameterManager.environment.hasParameter(ADDONLIST_KEY):
             raise LoadException("(DependanciesLoader) load, no addon list defined")
         
-        addon_dico = parameterManager.getParameter(ADDONLIST_KEY, ENVIRONMENT_NAME).getValue()
+        addon_dico = parameterManager.environment.getParameter(ADDONLIST_KEY).getValue()
         
         for (name, subname) in self.dep:
             if name not in addon_dico:

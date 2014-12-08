@@ -26,7 +26,7 @@ from tries.exception          import triesException
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.command.command  import MultiCommand, UniCommand
 from pyshell.loader.exception import LoadException, RegisterException
-from pyshell.utils.constants  import ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.constants  import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception  import ListOfException
 
 def _local_getAndInitCallerModule(subLoaderName = None):
@@ -128,10 +128,10 @@ class CommandLoader(AbstractLoader):
     
         AbstractLoader.load(self, parameterManager, subLoaderName)
     
-        if not parameterManager.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME):
+        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY):
             raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             
-        mltries = parameterManager.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME).getValue()
+        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
 
         exceptions = ListOfException()
     
@@ -167,11 +167,11 @@ class CommandLoader(AbstractLoader):
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
     
-        if not parameterManager.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME):
+        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY):
             raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             return
             
-        mltries = parameterManager.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME).getValue()
+        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
         
         exceptions = ListOfException()
     

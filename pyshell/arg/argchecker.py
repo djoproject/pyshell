@@ -32,7 +32,7 @@ from threading               import Lock
 
 from pyshell.arg.exception   import *
 from pyshell.utils.keystore  import Key
-from pyshell.utils.constants import ENVIRONMENT_NAME, CONTEXT_NAME, KEYSTORE_SECTION_NAME
+from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEYSTORE_SECTION_NAME
 
 #string argchecker definition
 ARGCHECKER_TYPENAME                 = "ArgChecker"
@@ -46,8 +46,10 @@ LISTCHECKER_TYPENAME                = "List"
 DEFAULTVALUE_TYPENAME               = "Default"
 ENVIRONMENTDYNAMICCHECKER_TYPENAME  = "Environment dynamic"
 CONTEXTDYNAMICCHECKER_TYPENAME      = "Context dynamic"
+VARIABLEDYNAMICCHECKER_TYPENAME     = "Variable dynamic"
 ENVIRONMENTCHECKER_TYPENAME         = "Environment"
 CONTEXTCHECKER_TYPENAME             = "Context"
+VARIABLECHECKER_TYPENAME            = "Variable"
 PARAMETERDYNAMICCHECKER_TYPENAME    = "Parameter dynamic"
 PARAMETERCHECKER_TYPENAME           = "Parameter"
 COMPLETEENVIRONMENTCHECKER_TYPENAME = "Complete Environment"
@@ -237,14 +239,14 @@ class ArgChecker(object):
         raise argException("("+self.typeName+") "+ prefix + message)
     
 class stringArgChecker(ArgChecker):
-    def __init__(self, minimumStringSize=1, maximumStringSize = None, typeName = STRINGCHECKER_TYPENAME):
+    def __init__(self, minimumStringSize=0, maximumStringSize = None, typeName = STRINGCHECKER_TYPENAME):
         ArgChecker.__init__(self,1,1,True, typeName)
 
         if type(minimumStringSize) != int:
             raise argInitializationException("("+self.typeName+") Minimum string size must be an integer, got type '"+str(type(minimumStringSize))+"' with the following value <"+str(minimumStringSize)+">")
             
-        if minimumStringSize < 1:
-            raise argInitializationException("("+self.typeName+") Minimum string size must be a positive value bigger than 0, got <"+str(minimumStringSize)+">")
+        if minimumStringSize < 0:
+            raise argInitializationException("("+self.typeName+") Minimum string size must be a positive value bigger or equal to 0, got <"+str(minimumStringSize)+">")
     
         if maximumStringSize != None:
             if type(maximumStringSize) != int:
@@ -522,8 +524,8 @@ class completeEnvironmentChecker(ArgChecker):
         pass
 
 #TODO this checker should not be use anywhere, use contextParameterChecker or environmentParameterChecker
-class parameterChecker(ArgChecker):
-    def __init__(self,keyname, parent = None, typeName = PARAMETERCHECKER_TYPENAME):
+class abstractParameterChecker(ArgChecker):
+    def __init__(self,keyname, containerAttribute, typeName = PARAMETERCHECKER_TYPENAME):
         ArgChecker.__init__(self,0,0,False, typeName)
         
         if keyname is None or (type(keyname) != str and type(keyname) != unicode) or not isinstance(keyname, collections.Hashable):
@@ -531,30 +533,38 @@ class parameterChecker(ArgChecker):
         
         self.keyname = keyname
         
-        if parent is not None and (  (type(parent) != str and type(parent) != unicode) or not isinstance(parent, collections.Hashable) ):
-            raise argInitializationException("("+self.typeName+") parent must be hashable string, got '"+str(parent)+"'")
+        if containerAttribute is None or (  (type(containerAttribute) != str and type(containerAttribute) != unicode) ):
+            raise argInitializationException("("+self.typeName+") containerAttribute must be a valid string, got '"+str(type(containerAttribute))+"'")
         
-        self.parent = parent
+        self.containerAttribute = containerAttribute
     
-    def getValue(self,value,argNumber=None, argNameToBind=None):
+    def _getContainer(self,argNumber=None, argNameToBind=None):
         self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
         env = self.engine.getEnv()
 
-        if not env.hasParameter(self.keyname, self.parent):#self.keyname not in self.engine.getEnv():
+        if not hasattr(env, self.containerAttribute):
+            self._raiseArgException("environment container does not have the attribute '"+str(self.containerAttribute)+"'", argNumber, argNameToBind)
+
+        return getattr(env, self.containerAttribute)
+
+    def getValue(self,value,argNumber=None, argNameToBind=None):
+        container = self._getContainer(argNumber, argNameToBind)
+
+        if not container.hasParameter(self.keyname):#self.keyname not in self.engine.getEnv():
             self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
     
-        return env.getParameter(self.keyname, self.parent) #self.engine.getEnv()[self.keyname][0]
+        return container.getParameter(self.keyname) #self.engine.getEnv()[self.keyname][0]
         
     def usage(self):
         return ""
         
     def getDefaultValue(self, argNameToBind=None):
-        self._raiseIfEnvIsNotAvailable(None, argNameToBind)
-        return self.engine.getEnv().getParameter(self.keyname, self.parent)#self.engine.getEnv()[self.keyname][0]
+        container = self._getContainer(None, argNameToBind)
+        return container.getParameter(self.keyname)
         
     def hasDefaultValue(self, argNameToBind=None):
-        self._raiseIfEnvIsNotAvailable(None, argNameToBind)
-        return self.engine.getEnv().hasParameter(self.keyname, self.parent)#self.keyname not in self.engine.getEnv()
+        container = self._getContainer(None, argNameToBind)
+        return container.hasParameter(self.keyname)
         
     def setDefaultValue(self,value, argNameToBind=None):
         pass
@@ -562,10 +572,14 @@ class parameterChecker(ArgChecker):
     def erraseDefaultValue(self):
         pass
 
-class parameterDynamicChecker(ArgChecker):
-    def __init__(self, parent = None, typeName = PARAMETERDYNAMICCHECKER_TYPENAME):
+class abstractParameterDynamicChecker(ArgChecker):
+    def __init__(self, containerAttribute, typeName = PARAMETERDYNAMICCHECKER_TYPENAME):
         ArgChecker.__init__(self,1,1,False, typeName)
-        self.parent = parent
+
+        if containerAttribute is None or (  (type(containerAttribute) != str and type(containerAttribute) != unicode) ):
+            raise argInitializationException("("+self.typeName+") containerAttribute must be a valid string, got '"+str(type(containerAttribute))+"'")
+
+        self.containerAttribute = containerAttribute
     
     def getValue(self,value,argNumber=None, argNameToBind=None):
         self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
@@ -574,10 +588,15 @@ class parameterDynamicChecker(ArgChecker):
         
         env = self.engine.getEnv()
 
-        if not self.engine.getEnv().hasParameter(value, self.parent): #value not in self.engine.getEnv():
+        if not hasattr(env, self.containerAttribute):
+            self._raiseArgException("environment container does not have the attribute '"+str(self.containerAttribute)+"'", argNumber, argNameToBind)
+
+        container = getattr(env, self.containerAttribute)
+
+        if not container.hasParameter(value): #value not in self.engine.getEnv():
             self._raiseArgException("the key '"+str(value)+"' is not available but needed", argNumber, argNameToBind)
     
-        return self.engine.getEnv().getParameter(value, self.parent) #self.engine.getEnv()[value][0]
+        return container.getParameter(value) #self.engine.getEnv()[value][0]
     
     def hasDefaultValue(self, argNameToBind=None):
         return False
@@ -588,21 +607,31 @@ class parameterDynamicChecker(ArgChecker):
     def erraseDefaultValue(self):
         pass
 
-class contextParameterChecker(parameterChecker):
-    def __init__(self, keyname):
-        parameterChecker.__init__(self, keyname, CONTEXT_NAME, CONTEXTCHECKER_TYPENAME)
+#TODO use constant name
 
-class environmentParameterChecker(parameterChecker):
-    def __init__(self, keyname):
-        parameterChecker.__init__(self, keyname, ENVIRONMENT_NAME, ENVIRONMENTCHECKER_TYPENAME)
+class contextParameterChecker(abstractParameterChecker):
+    def __init__(self, contextStringPath):
+        abstractParameterChecker.__init__(self, contextStringPath, CONTEXT_ATTRIBUTE_NAME, CONTEXTCHECKER_TYPENAME)
 
-class contextParameterDynamicChecker(parameterDynamicChecker):
+class environmentParameterChecker(abstractParameterChecker):
+    def __init__(self, environmentStringPath):
+        abstractParameterChecker.__init__(self, environmentStringPath, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENTCHECKER_TYPENAME)
+
+class variableParameterChecker(abstractParameterChecker):
+    def __init__(self, environmentStringPath):
+        abstractParameterChecker.__init__(self, environmentStringPath, VARIABLE_ATTRIBUTE_NAME, VARIABLECHECKER_TYPENAME)
+
+class contextParameterDynamicChecker(abstractParameterDynamicChecker):
     def __init__(self):
-        parameterDynamicChecker.__init__(self, CONTEXT_NAME, CONTEXTDYNAMICCHECKER_TYPENAME)
+        abstractParameterDynamicChecker.__init__(self, CONTEXT_ATTRIBUTE_NAME, CONTEXTDYNAMICCHECKER_TYPENAME)
 
-class environmentParameterDynamicChecker(parameterDynamicChecker):
+class environmentParameterDynamicChecker(abstractParameterDynamicChecker):
     def __init__(self):
-        parameterDynamicChecker.__init__(self, ENVIRONMENT_NAME, ENVIRONMENTDYNAMICCHECKER_TYPENAME)
+        abstractParameterDynamicChecker.__init__(self, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENTDYNAMICCHECKER_TYPENAME)
+
+class variableParameterDynamicChecker(abstractParameterDynamicChecker):
+    def __init__(self):
+        abstractParameterDynamicChecker.__init__(self, VARIABLE_ATTRIBUTE_NAME, VARIABLEDYNAMICCHECKER_TYPENAME)
 
 class defaultValueChecker(ArgChecker):
     def __init__(self,value):
@@ -899,10 +928,10 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         env = self.engine.getEnv()
         value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
 
-        if not self.engine.getEnv().hasParameter(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME):
+        if not self.engine.getEnv().environment.hasParameter(KEYSTORE_SECTION_NAME):
             self._raiseArgException("keystore is not available in parameters but is needed to get key '"+str(value)+"'", argNumber, argNameToBind)
 
-        keystore = self.engine.getEnv().getParameter(KEYSTORE_SECTION_NAME,ENVIRONMENT_NAME).getValue()
+        keystore = self.engine.getEnv().environment.getParameter(KEYSTORE_SECTION_NAME).getValue()
         
         if not keystore.hasKey(value):
             self._raiseArgException("unknown key '"+str(value)+"'", argNumber, argNameToBind)

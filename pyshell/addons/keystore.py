@@ -17,10 +17,10 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import defaultInstanceArgChecker, environmentParameterChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker, contextParameterChecker
+from pyshell.arg.argchecker    import defaultInstanceArgChecker, environmentParameterChecker, IntegerArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.keystore   import registerKey
-from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME, ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_SAVE_KEYS_KEY
+from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_SAVE_KEYS_KEY
 from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 from pyshell.utils.exception   import KeyStoreLoadingException, ListOfException
@@ -40,7 +40,7 @@ else:
 
 @shellMethod(keyName     = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              keyInstance = defaultInstanceArgChecker.getKeyChecker(),
-             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME),
+             keyStore    = environmentParameterChecker(KEYSTORE_SECTION_NAME),
              transient   = booleanValueArgChecker())
 def setKey(keyName, keyInstance, keyStore = None, transient=False):
     "set a key"
@@ -50,12 +50,12 @@ def setKey(keyName, keyInstance, keyStore = None, transient=False):
 @shellMethod(key      = defaultInstanceArgChecker.getKeyTranslatorChecker(),
              start    = IntegerArgChecker(),
              end      = IntegerArgChecker(),
-             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+             keyStore = environmentParameterChecker(KEYSTORE_SECTION_NAME))
 def getKey(key, start=0, end=None, keyStore=None):
     "get a key"
     return key.getKey(start, end)
 
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+@shellMethod(keyStore = environmentParameterChecker(KEYSTORE_SECTION_NAME))
 def listKey(keyStore):
     "list available key in the keystore"
     
@@ -73,19 +73,19 @@ def listKey(keyStore):
     return toRet
 
 @shellMethod(keyName  = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+             keyStore = environmentParameterChecker(KEYSTORE_SECTION_NAME))
 def unsetKey(keyName, keyStore=None):
     "remove a key from the keystore"
     keyStore.getValue().unsetKey(keyName)
     
-@shellMethod(keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+@shellMethod(keyStore = environmentParameterChecker(KEYSTORE_SECTION_NAME))
 def cleanKeyStore(keyStore=None):
     "remove every keys from the keystore"
     keyStore.getValue().removeAll()
     
-@shellMethod(filePath    = parameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_NAME),
+@shellMethod(filePath    = environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
              useKeyStore = environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-             keyStore    = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+             keyStore    = environmentParameterChecker(KEYSTORE_SECTION_NAME))
 def saveKeyStore(filePath, useKeyStore, keyStore=None):
     "save keystore from file"
 
@@ -117,9 +117,9 @@ def saveKeyStore(filePath, useKeyStore, keyStore=None):
     with open(filePath, 'wb') as configfile:
         config.write(configfile)
 
-@shellMethod(filePath = parameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_NAME),
+@shellMethod(filePath = environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
              useKeyStore = environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-             keyStore = parameterChecker(KEYSTORE_SECTION_NAME, ENVIRONMENT_NAME))
+             keyStore = environmentParameterChecker(KEYSTORE_SECTION_NAME))
 def loadKeyStore(filePath, useKeyStore, keyStore=None):
     "load keystore from file"
 
@@ -161,6 +161,8 @@ def setTransient(key, state):
     key.setTransient(state)
 
 ## REGISTER PART ##
+
+#TODO where do come from all the keystore variable, need to load them ?
 
 registerSetGlobalPrefix( ("key", ) )
 registerCommand( ("set",) ,                    post=setKey)

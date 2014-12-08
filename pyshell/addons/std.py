@@ -20,8 +20,8 @@ from tries.exception           import triesException
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand
 from pyshell.arg.decorator     import shellMethod
 from pyshell.command.command   import MultiOutput
-from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, IntegerArgChecker, booleanValueArgChecker
-from pyshell.utils.constants   import ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_HISTORY_FILE_NAME_KEY
+from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, booleanValueArgChecker, environmentParameterChecker
+from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.exception   import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
 from pyshell.utils.postProcess import listFlatResultHandler, stringListResultHandler
 import readline, os
@@ -67,7 +67,7 @@ def intToAscii(args):
     return listFlatResultHandler( (s, ) )
     
 @shellMethod(args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1), 
-             mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME))
+             mltries = environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY))
 def usageFun(args, mltries):
     "print the usage of a fonction"
     
@@ -93,11 +93,11 @@ def usageFun(args, mltries):
     cmd = searchResult.getLastTokenFoundValue()
     return cmd.usage()
 
-@shellMethod(mltries = parameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_NAME), 
+@shellMethod(mltries = environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY), 
              args    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def helpFun(mltries, args=None):
     "print the help"
-
+    
     if args == None:
         args = ()
 
@@ -255,8 +255,8 @@ def generator(start=0,stop=100,step=1, multiOutput = True):
         return MultiOutput(range(start,stop,step))
     else:
         return range(start,stop,step)
-@shellMethod(useHistory  = parameterChecker(ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_NAME),
-             historyFile = parameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY, ENVIRONMENT_NAME))
+@shellMethod(useHistory  = environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+             historyFile = environmentParameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historyLoad(useHistory, historyFile):
     "save readline history"
     
@@ -268,8 +268,8 @@ def historyLoad(useHistory, historyFile):
     except IOError:
         pass
     
-@shellMethod(useHistory  = parameterChecker(ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_NAME),
-             historyFile = parameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY, ENVIRONMENT_NAME))
+@shellMethod(useHistory  = environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+             historyFile = environmentParameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historySave(useHistory, historyFile):
     "load readline history"
     

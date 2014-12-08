@@ -36,51 +36,54 @@ EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 EVENT_TO_CREATE_ON_STARTUP = (EVENT__ON_STARTUP, EVENT_ON_STARTUP, EVENT_AT_EXIT, EVENT_AT_ADDON_LOAD, EVENT_AT_ADDON_UNLOAD, )
 
 ### ENVIRONMENT ###
-ENVIRONMENT_NAME                    = "environment"
+ENVIRONMENT_ATTRIBUTE_NAME          = "environment"
 
-ENVIRONMENT_PARAMETER_FILE_KEY      = "parameterFile"
+ENVIRONMENT_PARAMETER_FILE_KEY      = "main.parameterFile"
 DEFAULT_PARAMETER_FILE              = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshellrc")
 
-ENVIRONMENT_PROMPT_KEY              = "prompt"
+ENVIRONMENT_PROMPT_KEY              = "shell.prompt"
 ENVIRONMENT_PROMPT_DEFAULT          = "pyshell:>"
 
-ENVIRONMENT_TAB_SIZE_KEY            = "tabsize"
+ENVIRONMENT_TAB_SIZE_KEY            = "shell.tabsize"
 TAB_SIZE                            = 4
 
-ENVIRONMENT_LEVEL_TRIES_KEY         = "levelTries"
+ENVIRONMENT_LEVEL_TRIES_KEY         = "main.levelTries"
 
-ENVIRONMENT_KEY_STORE_FILE_KEY      = "keystoreFile"
+ENVIRONMENT_KEY_STORE_FILE_KEY      = "main.keystoreFile"
 DEFAULT_KEYSTORE_FILE               = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_keystore")
 
-KEYSTORE_SECTION_NAME               = "keystore"
+KEYSTORE_SECTION_NAME               = "main.keystore"
 
-ENVIRONMENT_SAVE_KEYS_KEY           = "saveKeys"
+ENVIRONMENT_SAVE_KEYS_KEY           = "main.saveKeys"
 ENVIRONMENT_SAVE_KEYS_DEFAULT       = True
 
-ENVIRONMENT_HISTORY_FILE_NAME_KEY   = "historyFile"
+ENVIRONMENT_HISTORY_FILE_NAME_KEY   = "shell.historyFile"
 ENVIRONMENT_HISTORY_FILE_NAME_VALUE = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_history")
 
-ENVIRONMENT_USE_HISTORY_KEY         = "useHistory"
+ENVIRONMENT_USE_HISTORY_KEY         = "shell.useHistory"
 ENVIRONMENT_USE_HISTORY_VALUE       = True
 
-ENVIRONMENT_ADDON_TO_LOAD_KEY       = "addonToLoad"
-ENVIRONMENT_ADDON_TO_LOAD_DEFAULT   = ("pyshell.addons.std","pyshell.addons.keystore",)
+ENVIRONMENT_ADDON_TO_LOAD_KEY       = "main.addonToLoad"
+ENVIRONMENT_ADDON_TO_LOAD_DEFAULT   = ("pyshell.addons.std","pyshell.addons.keystore","pyshell.addons.parameter")
 
-ADDONLIST_KEY                       = "loader_addon"
+ADDONLIST_KEY                       = "main.loader_addon"
 
 ### CONTEXT ###
-CONTEXT_NAME             = "context"
+CONTEXT_ATTRIBUTE_NAME   = "context"
 
-DEBUG_ENVIRONMENT_NAME   = "debug"
+DEBUG_ENVIRONMENT_NAME   = "main.debug"
 
-CONTEXT_EXECUTION_KEY    = "execution"
+CONTEXT_EXECUTION_KEY    = "main.execution"
 CONTEXT_EXECUTION_SHELL  = "shell"
 CONTEXT_EXECUTION_SCRIPT = "script"
 CONTEXT_EXECUTION_DAEMON = "daemon"
 
-CONTEXT_COLORATION_KEY   = "coloration"
+CONTEXT_COLORATION_KEY   = "shell.coloration"
 CONTEXT_COLORATION_LIGHT = "light"
 CONTEXT_COLORATION_DARK  = "dark"
 CONTEXT_COLORATION_NONE  = "none"
+
+### VARIABLE ###
+VARIABLE_ATTRIBUTE_NAME = "variable"
 
 

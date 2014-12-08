@@ -19,7 +19,7 @@
 import threading, sys, re, os, traceback
 from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException, ListOfException
-from pyshell.utils.constants  import CONTEXT_NAME,ENVIRONMENT_NAME,CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
 
 _EMPTYSTRING = ""
 
@@ -70,17 +70,17 @@ class Printer(object):
         self.replWriteFunction = fun
     
     def configureFromParameters(self, params):
-        if params.hasParameter(CONTEXT_EXECUTION_KEY,CONTEXT_NAME):
-            self.setShellContext(params.getParameter(CONTEXT_EXECUTION_KEY,CONTEXT_NAME))
+        if params.context.hasParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True):
+            self.setShellContext(params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True))
         
-        if params.hasParameter(ENVIRONMENT_TAB_SIZE_KEY,ENVIRONMENT_NAME):
-            self.setSpacingContext(params.getParameter(ENVIRONMENT_TAB_SIZE_KEY,ENVIRONMENT_NAME))
+        if params.environment.hasParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True):
+            self.setSpacingContext(params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True))
         
-        if params.hasParameter(CONTEXT_COLORATION_KEY,CONTEXT_NAME):
-            self.setBakcgroundContext(params.getParameter(CONTEXT_COLORATION_KEY,CONTEXT_NAME))
+        if params.context.hasParameter(CONTEXT_COLORATION_KEY, perfectMatch = True):
+            self.setBakcgroundContext(params.context.getParameter(CONTEXT_COLORATION_KEY, perfectMatch = True))
         
-        if params.hasParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME):
-            self.setDebugContext(params.getParameter(DEBUG_ENVIRONMENT_NAME,CONTEXT_NAME))
+        if params.context.hasParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True):
+            self.setDebugContext(params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True))
     
     def setShellContext(self, context):    
         if not isinstance(context, SelectableValuable):
@@ -320,7 +320,7 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         printFun = printer.formatRed
         toprint  = printer.formatRed(prefix + str(exception))
 
-    if printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
+    if True: #TODO printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
         toprint += printFun("\n\n"+traceback.format_exc())
 
     return toprint

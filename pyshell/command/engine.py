@@ -20,7 +20,7 @@ from pyshell.command.command     import MultiOutput, MultiCommand, Command
 from pyshell.command.exception   import *
 from pyshell.command.stackEngine import engineStack
 from pyshell.command.utils       import *
-from pyshell.utils.parameter     import ParameterManager, EnvironmentParameter, ParametersLocker
+from pyshell.utils.parameter     import ParameterContainer, EnvironmentParameter, ParametersLocker
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test    
@@ -84,11 +84,11 @@ class engineV3(object):
         
         #check env variable
         if env == None:
-            self.env = ParameterManager()
-        elif isinstance(env, ParameterManager):
+            self.env = ParameterContainer()
+        elif isinstance(env, ParameterContainer):
             self.env  = env
         else:
-            raise executionInitException("(engine) init, env must be an instance of ParameterManager or None, got '"+str(type(env))+"'")
+            raise executionInitException("(engine) init, env must be an instance of ParameterContainer or None, got '"+str(type(env))+"'")
 
         self.stack            = engineStack()
         self._isInProcess     = False

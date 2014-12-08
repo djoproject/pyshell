@@ -30,7 +30,7 @@ from pyshell.utils.exception   import *
 from pyshell.command.exception import *
 from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import booleanValueArgChecker, defaultInstanceArgChecker
-from pyshell.utils.constants   import ENVIRONMENT_NAME, CONTEXT_NAME, DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.constants   import DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from pyshell.utils.parameter   import VarParameter
@@ -225,8 +225,10 @@ def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
                 #remove $
                 stringToken = stringToken[1:]
 
-                if not params.hasParameter(stringToken):
+                if not params.variable.hasParameter(stringToken):
                 
+                    #TODO these variable should always be avaible and build at the biginning of script execution
+
                     #is it an element of the current execution ?
                     if commandName is not None:
                         if stringToken == "0": #script name
@@ -270,7 +272,7 @@ def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
                     continue
                 
                 else:
-                    param = params.getParameter(stringToken)
+                    param = params.variable.getParameter(stringToken)
                     
                     if not isinstance(param, VarParameter):
                         unknowVarError.add("specified key '"+stringToken+"' correspond to a type different of a var")
@@ -413,7 +415,7 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
             return None, None
         
         #convert token string to command objects and argument strings
-        rawCommandList, rawArgList = parseCommand(cmdStringList, params.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,ENVIRONMENT_NAME).getValue()) #parameter will raise if leveltries does not exist
+        rawCommandList, rawArgList = parseCommand(cmdStringList, params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()) #parameter will raise if leveltries does not exist
         rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
 
         #clone command/alias to manage concurrency state

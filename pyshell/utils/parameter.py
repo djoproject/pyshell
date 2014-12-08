@@ -19,7 +19,7 @@
 from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, ArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
 from pyshell.utils.exception import ParameterException, ParameterLoadingException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
-from pyshell.utils.constants import CONTEXT_NAME, ENVIRONMENT_NAME, MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR
+from pyshell.utils.constants import MAIN_CATEGORY, PARAMETER_NAME, DEFAULT_SEPARATOR, ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME
 from threading import Lock, current_thread
 from functools import wraps
 from tries import multiLevelTries
@@ -35,27 +35,21 @@ def synchronous():
                 self._internalLock.release()
         return _synchronizer
     return _synched
-
-
-#TODO
-    #split context/envir/variabl in separate data structure
-        #no need to store them in the same dico
-        #store in three separate files ? XXX brainstorming needed            
-
+         
 INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
                           "int"   : defaultInstanceArgChecker.getIntegerArgCheckerInstance,
                           "bool"  : defaultInstanceArgChecker.getbooleanValueArgCheckerInstance,
                           "float" : defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}
 
-#XXX FORBIDEN_SECTION_NAME is difined at the end of this module XXX
+_EMPTYDIC = {}
 
-def getInstanceType(typ):
+def getInstanceType(typ): #TODO still used ?
     if typ in INSTANCE_TYPE:
         return INSTANCE_TYPE[typ]()
     else:
         return ArgChecker()
 
-def getTypeFromInstance(instance):
+def getTypeFromInstance(instance): #TODO still used ?
     #XXX can't use a dico here because the order is significant
     
     if isinstance(instance, booleanValueArgChecker):
@@ -69,7 +63,7 @@ def getTypeFromInstance(instance):
     else:
         return "any"
         
-def _getInt(config, section, option, defaultValue):
+def _getInt(config, section, option, defaultValue): #TODO still used ?
     ret = defaultValue
     if config.has_option(section, option):
         try:
@@ -79,7 +73,7 @@ def _getInt(config, section, option, defaultValue):
 
     return ret
 
-def _getBool(config, section, option, defaultValue):
+def _getBool(config, section, option, defaultValue): #TODO still used ?
     ret = defaultValue
     if config.has_option(section, option):
         value = config.get(section,option)
@@ -90,29 +84,38 @@ def _getBool(config, section, option, defaultValue):
 
     return ret
 
-class ParameterManager2(object):
+def isAValidStringPath(stringPath):
+    if type(stringPath) != str and type(stringPath) != unicode:
+        return False, "invalid stringPath, a string was expected, got '"+str(type(stringPath))+"'"
+
+    if len(stringPath) == 0:
+        return False, "stringPath can not have a length of 0"
+    
+    path = stringPath.split(".")
+
+    for index in xrange(0, len(path)):
+        if len(path[index]) == 0:
+            return False, "key at index '"+str(index)+"' has a length of 0"
+
+    return True, path
+
+class ParameterContainer(object):
+    SUBCONTAINER_LIST = ["environment", "context", "variable"]
+
+    def __init__(self):
+        self.environment = ParameterManagerV2()
+        self.context     = ParameterManagerV2()
+        self.variable    = ParameterManagerV2()
+
+    def flushVariableForCurrentThread(): #TODO call it at the end of each execution
+        self.environment.flushThreadLocal()
+        self.context.flushThreadLocal()
+        self.variable.flushThreadLocal()
+
+class ParameterManagerV2(object):
     #TODO
         #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
-
-        #when to use perfect match or not ?
-            #perfect in:
-                #insertion
-                    #otherelse, risk to overwrite existing parameter with prefix insertion
-                    
-                #unsetParameter, same problem as insertion
-                #flushThreadLocal (inside usage)
-                
-            #not perfect in :
-                #getParameter
-                
-            #can choose for :
-                #hasParameter
-                    #create a second method ?
-                    #OR add a boolean parameter ?
-                    
-            #IDEA, can choose for everyone, with a default value
-                #but for set/unset, default value is perfect match
-                #for the others, it is not
+        #be carefull to use boolean perfectMatch for hasParameter and getParameter
                 
         #file structure check at the biginning of set are only for the case of not transient object
             #should only be applyed if parameter is not transient
@@ -135,74 +138,49 @@ class ParameterManager2(object):
         self.mltries = multiLevelTries()
         self.threadLocalVar = {}
     
-    def _getAdvanceResult(self, methName, name, parent, raiseIfNotFound = True, raiseIfAmbiguous = True):
-        if parent == None:
-            parent = MAIN_CATEGORY
+    def _buildExistingPathFromError(self, wrongPath, advancedResult):
+        pathToReturn = list(advancedResult.getFoundCompletePath())
+        pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount()])
+
+        return pathToReturn
+
+    def _getAdvanceResult(self, methName, stringPath, raiseIfNotFound = True, raiseIfAmbiguous = True, perfectMatch = False):
+
+        #prepare and check path
+        state, result = isAValidStringPath(stringPath)
+
+        if not state:
+            raise ParameterException("(ParameterManager) "+str(methName)+","+result)
+
+        path = result
+
+        #explore mltries
+        advancedResult =  self.mltries.advancedSearch(path, perfectMatch)
         
-        path           = (parent, name,)
-        advancedResult =  self.mltries.advancedSearch(path, False)
-        
-        if raiseIfAmbiguous and advancedResult.isAmbiguous():
-            possiblePath = self.mltries.buildDictionnary(path, ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
-        
-            #ambiguous on parent or in child ?
-            if advancedResult.getTokenFoundCount() == 0: #parent
-                ambiguousField       = "parent"
-                ambiguousFieldValue  = str(parent)
-                indexOfPossibleValue = 0
-            else: #child
-                ambiguousField       = "key"
-                ambiguousFieldValue  = str(name)
-                indexOfPossibleValue = 1      
-                      
+        if raiseIfAmbiguous and advancedResult.isAmbiguous(): 
+            indexOfAmbiguousKey = advancedResult.getTokenFoundCount()
+            possiblePath = self.mltries.buildDictionnary(path[:indexOfAmbiguousKey], ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
             possibleValue = []
             for k,v in possiblePath.items():
-                possibleParent.append(k[indexOfPossibleValue])
-                    
-            raise ParameterException("(ParameterManager) "+str(methName)+", parameter "+ambiguousField+" '"+ambiguousFieldValue+"' is ambiguous for path '"+" ".join(advancedResult.getFoundCompletePath())+", possible value are: '"+",".join(possibleValue)+"'")
+                possibleKey.append(k[indexOfPossibleValue])
+            
+            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexOfAmbiguousKey])+"' is ambiguous for path '"+".".join(self._buildExistingPathFromError(path, advancedResult))+"', possible value are: '"+",".join(possibleValue)+"'")
         
         if raiseIfNotFound and not advancedResult.isValueFound():
-            if advancedResult.getTokenFoundCount() == 0: #parent
-                unknownField      = "parent"
-                unknownFieldValue = str(parent)
-            else: #child
-                unknownField      = "key"
-                unknownFieldValue = str(name)
-            raise ParameterException("(ParameterManager) "+str(methName)+", parameter "+unknownField+" '"+unknownFieldValue+"' is unknown for path '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+            indexNotFound = advancedResult.getTokenFoundCount()
+            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexNotFound])+"' is unknown for path '"+".".join(self._buildExistingPathFromError(path, advancedResult))+"'")
                         
         return advancedResult
         
     @synchronous()
-    def setParameter(self,name, param, parent = None, uniqueForThread = False):
-    
-        #check category
-        if parent == None:
-            parent = MAIN_CATEGORY
-        
-        ####
-        
-        if parent in FORBIDEN_SECTION_NAME:
-            #is context instance
-            if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
-                raise ParameterException("(ParameterManager) setParameter, invalid paramer '"+str(parent)+" "+str(name)+"', an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
-            
-            #name can't be an existing section name (because of the struct of the file)
-            if self.params.localTries.search(name,perfectMatch=True) is not None:
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', a similar item already has this name")
-        else:
-            #is generic instance 
-            if not isinstance(param, VarParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', an instance of VarParameter was expected, got "+str(type(param)))
-        
-            #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
-            for forbidenName in FORBIDEN_SECTION_NAME:
-                if self.params.search( (forbidenName, name), onlyPerfectMatch = True) is not None:
-                    raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(parent)+" "+str(name)+"', because of the existance of '"+forbidenName+" "+name+"'")
-        
-        ####
-        
+    def setParameter(self,stringPath, param, uniqueForThread = False):
+
+        #must be an instance of Parameter
+        if not isinstance(param, Parameter):
+            raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(stringPath)+"', an instance of Parameter was expected, got "+str(type(param)))
+
         #check safety and existing
-        advancedResult = self._getAdvanceResult("getParameter",name, parent, False, False)
+        advancedResult = self._getAdvanceResult("getParameter",stringPath, False, False, True)
         if advancedResult.isValueFound():
             value = advancedResult.getValue()
             
@@ -218,7 +196,7 @@ class ParameterManager2(object):
                     
                     if tid not in self.threadLocalVar:
                         self.threadLocalVar[tid] = set()
-                    self.threadLocalVar[tid].add( (parent, name, ) )
+                    self.threadLocalVar[tid].add( advancedResult.getFoundCompletePath() )
                 else:
                     if value[tid].isReadOnly() or not value[tid].isRemovable():
                         raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
@@ -231,7 +209,7 @@ class ParameterManager2(object):
                 if value.isReadOnly() or not value.isRemovable():
                     raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
                     
-                self.mltries.update( (parent, name, ), param )
+                self.mltries.update( advancedResult.getFoundCompletePath(), param )
         else:
             if uniqueForThread:
                 dic            = {}
@@ -240,26 +218,26 @@ class ParameterManager2(object):
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
                 param          = dic
                 
-            self.mltries.insert( (parent, name, ), param )
+            self.mltries.insert( stringPath.split("."), param )
             
     @synchronous()
-    def getParameter(self, name, parent = None):
-        advancedResult = self._getAdvanceResult("getParameter",name, parent)
+    def getParameter(self, stringPath, perfectMatch = False):
+        advancedResult = self._getAdvanceResult("getParameter",stringPath, perfectMatch=perfectMatch) #this call will raise if value not found or ambiguous
         value = advancedResult.getValue()
         
         if isinstance(value, dict):
             tid = current_thread().ident
             
             if tid not in value:
-                raise ParameterException("(ParameterManager) getParameter, unknown parameter '"+parent+"'.'"+name+"'")
+                raise ParameterException("(ParameterManager) getParameter, unknown parameter '"+stringPath+"'")
                 
             return value[tid]
         else:
             return value
     
     @synchronous()
-    def hasParameter(self, name, parent = None, raiseIfAmbiguous = True):
-        advancedResult = self._getAdvanceResult("hasParameter",name, parent, False,raiseIfAmbiguous)
+    def hasParameter(self, stringPath, raiseIfAmbiguous = True, perfectMatch = False):
+        advancedResult = self._getAdvanceResult("hasParameter",stringPath, False,raiseIfAmbiguous, perfectMatch) #this call will raise if ambiguous
                 
         if advancedResult.isValueFound():
             value = advancedResult.getValue()
@@ -269,8 +247,8 @@ class ParameterManager2(object):
         return False
 
     @synchronous()
-    def unsetParameter(self, name, parent = None):
-        advancedResult = self._getAdvanceResult("unsetParameter", name, parent)
+    def unsetParameter(self, stringPath):
+        advancedResult = self._getAdvanceResult("unsetParameter", stringPath, perfectMatch=True) #this call will raise if value not found or ambiguous
         
         if advancedResult.isValueFound():
             value = advancedResult.getValue()
@@ -306,8 +284,8 @@ class ParameterManager2(object):
         if tid not in self.threadLocalVar:
             return
             
-        for path in self.threadLocalVar[tid]: #no error, missing value or invalid type is possible here, because of the process in set/unset
-            advancedResult = self._getAdvanceResult("hasParameter",path[0], path[1], False, False)
+        for path in self.threadLocalVar[tid]: #no error possible, missing value or invalid type is possible here, because of the process in set/unset
+            advancedResult = self._getAdvanceResult("hasParameter",path, False, False)
             value = advancedResult.getValue()
 
             if len(value) > 1:
@@ -317,74 +295,6 @@ class ParameterManager2(object):
                     
         del self.threadLocalVar[tid]            
 
-class ParameterManager(object): #XXX obsolete
-    def __init__(self):
-        self.params = {}
-        self.params[CONTEXT_NAME] = {}
-        self.params[ENVIRONMENT_NAME] = {}
-
-    def setParameter(self,name, param, parent = None):
-        if parent == None:
-            parent = MAIN_CATEGORY
-        
-        if parent in FORBIDEN_SECTION_NAME:
-            #is context instance
-            if not isinstance(param, FORBIDEN_SECTION_NAME[parent]):
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+", an instance of "+str(FORBIDEN_SECTION_NAME[parent].__name__)+" was expected, got "+str(type(param)))
-            
-            #name can't be an existing section name (because of the struct of the file)
-            if name in self.params:
-                raise ParameterException("(ParameterManager) setParameter, invalid "+parent+" name '"+str(name)+"', a similar item already has this name")
-        else:
-            #is generic instance 
-            if not isinstance(param, VarParameter):
-                raise ParameterException("(ParameterManager) setParameter, invalid parameter, an instance of VarParameter was expected, got "+str(type(param)))
-        
-            #parent can not be a name of a child of FORBIDEN_SECTION_NAME (because of the struct of the file)
-            for forbidenName in FORBIDEN_SECTION_NAME:
-                if name in self.params[forbidenName]:
-                    raise ParameterException("(ParameterManager) setParameter, invalid parameter name '"+name+"', a similar '"+forbidenName+"' object already has this name")
-            
-        if parent not in self.params:
-            self.params[parent] = {}
-
-        if name in self.params[parent]:
-            if self.params[parent][name].isReadOnly() or not self.params[parent][name].isRemovable():
-                raise ParameterException("(ParameterManager) setParameter, this parameter name already exist and is readonly or not removable")
-
-        self.params[parent][name] = param
-
-    def getParameter(self, name, parent = None):
-        if parent == None:
-            parent = MAIN_CATEGORY
-
-        #name exists ?
-        if name not in self.params[parent]:
-            raise ParameterException("(ParameterManager) getParameter, parameter '"+str(name)+"'  does not exist")
-
-        return self.params[parent][name]
-
-    def hasParameter(self, name, parent = None):
-        if parent == None:
-            parent = MAIN_CATEGORY
-
-        return parent in self.params and name in self.params[parent]
-
-    def unsetParameter(self, name, parent = None):
-        if parent == None:
-            parent = MAIN_CATEGORY
-
-        if parent not in self.params or name not in self.params[parent]:
-            raise ParameterException("(ParameterManager) unsetParameter, parameter name '"+str(name)+"'  does not exist")
-
-        if not self.params[parent][name].isRemovable():
-            raise ParameterException("(ParameterManager) setParameter, this parameter is not removable")
-
-        del self.params[parent][name]
-
-        if len(self.params[parent]) == 0:
-            del self.params[parent]
-        
 class Parameter(Valuable): #abstract
     def __init__(self, transient = False):
         self.transient = transient
@@ -407,8 +317,8 @@ class Parameter(Valuable): #abstract
     def isRemovable(self):
         return self.transient
         
-    def getParameterSerializableField(self):
-        return {} #TO OVERRIDE
+    #def getParameterSerializableField(self):
+    #    return {} #TO OVERRIDE
 
     def __str__(self):
         return str(self.getValue())
@@ -416,20 +326,23 @@ class Parameter(Valuable): #abstract
     def __repr__(self):
         return str(self.getValue())
         
-    @staticmethod
-    def isParsable(config, section):
-        return True #TO OVERRIDE
+    #@staticmethod
+    #def isParsable(config, section):
+    #    return True #TO OVERRIDE
         
-    @staticmethod
-    def parse(config, section):
-        return {} #TO OVERRIDE
+    #@staticmethod
+    #def parse(config, section):
+    #    return {} #TO OVERRIDE
     
     @staticmethod
-    def getStaticName():
+    def getType(): #TODO still used ?
         return PARAMETER_NAME #TO OVERRIDE
         
-    def setFromFile(self,valuesDictionary):
-        pass #TO OVERRIDE
+    #def setFromFile(self,valuesDictionary):
+    #    pass #TO OVERRIDE
+
+    def getProperties(self):
+        return _EMPTYDIC #TO OVERRIDE
 
 def _lockSorter(param1, param2):
     return param1.getLockID() - param2.getLockID()
@@ -583,7 +496,7 @@ class EnvironmentParameter(Parameter):
             
         self.removable = state
         
-    def getParameterSerializableField(self):
+    """def getParameterSerializableField(self):
         toret = Parameter.getParameterSerializableField(self)
         toret["readonly"]  = str(self.readonly)
         toret["removable"] = str(self.removable)
@@ -601,9 +514,12 @@ class EnvironmentParameter(Parameter):
                 toret["type"]     = getTypeFromInstance(self.typ)
             toret["value"]    = str(self.value)
 
-        return toret
+        return toret"""
+
+    def getProperties(self):
+        return {"readonly":self.readonly, "removable":self.removable}
         
-    @staticmethod
+    """@staticmethod
     def isParsable(config, section):
         return Parameter.isParsable(config, section) and config.has_option(section, "value")
         
@@ -643,13 +559,13 @@ class EnvironmentParameter(Parameter):
             dic["value"] = value
        
         dic["transient"] = False
-        return dic
+        return dic"""
         
     @staticmethod
-    def getStaticName():
-        return ENVIRONMENT_NAME
+    def getType():
+        return ENVIRONMENT_ATTRIBUTE_NAME
         
-    def setFromFile(self,valuesDictionary):
+    """def setFromFile(self,valuesDictionary):
         self._raiseIfReadOnly("setFromFile")
     
         Parameter.setFromFile(self, valuesDictionary)
@@ -661,7 +577,7 @@ class EnvironmentParameter(Parameter):
             self.setRemovable(valuesDictionary["removable"])
             
         if "readonly" in valuesDictionary:
-            self.setReadOnly(valuesDictionary["readonly"])
+            self.setReadOnly(valuesDictionary["readonly"])"""
             
     def __repr__(self):
         return "Environment, value:"+str(self.value)
@@ -767,7 +683,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
     def getDefaultIndex(self):
         return self.defaultIndex
 
-    def getParameterSerializableField(self):
+    """def getParameterSerializableField(self):
         toret = EnvironmentParameter.getParameterSerializableField(self)
         
         if not self.transientIndex:
@@ -775,7 +691,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             
         toret["defaultIndex"] = str(self.defaultIndex)
 
-        return toret
+        return toret"""
         
     def reset(self):
         self.index = self.defaultIndex
@@ -796,7 +712,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.tryToSetDefaultIndex(self.defaultIndex)
         self.tryToSetIndex(self.index)
 
-    @staticmethod
+    """@staticmethod
     def isParsable(config, section):
         return EnvironmentParameter.isParsable(config, section) and config.has_option(section, "defaultIndex")
         
@@ -814,13 +730,13 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         else:
             dic["transientIndex"] = True
             
-        return dic
+        return dic"""
         
     @staticmethod
-    def getStaticName():
-        return CONTEXT_NAME
+    def getType():
+        return CONTEXT_ATTRIBUTE_NAME
         
-    def setFromFile(self,valuesDictionary):
+    """def setFromFile(self,valuesDictionary):
         if "defaultIndex" in valuesDictionary:
             self.setDefaultIndex(valuesDictionary["defaultIndex"])
             
@@ -832,7 +748,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         else:
             self.setIndex(self.defaultIndex)
             
-        EnvironmentParameter.setFromFile(self, valuesDictionary)
+        EnvironmentParameter.setFromFile(self, valuesDictionary)"""
             
     def __repr__(self):
         return "Context, available values: "+str(self.value)+", selected index: "+str(self.index)+", selected value: "+str(self.value[self.index])
@@ -877,11 +793,3 @@ class VarParameter(EnvironmentParameter):
     
     def __repr__(self):
         return "Variable, value:"+str(self.value)
-
-RESOLVE_SPECIAL_SECTION_ORDER    = [ContextParameter, EnvironmentParameter]
-FORBIDEN_SECTION_NAME            = {CONTEXT_NAME:ContextParameter,
-                                    ENVIRONMENT_NAME:EnvironmentParameter}
-
-
-
-

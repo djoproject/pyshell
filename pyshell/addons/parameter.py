@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #listing with parent and key
+    #listing with key
         #does it work correctly ?
         
     #load/save 
@@ -32,30 +32,20 @@
 from pyshell.command.command   import UniCommand
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, parameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
-from pyshell.utils.parameter   import Parameter, EnvironmentParameter, ContextParameter, VarParameter, FORBIDEN_SECTION_NAME, RESOLVE_SPECIAL_SECTION_ORDER
+from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, environmentParameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
+from pyshell.utils.parameter   import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
-from pyshell.utils.constants   import CONTEXT_NAME, ENVIRONMENT_NAME, ENVIRONMENT_PARAMETER_FILE_KEY
+from pyshell.utils.constants   import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
-import os, sys
-
-try:
-    pyrev = sys.version_info.major
-except AttributeError:
-    pyrev = sys.version_info[0]
-
-if pyrev == 2:
-    import ConfigParser 
-else:
-    import configparser as ConfigParser
+import os 
 
 ## FUNCTION SECTION ##
 
 #################################### GENERIC METHOD ####################################
 
-def setProperties(key, propertyName, propertyValue, parameters, parent):
-    param = getParameter(key, parameters, parent)
+def setProperties(key, propertyName, propertyValue, parameters, attributeType):
+    param = getParameter(key, parameters, attributeType)
     
     if propertyName == "readonly":
         param.setReadOnly(propertyValue)
@@ -68,8 +58,8 @@ def setProperties(key, propertyName, propertyValue, parameters, parent):
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
-def getProperties(key, propertyName, parameters, parent):
-    param = getParameter(key, parameters, parent)
+def getProperties(key, propertyName, parameters, attributeType):
+    param = getParameter(key, parameters, attributeType)
     
     if propertyName == "readonly":
         return param.isReadOnly()
@@ -82,83 +72,30 @@ def getProperties(key, propertyName, parameters, parent):
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
-"""def addValuesFun(key, values, parameters, parent):
-    param = getParameter(key, parameters, parent)
+def getParameter(key,parameters,attributeType):
+    if not hasattr(parameters, attributeType):
+        raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 
-    if not param.isAListType():
-        raise Exception("This "+str(parent)+" parameter has not a list checker, can not add value")
+    container = getattr(parameters, attributeType)
 
-    old_values = param.getValue()[:]
-    old_values.extend(values)
-    param.setValue(old_values)"""
+    if not container.hasParameter(key):
+        raise Exception("Unknow parameter key '"+str(key)+"'")
 
-def getParameter(key,parameters,parent=None):
-    if not parameters.hasParameter(key, parent):
-        if parent is None:
-            raise Exception("Unknow parameter key '"+str(key)+"'")
-        else:
-            raise Exception("Unknow parameter key '"+str(key)+"' for parent '"+str(parent)+"'")
-
-    return parameters.getParameter(key, parent)
+    return container.getParameter(key)
     
-def removeParameter(key, parameters, parent=None):
-    if not parameters.hasParameter(key, parent):
+def removeParameter(key, parameters, attributeType):
+    if not hasattr(parameters, attributeType):
+        raise Exception("Unknow parameter type '"+str(attributeType)+"'")
+
+    container = getattr(parameters, attributeType)
+
+    if not container.hasParameter(key):
         return #no job to do
 
-    parameters.unsetParameter(key, parent)
+    container.unsetParameter(key)
 
-"""@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             parent    = stringArgChecker(),
-             key       = stringArgChecker())
-def listParameter(parameter, parent=None, key=None, printParent = True, allParentExcept = ()):
-    "list every parameter sorted by the parent name"
-    if parent != None:
-        if parent not in parameter.params:
-            return ()
-            #raise Exception("unknown parameter parent '"+str(parent)+"'") 
-        
-        if key != None:
-            if key not in parameter.params[parent]:
-                raise Exception("unknown key '"+str(key)+"' in parent '"+str(parent)+"'") 
-    
-            return (str(parent)+"."+str(key)+" : \""+repr(parameter.params[parent][key])+"\"",)
-    
-        keys = (parent,)
-    else:
-        keys = parameter.params.keys()
-    
-    to_ret = []
-    firstKey = True
-    for k in keys:
-        if k in allParentExcept:
-            continue
-    
-        if printParent:
-            #empty line before title
-            if firstKey:
-                firstKey = False
-            else:
-                to_ret.append( () )
-                
-            to_ret.append( (k,) )
-
-        for subk,subv in parameter.params[k].items():
-            rep = repr(subv)
-            
-            #TODO got shell size (if shell), and set the limit in place of 100
-            if len(rep) > 100:
-                rep = rep[:97] + "..."
-        
-            if printParent:
-                to_ret.append( ("    "+subk, ": \""+rep+"\"", ) )
-            else:
-                to_ret.append( (subk, ": \""+rep+"\"", ) )
-
-            
-    return to_ret"""
-
-def _listGeneric(parameter, parent, key, formatValueFun, getTitleFun, forbidenParent = ()):
-    #TODO re-apply a width limit on the printing
+def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun):
+    #TODO re-apply a width limit on the printing, too big value will show a really big print on the terminal
         #use it in printing ?
             #nope because we maybe want to print something on the several line
             
@@ -166,31 +103,26 @@ def _listGeneric(parameter, parent, key, formatValueFun, getTitleFun, forbidenPa
             #if in shell only 
             #or script ? without output redirection
 
-    if parent is not None:
-        if parent in forbidenParent:
-            raise DefaultPyshellException("Parent '"+str(parent)+"' is not allowed to list vars", USER_ERROR)
-        
-        if parent not in parameter.params:
-            raise DefaultPyshellException("Parent '"+str(parent)+"' does not exist", USER_WARNING)
-        
-        parents = (parent, )
+    if not hasattr(parameters, attributeType):
+        raise Exception("Unknow parameter type '"+str(attributeType)+"'")
+
+    container = getattr(parameters, attributeType)
+
+    if key is None:
+        key = ()
     else:
-        parents = parameter.params.keys()
-        
-    toRet = []
-    for k in parents:
-        if k in forbidenParent:
-            continue
-        
-        if key is not None:
-            if key not in parameter.params[k]:
-                continue
-            
-            toRet.append( formatValueFun(k, key, parameter.params[k][key], formatOrange) )
-            break
-        
-        for subk,subv in parameter.params[k].items():
-            toRet.append( formatValueFun(k, subk, subv, formatOrange) )
+        state, result = isAValidStringPath(key)
+        if not state:
+            raise Exception(result)
+
+        key = result
+
+    #retrieve all value from corresponding mltries
+    dico = container.mltries.buildDictionnary(key, True, True, False)
+
+    toRet = [] 
+    for subk,subv in dico.items():
+        toRet.append( formatValueFun(subk, subv, formatOrange) )
     
     if len(toRet) == 0:
         return [("No var available",)]
@@ -198,30 +130,37 @@ def _listGeneric(parameter, parent, key, formatValueFun, getTitleFun, forbidenPa
     toRet.insert(0, getTitleFun(formatBolt) )
     return toRet
 
-def _parameterRowFormating(parent, key, paramItem, valueFormatingFun):
+def _parameterRowFormating(key, paramItem, valueFormatingFun):
 
     if paramItem.isAListType():
         value = ', '.join(str(x) for x in paramItem.getValue())
     else:
         value = str(paramItem.getValue())
 
-    return (str(parent), str(key), valueFormatingFun(value), )
+    return (".".join(key), valueFormatingFun(value), )
 
 def _parameterGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Parent"), titleFormatingFun("Name"), titleFormatingFun("Value"), )
+    return (titleFormatingFun("Name"), titleFormatingFun("Value"), )
 
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             parent    = stringArgChecker(),
              key       = stringArgChecker())
 def listParameter(parameter, parent=None, key=None):
+    #TODO list var, env and context
+
+    for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
+        pass #TODO 
+
     return _listGeneric(parameter, parent, key, _parameterRowFormating, _parameterGetTitle)
 
-@shellMethod(filePath  = parameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY, ENVIRONMENT_NAME),
+@shellMethod(filePath  = environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def loadParameter(filePath, parameter):
     "load parameters from the settings file"
-    
+
+    pass #TODO execute config script
+
+    """    
     filePath = filePath.getValue()
     
     #load params
@@ -303,14 +242,37 @@ def loadParameter(filePath, parameter):
     if errorList.isThrowable():
         raise errorList
     
-    #parameter.load()
+    #parameter.load()"""
 
-@shellMethod(filePath  = parameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY, ENVIRONMENT_NAME),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def saveParameter(filePath, parameter):
+@shellMethod(filePath  = environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def saveParameter(filePath, parameters):
     "save not transient parameters to the settings file"
 
     filePath = filePath.getValue()
+
+    #with open(filePath, 'wb') as configfile:
+    for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
+        container = getattr(parameters, subcontainername)
+        dico = container.mltries.buildDictionnary((), True, True, False)
+
+        for key, value in dico.items():
+            if value.isTransient():
+                continue
+
+            #TODO manage type list
+            #TODO prblm
+
+            creationString = subcontainername+" create "+key+" "+getTypeFromInstance(value.typ.checker)+" "+",".join(value.getValue())+" -noErrorIfExists false"
+
+            #TODO 
+                #build instruction to create item
+                #build instruction to save each property of the item
+
+            pass #TODO
+
+
+    """filePath = filePath.getValue()
 
     #manage standard parameter
     config = ConfigParser.RawConfigParser()
@@ -325,9 +287,9 @@ def saveParameter(filePath, parameter):
             if isinstance(childValue, Parameter):
                 if childValue.isTransient():
                     continue
-            """
-                value = str(childValue.getValue())
-            else:"""
+            
+            #    value = str(childValue.getValue())
+            #else:
             
             value = str(childValue)
         
@@ -359,26 +321,26 @@ def saveParameter(filePath, parameter):
     with open(filePath, 'wb') as configfile:
         config.write(configfile)
     
-    #parameter.save()
+    #parameter.save()"""
         
-def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=False, parameters=None, listEnabled = False): 
+def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfExists, parameters, listEnabled): 
+    if not hasattr(parameters, attributeType):
+        raise Exception("Unknow parameter type '"+str(attributeType)+"'")
+
+    container = getattr(parameters, attributeType)
+
     #build checker
     if listEnabled:
         checker = listArgChecker(valueType(),1)
     else:
         checker = valueType()
     
-    if parameters.hasParameter(key,parent):
-        if noErrorIfExists:
-            value = checker.getValue(values, None, str(parent).title()+" "+key)
-            parameters.setParameter(key, classDef(value, checker),parent)
-            return 
-
-        raise Exception("Try to create a "+str(parent)+" with an existing key name '"+str(key)+"'")
+    if container.hasParameter(key) and not noErrorIfExists:
+        raise Exception("Try to create a "+str(attributeType)+" with an existing key name '"+str(key)+"'")
 
     #check value
-    value = checker.getValue(values, None, str(parent).title()+" "+key)
-    parameters.setParameter(key, classDef(value, checker),parent)
+    value = checker.getValue(values, None, str(attributeType).title()+" "+key)
+    container.setParameter(key, classDef(value, checker))
     
 #################################### env management#################################### 
 
@@ -387,20 +349,20 @@ def _createValuesFun(valueType, key, values, classDef, parent, noErrorIfExists=F
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def subtractEnvironmentValuesFun(key, values, parameters):
     "remove some elements from an environment parameter"
-    param = getParameter(key, parameters, ENVIRONMENT_NAME)
+    param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
     param.removeValues(values)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def removeEnvironmentContextValues(key, parameters):
     "remove an environment parameter"
-    removeParameter(key, parameters, ENVIRONMENT_NAME)
+    removeParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getEnvironmentValues(key, parameters):
     "get an environment parameter value" 
-    return getParameter(key, parameters, ENVIRONMENT_NAME).getValue()
+    return getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME).getValue()
 
 @shellMethod(key           = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values        = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
@@ -408,7 +370,7 @@ def getEnvironmentValues(key, parameters):
 def setEnvironmentValuesFun(key, values, parameters):
     "set an environment parameter value"
     
-    envParam = getParameter(key, parameters, ENVIRONMENT_NAME)
+    envParam = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
 
     if envParam.isAListType():
         envParam.setValue(values)
@@ -426,7 +388,7 @@ def setEnvironmentValuesFun(key, values, parameters):
              parameters      = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, parameters=None): 
     "create an environment parameter value" 
-    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_NAME, noErrorIfExists, parameters, False)
+    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noErrorIfExists, parameters, False)
 
 @shellMethod(valueType  = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
                                                "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
@@ -439,21 +401,21 @@ def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, para
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, parameters=None): 
     "create an environment parameter value list" 
-    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_NAME, noErrorIfExists, parameters, True)
+    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noErrorIfExists, parameters, True)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def addEnvironmentValuesFun(key, values, parameters):
     "add values to an environment parameter list"
-    param = getParameter(key, parameters, ENVIRONMENT_NAME)
+    param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
     param.addValues(values)
 
-def _envRowFormating(parent, key, envItem, valueFormatingFun):
+def _envRowFormating(key, envItem, valueFormatingFun):
     if envItem.isAListType():
-        return (str(key), "true", valueFormatingFun(', '.join(str(x) for x in envItem.getValue())), ) 
+        return (".".join(key), "true", valueFormatingFun(', '.join(str(x) for x in envItem.getValue())), ) 
     else:
-        return (str(key), "false", valueFormatingFun(str(envItem.getValue())), ) 
+        return (".".join(key), "false", valueFormatingFun(str(envItem.getValue())), ) 
 
 def _envGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("IsList"), titleFormatingFun("Value(s)"), )
@@ -461,7 +423,7 @@ def _envGetTitle(titleFormatingFun):
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker())
 def listEnvs(parameter, key=None):
-    return _listGeneric(parameter, ENVIRONMENT_NAME, key, _envRowFormating, _envGetTitle)
+    return _listGeneric(parameter, ENVIRONMENT_ATTRIBUTE_NAME, key, _envRowFormating, _envGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -470,7 +432,7 @@ def listEnvs(parameter, key=None):
              propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setEnvironmentProperties(key, propertyName, propertyValue, parameter):
-    setProperties(key, propertyName, propertyValue, parameter, ENVIRONMENT_NAME)
+    setProperties(key, propertyName, propertyValue, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -478,7 +440,7 @@ def setEnvironmentProperties(key, propertyName, propertyValue, parameter):
                                                    "transient":"transient"}),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getEnvironmentProperties(key, propertyName, parameter):
-    return getProperties(key, propertyName, parameter, ENVIRONMENT_NAME)
+    return getProperties(key, propertyName, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
 
 #################################### context management #################################### 
 
@@ -487,7 +449,7 @@ def getEnvironmentProperties(key, propertyName, parameter):
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def subtractContextValuesFun(key, values, parameters):
     "remove some elements from a context parameter"
-    param = getParameter(key, parameters, CONTEXT_NAME)
+    param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME)
     param.removeValues(values)
 
 @shellMethod(valueType       = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
@@ -501,34 +463,33 @@ def subtractContextValuesFun(key, values, parameters):
              parameter       = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def createContextValuesFun(valueType, key, values, noErrorIfExists=False, parameter=None): 
     "create a context parameter value list"
-    _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_NAME, noErrorIfExists, parameter, True)
+    _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noErrorIfExists, parameter, True)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def removeContextValues(key, parameter):
     "remove a context parameter"
-    removeParameter(key, parameter, CONTEXT_NAME)
+    removeParameter(key, parameter, CONTEXT_ATTRIBUTE_NAME)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getContextValues(key, parameter): 
     "get a context parameter value" 
-    return getParameter(key,parameter,CONTEXT_NAME).getValue()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).getValue()
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
              parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setContextValuesFun(key, values, parameter):
     "set a context parameter value"
-    getParameter(key,parameter,CONTEXT_NAME).setValue(values)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).setValue(values)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def addContextValuesFun(key, values, parameters):
     "add values to a context parameter list"    
-    #addValuesFun(key, values, parameters, CONTEXT_NAME)
-    param = getParameter(key, parameters, CONTEXT_NAME)
+    param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME)
     param.addValues(values)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -536,29 +497,29 @@ def addContextValuesFun(key, values, parameters):
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def selectValue(key, value, parameter):
     "select the value for the current context"
-    getParameter(key,parameter,CONTEXT_NAME).setIndexValue(value)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).setIndexValue(value)
     
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              index     = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def selectValueIndex(key, index, parameter):
     "select the value index for the current context"
-    getParameter(key,parameter,CONTEXT_NAME).setIndex(index)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).setIndex(index)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getSelectedContextValue(key, parameter):
     "get the selected value for the current context"
-    return getParameter(key,parameter,CONTEXT_NAME).getSelectedValue()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).getSelectedValue()
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getSelectedContextIndex(key, parameter):
     "get the selected value index for the current context"
-    return getParameter(key,parameter,CONTEXT_NAME).getIndex()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).getIndex()
 
-def _conRowFormating(parent, key, conItem, valueFormatingFun):
-    return (str(key), str(conItem.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
+def _conRowFormating(key, conItem, valueFormatingFun):
+    return (".".join(key), str(conItem.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
 
 def _conGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("Index"), titleFormatingFun("Value"), titleFormatingFun("Values"), )
@@ -566,7 +527,7 @@ def _conGetTitle(titleFormatingFun):
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker())
 def listContexts(parameter, key=None):
-    return _listGeneric(parameter, CONTEXT_NAME, key, _conRowFormating, _conGetTitle)
+    return _listGeneric(parameter, CONTEXT_ATTRIBUTE_NAME, key, _conRowFormating, _conGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -576,7 +537,7 @@ def listContexts(parameter, key=None):
              propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setContextProperties(key, propertyName, propertyValue, parameter):
-    setProperties(key, propertyName, propertyValue, parameter, CONTEXT_NAME)
+    setProperties(key, propertyName, propertyValue, parameter, CONTEXT_ATTRIBUTE_NAME)
     
 @shellMethod(key           = stringArgChecker(),
              propertyName  = tokenValueArgChecker({"readonly":"readonly",
@@ -585,32 +546,19 @@ def setContextProperties(key, propertyName, propertyValue, parameter):
                                                    "index_transient":"index_transient"}),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getContextProperties(key, propertyName, parameter):
-    return getProperties(key, propertyName , parameter, CONTEXT_NAME)
+    return getProperties(key, propertyName , parameter, CONTEXT_ATTRIBUTE_NAME)
 
 #################################### var management #################################### 
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parent     = stringArgChecker(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def subtractValuesVar(key, values, parent = None, parameters=None):
-
-    #parent must be different of forbidden name
-    if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent '"+str(parent)+"' can not be used in var system")
-
-    param = getParameter(key, parameters, parent)
-    param.removeValues(values)
+#################################################### beginning OF POC
 
 @shellMethod(key    = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parent = stringArgChecker(),
              engine = defaultInstanceArgChecker.getEngineChecker())
-def pre_addValues(key, values, parent=None, engine=None):
+def pre_addValues(key, values, engine=None):
     
     cmd = engine.getCurrentCommand()
     cmd.dynamicParameter["key"]      = key
-    cmd.dynamicParameter["parent"]   = parent
     cmd.dynamicParameter["disabled"] = False
 
     return values
@@ -649,69 +597,54 @@ def post_addValues(values, parameters=None, engine=None):
     if cmd.dynamicParameter["disabled"]:
         return values
 
-    parent = cmd.dynamicParameter["parent"]
     key = cmd.dynamicParameter["key"]
 
-    #parent must be different of forbidden name
-    if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent '"+str(parent)+"' can not be used in var system")
-
-    if parameters.hasParameter(key, parent):
-        param = getParameter(key, parameters, parent)
+    if parameters.variable.hasParameter(key):
+        param = getParameter(key, parameters, VARIABLE_ATTRIBUTE_NAME)
         param.addValues(values)
     else:
-        parameters.setParameter(key,VarParameter(values), parent)
+        parameters.variable.setParameter(key,VarParameter(values))
 
     return values
 
+#################################################### END OF POC
+
+@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def subtractValuesVar(key, values, parameters=None):
+    param = getParameter(key, parameters)
+    param.removeValues(values)
+
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parent    = stringArgChecker(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setVar(key, values, parameter, parent=None):
+def setVar(key, values, parameter):
     "assign a value to a var"
-
-    #parent must be different of forbidden name
-    if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent '"+str(parent)+"' can not be used in var system")
-
-    parameter.setParameter(key,VarParameter(values), parent)
+    parameter.variable.setParameter(key,VarParameter(values))
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parent    = stringArgChecker(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getVar(key, parameter, parent=None):
+def getVar(key, parameter):
     "get the value of a var"
-
-    #parent must be different of forbidden name
-    if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent '"+str(parent)+"' can not be used in var system")
-
-    return getParameter(key, parameter, parent).getValue()
+    return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME).getValue()
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parent    = stringArgChecker(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def unsetVar(key, parameter, parent=None):
+def unsetVar(key, parameter):
     "unset a var"
+    removeParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME)
 
-    #parent must be different of forbidden name
-    if parent in FORBIDEN_SECTION_NAME:
-        raise Exception("parent '"+str(parent)+"' can not be used in var system")
-
-    removeParameter(key, parameter, parent)
-
-def _varRowFormating(parent, key, varItem, valueFormatingFun):
-    return (str(parent), str(key), valueFormatingFun(', '.join(str(x) for x in varItem.getValue())), )
+def _varRowFormating(key, varItem, valueFormatingFun):
+    return (".".join(key), valueFormatingFun(', '.join(str(x) for x in varItem.getValue())), )
 
 def _varGetTitle(titleFormatingFun):
-    return ( titleFormatingFun("Parent"),titleFormatingFun("Name"),titleFormatingFun("Values"), )
+    return ( titleFormatingFun("Name"),titleFormatingFun("Values"), )
 
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             parent    = stringArgChecker(),
              key       = stringArgChecker())
-def listVars(parameter, parent=None, key=None):
-    return _listGeneric(parameter, parent, key, _varRowFormating, _varGetTitle, FORBIDEN_SECTION_NAME)
+def listVars(parameter, key=None):
+    return _listGeneric(parameter, VARIABLE_ATTRIBUTE_NAME, key, _varRowFormating, _varGetTitle)
 
 #################################### REGISTER SECTION #################################### 
 
@@ -726,7 +659,7 @@ registerCommand( ("subtract",) ,               post=subtractValuesVar)
 registerStopHelpTraversalAt( ("var",) )
 
 #context 
-registerSetTempPrefix( ("context", ) )
+registerSetTempPrefix( (CONTEXT_ATTRIBUTE_NAME, ) )
 registerCommand( ("unset",) ,              pro=removeContextValues)
 registerCommand( ("get",) ,                pre=getContextValues, pro=listResultHandler)
 registerCommand( ("set",) ,                post=setContextValuesFun)
@@ -740,10 +673,10 @@ registerCommand( ("select", "value",) ,    post=selectValue)
 registerCommand( ("list",) ,               pre=listContexts, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=listFlatResultHandler)
-registerStopHelpTraversalAt( ("context",) )
+registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,) )
 
 #env 
-registerSetTempPrefix( ("environment", ) )
+registerSetTempPrefix( (ENVIRONMENT_ATTRIBUTE_NAME, ) )
 registerCommand( ("list",) ,           pro=listEnvs,   post=printColumn )
 registerCommand( ("create","single",), post=createEnvironmentValueFun)
 registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
@@ -754,12 +687,12 @@ registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
 registerCommand( ("subtract",) ,       post=subtractEnvironmentValuesFun)
 registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
 registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=listFlatResultHandler) 
-registerStopHelpTraversalAt( ("environment",) ) 
+registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,) ) 
 
 #parameter
-registerSetTempPrefix( ("parameter", ) )
+registerSetTempPrefix( (PARAMETER_NAME, ) )
 registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("load",) ,           pro=loadParameter)
 registerCommand( ("list",) ,           pro=listParameter, post=printColumn)
-registerStopHelpTraversalAt( ("parameter",) )
+registerStopHelpTraversalAt( (PARAMETER_NAME,) )
     
