@@ -264,7 +264,7 @@ class ParameterManagerV2(object):
                 if len(value) > 1:
                     del value[tid]
                 else:
-                    mltries.remove( advancedResult.getFoundCompletePath() )
+                    self.mltries.remove( advancedResult.getFoundCompletePath() )
                 
                 #remove from thread local list
                 self.threadLocalVar[tid].remove(advancedResult.getFoundCompletePath())
@@ -275,7 +275,7 @@ class ParameterManagerV2(object):
                 if not value.isRemovable():
                     raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
             
-                mltries.remove( advancedResult.getFoundCompletePath() )
+                self.mltries.remove( advancedResult.getFoundCompletePath() )
     
     @synchronous()
     def flushThreadLocal(self):
