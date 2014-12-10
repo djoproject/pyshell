@@ -79,7 +79,7 @@ def getParameter(key,parameters,attributeType):
     container = getattr(parameters, attributeType)
 
     if not container.hasParameter(key):
-        raise Exception("Unknow parameter key '"+str(key)+"'")
+        raise Exception("Unknow parameter of type '"+str(attributeType)+"' with key '"+str(key)+"'")
 
     return container.getParameter(key)
     
