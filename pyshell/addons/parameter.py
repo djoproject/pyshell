@@ -613,26 +613,27 @@ def post_addValues(values, parameters=None, engine=None):
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def subtractValuesVar(key, values, parameters=None):
-    param = getParameter(key, parameters)
+    "remove existing value from a variable, remove first occurence met"
+    param = getParameter(key, parameters, VARIABLE_ATTRIBUTE_NAME)
     param.removeValues(values)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setVar(key, values, parameter):
-    "assign a value to a var"
+    "assign a value to a variable"
     parameter.variable.setParameter(key,VarParameter(values))
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getVar(key, parameter):
-    "get the value of a var"
+    "get the value of a variable"
     return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME).getValue()
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def unsetVar(key, parameter):
-    "unset a var"
+    "unset a variable, no error if does not exist"
     removeParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME)
 
 def _varRowFormating(key, varItem, valueFormatingFun):
@@ -644,6 +645,7 @@ def _varGetTitle(titleFormatingFun):
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker())
 def listVars(parameter, key=None):
+    "list every existing variables"
     return _listGeneric(parameter, VARIABLE_ATTRIBUTE_NAME, key, _varRowFormating, _varGetTitle)
 
 #################################### REGISTER SECTION #################################### 
