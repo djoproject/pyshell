@@ -35,7 +35,8 @@ def synchronous():
                 self._internalLock.release()
         return _synchronizer
     return _synched
-         
+ 
+#TODO should be in argchecker file
 INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgCheckerInstance,
                           "int"   : defaultInstanceArgChecker.getIntegerArgCheckerInstance,
                           "bool"  : defaultInstanceArgChecker.getbooleanValueArgCheckerInstance,
@@ -43,13 +44,13 @@ INSTANCE_TYPE          = {"string": defaultInstanceArgChecker.getStringArgChecke
 
 _EMPTYDIC = {}
 
-def getInstanceType(typ): #TODO still used ?
+"""def getInstanceType(typ):
     if typ in INSTANCE_TYPE:
         return INSTANCE_TYPE[typ]()
     else:
-        return ArgChecker()
+        return ArgChecker()"""
 
-def getTypeFromInstance(instance): #TODO still used ?
+def getTypeFromInstance(instance): #TODO should be a sub method of argchecker
     #XXX can't use a dico here because the order is significant
     
     if isinstance(instance, booleanValueArgChecker):
@@ -63,7 +64,7 @@ def getTypeFromInstance(instance): #TODO still used ?
     else:
         return "any"
         
-def _getInt(config, section, option, defaultValue): #TODO still used ?
+"""def _getInt(config, section, option, defaultValue):
     ret = defaultValue
     if config.has_option(section, option):
         try:
@@ -71,9 +72,9 @@ def _getInt(config, section, option, defaultValue): #TODO still used ?
         except ValueError as ve:
             raise ParameterLoadingException("(ParameterManager) _getInt, fail to load '"+option+"' for section '"+str(section)+"' : "+str(ve))
 
-    return ret
+    return ret"""
 
-def _getBool(config, section, option, defaultValue): #TODO still used ?
+"""def _getBool(config, section, option, defaultValue):
     ret = defaultValue
     if config.has_option(section, option):
         value = config.get(section,option)
@@ -82,7 +83,7 @@ def _getBool(config, section, option, defaultValue): #TODO still used ?
         else:
             ret = False
 
-    return ret
+    return ret"""
 
 def isAValidStringPath(stringPath):
     if type(stringPath) != str and type(stringPath) != unicode:
@@ -336,9 +337,9 @@ class Parameter(Valuable): #abstract
     #def parse(config, section):
     #    return {} #TO OVERRIDE
     
-    @staticmethod
-    def getType(): #TODO still used ?
-        return PARAMETER_NAME #TO OVERRIDE
+    """@staticmethod
+    def getType():
+        return PARAMETER_NAME #TO OVERRIDE"""
         
     #def setFromFile(self,valuesDictionary):
     #    pass #TO OVERRIDE
@@ -563,9 +564,9 @@ class EnvironmentParameter(Parameter):
         dic["transient"] = False
         return dic"""
         
-    @staticmethod
+    """@staticmethod
     def getType():
-        return ENVIRONMENT_ATTRIBUTE_NAME
+        return ENVIRONMENT_ATTRIBUTE_NAME"""
         
     """def setFromFile(self,valuesDictionary):
         self._raiseIfReadOnly("setFromFile")
@@ -735,9 +736,9 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             
         return dic"""
         
-    @staticmethod
+    """@staticmethod
     def getType():
-        return CONTEXT_ATTRIBUTE_NAME
+        return CONTEXT_ATTRIBUTE_NAME"""
         
     """def setFromFile(self,valuesDictionary):
         if "defaultIndex" in valuesDictionary:
