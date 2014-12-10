@@ -78,9 +78,9 @@ class CommandExecuter():
         self.params.environment.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,     EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT, typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False))
         self.params.environment.setParameter(ADDONLIST_KEY,                     EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False))
         
-        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False))
-        self.params.context.setParameter(CONTEXT_EXECUTION_KEY, ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False))
-        self.params.context.setParameter(CONTEXT_COLORATION_KEY,ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False))
+        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True))
+        self.params.context.setParameter(CONTEXT_EXECUTION_KEY, ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False, readonly=True))
+        self.params.context.setParameter(CONTEXT_COLORATION_KEY,ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True))
     
     def _initPrinter(self):
         ## prepare the printing system ##

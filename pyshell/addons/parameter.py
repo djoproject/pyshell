@@ -17,9 +17,6 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #listing with key
-        #does it work correctly ?
-        
     #load/save 
         #if parameter is readonly AND exists
             #don't load anything from file for this parameter
@@ -527,6 +524,7 @@ def _conGetTitle(titleFormatingFun):
 @shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker())
 def listContexts(parameter, key=None):
+    "list every existing contexts"
     return _listGeneric(parameter, CONTEXT_ATTRIBUTE_NAME, key, _conRowFormating, _conGetTitle)
     
 @shellMethod(key           = stringArgChecker(),
@@ -537,6 +535,7 @@ def listContexts(parameter, key=None):
              propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def setContextProperties(key, propertyName, propertyValue, parameter):
+    "set a context property"
     setProperties(key, propertyName, propertyValue, parameter, CONTEXT_ATTRIBUTE_NAME)
     
 @shellMethod(key           = stringArgChecker(),
@@ -546,6 +545,7 @@ def setContextProperties(key, propertyName, propertyValue, parameter):
                                                    "index_transient":"index_transient"}),
              parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def getContextProperties(key, propertyName, parameter):
+    "get a context property"
     return getProperties(key, propertyName , parameter, CONTEXT_ATTRIBUTE_NAME)
 
 #################################### var management #################################### 

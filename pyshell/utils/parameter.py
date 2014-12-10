@@ -140,7 +140,9 @@ class ParameterManagerV2(object):
     
     def _buildExistingPathFromError(self, wrongPath, advancedResult):
         pathToReturn = list(advancedResult.getFoundCompletePath())
-        pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount()])
+        pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount():])
+
+        print wrongPath, advancedResult.getFoundCompletePath(), advancedResult.getTokenFoundCount()
 
         return pathToReturn
 
@@ -391,7 +393,7 @@ class EnvironmentParameter(Parameter):
             else:
                 methName = ""
                 
-            raise ParameterException("("+self.__name__+") "+methName+"read only parameter")
+            raise ParameterException("("+self.__class__.__name__+") "+methName+"read only parameter")
 
     def _initLock(self):
         if not self.lockable:
@@ -596,10 +598,11 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.defaultIndex = 0
         self.index = 0
         
-        EnvironmentParameter.__init__(self, value, typ, transient, readonly, removable, sep)
+        EnvironmentParameter.__init__(self, value, typ, transient, False, removable, sep)
         self.tryToSetDefaultIndex(defaultIndex)
         self.tryToSetIndex(index)
         self.setTransientIndex(transientIndex)
+        self.setReadOnly(readonly)
                 
     def setValue(self,value):
         EnvironmentParameter.setValue(self,value)
