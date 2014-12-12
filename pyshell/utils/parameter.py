@@ -35,8 +35,6 @@ def synchronous():
                 self._internalLock.release()
         return _synchronizer
     return _synched
-         
-_EMPTYDIC = {}
 
 def getTypeFromInstance(instance): #TODO still used ? this kind of mechanism should be in argchecker file
     #XXX can't use a dico here because the order is significant
@@ -92,7 +90,9 @@ class ParameterManagerV2(object):
     
     def _buildExistingPathFromError(self, wrongPath, advancedResult):
         pathToReturn = list(advancedResult.getFoundCompletePath())
-        pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount()])
+        pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount():])
+
+        print wrongPath, advancedResult.getFoundCompletePath(), advancedResult.getTokenFoundCount()
 
         return pathToReturn
 
@@ -328,7 +328,7 @@ class EnvironmentParameter(Parameter):
             else:
                 methName = ""
                 
-            raise ParameterException("("+self.__name__+") "+methName+"read only parameter")
+            raise ParameterException("("+self.__class__.__name__+") "+methName+"read only parameter")
 
     def _initLock(self):
         if not self.lockable:
@@ -432,7 +432,7 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.removable = state
-                    
+
     def __repr__(self):
         return "Environment, value:"+str(self.value)
 
@@ -452,14 +452,15 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.defaultIndex = 0
         self.index = 0
         
-        EnvironmentParameter.__init__(self, value, typ, transient, readonly, removable, sep)
+        EnvironmentParameter.__init__(self, value, typ, transient, False, removable, sep)
         self.tryToSetDefaultIndex(defaultIndex)
         self.tryToSetIndex(index)
         self.setTransientIndex(transientIndex)
+        self.setReadOnly(readonly)
     
     def getProperties(self):
         return  ( ("defaultIndex", self.defaultIndex,), ("index", self.index,)  ("readonly", self.readonly, ), ("removable", self.removable, ), )
-       
+
     def setValue(self,value):
         EnvironmentParameter.setValue(self,value)
         self.value = _convertToSetList(self.value)
