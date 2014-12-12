@@ -86,7 +86,6 @@ def printColumnWithouHeader():
 def printColumn(listOfLine):
     if len(listOfLine) == 0:
         return
-
     #compute size
     size = {}
     spaceToAdd = 2 #at least two space column separator

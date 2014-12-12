@@ -318,6 +318,7 @@ def parseCommand(parsedCmd, mltries):
             tokenIndex = len(searchResult.existingPath) - 1
             tries = searchResult.existingPath[tokenIndex][1].localTries
             keylist = tries.getKeyList(finalCmd[tokenIndex])
+            print keylist, finalCmd[tokenIndex]
             
             raise DefaultPyshellException("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
 

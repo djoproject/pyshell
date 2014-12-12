@@ -68,6 +68,12 @@ def getProperties(key, propertyName, parameters, attributeType):
         return param.isTransientIndex()
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
+        
+def listProperties(key, parameters, attributeType):
+    param = getParameter(key, parameters, attributeType)
+    prop  = list(param.getProperties())
+    prop.insert(0, (formatBolt("Key"), formatBolt("Value")) )
+    return prop
 
 def getParameter(key,parameters,attributeType):
     if not hasattr(parameters, attributeType):
@@ -443,6 +449,11 @@ def setEnvironmentProperties(key, propertyName, propertyValue, parameter):
 def getEnvironmentProperties(key, propertyName, parameter):
     return getProperties(key, propertyName, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
 
+@shellMethod(key           = stringArgChecker(),
+             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def listEnvironmentProperties(key,parameter):
+    return listProperties(key, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
+
 #################################### context management #################################### 
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -551,6 +562,11 @@ def setContextProperties(key, propertyName, propertyValue, parameter):
 def getContextProperties(key, propertyName, parameter):
     "get a context property"
     return getProperties(key, propertyName , parameter, CONTEXT_ATTRIBUTE_NAME)
+    
+@shellMethod(key           = stringArgChecker(),
+             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def listContextProperties(key,parameter):
+    return listProperties(key, parameter, CONTEXT_ATTRIBUTE_NAME)
 
 #################################### var management #################################### 
 
@@ -676,6 +692,7 @@ registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=list
 registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=listFlatResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
+registerCommand( ("properties","list"),    pre=listContextProperties, pro=printColumn) 
 registerCommand( ("list",) ,               pre=listContexts, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=listFlatResultHandler)
@@ -693,6 +710,7 @@ registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
 registerCommand( ("subtract",) ,       post=subtractEnvironmentValuesFun)
 registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
 registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=listFlatResultHandler) 
+registerCommand( ("properties","list"), pre=listEnvironmentProperties, pro=printColumn) 
 registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,) ) 
 
 #parameter
