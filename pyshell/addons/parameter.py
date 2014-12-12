@@ -137,21 +137,25 @@ def _parameterRowFormating(key, paramItem, valueFormatingFun):
     else:
         value = str(paramItem.getValue())
 
-    return (".".join(key), valueFormatingFun(value), )
+    return ("  "+".".join(key), valueFormatingFun(value), )
 
 def _parameterGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Name"), titleFormatingFun("Value"), )
+    return (" "+titleFormatingFun("Name"), titleFormatingFun("Value"), )
 
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+@shellMethod(parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker())
-def listParameter(parameter, parent=None, key=None):
-    #TODO list var, env and context
-
+def listParameter(parameters, key=None): #TODO use with a print column without header
+    toPrint = []
+    toPrint.append("") #TODO remove this when "print column without header" will be ready
     for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
-        pass #TODO 
-
-    return _listGeneric(parameter, parent, key, _parameterRowFormating, _parameterGetTitle)
+        if not hasattr(parameters, subcontainername):
+            raise Exception("Unknow parameter type '"+str(attributeType)+"'")
+            
+        toPrint.append(formatBolt(subcontainername.upper()))
+        toPrint.extend(_listGeneric(parameters, subcontainername, key, _parameterRowFormating, _parameterGetTitle))
+        
+    return toPrint
 
 @shellMethod(filePath  = environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
              parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())

@@ -79,6 +79,9 @@ def printBytesAsString(byteList):
     
     return byteList
 
+def printColumnWithouHeader():
+    pass #TODO (needed to list all parameter, see addon/parameter)
+
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
     if len(listOfLine) == 0:
