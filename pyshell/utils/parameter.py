@@ -22,6 +22,7 @@ from pyshell.utils.valuable  import Valuable, SelectableValuable
 from threading import Lock, current_thread
 from functools import wraps
 from tries import multiLevelTries
+from shlex import shlex
 
 def synchronous():
     def _synched(func):
@@ -555,8 +556,7 @@ class VarParameter(EnvironmentParameter):
             
             for v in value_to_parse:
                 if type(v) == str or type(v) == unicode:
-                    v = v.strip()
-                    v = v.split(" ") #TODO should use the same string split as in the whole software (with space exclusion)
+                    v = split(v)
 
                     for subv in v:
                         if len(subv) == 0:
