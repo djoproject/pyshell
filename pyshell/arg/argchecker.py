@@ -35,13 +35,13 @@ from pyshell.utils.keystore  import Key
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEYSTORE_SECTION_NAME
 
 #string argchecker definition
-ARGCHECKER_TYPENAME                 = "ArgChecker"
+ARGCHECKER_TYPENAME                 = "Any"
 STRINGCHECKER_TYPENAME              = "String"
-INTEGERCHECKER_TYPENAME             = "Integer"
+INTEGERCHECKER_TYPENAME             = "Int"
 LIMITEDINTEGERCHECKER_TYPENAME      = "Limited integer"
 HEXACHECKER_TYPENAME                = "Hexadecimal"
 BINARYCHECKER_TYPENAME              = "Binary"
-FILEPATHCHECKER_TYPENAME            = "filePath"
+FILEPATHCHECKER_TYPENAME            = "FilePath"
 LISTCHECKER_TYPENAME                = "List"
 DEFAULTVALUE_TYPENAME               = "Default"
 ENVIRONMENTDYNAMICCHECKER_TYPENAME  = "Environment dynamic"
@@ -55,7 +55,7 @@ PARAMETERCHECKER_TYPENAME           = "Parameter"
 COMPLETEENVIRONMENTCHECKER_TYPENAME = "Complete Environment"
 ENGINECHECKER_TYPENAME              = "Engine"
 FLOATCHECKER_TYPENAME               = "Float"
-BOOLEANCHECKER_TYPENAME             = "Boolean"
+BOOLEANCHECKER_TYPENAME             = "Bool"
 TOKENCHECKER_TYPENAME               = "Token"
 KEYCHECKER_TYPENAME                 = "Key"
 KEYTRANSLATORCHECKER_TYPENAME       = "KeyTranslator"
@@ -135,7 +135,19 @@ class defaultInstanceArgChecker(object):
 class ArgChecker(object):
     def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True, typeName = ARGCHECKER_TYPENAME):
         self.typeName    = typeName
+        self.setSize(minimumSize, maximumSize)
+        self.defaultValueEnabled = True
+        self.hasDefault          = False
+        self.default             = None
+        self.showInUsage         = showInUsage
+        self.engine              = None
         
+    def setSize(self, minimumSize=None, maximumSize=None):
+        self.checkSize(minimumSize=None, maximumSize=None)
+        self.minimumSize         = minimumSize
+        self.maximumSize         = maximumSize
+        
+    def checkSize(self,minimumSize, maximumSize):
         if minimumSize != None:
             if type(minimumSize) != int:
                 raise argInitializationException("("+self.typeName+") Minimum size must be an integer, got type '"+str(type(minimumSize))+"' with the following value <"+str(minimumSize)+">")
@@ -152,14 +164,6 @@ class ArgChecker(object):
     
         if minimumSize != None and maximumSize != None and maximumSize < minimumSize:
             raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximumSize)+"> can not be smaller than Minimum size <"+str(minimumSize)+">") 
-    
-        self.minimumSize         = minimumSize
-        self.maximumSize         = maximumSize
-        self.defaultValueEnabled = True
-        self.hasDefault          = False
-        self.default             = None
-        self.showInUsage         = showInUsage
-        self.engine              = None
         
     def isVariableSize(self):
         return (self.minimumSize == self.maximumSize == None) or self.minimumSize != self.maximumSize
@@ -237,6 +241,9 @@ class ArgChecker(object):
             prefix += ": "
             
         raise argException("("+self.typeName+") "+ prefix + message)
+        
+    def getTypeName(self):
+        return self.typeName
     
 class stringArgChecker(ArgChecker):
     def __init__(self, minimumStringSize=0, maximumStringSize = None, typeName = STRINGCHECKER_TYPENAME):
@@ -652,7 +659,6 @@ class listArgChecker(ArgChecker):
 
         #checker must have a fixed size
         if checker.minimumSize != checker.maximumSize or checker.minimumSize == None or checker.minimumSize == 0:
-
             if checker.minimumSize is None:
                 checkerSize = "]-Inf,"
             else:
@@ -665,14 +671,17 @@ class listArgChecker(ArgChecker):
         
             raise argInitializationException("("+LISTCHECKER_TYPENAME+") checker must have a fixed size bigger than zero, got this sizer : "+checkerSize)
     
-        if minimumSize != None and (minimumSize % checker.minimumSize)  != 0:
-            raise argInitializationException("("+LISTCHECKER_TYPENAME+") the minimum size of the list <"+str(minimumSize)+"> is not a multiple of the checker size <"+str(checker.minimumSize)+">")
-            
-        if maximumSize != None and (maximumSize % checker.minimumSize)  != 0:
-            raise argInitializationException("("+LISTCHECKER_TYPENAME+") the maximum size of the list <"+str(maximumSize)+"> is not a multiple of the checker size <"+str(checker.minimumSize)+">")
-        
-        ArgChecker.__init__(self,minimumSize,maximumSize, True, LISTCHECKER_TYPENAME)
         self.checker = checker
+        ArgChecker.__init__(self,minimumSize,maximumSize, True, LISTCHECKER_TYPENAME)
+    
+    def checkSize(self,minimumSize, maximumSize):
+        ArgChecker.checkSize(self,minimumSize, maximumSize)
+    
+        if minimumSize != None and (minimumSize % self.checker.minimumSize)  != 0:
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") the minimum size of the list <"+str(minimumSize)+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">")
+            
+        if maximumSize != None and (maximumSize % self.checker.minimumSize)  != 0:
+            raise argInitializationException("("+LISTCHECKER_TYPENAME+") the maximum size of the list <"+str(maximumSize)+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">")
     
     def getValue(self,values,argNumber=None, argNameToBind=None):    
         #check if it's a list

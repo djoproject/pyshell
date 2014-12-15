@@ -16,10 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker  import ArgChecker, defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, stringArgChecker, booleanValueArgChecker, floatTokenArgChecker
+from pyshell.arg.argchecker  import ArgChecker, defaultInstanceArgChecker, listArgChecker
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
-from pyshell.utils.constants import DEFAULT_SEPARATOR #TODO probably need to delete it soon
 from threading import Lock, current_thread
 from functools import wraps
 from tries import multiLevelTries
@@ -35,20 +34,6 @@ def synchronous():
                 self._internalLock.release()
         return _synchronizer
     return _synched
-
-def getTypeFromInstance(instance): #TODO still used ? this kind of mechanism should be in argchecker file
-    #XXX can't use a dico here because the order is significant
-    
-    if isinstance(instance, booleanValueArgChecker):
-        return "bool"
-    elif isinstance(instance, stringArgChecker):
-        return "string"
-    elif isinstance(instance, IntegerArgChecker):
-        return "int"
-    elif isinstance(instance, floatTokenArgChecker):
-        return "float"
-    else:
-        return "any"
 
 def isAValidStringPath(stringPath):
     if type(stringPath) != str and type(stringPath) != unicode:
@@ -73,7 +58,7 @@ class ParameterContainer(object):
         self.context     = ParameterManagerV2()
         self.variable    = ParameterManagerV2()
 
-    def flushVariableForCurrentThread(): #TODO call it at the end of each execution
+    def flushVariableForCurrentThread(): #TODO call it at the end of each execution, prblm with inner call...
         self.environment.flushThreadLocal()
         self.context.flushThreadLocal()
         self.variable.flushThreadLocal()
@@ -299,7 +284,7 @@ class EnvironmentParameter(Parameter):
     _internalLock = Lock()
     _internalLockCounter = 0
 
-    def __init__(self, value, typ=None, transient = False, readonly = False, removable = True, sep = DEFAULT_SEPARATOR):
+    def __init__(self, value, typ=None, transient = False, readonly = False, removable = True):
         Parameter.__init__(self, transient)
         self.readonly = False #need to be false at the beginning to define the different class fields
         self.setRemovable(removable)
@@ -309,7 +294,6 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
 
         self.isListType = isinstance(typ, listArgChecker)
-        self.setListSeparator(sep) #TODO still needed ?
         self.typ = typ
         self.setValue(value)
         
@@ -390,17 +374,6 @@ class EnvironmentParameter(Parameter):
         for v in values:
             if v in self.value:
                 self.value.remove(v)
-        
-    def setListSeparator(self, sep):
-        self._raiseIfReadOnly("setListSeparator")
-    
-        if sep == None or (type(sep) != str and type(sep) != unicode):
-            raise ParameterException("(EnvironmentParameter) setListSeparator, separator must be a string, get "+str(type(sep)))
-            
-        if len(sep) != 1:
-            raise ParameterException("(EnvironmentParameter) setListSeparator, separator must have a length of 1, get <"+str(len(sep))+">")
-            
-        self.sep = sep
 
     def getValue(self):
         return self.value
@@ -442,17 +415,20 @@ def _convertToSetList(orig):
     return [ x for x in orig if not (x in seen or seen_add(x))]
 
 class ContextParameter(EnvironmentParameter, SelectableValuable):
-    def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True, sep=","):
+    def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True):
 
-        if not isinstance(typ,listArgChecker):
+        if not isinstance(typ,listArgChecker):            
             typ = listArgChecker(typ,1)
-        else:
-            pass #TODO listArgChecker must have a minimum size of 1
+        else:        
+            typ.setSize(1,None)
+            
+        if typ.checker.maximumSize != 1:
+            raise ParameterException("(ContextParameter) __init__, inner checker must have a maximum length of 1, got '"+str(typ.checker.maximumSize)+"'")
         
         self.defaultIndex = 0
         self.index = 0
         
-        EnvironmentParameter.__init__(self, value, typ, transient, False, removable, sep)
+        EnvironmentParameter.__init__(self, value, typ, transient, False, removable)#, sep)
         self.tryToSetDefaultIndex(defaultIndex)
         self.tryToSetIndex(index)
         self.setTransientIndex(transientIndex)
@@ -570,7 +546,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         
 class VarParameter(EnvironmentParameter):
     def __init__(self,value):
-        tmp_value_parsed = [value] #TODO what occur if it is a list or not ?
+        tmp_value_parsed = [value]
         parsed_value = []
         
         while len(tmp_value_parsed) > 0:
@@ -580,7 +556,7 @@ class VarParameter(EnvironmentParameter):
             for v in value_to_parse:
                 if type(v) == str or type(v) == unicode:
                     v = v.strip()
-                    v = v.split(" ")
+                    v = v.split(" ") #TODO should use the same string split as in the whole software (with space exclusion)
 
                     for subv in v:
                         if len(subv) == 0:

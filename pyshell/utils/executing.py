@@ -33,11 +33,9 @@ from pyshell.arg.argchecker    import booleanValueArgChecker, defaultInstanceArg
 from pyshell.utils.constants   import DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.printing    import warning, error, printException
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
-from pyshell.utils.parameter   import VarParameter
-import threading, thread
 from tries.exception import triesException
+import sys, threading, thread
 
-import sys
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
     from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
 else:
@@ -273,10 +271,6 @@ def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
                 
                 else:
                     param = params.variable.getParameter(stringToken)
-                    
-                    if not isinstance(param, VarParameter):
-                        unknowVarError.add("specified key '"+stringToken+"' correspond to a type different of a var")
-                        continue
                     
                     #because it is a VarParameter, it is always a list type
                     newRawCmd.extend(param.getValue())   

@@ -30,7 +30,7 @@ from pyshell.command.command   import UniCommand
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, environmentParameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
-from pyshell.utils.parameter   import getTypeFromInstance, ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.utils.parameter   import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
 from pyshell.utils.constants   import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.printing    import formatBolt, formatOrange
@@ -182,7 +182,6 @@ def saveParameter(filePath, parameters):
     "save not transient parameters to the settings file"
 
     #TODO
-        #getTypeFromInstance should be a arg method
         #create settings directory if not exist
         #use command create list pour l'env
         #create missing settings command
@@ -202,9 +201,9 @@ def saveParameter(filePath, parameters):
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+".".join(key)+" "+getTypeFromInstance(parameter.typ.checker)+" "+" ".join(str(x) for x in parameter.getValue())+" -noErrorIfExists true\n" )
+                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.checker.getTypeName()+" "+" ".join(str(x) for x in parameter.getValue())+" -noErrorIfExists true\n" )
                 else:
-                    configfile.write( subcontainername+" create "+".".join(key)+" "+getTypeFromInstance(parameter.typ)+" "+str(parameter.getValue())+" -noErrorIfExists true\n" )
+                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.getTypeName()+" "+str(parameter.getValue())+" -noErrorIfExists true\n" )
 
                 for propName,propValue in parameter.getProperties():
                     configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
