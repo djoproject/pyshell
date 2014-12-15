@@ -319,7 +319,7 @@ class EnvironmentParameter(Parameter):
         self.setReadOnly(readonly)
         
     def getProperties(self):
-        return ( ("readonly", self.readonly, ), ("removable", self.removable, ), ) 
+        return ( ("removable", self.removable, ), ("readonly", self.readonly, ), ) 
 
     def _raiseIfReadOnly(self, methName = None):
         if self.readonly:
@@ -459,7 +459,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.setReadOnly(readonly)
     
     def getProperties(self):
-        return  ( ("defaultIndex", self.defaultIndex,), ("index", self.index,) , ("readonly", self.readonly, ), ("removable", self.removable, ), )
+        return  ( ("defaultIndex", self.defaultIndex,), ("index", self.index,), ("removable", self.removable, ), ("readonly", self.readonly, ), )
 
     def setValue(self,value):
         EnvironmentParameter.setValue(self,value)

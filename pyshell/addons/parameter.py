@@ -30,9 +30,9 @@ from pyshell.command.command   import UniCommand
 from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, environmentParameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
-from pyshell.utils.parameter   import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.utils.parameter   import getTypeFromInstance, ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
-from pyshell.utils.constants   import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME
+from pyshell.utils.constants   import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
 import os 
@@ -161,174 +161,56 @@ def listParameter(parameters, key=None): #TODO use with a print column without h
     return toPrint
 
 @shellMethod(filePath  = environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def loadParameter(filePath, parameter):
+             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def loadParameter(filePath, parameters):
     "load parameters from the settings file"
 
-    pass #TODO execute config script
-
-    """    
     filePath = filePath.getValue()
-    
-    #load params
-    config = None
+
     if os.path.exists(filePath):
-        config = ConfigParser.RawConfigParser()
-        try:
-            config.read(filePath)
-        except Exception as ex:
-            raise ParameterLoadingException("(ParameterManager) load, fail to read parameter file : "+str(ex))
+        afile = AliasFromFile(filePath)
+        afile.setErrorGranularity(granularity) #TODO set a granularity to never stop, print every error
+        
+        with self.ExceptionManager("An error occured during parameters loading: "):
+            afile._execute(args = (), parameters=parameters)
     else:
-        #is there at least one parameter in one of the existing category ?
-        emptyParameter = True
-        for parentCategoryName,categoryList in parameter.params.items():
-            if len(parameter.params[parentCategoryName]) > 0:
-                emptyParameter = False
-                break
-        
-        #if no parameter file, try to create it, then return
-        if not emptyParameter:
-            try:
-                save(filePath, parameter)
-            except Exception as ex:
-                raise ParameterLoadingException("(ParameterManager) load, parameter file does not exist, fail to create it"+str(ex))
-            return
-
-    #read and parse, for each section
-    errorList = ListOfException()
-    for section in config.sections():
-        specialSectionClassToUse = None
-        for specialSectionClass in RESOLVE_SPECIAL_SECTION_ORDER:
-            if not specialSectionClass.isParsable(config, section):
-                continue
-                
-            specialSectionClassToUse = specialSectionClass
-            break
-        if specialSectionClassToUse != None:
-        
-            #a parent category with a similar name can not already exist (because of the structure of the parameter file)
-            if section in parameter.params:
-                errorList.addException(ParameterLoadingException("Section '"+str(section)+"', a parent category with this name already exist, can not create a "+specialSectionClassToUse.getStaticName()+" with this name"))
-                continue
-            
-            #try to parse the parameter
-            try:
-                argument_dico = specialSectionClassToUse.parse(config, section)
-            except PyshellException as ale:
-                errorList.addException(ale)
-                continue
-            
-            if section in parameter.params[specialSectionClassToUse.getStaticName()]:
-                try:
-                    parameter.params[specialSectionClassToUse.getStaticName()][section].setFromFile(argument_dico)
-                except Exception as ex:
-                    errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to set information on "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
-                    
-            else:
-                try:
-                    parameter.params[specialSectionClassToUse.getStaticName()][section] = specialSectionClassToUse(**argument_dico)
-                except Exception as ex:
-                    errorList.addException(ParameterLoadingException("(ParameterManager) load, fail to create new "+specialSectionClassToUse.getStaticName()+" '"+str(section)+"' : "+str(ex)))
-                    continue
-    
-        ### GENERIC ### 
-        else:
-            if section in FORBIDEN_SECTION_NAME:
-                errorList.addException(ParameterLoadingException( "(ParameterManager) load, parent section name '"+str(section)+"' not allowed"))
-                continue
-        
-            #if section in 
-
-            for option in config.options(section):
-                if section not in parameter.params:
-                    parameter.params[section] = {}
-                
-                parameter.params[section][option] = VarParameter(config.get(section, option))
-    
-    #manage errorList
-    if errorList.isThrowable():
-        raise errorList
-    
-    #parameter.load()"""
+        saveParameter(filePath, parameters)
 
 @shellMethod(filePath  = environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def saveParameter(filePath, parameters):
     "save not transient parameters to the settings file"
 
+    #TODO
+        #getTypeFromInstance should be a arg method
+        #create settings directory if not exist
+        #use command create list pour l'env
+        #create missing settings command
+        #prblm, pour les champs qui sont déjà en readonly au lancement du progr
+        #...
+
+    #TODO is there something to save ?
+
     filePath = filePath.getValue()
-
-    #with open(filePath, 'wb') as configfile:
-    for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
-        container = getattr(parameters, subcontainername)
-        dico = container.mltries.buildDictionnary((), True, True, False)
-
-        for key, value in dico.items():
-            if value.isTransient():
-                continue
-
-            #TODO manage type list
-            #TODO prblm
-
-            creationString = subcontainername+" create "+key+" "+getTypeFromInstance(value.typ.checker)+" "+",".join(value.getValue())+" -noErrorIfExists false"
-
-            #TODO 
-                #build instruction to create item
-                #build instruction to save each property of the item
-
-            pass #TODO
-
-
-    """filePath = filePath.getValue()
-
-    #manage standard parameter
-    config = ConfigParser.RawConfigParser()
-    for parent, childs in parameter.params.items():   
-        if parent in FORBIDEN_SECTION_NAME:
-            continue
-        
-        if parent == None:
-            parent = MAIN_CATEGORY
-        
-        for childName, childValue in childs.items():
-            if isinstance(childValue, Parameter):
-                if childValue.isTransient():
-                    continue
-            
-            #    value = str(childValue.getValue())
-            #else:
-            
-            value = str(childValue)
-        
-            if not config.has_section(parent):
-                config.add_section(parent)
-
-            config.set(parent, childName, value)
-    
-    #manage context and environment
-    for s in FORBIDEN_SECTION_NAME:
-        if s in parameter.params:
-            for contextName, contextValue in parameter.params[s].items():
-                if contextValue.isTransient():
-                    continue
-            
-                if not config.has_section(contextName):
-                    config.add_section(contextName)
-
-                for name, value in contextValue.getParameterSerializableField().items():
-                    config.set(contextName, name, value)
-    
-    #create config directory
-    #TODO manage if the directory already exist or if it is a file
-        #TODO manage it in the other place where config is saved
-    if not os.path.exists(os.path.dirname(filePath)):
-        os.makedirs(os.path.dirname(filePath))
-
-    #save file
     with open(filePath, 'wb') as configfile:
-        config.write(configfile)
-    
-    #parameter.save()"""
+        for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
+            container = getattr(parameters, subcontainername)
+            dico = container.mltries.buildDictionnary((), True, True, False)
+
+            for key, parameter in dico.items():
+                if parameter.isTransient():
+                    continue
+
+                if parameter.isAListType():
+                    configfile.write( subcontainername+" create "+".".join(key)+" "+getTypeFromInstance(parameter.typ.checker)+" "+" ".join(str(x) for x in parameter.getValue())+" -noErrorIfExists true\n" )
+                else:
+                    configfile.write( subcontainername+" create "+".".join(key)+" "+getTypeFromInstance(parameter.typ)+" "+str(parameter.getValue())+" -noErrorIfExists true\n" )
+
+                for propName,propValue in parameter.getProperties():
+                    configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
+
+                configfile.write("\n")
+
         
 def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfExists, parameters, listEnabled): 
     if not hasattr(parameters, attributeType):
