@@ -183,9 +183,21 @@ def saveParameter(filePath, parameters):
 
     #TODO
         #create settings directory if not exist
+            #create a method to do it, and use it everywhere the sofware try to write in this directory
+            
         #use command create list pour l'env
+            #with the current solution, not possible to use environment
+                #because single and list
+                
+                #SOLUTION 1: add an extra arg on creation
+                
+                #SOLUTION 2: set it with settings
+                
+                #... 
+                
         #create missing settings command
-        #prblm, pour les champs qui sont déjà en readonly au lancement du progr
+            #example, index, defaultindex, ...
+        
         #...
 
     #TODO is there something to save ?
@@ -204,9 +216,23 @@ def saveParameter(filePath, parameters):
                     configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.checker.getTypeName()+" "+" ".join(str(x) for x in parameter.getValue())+" -noErrorIfExists true\n" )
                 else:
                     configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.getTypeName()+" "+str(parameter.getValue())+" -noErrorIfExists true\n" )
-
-                for propName,propValue in parameter.getProperties():
-                    configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
+                
+                properties = parameter.getProperties()
+                
+                if len(properties) > 0:
+                    #disable readOnly 
+                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly false\n" )
+                    readOnlyReset = False
+                    
+                    for propName,propValue in parameter.getProperties():
+                        configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
+                        
+                        if propName.lower() == "readonly":
+                            readOnlyReset = True
+                            
+                    if not readOnlyReset:
+                        configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly "+str(parameter.isReadOnly())+"\n" )
+                    
 
                 configfile.write("\n")
 
