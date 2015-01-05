@@ -59,10 +59,53 @@ class ParameterContainer(object):
         self.context     = ParameterManagerV2()
         self.variable    = ParameterManagerV2()
 
-    def flushVariableForCurrentThread(): #TODO call it at the end of each execution, prblm with inner call...
-        self.environment.flushThreadLocal()
-        self.context.flushThreadLocal()
-        self.variable.flushThreadLocal()
+    #call 0 
+        #push 0
+            #call 0.0
+                #push 1
+                #pop 1
+
+            #call 0.1
+                #push 1
+                #pop 1
+        #pop 0
+
+    #call 1
+        #push 0
+        #pop 0
+
+    #previous      = pop
+        #state = push/pop (could be a boolean)
+    #initial level = level 0
+        #store in each manager, no need to process, just call corresponding inner push/pop
+
+    #previous == pop
+        #current == push
+            #do nothing
+        #current == pop
+            #remove level
+
+    #previous == push
+        #current == push
+            #add level
+        #current == pop
+            #do nothing
+
+    def pushVariableLevelForThisThread(self): #TODO call it at the end of each execution, prblm with inner call...
+
+        #TODO see above
+
+        self.environment.pushVariableLevelForThisThread()
+        self.context.pushVariableLevelForThisThread()
+        self.variable.pushVariableLevelForThisThread()
+
+    def popVariableLevelForThisThread():
+
+        #TODO see above
+
+        self.environment.popVariableLevelForThisThread()
+        self.context.popVariableLevelForThisThread()
+        self.variable.popVariableLevelForThisThread()
 
 class ParameterManagerV3(object):
     #TODO
@@ -122,7 +165,11 @@ class ParameterManagerV3(object):
             
             if localParam:
                 tid            = current_thread().ident
-                key            = (tid, self.threadLevel[tid]) #TODO could raise if no starting push
+
+                if tid not in self.threadLevel:
+                    raise ParameterException("(ParameterManager) setParameter, no level defined for this thread id '"+str(tid)+"'")
+
+                key            = (tid, self.threadLevel[tid])
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
 
                 if key in local_var:
@@ -146,7 +193,11 @@ class ParameterManagerV3(object):
             if localParam:
                 global_var     = None
                 tid            = current_thread().ident
-                key            = (tid, self.threadLevel[tid]) #TODO could raise if no starting push
+
+                if tid not in self.threadLevel:
+                    raise ParameterException("(ParameterManager) setParameter, no level defined for this thread id '"+str(tid)+"'")
+
+                key            = (tid, self.threadLevel[tid])
                 local_var[key] = param
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
             else:
@@ -155,69 +206,110 @@ class ParameterManagerV3(object):
             self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
             
     @synchronous()
-    def getParameter(self, stringPath, perfectMatch = False, localParam = True): #TODO
+    def getParameter(self, stringPath, perfectMatch = False, localParam = True, exploreOtherLevel=True):
         advancedResult = self._getAdvanceResult("getParameter",stringPath, perfectMatch=perfectMatch) #this call will raise if value not found or ambiguous
         (global_var, local_var, ) = advancedResult.getValue()
         
-        #TODO boolean localParam is not enough, we need to know if we have to explore local and global, or only local, or only global
+        if advancedResult.isValueFound():
+            (global_var, local_var, ) = advancedResult.getValue()
 
-        #TODO update from here
-        if isinstance(value, dict):
-            tid = current_thread().ident
-            
-            if tid not in value:
-                raise ParameterException("(ParameterManager) getParameter, unknown parameter '"+stringPath+"'")
-                
-            return value[tid]
-        else:
-            return value
+            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without ordering
+                if localParam:
+                    tid = current_thread().ident
+
+                    if tid not in self.threadLevel:
+                        raise ParameterException("(ParameterManager) getParameter, no level defined for this thread id '"+str(tid)+"'")
+
+                    key = (tid, self.threadLevel[tid])
+
+                    if key in local_var:
+                        return local_var[key]
+
+                    if not exploreOtherLevel:
+                        raise ParameterException("(ParameterManager) getParameter, unknown local parameter '"+stringPath+"'")
+                else:
+                    if global_var is not None:
+                        return global_var
+
+                    if not exploreOtherLevel:
+                        raise ParameterException("(ParameterManager) getParameter, unknown global parameter '"+stringPath+"'")
+
+                localParam = not localParam
+
+        raise ParameterException("(ParameterManager) getParameter, unknown parameter '"+stringPath+"'")
     
     @synchronous()
-    def hasParameter(self, stringPath, raiseIfAmbiguous = True, perfectMatch = False, localParam = True): #TODO
+    def hasParameter(self, stringPath, raiseIfAmbiguous = True, perfectMatch = False, localParam = True, exploreOtherLevel=True):
         advancedResult = self._getAdvanceResult("hasParameter",stringPath, False,raiseIfAmbiguous, perfectMatch) #this call will raise if ambiguous
         
-        #TODO boolean localParam is not enough, we need to know if we have to explore local and global, or only local, or only global
-
         if advancedResult.isValueFound():
-            value = advancedResult.getValue()
-            if isinstance(value, dict):
-                return current_thread().ident in value
-            return True
+            (global_var, local_var, ) = advancedResult.getValue()
+
+            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
+                if localParam:
+                    tid = current_thread().ident
+
+                    if tid not in self.threadLevel:
+                        raise ParameterException("(ParameterManager) hasParameter, no level defined for this thread id '"+str(tid)+"'")
+
+                    key = (tid, self.threadLevel[tid])
+
+                    if key in local_var:
+                        return False
+
+                    if not exploreOtherLevel:
+                        return False
+                else:
+                    if global_var is not None:
+                        return True
+
+                    if not exploreOtherLevel:
+                        return False
+
+                localParam = not localParam
+
         return False
 
     @synchronous()
-    def unsetParameter(self, stringPath, localParam = True): #TODO
+    def unsetParameter(self, stringPath, localParam = True):
         advancedResult = self._getAdvanceResult("unsetParameter", stringPath, perfectMatch=True) #this call will raise if value not found or ambiguous
         
-        #TODO boolean localParam is not enough, we need to know if we have to explore local and global, or only local, or only global
-            #not sure about unset
-
         if advancedResult.isValueFound():
-            value = advancedResult.getValue()
-            if isinstance(value, dict):
+            (global_var, local_var, ) = advancedResult.getValue()
+
+            if localParam:
                 tid = current_thread().ident
-                if tid not in value:
-                    raise ParameterException("(ParameterManager) unsetParameter, unknown parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+
+                if tid not in self.threadLevel:
+                    raise ParameterException("(ParameterManager) unsetParameter, no level defined for this thread id '"+str(tid)+"'")
+
+                key = (tid, self.threadLevel[tid])  
+
+                if key not in local_var:
+                    raise ParameterException("(ParameterManager) unsetParameter, unknown local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+
+                if not local_var[tid].isRemovable():
+                    raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
                 
-                if not value[tid].isRemovable():
-                    raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
-                
-                #remove value from dic or remove dic if empty
-                if len(value) > 1:
-                    del value[tid]
-                else:
+                if len(local_var) == 1 and global_var is None:
                     self.mltries.remove( advancedResult.getFoundCompletePath() )
-                
+                else:
+                    del local_var[key]
+
                 #remove from thread local list
-                self.threadLocalVar[tid].remove(advancedResult.getFoundCompletePath())
-                if len(self.threadLocalVar[tid]) == 0:
-                    del self.threadLocalVar[tid]
-                
+                self.threadLocalVar[key].remove(advancedResult.getFoundCompletePath())
+                if len(self.threadLocalVar[key]) == 0:
+                    del self.threadLocalVar[key]
+
             else:
-                if not value.isRemovable():
+                if global_var is None:
+                    raise ParameterException("(ParameterManager) unsetParameter, unknown global parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+
+                if not global_var.isRemovable():
                     raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
             
-                self.mltries.remove( advancedResult.getFoundCompletePath() )
+                if len(local_var) == 0:
+                    self.mltries.remove( advancedResult.getFoundCompletePath() )
     
     @synchronous()    
     def pushVariableLevelForThisThread():
