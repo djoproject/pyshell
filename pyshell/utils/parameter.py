@@ -40,14 +40,14 @@ def isAValidStringPath(stringPath):
     if type(stringPath) != str and type(stringPath) != unicode:
         return False, "invalid stringPath, a string was expected, got '"+str(type(stringPath))+"'"
 
-    if len(stringPath) == 0:
-        return False, "stringPath can not have a length of 0"
+    #if len(stringPath) == 0:
+    #    return False, "stringPath can not have a length of 0"
     
     path = stringPath.split(".")
 
     for index in xrange(0, len(path)):
         if len(path[index]) == 0:
-            return False, "key at index '"+str(index)+"' has a length of 0"
+            return False, "key at index '"+str(index)+"' has a length of 0" #TODO do not raise, just remove it
 
     return True, path
 
@@ -55,68 +55,73 @@ class ParameterContainer(object):
     SUBCONTAINER_LIST = ["environment", "context", "variable"]
 
     def __init__(self):
-        self.environment = ParameterManagerV2()
-        self.context     = ParameterManagerV2()
-        self.variable    = ParameterManagerV2()
+        self.threadLevel = {} #hold the level of the current thread
+        self.environment = ParameterManagerV3()
+        self.context     = ParameterManagerV3()
+        self.variable    = ParameterManagerV3()
 
-    #call 0 
-        #push 0
-            #call 0.0
-                #push 1
-                #pop 1
+    def pushVariableLevelForThisThread(self):
+        tid = current_thread().ident
+        
+        #manage first call to this container with this thread
+        if tid not in self.threadLevel:
+            previousIsPop, level = True, 0
+            self.threadLevel[tid] = (previousIsPop, level,)
+        else:
+            previousIsPop, level = self.threadLevel[tid]
+        
+        #add level
+        if not previousIsPop:
+            self.threadLevel[tid] = (False, level+1,)
 
-            #call 0.1
-                #push 1
-                #pop 1
-        #pop 0
+    def popVariableLevelForThisThread(self):
+        tid = current_thread().ident
+        
+        #manage first call to this container with this thread
+        if tid not in self.threadLevel:
+            previousIsPop, level = False, 0
+            self.threadLevel[tid] = (previousIsPop, level,)
+        else:
+            previousIsPop, level = self.threadLevel[tid]
+            
+        #remove level
+        if previousIsPop:
+            self.threadLevel[tid] = (True, min(0, level-1),)
 
-    #call 1
-        #push 0
-        #pop 0
-
-    #previous      = pop
-        #state = push/pop (could be a boolean)
-    #initial level = level 0
-        #store in each manager, no need to process, just call corresponding inner push/pop
-
-    #previous == pop
-        #current == push
-            #do nothing
-        #current == pop
-            #remove level
-
-    #previous == push
-        #current == push
-            #add level
-        #current == pop
-            #do nothing
-
-    def pushVariableLevelForThisThread(self): #TODO call it at the end of each execution, prblm with inner call...
-
-        #TODO see above
-
-        self.environment.pushVariableLevelForThisThread()
-        self.context.pushVariableLevelForThisThread()
-        self.variable.pushVariableLevelForThisThread()
-
-    def popVariableLevelForThisThread():
-
-        #TODO see above
-
-        self.environment.popVariableLevelForThisThread()
-        self.context.popVariableLevelForThisThread()
-        self.variable.popVariableLevelForThisThread()
+        #flush parameter manager
+        self.environment.flushVariableLevelForThisThread()
+        self.context.flushVariableLevelForThisThread()
+        self.variable.flushVariableLevelForThisThread()
+        
+    def getCurrentId(self):
+        tid = current_thread().ident
+        
+        if tid not in self.threadLevel:
+            raise ParameterException("(ParameterContainer) getCurrentId, thread id '"+str(tid)+"' is not registered in this container, before any action push a variable level")
+    
+        return (tid,self.threadLevel[tid][1],)
 
 class ParameterManagerV3(object):
     #TODO
         #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
         #be carefull to use boolean perfectMatch for hasParameter and getParameter
-                
-    def __init__(self):
+         
+        #TODO could really manage the system if the local and global were stored in different mltries...
+            #access to global have to be synchronized, local not
+            #just need to remove local mltries on the flush
+           
+    def __init__(self, parent = None):
         self._internalLock  = Lock()
         self.mltries        = multiLevelTries() 
         self.threadLocalVar = {}                #hold the paths for the current level of the current thread
-        self.threadLevel    = {}                #hold the level of the current thread
+    
+        if parent is None:
+            self.getCurrentId = self._getCurrentId
+        else:
+            self.getCurrentId = parent.getCurrentId
+    
+    def _getCurrentId(self):
+        return current_thread().ident
     
     def _buildExistingPathFromError(self, wrongPath, advancedResult):
         pathToReturn = list(advancedResult.getFoundCompletePath())
@@ -129,7 +134,7 @@ class ParameterManagerV3(object):
         state, result = isAValidStringPath(stringPath)
 
         if not state:
-            raise ParameterException("(ParameterManager) "+str(methName)+","+result)
+            raise ParameterException("(ParameterManager) "+str(methName)+", "+result)
 
         path = result
 
@@ -164,12 +169,7 @@ class ParameterManagerV3(object):
             (global_var, local_var, ) = advancedResult.getValue()
             
             if localParam:
-                tid            = current_thread().ident
-
-                if tid not in self.threadLevel:
-                    raise ParameterException("(ParameterManager) setParameter, no level defined for this thread id '"+str(tid)+"'")
-
-                key            = (tid, self.threadLevel[tid])
+                key            = self.getCurrentId()
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
 
                 if key in local_var:
@@ -192,12 +192,7 @@ class ParameterManagerV3(object):
             local_var = {}
             if localParam:
                 global_var     = None
-                tid            = current_thread().ident
-
-                if tid not in self.threadLevel:
-                    raise ParameterException("(ParameterManager) setParameter, no level defined for this thread id '"+str(tid)+"'")
-
-                key            = (tid, self.threadLevel[tid])
+                key            = self.getCurrentId()
                 local_var[key] = param
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
             else:
@@ -215,13 +210,7 @@ class ParameterManagerV3(object):
 
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without ordering
                 if localParam:
-                    tid = current_thread().ident
-
-                    if tid not in self.threadLevel:
-                        raise ParameterException("(ParameterManager) getParameter, no level defined for this thread id '"+str(tid)+"'")
-
-                    key = (tid, self.threadLevel[tid])
-
+                    key = self.getCurrentId()
                     if key in local_var:
                         return local_var[key]
 
@@ -247,12 +236,7 @@ class ParameterManagerV3(object):
 
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
                 if localParam:
-                    tid = current_thread().ident
-
-                    if tid not in self.threadLevel:
-                        raise ParameterException("(ParameterManager) hasParameter, no level defined for this thread id '"+str(tid)+"'")
-
-                    key = (tid, self.threadLevel[tid])
+                    key = self.getCurrentId()
 
                     if key in local_var:
                         return False
@@ -278,17 +262,12 @@ class ParameterManagerV3(object):
             (global_var, local_var, ) = advancedResult.getValue()
 
             if localParam:
-                tid = current_thread().ident
-
-                if tid not in self.threadLevel:
-                    raise ParameterException("(ParameterManager) unsetParameter, no level defined for this thread id '"+str(tid)+"'")
-
-                key = (tid, self.threadLevel[tid])  
+                key = self.getCurrentId()  
 
                 if key not in local_var:
                     raise ParameterException("(ParameterManager) unsetParameter, unknown local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
 
-                if not local_var[tid].isRemovable():
+                if not local_var[key].isRemovable():
                     raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
                 
                 if len(local_var) == 1 and global_var is None:
@@ -310,46 +289,39 @@ class ParameterManagerV3(object):
             
                 if len(local_var) == 0:
                     self.mltries.remove( advancedResult.getFoundCompletePath() )
+
+    @synchronous()    
+    def flushVariableLevelForThisThread(self):
+        key = self.getCurrentId()
+
+        #clean level
+        if key in self.threadLocalVar: #do we have recorded some variables for this thread at this level ?
+            for path in self.threadLocalVar[key]: #no error possible, missing value or invalid type is possible here, because of the process in set/unset
+                advancedResult = self._getAdvanceResult("popVariableLevelForThisThread",path, False, False)
+                (global_var_value, local_var_dic,) = advancedResult.getValue()
+                del local_var_dic[key]
+                    
+                if global_var_value is None and len(local_var_dic) == 0:
+                    mltries.remove( path ) #can not raise, because every path exist
+
+            del self.threadLocalVar[key]
     
-    @synchronous()    
-    def pushVariableLevelForThisThread():
-        tid = current_thread().ident
+    @synchronous()
+    def buildDictionnary(self, stringPath):
+        state, result = isAValidStringPath(stringPath)
+        
+        if not state:
+            raise ParameterException("(ParameterManager) buildDictionnary, "+result)
+        
+        result = self.mltries.buildDictionnary(result, True, True, False)
+        
+        #TODO generate a new dictionary with every accessible variable from this thread/level
+            #from result
+        
+        return {}
 
-        if tid not in self.threadLevel:
-            self.threadLevel[tid] = 0
-        else:
-            self.threadLevel[tid] += 1
 
-    @synchronous()    
-    def popVariableLevelForThisThread():
-        tid = current_thread().ident
-
-        if tid in self.threadLevel: #do we have at least a default level for this thread ?
-            key = (tid, self.threadLevel[tid])
-
-            #clean level
-            if key in self.threadLocalVar: #do we have recorded some variables for this thread at this level ?
-                for path in self.threadLocalVar[key]: #no error possible, missing value or invalid type is possible here, because of the process in set/unset
-                    advancedResult = self._getAdvanceResult("popVariableLevelForThisThread",path, False, False)
-                    (global_var_value, local_var_dic,) = advancedResult.getValue()
-                    del local_var_dic[key]
-                        
-                    if global_var_value is None and len(local_var_dic) == 0:
-                        mltries.remove( path ) #can not raise, because every path exist
-
-                del self.threadLocalVar[key]
-
-            #remove level
-            if self.threadLevel[tid] <= 0: #if root level, end of this thread
-                del self.threadLevel[tid]
-            else:
-                self.threadLevel[tid] -= 1
-
-class ParameterManagerV2(object):
-    #TODO
-        #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
-        #be carefull to use boolean perfectMatch for hasParameter and getParameter
-                
+"""class ParameterManagerV2(object): #TODO to delete when v3 will be over       
     def __init__(self):
         self._internalLock = Lock()
         self.mltries = multiLevelTries()
@@ -512,7 +484,7 @@ class ParameterManagerV2(object):
             else:
                 mltries.remove( path ) #can not raise, because every path exist
                     
-        del self.threadLocalVar[tid]            
+        del self.threadLocalVar[tid]     """       
 
 class Parameter(Valuable): #abstract
     def __init__(self, transient = False):

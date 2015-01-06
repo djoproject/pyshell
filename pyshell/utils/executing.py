@@ -394,10 +394,16 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
 #
 def executeCommand(cmd, params, preParse = True , processName=None, processArg=None):
     "execute the engine object"
+    
+    #TODO
+        #bind processArg to local variable in params
+    
     stackTraceColor = error
     ex              = None
     engine          = None
     try:
+        params.pushVariableLevelForThisThread()
+        
         if preParse:
             cmdPreParsed = preParseLine(cmd)
         else:
@@ -441,6 +447,8 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         printException(ex,"List of exception(s): ")
     except Exception as ex:
         printException(ex)
+    finally:
+        params.popVariableLevelForThisThread()
 
     return ex, engine
 

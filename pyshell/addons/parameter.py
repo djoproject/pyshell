@@ -112,7 +112,7 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun):
     container = getattr(parameters, attributeType)
 
     if key is None:
-        key = ()
+        key = ""
     else:
         state, result = isAValidStringPath(key)
         if not state:
@@ -121,7 +121,7 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun):
         key = result
 
     #retrieve all value from corresponding mltries
-    dico = container.mltries.buildDictionnary(key, True, True, False)
+    dico = container.buildDictionnary(key)
 
     toRet = [] 
     for subk,subv in dico.items():
@@ -206,7 +206,7 @@ def saveParameter(filePath, parameters):
     with open(filePath, 'wb') as configfile:
         for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
             container = getattr(parameters, subcontainername)
-            dico = container.mltries.buildDictionnary((), True, True, False)
+            dico = container.buildDictionnary("")
 
             for key, parameter in dico.items():
                 if parameter.isTransient():
