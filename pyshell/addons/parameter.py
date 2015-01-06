@@ -41,8 +41,19 @@ import os
 
 #################################### GENERIC METHOD ####################################
 
-def setProperties(key, propertyName, propertyValue, parameters, attributeType):
-    param = getParameter(key, parameters, attributeType)
+def getParameter(key,parameters,attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
+    if not hasattr(parameters, attributeType):
+        raise Exception("Unknow parameter type '"+str(attributeType)+"'")
+
+    container = getattr(parameters, attributeType)
+
+    if not container.hasParameter(key):
+        raise Exception("Unknow parameter of type '"+str(attributeType)+"' with key '"+str(key)+"'")
+
+    return container.getParameter(key, perfectMatch = perfectMatch, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
+
+def setProperties(key, propertyName, propertyValue, parameters, attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
+    param = getParameter(key, parameters, attributeType, perfectMatch, startWithLocal, exploreOtherLevel)
     
     if propertyName == "readonly":
         param.setReadOnly(propertyValue)
@@ -55,8 +66,8 @@ def setProperties(key, propertyName, propertyValue, parameters, attributeType):
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
 
-def getProperties(key, propertyName, parameters, attributeType):
-    param = getParameter(key, parameters, attributeType)
+def getProperties(key, propertyName, parameters, attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
+    param = getParameter(key, parameters, attributeType, perfectMatch, startWithLocal, exploreOtherLevel)
     
     if propertyName == "readonly":
         return param.isReadOnly()
@@ -69,35 +80,26 @@ def getProperties(key, propertyName, parameters, attributeType):
     else:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
         
-def listProperties(key, parameters, attributeType):
-    param = getParameter(key, parameters, attributeType)
+def listProperties(key, parameters, attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
+    param = getParameter(key, parameters, attributeType, perfectMatch, startWithLocal, exploreOtherLevel)
     prop  = list(param.getProperties())
     prop.insert(0, (formatBolt("Key"), formatBolt("Value")) )
     return prop
-
-def getParameter(key,parameters,attributeType):
-    if not hasattr(parameters, attributeType):
-        raise Exception("Unknow parameter type '"+str(attributeType)+"'")
-
-    container = getattr(parameters, attributeType)
-
-    if not container.hasParameter(key):
-        raise Exception("Unknow parameter of type '"+str(attributeType)+"' with key '"+str(key)+"'")
-
-    return container.getParameter(key)
     
-def removeParameter(key, parameters, attributeType):
+def removeParameter(key, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True):
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 
     container = getattr(parameters, attributeType)
 
-    if not container.hasParameter(key):
+    if not container.hasParameter(key, perfectMatch=True, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel):
         return #no job to do
 
-    container.unsetParameter(key)
+    container.unsetParameter(key, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
 
-def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun):
+#TODO continue the update from here
+
+def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, startWithLocal = True, exploreOtherLevel=True):
     #TODO re-apply a width limit on the printing, too big value will show a really big print on the terminal
         #use it in printing ?
             #nope because we maybe want to print something on the several line
@@ -106,6 +108,8 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun):
             #if in shell only 
             #or script ? without output redirection
 
+    #TODO try to display if global or local
+
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 
@@ -113,12 +117,6 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun):
 
     if key is None:
         key = ""
-    else:
-        state, result = isAValidStringPath(key)
-        if not state:
-            raise Exception(result)
-
-        key = result
 
     #retrieve all value from corresponding mltries
     dico = container.buildDictionnary(key)
@@ -237,7 +235,7 @@ def saveParameter(filePath, parameters):
                 configfile.write("\n")
 
         
-def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfExists, parameters, listEnabled): 
+def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfExists, parameters, listEnabled, startWithLocal = True, exploreOtherLevel=True): 
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 

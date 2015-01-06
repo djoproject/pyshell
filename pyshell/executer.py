@@ -91,7 +91,7 @@ class CommandExecuter():
 
     def _initStartUpEvent(self):
         ## prepare atStartUp ##
-        mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
+        mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
         _atstartup = AliasFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         _atstartup.setErrorGranularity(None) #never stop, don't care about error
         
@@ -111,7 +111,7 @@ class CommandExecuter():
         mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
 
     def _initExitEvent(self):
-        mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
+        mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
     
         ## prepare atExit ##
         atExit = AliasFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
@@ -139,14 +139,14 @@ class CommandExecuter():
 
         readline.set_completer(self.complete)
         
-        self.params.context.getParameter(CONTEXT_EXECUTION_KEY).setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).setIndexValue(CONTEXT_EXECUTION_SHELL)
         
         #mainloop
         while True:
             #read prompt
             self.promptWaitingValuable.setValue(True)
             try:
-                cmd = raw_input(self.params.environment.getParameter(ENVIRONMENT_PROMPT_KEY).getValue())
+                cmd = raw_input(self.params.environment.getParameter(ENVIRONMENT_PROMPT_KEY, perfectMatch=True).getValue())
             except SyntaxError as se:
                 self.promptWaitingValuable.setValue(False)
                 error(se, "syntax error")
@@ -161,7 +161,7 @@ class CommandExecuter():
             executeCommand(cmd, self.params, "__shell__") #TODO provide processName AND processArg from the outside of the sofware
     
     def printAsynchronousOnShellV2(self,message):
-        prompt = self.params.environment.getParameter(ENVIRONMENT_PROMPT_KEY).getValue()
+        prompt = self.params.environment.getParameter(ENVIRONMENT_PROMPT_KEY, perfectMatch=True).getValue()
         #this is needed because after an input, the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or readline.get_line_buffer()[-1] == '\n':
             size = len(prompt)
@@ -192,7 +192,7 @@ class CommandExecuter():
                 #only print root tokens
             if len(cmdStringList) == 0:
                 fullline = ()
-                dic = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue().buildDictionnary(fullline, True, True, False)
+                dic = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue().buildDictionnary(fullline, True, True, False)
 
                 toret = {}
                 for k in dic.keys():
@@ -205,7 +205,7 @@ class CommandExecuter():
             fullline = cmdStringList[-1]
 
             ## manage ambiguity ##
-            advancedResult = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue().advancedSearch(fullline, False)
+            advancedResult = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue().advancedSearch(fullline, False)
             if advancedResult.isAmbiguous():
                 tokenIndex = len(advancedResult.existingPath) - 1
 
@@ -222,7 +222,7 @@ class CommandExecuter():
                     keys.append(tmp)
             else:
                 try:
-                    dic = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue().buildDictionnary(fullline, True, True, False)
+                    dic = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue().buildDictionnary(fullline, True, True, False)
                 except pathNotExistsTriesException as pnete:
                     return None
 
@@ -253,7 +253,7 @@ class CommandExecuter():
             return finalKeys[index]
             
         except Exception as ex:
-            if self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME).getSelectedValue() > 0:
+            if self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch=True).getSelectedValue() > 0:
                 printException(ex)
 
         return None
@@ -275,7 +275,7 @@ class CommandExecuter():
             printException(pex, msg_prefix)
 
     def executeFile(self,filename, granularity = None):            
-        self.params.context.getParameter(CONTEXT_EXECUTION_KEY).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         afile = AliasFromFile(filename)
         afile.setErrorGranularity(granularity)
         

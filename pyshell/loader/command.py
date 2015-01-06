@@ -128,10 +128,10 @@ class CommandLoader(AbstractLoader):
     
         AbstractLoader.load(self, parameterManager, subLoaderName)
     
-        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY):
+        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True):
             raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             
-        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
+        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True).getValue()
 
         exceptions = ListOfException()
     
@@ -167,11 +167,11 @@ class CommandLoader(AbstractLoader):
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
     
-        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY):
+        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True):
             raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             return
             
-        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
+        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True).getValue()
         
         exceptions = ListOfException()
     

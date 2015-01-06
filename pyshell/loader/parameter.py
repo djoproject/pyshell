@@ -109,11 +109,11 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        if not container.hasParameter(keyName):
+        if not container.hasParameter(keyName, perfectMatch = True):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToRemove)+"' to '"+str(keyName)+"': unknow key name"))
             return
         
-        envObject = container.getParameter(keyName)
+        envObject = container.getParameter(keyName, perfectMatch = True)
 
         try:
             envObject.removeValues(valueToRemove)
@@ -127,11 +127,11 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        if not container.hasParameter(keyName):
+        if not container.hasParameter(keyName, perfectMatch = True):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to '"+str(keyName)+"': unknow key name"))
             return
         
-        envObject = container.getParameter(keyName)
+        envObject = container.getParameter(keyName, perfectMatch = True)
 
         try:
             envObject.addValues(valueToAdd)
@@ -147,11 +147,11 @@ class ParamaterLoader(AbstractLoader):
         container = getattr(parameterManager, attributeName)
         
         #still exist ?
-        if not container.hasParameter(keyName):
+        if not container.hasParameter(keyName, perfectMatch = True):
             listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset value with key '"+str(keyName)+"': key does not exist"))
         
         if exist:
-            envItem = container.getParameter(keyName)
+            envItem = container.getParameter(keyName, perfectMatch = True)
             
             #if current value is still the value loaded with this addon, restore the old value
             if envItem.getValue() == value:
@@ -170,10 +170,10 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        exist = container.hasParameter(keyName)
+        exist = container.hasParameter(keyName, perfectMatch = True)
         oldValue = None
         if exist:
-            oldValue = container.getParameter(keyName).getValue()
+            oldValue = container.getParameter(keyName, perfectMatch = True).getValue()
             if not override:
                 if not noErrorIfKeyExist:
                     listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set value with key '"+str(keyName)+"': key already exists"))

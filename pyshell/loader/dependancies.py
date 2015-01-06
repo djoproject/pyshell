@@ -44,10 +44,10 @@ class DependanciesLoader(AbstractLoader):
         if len(self.dep) == 0:
             return
         
-        if not parameterManager.environment.hasParameter(ADDONLIST_KEY):
+        if not parameterManager.environment.hasParameter(ADDONLIST_KEY, perfectMatch = True):
             raise LoadException("(DependanciesLoader) load, no addon list defined")
         
-        addon_dico = parameterManager.environment.getParameter(ADDONLIST_KEY).getValue()
+        addon_dico = parameterManager.environment.getParameter(ADDONLIST_KEY, perfectMatch = True).getValue()
         
         for (name, subname) in self.dep:
             if name not in addon_dico:
