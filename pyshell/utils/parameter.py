@@ -101,11 +101,7 @@ class ParameterContainer(object):
     
         return (tid,self.threadLevel[tid][1],)
 
-class ParameterManagerV3(object):
-    #TODO
-        #be carefull to uptade .params usage in others place (like addons/parameter.py, loader/paramete.py)
-        #be carefull to use boolean perfectMatch for hasParameter and getParameter
-                    
+class ParameterManagerV3(object):                    
     def __init__(self, parent = None):
         self._internalLock  = Lock()
         self.mltries        = multiLevelTries() 
@@ -170,7 +166,7 @@ class ParameterManagerV3(object):
 
                 if key in local_var:
                     if local_var[key].isReadOnly() or not local_var[key].isRemovable():
-                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
+                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
                 else:
                     if key not in self.threadLocalVar:
                         self.threadLocalVar[key] = set()
@@ -181,7 +177,7 @@ class ParameterManagerV3(object):
 
             else:
                 if global_var is not None and (global_var.isReadOnly() or not global_var.isRemovable()):
-                    raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
+                    raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
 
                 self.mltries.update( stringPath.split("."), (param, local_var, ) )
         else:
@@ -251,41 +247,53 @@ class ParameterManagerV3(object):
         return False
 
     @synchronous()
-    def unsetParameter(self, stringPath, localParam = True):
+    def unsetParameter(self, stringPath, localParam = True, exploreOtherLevel=True):
         advancedResult = self._getAdvanceResult("unsetParameter", stringPath, perfectMatch=True) #this call will raise if value not found or ambiguous
         
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()
+            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
+                if localParam:
+                    key = self.getCurrentId()  
 
-            if localParam:
-                key = self.getCurrentId()  
+                    if key not in local_var:
+                        if not exploreOtherLevel:
+                            raise ParameterException("(ParameterManager) unsetParameter, unknown local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+                        
+                        localParam = not localParam
+                        continue
+                        
+                    if not local_var[key].isRemovable():
+                        raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
+                    
+                    if len(local_var) == 1 and global_var is None:
+                        self.mltries.remove( advancedResult.getFoundCompletePath() )
+                    else:
+                        del local_var[key]
 
-                if key not in local_var:
-                    raise ParameterException("(ParameterManager) unsetParameter, unknown local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+                    #remove from thread local list
+                    self.threadLocalVar[key].remove(advancedResult.getFoundCompletePath())
+                    if len(self.threadLocalVar[key]) == 0:
+                        del self.threadLocalVar[key]
+                        
+                    return
 
-                if not local_var[key].isRemovable():
-                    raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
-                
-                if len(local_var) == 1 and global_var is None:
-                    self.mltries.remove( advancedResult.getFoundCompletePath() )
                 else:
-                    del local_var[key]
+                    if global_var is None:
+                        if not exploreOtherLevel:
+                            raise ParameterException("(ParameterManager) unsetParameter, unknown global parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+                        
+                        localParam = not localParam
+                        continue
 
-                #remove from thread local list
-                self.threadLocalVar[key].remove(advancedResult.getFoundCompletePath())
-                if len(self.threadLocalVar[key]) == 0:
-                    del self.threadLocalVar[key]
-
-            else:
-                if global_var is None:
-                    raise ParameterException("(ParameterManager) unsetParameter, unknown global parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
-
-                if not global_var.isRemovable():
-                    raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
-            
-                if len(local_var) == 0:
-                    self.mltries.remove( advancedResult.getFoundCompletePath() )
-
+                    if not global_var.isRemovable():
+                        raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
+                
+                    if len(local_var) == 0:
+                        self.mltries.remove( advancedResult.getFoundCompletePath() )
+                        
+                    return
+                        
     @synchronous()    
     def flushVariableLevelForThisThread(self):
         key = self.getCurrentId()
@@ -304,10 +312,6 @@ class ParameterManagerV3(object):
     
     @synchronous()
     def buildDictionnary(self, stringPath, localParam = True, exploreOtherLevel=True):
-
-        #TODO implement localParam, exploreOtherLevel
-            #use same technique as hasParameter or getParameter
-
         state, result = isAValidStringPath(stringPath)
         
         if not state:
@@ -316,24 +320,31 @@ class ParameterManagerV3(object):
         result = self.mltries.buildDictionnary(result, True, True, False)
         
         to_ret = {}
-        if not localParam:
-            for var_key, (global_var, local_var) in result.items():
-                if global_var is None:
-                    continue
-
-                to_ret[var_key] = global_var
-
-            return to_ret
-
-        key = self.getCurrentId()
+        key = None
+        
         for var_key, (global_var, local_var) in result.items():
-            if key in local_var:
-                to_ret[var_key] = local_var[tid]
-                continue
-
-            if global_var is not None:
-                to_ret[var_key] = global_var
-
+            localParam_tmp = localParam
+            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
+                if localParam_tmp:
+                    if key is None:
+                        key = self.getCurrentId()
+                        
+                    if key in local_var:
+                        to_ret[var_key] = local_var[key]
+                        break
+                        
+                    if not exploreOtherLevel:
+                        break
+                else:
+                    if global_var is not None:
+                        to_ret[var_key] = global_var
+                        break
+                        
+                    if not exploreOtherLevel:
+                        break
+                    
+                localParam_tmp = not localParam_tmp
+        
         return to_ret
 
 class Parameter(Valuable): #abstract

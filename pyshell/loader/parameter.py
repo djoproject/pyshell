@@ -109,11 +109,11 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        if not container.hasParameter(keyName, perfectMatch = True):
+        if not container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToRemove)+"' to '"+str(keyName)+"': unknow key name"))
             return
         
-        envObject = container.getParameter(keyName, perfectMatch = True)
+        envObject = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
 
         try:
             envObject.removeValues(valueToRemove)
@@ -127,11 +127,11 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        if not container.hasParameter(keyName, perfectMatch = True):
+        if not container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False):
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to '"+str(keyName)+"': unknow key name"))
             return
         
-        envObject = container.getParameter(keyName, perfectMatch = True)
+        envObject = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
 
         try:
             envObject.addValues(valueToAdd)
@@ -147,11 +147,11 @@ class ParamaterLoader(AbstractLoader):
         container = getattr(parameterManager, attributeName)
         
         #still exist ?
-        if not container.hasParameter(keyName, perfectMatch = True):
+        if not container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False):
             listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset value with key '"+str(keyName)+"': key does not exist"))
         
         if exist:
-            envItem = container.getParameter(keyName, perfectMatch = True)
+            envItem = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
             
             #if current value is still the value loaded with this addon, restore the old value
             if envItem.getValue() == value:
@@ -159,7 +159,7 @@ class ParamaterLoader(AbstractLoader):
             #otherwise, the value has been updated and the item already exist before the loading of this module, so do nothing
         else: 
             try:
-                container.unsetParameter(keyName)
+                container.unsetParameter(keyName, startWithLocal = False, exploreOtherLevel=False)
             except ParameterException as pe:
                 listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset value with key '"+str(keyName)+"': "+str(pe)))
     
@@ -170,17 +170,17 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        exist = container.hasParameter(keyName, perfectMatch = True)
+        exist = container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
         oldValue = None
         if exist:
-            oldValue = container.getParameter(keyName, perfectMatch = True).getValue()
+            oldValue = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False).getValue()
             if not override:
                 if not noErrorIfKeyExist:
                     listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set value with key '"+str(keyName)+"': key already exists"))
                 
                 return
         try:
-            container.setParameter(keyName, value)
+            container.setParameter(keyName, value, localParam=False)
             self.valueToUnset.append(  (exist,oldValue,keyName,attributeName,value, )  )
         except ParameterException as pe:
             listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set value with key '"+str(keyName)+"': "+str(pe)))

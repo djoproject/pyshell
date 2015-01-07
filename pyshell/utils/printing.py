@@ -320,7 +320,7 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         printFun = printer.formatRed
         toprint  = printer.formatRed(prefix + str(exception))
 
-    if True: #TODO printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
+    if True: #TODO uncomment this as soon as parameter loading will work again #printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
         toprint += printFun("\n\n"+traceback.format_exc())
 
     return toprint

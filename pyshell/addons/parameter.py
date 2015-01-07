@@ -97,8 +97,6 @@ def removeParameter(key, parameters, attributeType, startWithLocal = True, explo
 
     container.unsetParameter(key, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
 
-#TODO continue the update from here
-
 def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, startWithLocal = True, exploreOtherLevel=True):
     #TODO re-apply a width limit on the printing, too big value will show a really big print on the terminal
         #use it in printing ?
@@ -109,6 +107,7 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, st
             #or script ? without output redirection
 
     #TODO try to display if global or local
+        #don't print that column if exploreOtherLevel == false
 
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
@@ -119,7 +118,7 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, st
         key = ""
 
     #retrieve all value from corresponding mltries
-    dico = container.buildDictionnary(key)
+    dico = container.buildDictionnary(key,startWithLocal,exploreOtherLevel)
 
     toRet = [] 
     for subk,subv in dico.items():
@@ -211,9 +210,9 @@ def saveParameter(filePath, parameters):
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.checker.getTypeName()+" "+" ".join(str(x) for x in parameter.getValue())+" -noErrorIfExists true\n" )
+                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.checker.getTypeName()+" "+" ".join(str(x) for x in parameter.getValue())+" -noCreationIfExist true -localParam false\n" )
                 else:
-                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.getTypeName()+" "+str(parameter.getValue())+" -noErrorIfExists true\n" )
+                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.getTypeName()+" "+str(parameter.getValue())+" -noCreationIfExist true -localParam false\n" )
                 
                 properties = parameter.getProperties()
                 
@@ -235,7 +234,7 @@ def saveParameter(filePath, parameters):
                 configfile.write("\n")
 
         
-def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfExists, parameters, listEnabled, startWithLocal = True, exploreOtherLevel=True): 
+def _createValuesFun(valueType, key, values, classDef, attributeType, noCreationIfExist, parameters, listEnabled, localParam = True): 
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 
@@ -247,8 +246,9 @@ def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfE
     else:
         checker = valueType()
     
-    if container.hasParameter(key) and not noErrorIfExists:
-        raise Exception("Try to create a "+str(attributeType)+" with an existing key name '"+str(key)+"'")
+    if container.hasParameter(key, perfectMatch=True,localParam = localParam, exploreOtherLevel=False) and noCreationIfExist:
+        return
+        #no need to manage readonly or removable setting here, it will be checked in setParameter
 
     #check value
     value = checker.getValue(values, None, str(attributeType).title()+" "+key)
@@ -256,13 +256,17 @@ def _createValuesFun(valueType, key, values, classDef, attributeType, noErrorIfE
     
 #################################### env management#################################### 
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def subtractEnvironmentValuesFun(key, values, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def subtractEnvironmentValuesFun(key, values, parameters, startWithLocal = True, exploreOtherLevel=True):
     "remove some elements from an environment parameter"
-    param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
+    param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.removeValues(values)
+
+#TODO update from here to the bottom
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
@@ -289,31 +293,31 @@ def setEnvironmentValuesFun(key, values, parameters):
     else:
         envParam.setValue(values[0])
 
-@shellMethod(valueType       = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                                                     "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                                                     "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                                                     "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                                                     "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}),
-             key             = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             value           = defaultInstanceArgChecker.getArgCheckerInstance(),
-             noErrorIfExists = booleanValueArgChecker(),
-             parameters      = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def createEnvironmentValueFun(valueType, key, value, noErrorIfExists=False, parameters=None): 
+@shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
+                                                       "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
+                                                       "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
+                                                       "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
+                                                       "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}),
+             key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             value             = defaultInstanceArgChecker.getArgCheckerInstance(),
+             noCreationIfExist = booleanValueArgChecker(),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def createEnvironmentValueFun(valueType, key, value, noCreationIfExist=False, parameters=None): 
     "create an environment parameter value" 
-    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noErrorIfExists, parameters, False)
+    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, False)
 
-@shellMethod(valueType  = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                                               "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                                               "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                                               "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                                               "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}), 
-             key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             noErrorIfExists=booleanValueArgChecker(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def createEnvironmentValuesFun(valueType, key, values, noErrorIfExists=False, parameters=None): 
+@shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
+                                                       "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
+                                                       "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
+                                                       "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
+                                                       "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}), 
+             key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             noCreationIfExist = booleanValueArgChecker(),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def createEnvironmentValuesFun(valueType, key, values, noCreationIfExist=False, parameters=None): 
     "create an environment parameter value list" 
-    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noErrorIfExists, parameters, True)
+    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, True)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
@@ -369,18 +373,18 @@ def subtractContextValuesFun(key, values, parameters):
     param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME)
     param.removeValues(values)
 
-@shellMethod(valueType       = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                                               "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                                               "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                                               "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                                               "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}), 
-             key             = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values          = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             noErrorIfExists = booleanValueArgChecker(),
-             parameter       = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def createContextValuesFun(valueType, key, values, noErrorIfExists=False, parameter=None): 
+@shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
+                                                 "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
+                                                 "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
+                                                 "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
+                                                 "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}), 
+             key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             noCreationIfExist = booleanValueArgChecker(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+def createContextValuesFun(valueType, key, values, noCreationIfExist=False, parameter=None): 
     "create a context parameter value list"
-    _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noErrorIfExists, parameter, True)
+    _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noCreationIfExist, parameter, True)
 
 @shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
