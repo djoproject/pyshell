@@ -35,30 +35,30 @@ from pyshell.utils.keystore  import Key
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEYSTORE_SECTION_NAME
 
 #string argchecker definition
-ARGCHECKER_TYPENAME                 = "Any"
-STRINGCHECKER_TYPENAME              = "String"
-INTEGERCHECKER_TYPENAME             = "Int"
-LIMITEDINTEGERCHECKER_TYPENAME      = "Limited integer"
-HEXACHECKER_TYPENAME                = "Hexadecimal"
-BINARYCHECKER_TYPENAME              = "Binary"
-FILEPATHCHECKER_TYPENAME            = "FilePath"
-LISTCHECKER_TYPENAME                = "List"
-DEFAULTVALUE_TYPENAME               = "Default"
-ENVIRONMENTDYNAMICCHECKER_TYPENAME  = "Environment dynamic"
-CONTEXTDYNAMICCHECKER_TYPENAME      = "Context dynamic"
-VARIABLEDYNAMICCHECKER_TYPENAME     = "Variable dynamic"
-ENVIRONMENTCHECKER_TYPENAME         = "Environment"
-CONTEXTCHECKER_TYPENAME             = "Context"
-VARIABLECHECKER_TYPENAME            = "Variable"
-PARAMETERDYNAMICCHECKER_TYPENAME    = "Parameter dynamic"
-PARAMETERCHECKER_TYPENAME           = "Parameter"
-COMPLETEENVIRONMENTCHECKER_TYPENAME = "Complete Environment"
-ENGINECHECKER_TYPENAME              = "Engine"
-FLOATCHECKER_TYPENAME               = "Float"
-BOOLEANCHECKER_TYPENAME             = "Bool"
-TOKENCHECKER_TYPENAME               = "Token"
-KEYCHECKER_TYPENAME                 = "Key"
-KEYTRANSLATORCHECKER_TYPENAME       = "KeyTranslator"
+ARGCHECKER_TYPENAME                 = "any"
+STRINGCHECKER_TYPENAME              = "string"
+INTEGERCHECKER_TYPENAME             = "integer"
+LIMITEDINTEGERCHECKER_TYPENAME      = "limited integer"
+HEXACHECKER_TYPENAME                = "hexadecimal"
+BINARYCHECKER_TYPENAME              = "binary"
+FILEPATHCHECKER_TYPENAME            = "filePath"
+LISTCHECKER_TYPENAME                = "list"
+DEFAULTVALUE_TYPENAME               = "default"
+ENVIRONMENTDYNAMICCHECKER_TYPENAME  = "environment dynamic"
+CONTEXTDYNAMICCHECKER_TYPENAME      = "context dynamic"
+VARIABLEDYNAMICCHECKER_TYPENAME     = "variable dynamic"
+ENVIRONMENTCHECKER_TYPENAME         = "environment"
+CONTEXTCHECKER_TYPENAME             = "context"
+VARIABLECHECKER_TYPENAME            = "variable"
+PARAMETERDYNAMICCHECKER_TYPENAME    = "parameter dynamic"
+PARAMETERCHECKER_TYPENAME           = "parameter"
+COMPLETEENVIRONMENTCHECKER_TYPENAME = "complete Environment"
+ENGINECHECKER_TYPENAME              = "engine"
+FLOATCHECKER_TYPENAME               = "float"
+BOOLEANCHECKER_TYPENAME             = "boolean"
+TOKENCHECKER_TYPENAME               = "token"
+KEYCHECKER_TYPENAME                 = "key"
+KEYTRANSLATORCHECKER_TYPENAME       = "keyTranslator"
 
 class defaultInstanceArgChecker(object):
     _lock = Lock()
@@ -71,6 +71,7 @@ class defaultInstanceArgChecker(object):
     KEYCHECKER           = None
     KEYTRANSLATORCHECKER = None
     ENGINECHECKER        = None
+    FILECHECKER          = None
     
     DEFAULTCHECKER_DICO  ={ARGCHECKER_TYPENAME          :None,
                            STRINGCHECKER_TYPENAME       :None,
@@ -80,7 +81,8 @@ class defaultInstanceArgChecker(object):
                            ENVIRONMENTCHECKER_TYPENAME  :None,
                            KEYCHECKER_TYPENAME          :None,
                            KEYTRANSLATORCHECKER_TYPENAME:None,
-                           ENGINECHECKER_TYPENAME       :None}
+                           ENGINECHECKER_TYPENAME       :None,
+                           FILEPATHCHECKER_TYPENAME     :None}
 
     @staticmethod
     def _getCheckerInstance(key, classdef):
@@ -127,6 +129,10 @@ class defaultInstanceArgChecker(object):
     @staticmethod
     def getEngineChecker():
         return defaultInstanceArgChecker._getCheckerInstance(ENGINECHECKER_TYPENAME, engineChecker)
+
+    @staticmethod
+    def getFileChecker():
+        return defaultInstanceArgChecker._getCheckerInstance(FILEPATHCHECKER_TYPENAME, filePathArgChecker)
 
 ###############################################################################################
 ##### ArgChecker ##############################################################################

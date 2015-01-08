@@ -30,19 +30,20 @@ import os
 
 ## CONSTANT SECTION ##
 
-AVAILABLE_TYPE = {"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                  "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                  "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                  "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                  "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}
+AVAILABLE_TYPE = {"any"     :defaultInstanceArgChecker.getArgCheckerInstance,
+                  "string"  :defaultInstanceArgChecker.getStringArgCheckerInstance, 
+                  "integer" :defaultInstanceArgChecker.getIntegerArgCheckerInstance,
+                  "boolean" :defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
+                  "float"   :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance,
+                  "filePath":defaultInstanceArgChecker.getFileChecker}
                   
-ENVIRONMENT_SET_PROPERTIES = {"readonly":"setReadOnly",
-                              "removable":"setRemovable",
-                              "transient":"setTransient"}
+ENVIRONMENT_SET_PROPERTIES = {"readonly":("setReadOnly",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
+                              "removable":("setRemovable",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
+                              "transient":("setTransient",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),)}
                           
-CONTEXT_SET_PROPERTIES = {"index_transient":"setTransientIndex"
-                          "defaultIndex":"setDefaultIndex",
-                          "index":"setIndex"}
+CONTEXT_SET_PROPERTIES = {"index_transient":("setTransientIndex",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
+                          "defaultIndex":("setDefaultIndex",defaultInstanceArgChecker.getIntegerArgCheckerInstance(),),
+                          "index":("setIndex",defaultInstanceArgChecker.getIntegerArgCheckerInstance(),)}
 CONTEXT_SET_PROPERTIES.update(ENVIRONMENT_SET_PROPERTIES)
 
 ENVIRONMENT_GET_PROPERTIES = {"readonly":"isReadOnly",
@@ -69,7 +70,9 @@ def getParameter(key,parameters,attributeType, startWithLocal = True, exploreOth
 
     return container.getParameter(key, perfectMatch = perfectMatch, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
 
-def setProperties(key, propertyName, propertyValue, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
+def setProperties(key, propertyInfo, propertyValue, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
+    
+    propertyName, propertyChecker = propertyInfo
     param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
     
     meth = getattr(param, propertyName)
@@ -77,7 +80,7 @@ def setProperties(key, propertyName, propertyValue, parameters, attributeType, s
     if meth is None:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
     
-    meth(propertyValue)
+    meth(propertyChecker.getValue(propertyValue,"value",0))
         
 def getProperties(key, propertyName, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
     param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
@@ -176,9 +179,7 @@ def loadParameter(filePath, parameters):
     if os.path.exists(filePath):
         afile = AliasFromFile(filePath)
         afile.setErrorGranularity(None) #never stop to execute
-        
-        with self.ExceptionManager("An error occured during parameters loading: "):
-            afile._execute(args = (), parameters=parameters)
+        afile.execute(args = (), parameters=parameters)
     else:
         saveParameter(filePath, parameters)
 
@@ -200,6 +201,8 @@ def saveParameter(filePath, parameters):
                 #SOLUTION 2: set it with settings
                 
                 #... 
+
+        #BUG will not update parameter content if parameter already exists...
         
         #...
 
@@ -217,9 +220,9 @@ def saveParameter(filePath, parameters):
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.checker.getTypeName()+" "+" ".join(str(x) for x in parameter.getValue())+" -noCreationIfExist true -localParam false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
                 else:
-                    configfile.write( subcontainername+" create "+".".join(key)+" "+parameter.typ.getTypeName()+" "+str(parameter.getValue())+" -noCreationIfExist true -localParam false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+str(parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
                 
                 properties = parameter.getProperties()
                 
@@ -305,7 +308,7 @@ def setEnvironmentValuesFun(key, values, parameters, startWithLocal = True, expl
 
 @shellMethod(valueType         = tokenValueArgChecker(AVAILABLE_TYPE),
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             value             = defaultInstanceArgChecker.getArgCheckerInstance(),
+             value             = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              isList            = booleanValueArgChecker(),
              noCreationIfExist = booleanValueArgChecker(),
              parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
@@ -475,7 +478,7 @@ def listContexts(parameter, key=None, startWithLocal = True, exploreOtherLevel=T
     
 @shellMethod(key               = stringArgChecker(),
              propertyName      = tokenValueArgChecker(CONTEXT_SET_PROPERTIES),
-             propertyValue     = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             propertyValue     = defaultInstanceArgChecker.getArgCheckerInstance(),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())

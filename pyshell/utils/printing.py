@@ -291,6 +291,7 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
     if prefix is None:
         prefix = _EMPTYSTRING
         
+    isList = False
     if isinstance(exception, PyshellException):
         if isinstance(exception, ListOfException):
             if len(exception.exceptions) == 0:
@@ -306,6 +307,8 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
             for e in exception.exceptions:
                 toprint += "\n"+space+formatException(e, space, False)
 
+            isList = True
+
         else: 
             if exception.severity >= NOTICE:
                 printFun = printer.formatGreen
@@ -320,7 +323,7 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         printFun = printer.formatRed
         toprint  = printer.formatRed(prefix + str(exception))
 
-    if True: #TODO uncomment this as soon as parameter loading will work again #printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
+    if not isList and printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
         toprint += printFun("\n\n"+traceback.format_exc())
 
     return toprint

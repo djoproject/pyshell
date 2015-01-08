@@ -95,9 +95,9 @@ class CommandExecuter():
         _atstartup = AliasFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         _atstartup.setErrorGranularity(None) #never stop, don't care about error
         
-        #TODO _atstartup.addCommand( ("addon",     "load", "pyshell.addons.parameter", ) )
-        #TODO _atstartup.addCommand( ("parameter", "load", ) )
-        #TODO _atstartup.addCommand( ("addon",     "unload", "pyshell.addons.parameter", ) ) #TODO don't unload it if in addon to load on startup
+        _atstartup.addCommand( ("addon",     "load", "pyshell.addons.parameter", ) )
+        _atstartup.addCommand( ("parameter", "load", ) )
+        _atstartup.addCommand( ("addon",     "unload", "pyshell.addons.parameter", ) ) #TODO don't unload it if in addon to load on startup
         _atstartup.addCommand( ("addon",     "onstartup", "load", ) ) #TODO don't load parameter if already loaded
         _atstartup.addCommand( (EVENT_ON_STARTUP, ) )
         
