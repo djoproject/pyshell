@@ -550,7 +550,10 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.setReadOnly(readonly)
     
     def getProperties(self):
-        return  ( ("defaultIndex", self.defaultIndex,), ("index", self.index,), ("removable", self.removable, ), ("readonly", self.readonly, ), )
+        return  ( ("defaultIndex", self.defaultIndex,), 
+                  ("index", self.index,), 
+                  ("removable", self.removable, ), 
+                  ("readonly", self.readonly, ), )
 
     def setValue(self,value):
         EnvironmentParameter.setValue(self,value)
@@ -562,9 +565,9 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         try:
             self.value[index]
         except IndexError:
-            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
+            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got '"+str(index)+"'")
         except TypeError:
-            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
+            raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got '"+str(index)+"' of type '"+str(type(index))+"'")
             
         self.index = index
         

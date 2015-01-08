@@ -191,6 +191,8 @@ class AliasFromList(Alias):
         for i in xrange(0,len(self.stringCmdList)):
             lastException, engine = self._innerExecute(self.stringCmdList[i], self.name + " (index: "+str(i)+")", args, parameters)
 
+            #TODO should collect exception and raise at the end of the loop
+
         #return the result of last command in the alias
         if engine == None:
             return ()
@@ -308,7 +310,7 @@ class AliasFromFile(Alias):
         self.filePath = filePath
         self.needToBepreParsed = True
     
-    def _execute(self, args, parameters):
+    def execute(self, args, parameters):
         #make a copy of the current alias
         engine = None
         
@@ -318,6 +320,8 @@ class AliasFromFile(Alias):
             for line in f:
                 lastException, engine = self._innerExecute(line, self.name + " (line: "+str(index)+")", args, parameters) 
                 index += 1
+                
+                #TODO should collect exception and raise at the end of the loop
 
         #return the result of last command in the alias
         if engine == None:

@@ -117,7 +117,7 @@ class CommandExecuter():
         atExit = AliasFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
         atExit.setErrorGranularity(None) #never stop, don't care about error
         
-        #TODO atExit.addCommand( ("parameter", "save",) ) #TODO need to have parameters addons parameter loaded before to save
+        atExit.addCommand( ("parameter", "save",) ) #TODO need to have parameters addons parameter loaded before to save
             #TODO load parameter addon but do not print any error if already loaded, add a parameter to addon load
         atExit.addCommand( ("history",   "save",) )
         atExit.addCommand( ("key",       "save",) )
@@ -280,7 +280,7 @@ class CommandExecuter():
         afile.setErrorGranularity(granularity)
         
         with self.ExceptionManager("An error occured during the script execution: "):
-            afile._execute(args = (), parameters=self.params)
+            afile.execute(args = (), parameters=self.params)
 
 ####################################################################################################
 #no need to use printing system on the following function because shell is not yet running

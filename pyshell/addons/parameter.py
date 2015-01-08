@@ -16,32 +16,49 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #load/save 
-        #if parameter is readonly AND exists
-            #don't load anything from file for this parameter
-                #except context index (if context)
-
-            #so if readonly, no need to store object ?
-                #no information is stored about the seed, so store it anyway
-                    #seed could be addon or system
-
-from pyshell.command.command   import UniCommand
-from pyshell.loader.command    import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
-from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, environmentParameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
-from pyshell.utils.parameter   import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
-from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
-from pyshell.utils.constants   import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SCRIPT
-from pyshell.utils.printing    import formatBolt, formatOrange
-from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
+from pyshell.command.command    import UniCommand
+from pyshell.loader.command     import registerStopHelpTraversalAt, registerCommand, registerSetTempPrefix
+from pyshell.arg.decorator      import shellMethod
+from pyshell.arg.argchecker     import defaultInstanceArgChecker,listArgChecker, environmentParameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
+from pyshell.utils.parameter    import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.utils.postProcess  import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
+from pyshell.utils.constants    import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SCRIPT
+from pyshell.utils.printing     import formatBolt, formatOrange
+from pyshell.utils.exception    import ListOfException, DefaultPyshellException, PyshellException
+from pyshell.utils.aliasManager import AliasFromFile
 import os 
+
+## CONSTANT SECTION ##
+
+AVAILABLE_TYPE = {"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
+                  "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
+                  "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
+                  "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
+                  "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}
+                  
+ENVIRONMENT_SET_PROPERTIES = {"readonly":"setReadOnly",
+                              "removable":"setRemovable",
+                              "transient":"setTransient"}
+                          
+CONTEXT_SET_PROPERTIES = {"index_transient":"setTransientIndex"
+                          "defaultIndex":"setDefaultIndex",
+                          "index":"setIndex"}
+CONTEXT_SET_PROPERTIES.update(ENVIRONMENT_SET_PROPERTIES)
+
+ENVIRONMENT_GET_PROPERTIES = {"readonly":"isReadOnly",
+                              "removable":"isRemovable",
+                              "transient":"isTransient"}
+                          
+CONTEXT_GET_PROPERTIES = {"index_transient":"isTransientIndex",
+                          "defaultIndex":"getDefaultIndex",
+                          "index":"getIndex"}
+CONTEXT_GET_PROPERTIES.update(ENVIRONMENT_GET_PROPERTIES)
 
 ## FUNCTION SECTION ##
 
 #################################### GENERIC METHOD ####################################
 
-def getParameter(key,parameters,attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
+def getParameter(key,parameters,attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 
@@ -52,36 +69,28 @@ def getParameter(key,parameters,attributeType, perfectMatch = False, startWithLo
 
     return container.getParameter(key, perfectMatch = perfectMatch, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
 
-def setProperties(key, propertyName, propertyValue, parameters, attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
-    param = getParameter(key, parameters, attributeType, perfectMatch, startWithLocal, exploreOtherLevel)
+def setProperties(key, propertyName, propertyValue, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
+    param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
     
-    if propertyName == "readonly":
-        param.setReadOnly(propertyValue)
-    elif propertyName == "removable":
-        param.setRemovable(propertyValue)
-    elif propertyName == "transient":
-        param.setTransient(propertyValue)
-    elif propertyName == "index_transient":
-        param.setTransientIndex(propertyValue)
-    else:
-        raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
-
-def getProperties(key, propertyName, parameters, attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
-    param = getParameter(key, parameters, attributeType, perfectMatch, startWithLocal, exploreOtherLevel)
+    meth = getattr(param, propertyName)
     
-    if propertyName == "readonly":
-        return param.isReadOnly()
-    elif propertyName == "removable":
-        return param.isRemovable()
-    elif propertyName == "transient":
-        return param.isTransient()
-    elif propertyName == "index_transient":
-        return param.isTransientIndex()
-    else:
+    if meth is None:
         raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
+    
+    meth(propertyValue)
         
-def listProperties(key, parameters, attributeType, perfectMatch = False, startWithLocal = True, exploreOtherLevel=True):
-    param = getParameter(key, parameters, attributeType, perfectMatch, startWithLocal, exploreOtherLevel)
+def getProperties(key, propertyName, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
+    param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
+    
+    meth = getattr(param, propertyName)
+    
+    if meth is None:
+        raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
+    
+    return meth()
+        
+def listProperties(key, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
+    param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
     prop  = list(param.getProperties())
     prop.insert(0, (formatBolt("Key"), formatBolt("Value")) )
     return prop
@@ -102,7 +111,7 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, st
         #use it in printing ?
             #nope because we maybe want to print something on the several line
             
-        #a util function allow to retrieve the terminal width
+        #an util function allow to retrieve the terminal width
             #if in shell only 
             #or script ? without output redirection
 
@@ -166,7 +175,7 @@ def loadParameter(filePath, parameters):
 
     if os.path.exists(filePath):
         afile = AliasFromFile(filePath)
-        afile.setErrorGranularity(granularity) #TODO set a granularity to never stop, print every error
+        afile.setErrorGranularity(None) #never stop to execute
         
         with self.ExceptionManager("An error occured during parameters loading: "):
             afile._execute(args = (), parameters=parameters)
@@ -191,13 +200,11 @@ def saveParameter(filePath, parameters):
                 #SOLUTION 2: set it with settings
                 
                 #... 
-                
-        #create missing settings command
-            #example, index, defaultindex, ...
         
         #...
 
     #TODO is there something to save ?
+        #should compare the content of the file, the memory and the starting parameter...
 
     filePath = filePath.getValue()
     with open(filePath, 'wb') as configfile:
@@ -224,15 +231,14 @@ def saveParameter(filePath, parameters):
                     for propName,propValue in parameter.getProperties():
                         configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
                         
+                        #TODO readonly should always be written on last
                         if propName.lower() == "readonly":
                             readOnlyReset = True
                             
                     if not readOnlyReset:
                         configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly "+str(parameter.isReadOnly())+"\n" )
                     
-
                 configfile.write("\n")
-
         
 def _createValuesFun(valueType, key, values, classDef, attributeType, noCreationIfExist, parameters, listEnabled, localParam = True): 
     if not hasattr(parameters, attributeType):
@@ -266,8 +272,6 @@ def subtractEnvironmentValuesFun(key, values, parameters, startWithLocal = True,
     param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.removeValues(values)
 
-#TODO update from here to the bottom
-
 @shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              startWithLocal    = booleanValueArgChecker(),
@@ -299,33 +303,16 @@ def setEnvironmentValuesFun(key, values, parameters, startWithLocal = True, expl
     else:
         envParam.setValue(values[0])
 
-@shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                                                       "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                                                       "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                                                       "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                                                       "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}),
+@shellMethod(valueType         = tokenValueArgChecker(AVAILABLE_TYPE),
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              value             = defaultInstanceArgChecker.getArgCheckerInstance(),
+             isList            = booleanValueArgChecker(),
              noCreationIfExist = booleanValueArgChecker(),
              parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              localVar          = booleanValueArgChecker())
-def createEnvironmentValueFun(valueType, key, value, noCreationIfExist=False, parameters=None, localVar=True): 
+def createEnvironmentValueFun(valueType, key, value, isList=False, noCreationIfExist=False, parameters=None, localVar=True): 
     "create an environment parameter value" 
-    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, False,localVar)
-
-@shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                                                       "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                                                       "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                                                       "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                                                       "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}), 
-             key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             noCreationIfExist = booleanValueArgChecker(),
-             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             localVar          = booleanValueArgChecker())
-def createEnvironmentValuesFun(valueType, key, values, noCreationIfExist=False, parameters=None, localVar=True): 
-    "create an environment parameter value list" 
-    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, True,localVar)
+    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, isList,localVar)
 
 @shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
@@ -351,27 +338,26 @@ def _envGetTitle(titleFormatingFun):
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())
 def listEnvs(parameter, key=None, startWithLocal = True, exploreOtherLevel=True):
+    "list every existing contexts"
     return _listGeneric(parameter, ENVIRONMENT_ATTRIBUTE_NAME, key, _envRowFormating, _envGetTitle, startWithLocal, exploreOtherLevel)
     
 @shellMethod(key               = stringArgChecker(),
-             propertyName      = tokenValueArgChecker({"readonly":"readonly",
-                                                   "removable":"removable",
-                                                   "transient":"transient"}),
+             propertyName      = tokenValueArgChecker(ENVIRONMENT_SET_PROPERTIES),
              propertyValue     = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())
 def setEnvironmentProperties(key, propertyName, propertyValue, parameter, startWithLocal = True, exploreOtherLevel=True):
+    "set environment property"
     setProperties(key, propertyName, propertyValue, parameter, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     
 @shellMethod(key               = stringArgChecker(),
-             propertyName      = tokenValueArgChecker({"readonly":"readonly",
-                                                      "removable":"removable",
-                                                      "transient":"transient"}),
+             propertyName      = tokenValueArgChecker(ENVIRONMENT_GET_PROPERTIES),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())
 def getEnvironmentProperties(key, propertyName, parameter, startWithLocal = True, exploreOtherLevel=True):
+    "get environment property"
     return getProperties(key, propertyName, parameter, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 @shellMethod(key               = stringArgChecker(),
@@ -379,6 +365,7 @@ def getEnvironmentProperties(key, propertyName, parameter, startWithLocal = True
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())
 def listEnvironmentProperties(key,parameter, startWithLocal = True, exploreOtherLevel=True):
+    "list every properties from a specific environment object"
     return listProperties(key, parameter, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 #################################### context management #################################### 
@@ -393,11 +380,7 @@ def subtractContextValuesFun(key, values, parameters, startWithLocal = True, exp
     param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.removeValues(values)
 
-@shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
-                                                 "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
-                                                 "integer":defaultInstanceArgChecker.getIntegerArgCheckerInstance,
-                                                 "boolean":defaultInstanceArgChecker.getbooleanValueArgCheckerInstance, 
-                                                 "float"  :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance}), 
+@shellMethod(valueType         = tokenValueArgChecker(AVAILABLE_TYPE), 
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              noCreationIfExist = booleanValueArgChecker(),
@@ -491,10 +474,7 @@ def listContexts(parameter, key=None, startWithLocal = True, exploreOtherLevel=T
     return _listGeneric(parameter, CONTEXT_ATTRIBUTE_NAME, key, _conRowFormating, _conGetTitle, startWithLocal, exploreOtherLevel)
     
 @shellMethod(key               = stringArgChecker(),
-             propertyName      = tokenValueArgChecker({"readonly":"readonly",
-                                                       "removable":"removable",
-                                                       "transient":"transient",
-                                                       "index_transient":"index_transient"}),
+             propertyName      = tokenValueArgChecker(CONTEXT_SET_PROPERTIES),
              propertyValue     = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              startWithLocal    = booleanValueArgChecker(),
@@ -504,10 +484,7 @@ def setContextProperties(key, propertyName, propertyValue, parameter, startWithL
     setProperties(key, propertyName, propertyValue, parameter, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     
 @shellMethod(key               = stringArgChecker(),
-             propertyName      = tokenValueArgChecker({"readonly":"readonly",
-                                                       "removable":"removable",
-                                                       "transient":"transient",
-                                                       "index_transient":"index_transient"}),
+             propertyName      = tokenValueArgChecker(CONTEXT_GET_PROPERTIES),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())
@@ -520,6 +497,7 @@ def getContextProperties(key, propertyName, parameter, startWithLocal = True, ex
              startWithLocal    = booleanValueArgChecker(),
              exploreOtherLevel = booleanValueArgChecker())
 def listContextProperties(key,parameter, startWithLocal = True, exploreOtherLevel=True):
+    "list every properties of a specific context object"
     return listProperties(key, parameter, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 #################################### var management #################################### 
@@ -659,25 +637,27 @@ registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=list
 registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=listFlatResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
+registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,"select") )
 registerCommand( ("properties","list"),    pre=listContextProperties, pro=printColumn) 
 registerCommand( ("list",) ,               pre=listContexts, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=listFlatResultHandler)
+registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,"properties") )
 registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,) )
 
 #env 
 registerSetTempPrefix( (ENVIRONMENT_ATTRIBUTE_NAME, ) )
-registerCommand( ("list",) ,           pro=listEnvs,   post=printColumn )
-registerCommand( ("create","single",), post=createEnvironmentValueFun)
-registerCommand( ("create","list",),   post=createEnvironmentValuesFun)
-registerCommand( ("get",) ,            pre=getEnvironmentValues, pro=listResultHandler)
-registerCommand( ("unset",) ,          pro=removeEnvironmentContextValues)
-registerCommand( ("set",) ,            post=setEnvironmentValuesFun)
-registerCommand( ("add",) ,            post=addEnvironmentValuesFun)
-registerCommand( ("subtract",) ,       post=subtractEnvironmentValuesFun)
-registerCommand( ("properties","set"), pro=setEnvironmentProperties) 
-registerCommand( ("properties","get"), pre=getEnvironmentProperties, pro=listFlatResultHandler) 
+registerCommand( ("list",) ,            pro=listEnvs,   post=printColumn )
+registerCommand( ("create",),           post=createEnvironmentValueFun)
+registerCommand( ("get",) ,             pre=getEnvironmentValues, pro=listResultHandler)
+registerCommand( ("unset",) ,           pro=removeEnvironmentContextValues)
+registerCommand( ("set",) ,             post=setEnvironmentValuesFun)
+registerCommand( ("add",) ,             post=addEnvironmentValuesFun)
+registerCommand( ("subtract",) ,        post=subtractEnvironmentValuesFun)
+registerCommand( ("properties","set"),  pro=setEnvironmentProperties) 
+registerCommand( ("properties","get"),  pre=getEnvironmentProperties, pro=listFlatResultHandler) 
 registerCommand( ("properties","list"), pre=listEnvironmentProperties, pro=printColumn) 
+registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,"properties",) )
 registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,) ) 
 
 #parameter
