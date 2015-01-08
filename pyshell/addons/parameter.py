@@ -268,25 +268,31 @@ def subtractEnvironmentValuesFun(key, values, parameters, startWithLocal = True,
 
 #TODO update from here to the bottom
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def removeEnvironmentContextValues(key, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def removeEnvironmentContextValues(key, parameters, startWithLocal = True, exploreOtherLevel=True):
     "remove an environment parameter"
-    removeParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
+    removeParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getEnvironmentValues(key, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getEnvironmentValues(key, parameters, startWithLocal = True, exploreOtherLevel=True):
     "get an environment parameter value" 
-    return getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME).getValue()
+    return getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).getValue()
 
-@shellMethod(key           = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values        = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
-             parameters    = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setEnvironmentValuesFun(key, values, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def setEnvironmentValuesFun(key, values, parameters, startWithLocal = True, exploreOtherLevel=True):
     "set an environment parameter value"
     
-    envParam = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
+    envParam = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
     if envParam.isAListType():
         envParam.setValue(values)
@@ -301,10 +307,11 @@ def setEnvironmentValuesFun(key, values, parameters):
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              value             = defaultInstanceArgChecker.getArgCheckerInstance(),
              noCreationIfExist = booleanValueArgChecker(),
-             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def createEnvironmentValueFun(valueType, key, value, noCreationIfExist=False, parameters=None): 
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             localVar          = booleanValueArgChecker())
+def createEnvironmentValueFun(valueType, key, value, noCreationIfExist=False, parameters=None, localVar=True): 
     "create an environment parameter value" 
-    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, False)
+    _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, False,localVar)
 
 @shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
                                                        "string" :defaultInstanceArgChecker.getStringArgCheckerInstance, 
@@ -314,17 +321,20 @@ def createEnvironmentValueFun(valueType, key, value, noCreationIfExist=False, pa
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              noCreationIfExist = booleanValueArgChecker(),
-             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def createEnvironmentValuesFun(valueType, key, values, noCreationIfExist=False, parameters=None): 
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             localVar          = booleanValueArgChecker())
+def createEnvironmentValuesFun(valueType, key, values, noCreationIfExist=False, parameters=None, localVar=True): 
     "create an environment parameter value list" 
-    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, True)
+    _createValuesFun(valueType, key, values, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, True,localVar)
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def addEnvironmentValuesFun(key, values, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def addEnvironmentValuesFun(key, values, parameters, startWithLocal = True, exploreOtherLevel=True):
     "add values to an environment parameter list"
-    param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME)
+    param = getParameter(key, parameters, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.addValues(values)
 
 def _envRowFormating(key, envItem, valueFormatingFun):
@@ -336,41 +346,51 @@ def _envRowFormating(key, envItem, valueFormatingFun):
 def _envGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("IsList"), titleFormatingFun("Value(s)"), )
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker())
-def listEnvs(parameter, key=None):
-    return _listGeneric(parameter, ENVIRONMENT_ATTRIBUTE_NAME, key, _envRowFormating, _envGetTitle)
+@shellMethod(parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             key               = stringArgChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def listEnvs(parameter, key=None, startWithLocal = True, exploreOtherLevel=True):
+    return _listGeneric(parameter, ENVIRONMENT_ATTRIBUTE_NAME, key, _envRowFormating, _envGetTitle, startWithLocal, exploreOtherLevel)
     
-@shellMethod(key           = stringArgChecker(),
-             propertyName  = tokenValueArgChecker({"readonly":"readonly",
+@shellMethod(key               = stringArgChecker(),
+             propertyName      = tokenValueArgChecker({"readonly":"readonly",
                                                    "removable":"removable",
                                                    "transient":"transient"}),
-             propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
-             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setEnvironmentProperties(key, propertyName, propertyValue, parameter):
-    setProperties(key, propertyName, propertyValue, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
+             propertyValue     = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def setEnvironmentProperties(key, propertyName, propertyValue, parameter, startWithLocal = True, exploreOtherLevel=True):
+    setProperties(key, propertyName, propertyValue, parameter, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     
-@shellMethod(key           = stringArgChecker(),
-             propertyName  = tokenValueArgChecker({"readonly":"readonly",
-                                                   "removable":"removable",
-                                                   "transient":"transient"}),
-             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getEnvironmentProperties(key, propertyName, parameter):
-    return getProperties(key, propertyName, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
+@shellMethod(key               = stringArgChecker(),
+             propertyName      = tokenValueArgChecker({"readonly":"readonly",
+                                                      "removable":"removable",
+                                                      "transient":"transient"}),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getEnvironmentProperties(key, propertyName, parameter, startWithLocal = True, exploreOtherLevel=True):
+    return getProperties(key, propertyName, parameter, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
-@shellMethod(key           = stringArgChecker(),
-             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def listEnvironmentProperties(key,parameter):
-    return listProperties(key, parameter, ENVIRONMENT_ATTRIBUTE_NAME)
+@shellMethod(key               = stringArgChecker(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def listEnvironmentProperties(key,parameter, startWithLocal = True, exploreOtherLevel=True):
+    return listProperties(key, parameter, ENVIRONMENT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 #################################### context management #################################### 
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def subtractContextValuesFun(key, values, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def subtractContextValuesFun(key, values, parameters, startWithLocal = True, exploreOtherLevel=True):
     "remove some elements from a context parameter"
-    param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME)
+    param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.removeValues(values)
 
 @shellMethod(valueType         = tokenValueArgChecker({"any"    :defaultInstanceArgChecker.getArgCheckerInstance,
@@ -381,63 +401,80 @@ def subtractContextValuesFun(key, values, parameters):
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
              noCreationIfExist = booleanValueArgChecker(),
-             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def createContextValuesFun(valueType, key, values, noCreationIfExist=False, parameter=None): 
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             localVar          = booleanValueArgChecker())
+def createContextValuesFun(valueType, key, values, noCreationIfExist=False, parameter=None, localVar=True): 
     "create a context parameter value list"
-    _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noCreationIfExist, parameter, True)
+    _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noCreationIfExist, parameter, True,localVar)
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def removeContextValues(key, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def removeContextValues(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     "remove a context parameter"
-    removeParameter(key, parameter, CONTEXT_ATTRIBUTE_NAME)
+    removeParameter(key, parameter, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getContextValues(key, parameter): 
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getContextValues(key, parameter, startWithLocal = True, exploreOtherLevel=True): 
     "get a context parameter value" 
-    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).getValue()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).getValue()
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
-             parameter  = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setContextValuesFun(key, values, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(),1),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def setContextValuesFun(key, values, parameter, startWithLocal = True, exploreOtherLevel=True):
     "set a context parameter value"
-    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).setValue(values)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).setValue(values)
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def addContextValuesFun(key, values, parameters):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def addContextValuesFun(key, values, parameters, startWithLocal = True, exploreOtherLevel=True):
     "add values to a context parameter list"    
-    param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME)
+    param = getParameter(key, parameters, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.addValues(values)
 
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             value     = defaultInstanceArgChecker.getArgCheckerInstance(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def selectValue(key, value, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             value             = defaultInstanceArgChecker.getArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def selectValue(key, value, parameter, startWithLocal = True, exploreOtherLevel=True):
     "select the value for the current context"
-    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).setIndexValue(value)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).setIndexValue(value)
     
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             index     = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def selectValueIndex(key, index, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             index             = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def selectValueIndex(key, index, parameter, startWithLocal = True, exploreOtherLevel=True):
     "select the value index for the current context"
-    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).setIndex(index)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).setIndex(index)
 
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getSelectedContextValue(key, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getSelectedContextValue(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     "get the selected value for the current context"
-    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).getSelectedValue()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).getSelectedValue()
 
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getSelectedContextIndex(key, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getSelectedContextIndex(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     "get the selected value index for the current context"
-    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME).getIndex()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).getIndex()
 
 def _conRowFormating(key, conItem, valueFormatingFun):
     return (".".join(key), str(conItem.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
@@ -445,50 +482,62 @@ def _conRowFormating(key, conItem, valueFormatingFun):
 def _conGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("Index"), titleFormatingFun("Value"), titleFormatingFun("Values"), )
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker())
-def listContexts(parameter, key=None):
+@shellMethod(parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             key               = stringArgChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def listContexts(parameter, key=None, startWithLocal = True, exploreOtherLevel=True):
     "list every existing contexts"
-    return _listGeneric(parameter, CONTEXT_ATTRIBUTE_NAME, key, _conRowFormating, _conGetTitle)
+    return _listGeneric(parameter, CONTEXT_ATTRIBUTE_NAME, key, _conRowFormating, _conGetTitle, startWithLocal, exploreOtherLevel)
     
-@shellMethod(key           = stringArgChecker(),
-             propertyName  = tokenValueArgChecker({"readonly":"readonly",
-                                                   "removable":"removable",
-                                                   "transient":"transient",
-                                                   "index_transient":"index_transient"}),
-             propertyValue = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
-             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setContextProperties(key, propertyName, propertyValue, parameter):
+@shellMethod(key               = stringArgChecker(),
+             propertyName      = tokenValueArgChecker({"readonly":"readonly",
+                                                       "removable":"removable",
+                                                       "transient":"transient",
+                                                       "index_transient":"index_transient"}),
+             propertyValue     = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def setContextProperties(key, propertyName, propertyValue, parameter, startWithLocal = True, exploreOtherLevel=True):
     "set a context property"
-    setProperties(key, propertyName, propertyValue, parameter, CONTEXT_ATTRIBUTE_NAME)
+    setProperties(key, propertyName, propertyValue, parameter, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     
-@shellMethod(key           = stringArgChecker(),
-             propertyName  = tokenValueArgChecker({"readonly":"readonly",
-                                                   "removable":"removable",
-                                                   "transient":"transient",
-                                                   "index_transient":"index_transient"}),
-             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getContextProperties(key, propertyName, parameter):
+@shellMethod(key               = stringArgChecker(),
+             propertyName      = tokenValueArgChecker({"readonly":"readonly",
+                                                       "removable":"removable",
+                                                       "transient":"transient",
+                                                       "index_transient":"index_transient"}),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getContextProperties(key, propertyName, parameter, startWithLocal = True, exploreOtherLevel=True):
     "get a context property"
-    return getProperties(key, propertyName , parameter, CONTEXT_ATTRIBUTE_NAME)
+    return getProperties(key, propertyName , parameter, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     
-@shellMethod(key           = stringArgChecker(),
-             parameter     = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def listContextProperties(key,parameter):
-    return listProperties(key, parameter, CONTEXT_ATTRIBUTE_NAME)
+@shellMethod(key               = stringArgChecker(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def listContextProperties(key,parameter, startWithLocal = True, exploreOtherLevel=True):
+    return listProperties(key, parameter, CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 #################################### var management #################################### 
 
 #################################################### beginning OF POC
 
-@shellMethod(key    = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             engine = defaultInstanceArgChecker.getEngineChecker())
-def pre_addValues(key, values, engine=None):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             engine            = defaultInstanceArgChecker.getEngineChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def pre_addValues(key, values, engine=None, startWithLocal = True, exploreOtherLevel=True):
     
     cmd = engine.getCurrentCommand()
-    cmd.dynamicParameter["key"]      = key
-    cmd.dynamicParameter["disabled"] = False
+    cmd.dynamicParameter["key"]               = key
+    cmd.dynamicParameter["disabled"]          = False
+    cmd.dynamicParameter["startWithLocal"]    = startWithLocal
+    cmd.dynamicParameter["exploreOtherLevel"] = exploreOtherLevel
 
     return values
 
@@ -528,42 +577,49 @@ def post_addValues(values, parameters=None, engine=None):
 
     key = cmd.dynamicParameter["key"]
 
-    if parameters.variable.hasParameter(key):
-        param = getParameter(key, parameters, VARIABLE_ATTRIBUTE_NAME)
+    if parameters.variable.hasParameter(key,cmd.dynamicParameter["startWithLocal"],cmd.dynamicParameter["exploreOtherLevel"]):
+        param = getParameter(key, parameters, VARIABLE_ATTRIBUTE_NAME,cmd.dynamicParameter["startWithLocal"],cmd.dynamicParameter["exploreOtherLevel"])
         param.addValues(values)
     else:
-        parameters.variable.setParameter(key,VarParameter(values))
+        parameters.variable.setParameter(key,VarParameter(values),cmd.dynamicParameter["startWithLocal"])
 
     return values
 
 #################################################### END OF POC
 
-@shellMethod(key        = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             values     = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def subtractValuesVar(key, values, parameters=None):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def subtractValuesVar(key, values, parameters=None, startWithLocal = True, exploreOtherLevel=True):
     "remove existing value from a variable, remove first occurence met"
-    param = getParameter(key, parameters, VARIABLE_ATTRIBUTE_NAME)
+    param = getParameter(key, parameters, VARIABLE_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
     param.removeValues(values)
 
 @shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values    = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def setVar(key, values, parameter):
+             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             localVar  = booleanValueArgChecker())
+def setVar(key, values, parameter, localVar=True):
     "assign a value to a variable"
-    parameter.variable.setParameter(key,VarParameter(values))
+    parameter.variable.setParameter(key,VarParameter(values),localVar)
 
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def getVar(key, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def getVar(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     "get the value of a variable"
-    return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME).getValue()
+    return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).getValue()
 
-@shellMethod(key       = defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def unsetVar(key, parameter):
+@shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def unsetVar(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     "unset a variable, no error if does not exist"
-    removeParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME)
+    removeParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 def _varRowFormating(key, varItem, valueFormatingFun):
     return (".".join(key), valueFormatingFun(', '.join(str(x) for x in varItem.getValue())), )
@@ -571,11 +627,13 @@ def _varRowFormating(key, varItem, valueFormatingFun):
 def _varGetTitle(titleFormatingFun):
     return ( titleFormatingFun("Name"),titleFormatingFun("Values"), )
 
-@shellMethod(parameter = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-             key       = stringArgChecker())
-def listVars(parameter, key=None):
+@shellMethod(parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+             key               = stringArgChecker(),
+             startWithLocal    = booleanValueArgChecker(),
+             exploreOtherLevel = booleanValueArgChecker())
+def listVars(parameter, key=None, startWithLocal = True, exploreOtherLevel=True):
     "list every existing variables"
-    return _listGeneric(parameter, VARIABLE_ATTRIBUTE_NAME, key, _varRowFormating, _varGetTitle)
+    return _listGeneric(parameter, VARIABLE_ATTRIBUTE_NAME, key, _varRowFormating, _varGetTitle, startWithLocal, exploreOtherLevel)
 
 #################################### REGISTER SECTION #################################### 
 
