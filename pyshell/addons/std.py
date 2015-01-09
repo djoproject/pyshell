@@ -24,7 +24,8 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, 
 from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.exception   import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
 from pyshell.utils.postProcess import listFlatResultHandler, stringListResultHandler
-import readline, os
+from pyshell.utils.utils       import createParentDirectory
+import readline
 ## FUNCTION SECTION ##
 
 def exitFun():
@@ -277,10 +278,7 @@ def historySave(useHistory, historyFile):
         return
 
     path = historyFile.getValue()
-
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
-
+    createParentDirectory(path)
     readline.write_history_file(path)
 
 """@shellMethod(data = ,

@@ -83,15 +83,16 @@
 plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un peu dommage et ça casse la synergie
     
     Where to update:
-        -Parameter parent name
-        -Parameter name
-        -var name (avant de résoudre ici, voir si les var ne vont pas disparaitre et etre remplacée par des generic parameter)
-        -addon name
+        -Parameter parent name (DOES NOT EXIST ANYMORE)
+        -Parameter name (OK)
+        -var name (avant de résoudre ici, voir si les var ne vont pas disparaitre et etre remplacée par des generic parameter) (OK)
+        -addon name (TODO)
         -...
 
     look after dictionary init { everywhere in the code
+        grep -r "{}" * | grep -v "~"
     
-    IDEA
+    IDEA (TODO ?)
         faire une fonction qui gère les ambiguité
             construire un message d'erreur generique a toute l'applic
             ce message contiendra l'ensemble des possibilités (ou un subset)
@@ -188,20 +189,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 #####################
 ### parameter     ###
 #####################
-
-    load/save
-        le fichier rc ne devrait pas être un fichier de config mais pluôt un fichier de script
-            ou considérer comme un addon ?? pour gérer les unloads ?
-                permettrait de gérer les dépendances de ce dont on a besoin pour exécuter
-                
-        prévoir un "reset" pour remettre les paramètre à ceux de démarrage
-        
-        une commande dans le onstartup pour charger la config
-
-    variable should be unique in each thread
-        but what about variable storage ?
-            store them at the beginning of a stored alias
-                but how to know if a var definition is from the system or from the file when we need to store it again ?
+    
+    prévoir un "reset" pour remettre les paramètre à ceux de démarrage
 
 #####################
 ### alias manager ###
@@ -213,13 +202,9 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         dans le std
         
     stored file is just ugly...
-
-################################
-### Parameter Thread safe    ###
-################################
     
-    pouvoir desactiver un lock dans un parameter ? intérêt ?
-        Brainstorming todo
+    use the function to check the existence of the directory
+        see utils.utils file
     
 #####################
 ### event manager ###

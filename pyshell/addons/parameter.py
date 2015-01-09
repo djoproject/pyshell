@@ -26,6 +26,7 @@ from pyshell.utils.constants    import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, E
 from pyshell.utils.printing     import formatBolt, formatOrange
 from pyshell.utils.exception    import ListOfException, DefaultPyshellException, PyshellException
 from pyshell.utils.aliasManager import AliasFromFile
+from pyshell.utils.utils        import createParentDirectory
 import os 
 
 ## CONSTANT SECTION ##
@@ -188,28 +189,14 @@ def loadParameter(filePath, parameters):
 def saveParameter(filePath, parameters):
     "save not transient parameters to the settings file"
 
-    #TODO
-        #create settings directory if not exist
-            #create a method to do it, and use it everywhere the sofware try to write in this directory
-            
-        #use command create list pour l'env
-            #with the current solution, not possible to use environment
-                #because single and list
-                
-                #SOLUTION 1: add an extra arg on creation
-                
-                #SOLUTION 2: set it with settings
-                
-                #... 
-
-        #BUG will not update parameter content if parameter already exists...
-        
-        #...
-
     #TODO is there something to save ?
         #should compare the content of the file, the memory and the starting parameter...
 
     filePath = filePath.getValue()
+
+    #create directory if needed
+    createParentDirectory(filePath)
+    
     with open(filePath, 'wb') as configfile:
         for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
             container = getattr(parameters, subcontainername)
@@ -220,7 +207,7 @@ def saveParameter(filePath, parameters):
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+"-isList true -noCreationIfExist true -localVar false\n" )
                 else:
                     configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+str(parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
                 
@@ -229,18 +216,21 @@ def saveParameter(filePath, parameters):
                 if len(properties) > 0:
                     #disable readOnly 
                     configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly false\n" )
-                    readOnlyReset = False
-                    
+
+                    #set value
+                    if parameter.isAListType():
+                        configfile.write( subcontainername+" set "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+"\n" )
+                    else:
+                        configfile.write( subcontainername+" set "+".".join(key)+" "+str(parameter.getValue())+"\n" )
+
+                    readOnlyValue = False
                     for propName,propValue in parameter.getProperties():
                         configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
                         
-                        #TODO readonly should always be written on last
-                        if propName.lower() == "readonly":
-                            readOnlyReset = True
+                        if propName.lower() == "readonly":#readonly should always be written on last
+                            readOnlyValue = propValue
                             
-                    if not readOnlyReset:
-                        configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly "+str(parameter.isReadOnly())+"\n" )
-                    
+                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly "+str(readOnlyValue)+"\n" )
                 configfile.write("\n")
         
 def _createValuesFun(valueType, key, values, classDef, attributeType, noCreationIfExist, parameters, listEnabled, localParam = True): 
@@ -386,11 +376,15 @@ def subtractContextValuesFun(key, values, parameters, startWithLocal = True, exp
 @shellMethod(valueType         = tokenValueArgChecker(AVAILABLE_TYPE), 
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
+             isList            = booleanValueArgChecker(),
              noCreationIfExist = booleanValueArgChecker(),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              localVar          = booleanValueArgChecker())
-def createContextValuesFun(valueType, key, values, noCreationIfExist=False, parameter=None, localVar=True): 
+def createContextValuesFun(valueType, key, values, isList=True, noCreationIfExist=False, parameter=None, localVar=True): 
     "create a context parameter value list"
+    if not isList:
+        raise Exception("isList argument can not be false, it is a compatibility argument that must always be true")
+    
     _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noCreationIfExist, parameter, True,localVar)
 
 @shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),

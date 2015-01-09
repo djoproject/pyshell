@@ -19,21 +19,24 @@
 #ordered from worst (0) to insignifiant (inf)
 ERROR         = 0
 CORE_ERROR    = 1
-LIBRARY_ERROR = 2
-PARSE_ERROR   = 3
-USER_ERROR    = 4
+SYSTEM_ERROR  = 2
+LIBRARY_ERROR = 3
+PARSE_ERROR   = 4
+USER_ERROR    = 5
 
 WARNING         = 10
 CORE_WARNING    = 11
-LIBRARY_WARNING = 12
-PARSE_WARNING   = 13
-USER_WARNING    = 14
+SYSTEM_WARNING  = 12
+LIBRARY_WARNING = 13
+PARSE_WARNING   = 14
+USER_WARNING    = 15
 
 NOTICE         = 20
 CORE_NOTICE    = 21
-LIBRARY_NOTICE = 22
-PARSE_NOTICE   = 23
-USER_NOTICE    = 24
+SYSTEM_NOTICE  = 22
+LIBRARY_NOTICE = 23
+PARSE_NOTICE   = 24
+USER_NOTICE    = 25
 
 class PyshellException(Exception):
     def __init__(self,severity = ERROR):

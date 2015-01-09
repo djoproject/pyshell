@@ -376,7 +376,7 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
     t.start()
 
 # TODO add processName at the error message
-#      Except if (in main AND in shell mode) OR None name
+#      Except if (in main (main thread + level 0) AND in shell mode) OR None name
 #      OR add cmd name (or both)
 #
 #     possible to get cmd in progress with the engine stack

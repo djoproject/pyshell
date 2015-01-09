@@ -17,6 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+from pyshell.utils.exception import DefaultPyshellException, SYSTEM_WARNING, SYSTEM_ERROR
         
 def ioctl_GWINSZ(fd):
     try:
@@ -56,4 +57,13 @@ def raiseIfInvalidKeyList(keyList, exceptionClass,packageName, methName):
         if len(key) == 0:
             raise exceptionClass("("+packageName+") "+methName+", empty key is not allowed")
             
-
+def createParentDirectory(filePath):
+    if not os.path.exists(os.path.dirname(filePath)):
+        try:
+            os.makedirs(os.path.dirname(filePath))
+        except os.error as ose:
+            raise DefaultPyshellException("fail to create directory tree '"+os.path.dirname(filePath)+"', "+str(ose),SYSTEM_WARNING)
+            
+    elif not os.path.isdir(os.path.dirname(filePath)):
+        raise DefaultPyshellException("'"+os.path.dirname(filePath)+"' is not a directory, nothing will be saved",SYSTEM_WARNING)
+        

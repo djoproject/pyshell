@@ -24,6 +24,7 @@ from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_KEY_STO
 from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 from pyshell.utils.exception   import KeyStoreLoadingException, ListOfException
+from pyshell.utils.utils        import createParentDirectory
 
 import sys, os
 try:
@@ -110,8 +111,7 @@ def saveKeyStore(filePath, useKeyStore, keyStore=None):
         return
         
     #create config directory
-    if not os.path.exists(os.path.dirname(filePath)):
-        os.makedirs(os.path.dirname(filePath))
+    createParentDirectory(filePath)
 
     #save key store
     with open(filePath, 'wb') as configfile:
