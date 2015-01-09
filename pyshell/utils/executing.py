@@ -18,11 +18,11 @@
 
 #BNF GRAMMAR OF A COMMAND
 # 
-# <commands>   ::= <command> <threading> <EOL> | <command> "|" <commands>
-# <threading> ::= " &" | ""
-# <command>   ::= <token> | <token> " " <command>
-# <token>     ::= <string> | "$" <string> | "\$" <string>
-# <string>    ::= <text> | <text> "\ " <string> #TODO conflict with command rule
+## RULE 1 ## <commands>  ::= <command> <threading> <EOL> | <command> "|" <commands>
+## RULE 2 ## <threading> ::= " &" | ""
+## RULE 3 ## <command>   ::= <token> | <token> " " <command>
+## RULE 4 ## <token>     ::= <string> | "$" <string> | "\$" <string> | "-" <text> | "-" <text> <string> | "\-" <string>
+## RULE 5 ## <string>    ::= <text> | <text> "\ " <string> #TODO conflict with command rule
 #
 #
 
@@ -32,9 +32,10 @@ from pyshell.arg.exception     import *
 from pyshell.arg.argchecker    import booleanValueArgChecker, defaultInstanceArgChecker
 from pyshell.utils.constants   import DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_TAB_SIZE_KEY, ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.printing    import warning, error, printException
+from pyshell.utils.parameter   import VarParameter
 from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
 from tries.exception import triesException
-from shlex import split
+#from shlex import split
 import sys, threading, thread
 
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
@@ -43,6 +44,8 @@ else:
     from collections import OrderedDict 
 
 #TODO
+    #finish the grammar then refactor the parsing system
+
     #refactore parsing method, see 
         #manage space escape like ‘\ ‘
         #manage "&"
@@ -168,7 +171,7 @@ def preParseNotPipedCommand(line):
 
     #remove blank char at the ends
     #print "BEFORE", "<"+str(line)+">"
-    line = line.strip(' \t\n\r') #TODO FIXME does not remove space... (only on macos ?)
+    line = line.strip(' \t\n\r')
     #print "AFTER", "<"+str(line)+">"
 
     if len(line) == 0:
@@ -182,7 +185,7 @@ def preParseNotPipedCommand(line):
     for token in line:
 
         #clean token
-        clearedToken = token.strip(' \t\n\r') #TODO FIXME probably does not work too... (see previous)
+        clearedToken = token.strip(' \t\n\r')
 
         #remove empty token
         if len(clearedToken) == 0:
@@ -209,7 +212,7 @@ def preParseLine(line):
 
     return toret
 
-def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
+def parseArgument(preParsedCmd, params, commandName = None):#, commandArg = None):
     "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
 
     parsedCmd = []
@@ -224,49 +227,7 @@ def parseArgument(preParsedCmd, params, commandName = None, commandArg = None):
                 #remove $
                 stringToken = stringToken[1:]
 
-                if not params.variable.hasParameter(stringToken):
-                
-                    #TODO these variable should always be avaible and build at the biginning of script execution
-
-                    #is it an element of the current execution ?
-                    if commandName is not None:
-                        if stringToken == "0": #script name
-                            newRawCmd.append( commandName )
-                            continue
-                    
-                    if commandArg is not None:
-                        if stringToken == "*": #all arg in one string
-                            if len(commandArg) > 0:
-                                newRawCmd.append(' '.join(str(x) for x in commandArg))
-                            continue
-                        elif stringToken == "@": #all arg
-                            newRawCmd.extend( commandArg )
-                            continue
-                        elif stringToken == "#": #arg count
-                            newRawCmd.append( str(len(commandArg)) )
-                            continue
-                    else:
-                        if stringToken == "*" or stringToken == "@": #all arg in one string
-                            continue
-                            continue
-                        elif stringToken == "#": #arg count
-                            newRawCmd.append( "0" )
-                            continue
-                            
-                #TODO
-                    #"""if stringToken == "?": #value returned by the last command
-                    #    #TODO
-                    #    continue"""
-                            
-                    if stringToken == "$": #current pid
-                        newRawCmd.append( str(thread.get_ident()) )
-                        continue
-                            
-                #TODO
-                    #"""elif stringToken == "!": #last pid started in background
-                    #    #TODO
-                    #    continue"""
-                    
+                if not params.variable.hasParameter(stringToken):                    
                     unknowVarError.add("Unknown var '"+stringToken+"'")
                     continue
                 
@@ -394,10 +355,7 @@ def fireCommand(cmd, params, preParse = True , processName=None, processArg=None
 #
 def executeCommand(cmd, params, preParse = True , processName=None, processArg=None):
     "execute the engine object"
-    
-    #TODO
-        #bind processArg to local variable in params
-    
+        
     stackTraceColor = error
     ex              = None
     engine          = None
@@ -408,9 +366,19 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
             cmdPreParsed = preParseLine(cmd)
         else:
             cmdPreParsed = cmd
-            
+        
+        if processArg is not None: 
+            #TODO PROBABLY BUG... if it is a alias, the call of the inner command will call another push and these local variable will not be available...
+                   
+            params.variable.setParameter("*", VarParameter(' '.join(str(x) for x in processArg)), localParam = True) #all in one string
+            params.variable.setParameter("#", VarParameter(len(processArg)), localParam = True)                      #arg count
+            params.variable.setParameter("@", VarParameter(processArg), localParam = True)                            #all args
+            #TODO params.variable.setParameter("?", VarParameter(processArg, localParam = True)                            #value from last command
+            #TODO params.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
+            params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id
+        
         #parse and check the string list
-        cmdStringList = parseArgument(cmdPreParsed, params, processName, processArg)
+        cmdStringList = parseArgument(cmdPreParsed, params, processName)
         
         #if empty list after parsing, nothing to execute
         if len(cmdStringList) == 0:

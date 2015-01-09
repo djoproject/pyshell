@@ -58,7 +58,10 @@ class CommandExecuter():
         self._initExitEvent()
         
         ## execute atStartUp ##
-        executeCommand(EVENT__ON_STARTUP,self.params, "__startup__") #TODO provide args from outside
+        #TODO provide args from outside
+            #nope, arg from outside must be mapped as global var in environment
+            #give an empty 
+        executeCommand(EVENT__ON_STARTUP,self.params, "__startup__") 
 
     def _initParams(self, paramFile):
         #create param manager

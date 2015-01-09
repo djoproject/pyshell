@@ -660,7 +660,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         return str(self.value[self.index])
         
 class VarParameter(EnvironmentParameter):
-    def __init__(self,value):
+    def __init__(self,value): #value can be a list or not, it will be processed
         tmp_value_parsed = [value]
         parsed_value = []
         

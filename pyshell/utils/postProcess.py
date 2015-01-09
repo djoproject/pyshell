@@ -79,8 +79,54 @@ def printBytesAsString(byteList):
     
     return byteList
 
-def printColumnWithouHeader():
-    pass #TODO (needed to list all parameter, see addon/parameter)
+@shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def printColumnWithouHeader(listOfLine):
+    if len(listOfLine) == 0:
+        return
+    
+    #compute size
+    size = {}
+    spaceToAdd = 2 #at least two space column separator
+    
+    for row_index in range(0,len(listOfLine)):
+        line = listOfLine[row_index]
+                
+        if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
+            if 0 not in size:
+                size[0] = strLength(str(line)) + spaceToAdd
+            else:
+                size[0] = max(size[0],strLength(str(line)) + spaceToAdd)
+        else:
+            for column_index in range(0,len(line)):
+                if column_index not in size:
+                    size[column_index] = strLength(str(line[column_index])) + spaceToAdd
+                else:
+                    size[column_index] = max(size[column_index], strLength (str(line[column_index])) +spaceToAdd )
+    
+    to_print = ""
+    #print table
+    defaultPrefix = ""
+    for row_index in range(0,len(listOfLine)):
+        line = listOfLine[row_index]
+                
+        if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
+            to_print += defaultPrefix + str(line) + "\n"
+            
+            #no need of pading if the line has only one column
+        else:
+            line_to_print = ""
+            for column_index in range(0,len(line)):
+                padding = size[column_index] - strLength(str(line[column_index])) - len(defaultPrefix)
+                
+                #no padding on last column
+                if column_index == len(size) - 1:
+                    line_to_print += defaultPrefix + str(line[column_index])
+                else:
+                    line_to_print += defaultPrefix + str(line[column_index]) + " "*padding
+                
+            to_print +=  line_to_print + "\n"
+     
+    printShell(to_print[:-1])
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):

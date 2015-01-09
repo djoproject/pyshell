@@ -21,7 +21,7 @@ from pyshell.loader.command     import registerStopHelpTraversalAt, registerComm
 from pyshell.arg.decorator      import shellMethod
 from pyshell.arg.argchecker     import defaultInstanceArgChecker,listArgChecker, environmentParameterChecker, tokenValueArgChecker, stringArgChecker, booleanValueArgChecker, contextParameterChecker
 from pyshell.utils.parameter    import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
-from pyshell.utils.postProcess  import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler
+from pyshell.utils.postProcess  import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler,printColumnWithouHeader
 from pyshell.utils.constants    import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.printing     import formatBolt, formatOrange
 from pyshell.utils.exception    import ListOfException, DefaultPyshellException, PyshellException
@@ -121,6 +121,9 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, st
 
     #TODO try to display if global or local
         #don't print that column if exploreOtherLevel == false
+        
+        #for context and env, use the boolean lockEnabled
+            #but for the var ?
 
     if not hasattr(parameters, attributeType):
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
@@ -138,7 +141,7 @@ def _listGeneric(parameters, attributeType, key, formatValueFun, getTitleFun, st
         toRet.append( formatValueFun(subk, subv, formatOrange) )
     
     if len(toRet) == 0:
-        return [("No var available",)]
+        return [("No item available",)]
     
     toRet.insert(0, getTitleFun(formatBolt) )
     return toRet
@@ -158,9 +161,8 @@ def _parameterGetTitle(titleFormatingFun):
 
 @shellMethod(parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              key       = stringArgChecker())
-def listParameter(parameters, key=None): #TODO use with a print column without header
+def listParameter(parameters, key=None):
     toPrint = []
-    toPrint.append("") #TODO remove this when "print column without header" will be ready
     for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
         if not hasattr(parameters, subcontainername):
             raise Exception("Unknow parameter type '"+str(attributeType)+"'")
@@ -661,6 +663,6 @@ registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,) )
 registerSetTempPrefix( (PARAMETER_NAME, ) )
 registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("load",) ,           pro=loadParameter)
-registerCommand( ("list",) ,           pro=listParameter, post=printColumn)
+registerCommand( ("list",) ,           pro=listParameter, post=printColumnWithouHeader)
 registerStopHelpTraversalAt( (PARAMETER_NAME,) )
     
