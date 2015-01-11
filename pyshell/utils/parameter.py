@@ -670,7 +670,8 @@ class VarParameter(EnvironmentParameter):
             
             for v in value_to_parse:
                 if type(v) == str or type(v) == unicode:
-                    v = split(v)
+                    v = v.strip()
+                    v = v.split(" ")
 
                     for subv in v:
                         if len(subv) == 0:
