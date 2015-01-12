@@ -274,7 +274,7 @@ def parseCommand(parsedCmd, mltries):
             tokenIndex = len(searchResult.existingPath) - 1
             tries = searchResult.existingPath[tokenIndex][1].localTries
             keylist = tries.getKeyList(finalCmd[tokenIndex])
-            print keylist, finalCmd[tokenIndex]
+            #print keylist, finalCmd[tokenIndex]
             
             raise DefaultPyshellException("ambiguity on command '"+" ".join(finalCmd)+"', token '"+str(finalCmd[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
 
@@ -369,13 +369,15 @@ def executeCommand(cmd, params, preParse = True , processName=None, processArg=N
         
         if processArg is not None: 
             #TODO PROBABLY BUG... if it is a alias, the call of the inner command will call another push and these local variable will not be available...
+            #TODO BUG (?) script execution will cause a lot of this statement, why ?
+                #check with the startup script
                    
             params.variable.setParameter("*", VarParameter(' '.join(str(x) for x in processArg)), localParam = True) #all in one string
             params.variable.setParameter("#", VarParameter(len(processArg)), localParam = True)                      #arg count
             params.variable.setParameter("@", VarParameter(processArg), localParam = True)                            #all args
             #TODO params.variable.setParameter("?", VarParameter(processArg, localParam = True)                            #value from last command
             #TODO params.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
-            params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id
+            params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id #TODO id is not enought, need level
         
         #parse and check the string list
         cmdStringList = parseArgument(cmdPreParsed, params, processName)

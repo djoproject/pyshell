@@ -171,7 +171,7 @@ class ParameterManagerV3(object):
                     if key not in self.threadLocalVar:
                         self.threadLocalVar[key] = set()
 
-                    self.threadLocalVar[key].add( advancedResult.getFoundCompletePath() )
+                    self.threadLocalVar[key].add( '.'.join(str(x) for x in advancedResult.getFoundCompletePath()) )
 
                 local_var[key] = param
 
@@ -191,6 +191,8 @@ class ParameterManagerV3(object):
                 global_var = param
                 
             self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
+            
+        return param
             
     @synchronous()
     def getParameter(self, stringPath, perfectMatch = False, localParam = True, exploreOtherLevel=True):
@@ -272,7 +274,7 @@ class ParameterManagerV3(object):
                         del local_var[key]
 
                     #remove from thread local list
-                    self.threadLocalVar[key].remove(advancedResult.getFoundCompletePath())
+                    self.threadLocalVar[key].remove('.'.join(str(x) for x in advancedResult.getFoundCompletePath()))
                     if len(self.threadLocalVar[key]) == 0:
                         del self.threadLocalVar[key]
                         
@@ -696,3 +698,6 @@ class VarParameter(EnvironmentParameter):
     
     def __repr__(self):
         return "Variable, value:"+str(self.value)
+        
+    def getProperties(self):
+        return ()

@@ -202,16 +202,16 @@ def saveParameter(filePath, parameters):
     with open(filePath, 'wb') as configfile:
         for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
             container = getattr(parameters, subcontainername)
-            dico = container.buildDictionnary("")
+            dico = container.buildDictionnary("", localParam = False, exploreOtherLevel=False)
 
             for key, parameter in dico.items():
                 if parameter.isTransient():
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+"-isList true -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
                 else:
-                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+str(parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+str(parameter.getValue())+" -isList false -noCreationIfExist true -localVar false\n" )
                 
                 properties = parameter.getProperties()
                 
@@ -227,11 +227,11 @@ def saveParameter(filePath, parameters):
 
                     readOnlyValue = False
                     for propName,propValue in parameter.getProperties():
-                        configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
-                        
                         if propName.lower() == "readonly":#readonly should always be written on last
                             readOnlyValue = propValue
-                            
+                            continue
+                    
+                        configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
                     configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly "+str(readOnlyValue)+"\n" )
                 configfile.write("\n")
         
@@ -305,7 +305,7 @@ def setEnvironmentValuesFun(key, values, parameters, startWithLocal = True, expl
              noCreationIfExist = booleanValueArgChecker(),
              parameters        = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              localVar          = booleanValueArgChecker())
-def createEnvironmentValueFun(valueType, key, value, isList=False, noCreationIfExist=False, parameters=None, localVar=True): 
+def createEnvironmentValueFun(valueType, key, value, isList=True, noCreationIfExist=False, parameters=None, localVar=True): 
     "create an environment parameter value" 
     _createValuesFun(valueType, key, value, EnvironmentParameter, ENVIRONMENT_ATTRIBUTE_NAME, noCreationIfExist, parameters, isList,localVar)
 
@@ -378,15 +378,11 @@ def subtractContextValuesFun(key, values, parameters, startWithLocal = True, exp
 @shellMethod(valueType         = tokenValueArgChecker(AVAILABLE_TYPE), 
              key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              values            = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
-             isList            = booleanValueArgChecker(),
              noCreationIfExist = booleanValueArgChecker(),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
              localVar          = booleanValueArgChecker())
-def createContextValuesFun(valueType, key, values, isList=True, noCreationIfExist=False, parameter=None, localVar=True): 
+def createContextValuesFun(valueType, key, values, noCreationIfExist=False, parameter=None, localVar=True): 
     "create a context parameter value list"
-    if not isList:
-        raise Exception("isList argument can not be false, it is a compatibility argument that must always be true")
-    
     _createValuesFun(valueType, key, values, ContextParameter, CONTEXT_ATTRIBUTE_NAME, noCreationIfExist, parameter, True,localVar)
 
 @shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -615,14 +611,15 @@ def listVars(parameter, key=None, startWithLocal = True, exploreOtherLevel=True)
 #################################### REGISTER SECTION #################################### 
 
 #var 
-registerSetTempPrefix( ("var", ) )
+registerSetTempPrefix( (VARIABLE_ATTRIBUTE_NAME, ) )
 registerCommand( ("set",) ,                    post=setVar)
+registerCommand( ("create",) ,                 post=setVar) #compatibility issue
 registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetVar)
 registerCommand( ("list",) ,                   pre=listVars, pro=printColumn)
 registerCommand( ("add",) ,                    pre=pre_addValues, pro=pro_addValues, post=post_addValues)
 registerCommand( ("subtract",) ,               post=subtractValuesVar)
-registerStopHelpTraversalAt( ("var",) )
+registerStopHelpTraversalAt( (VARIABLE_ATTRIBUTE_NAME,) )
 
 #context 
 registerSetTempPrefix( (CONTEXT_ATTRIBUTE_NAME, ) )

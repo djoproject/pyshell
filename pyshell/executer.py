@@ -36,10 +36,11 @@ from pyshell.utils.printing     import Printer, warning, error, printException
 from pyshell.utils.valuable     import SimpleValuable
 from pyshell.utils.executing    import executeCommand, preParseLine
 from pyshell.utils.aliasManager import AliasFromList, AliasFromFile
+import thread
 
 class CommandExecuter():
-    def __init__(self, paramFile = None):
-        self._initParams(paramFile)
+    def __init__(self, paramFile = None, outsideArgs = None):
+        self._initParams(paramFile, outsideArgs)
         self._initPrinter()
         
         #load addon addon (if not loaded, can't do anything)
@@ -58,12 +59,9 @@ class CommandExecuter():
         self._initExitEvent()
         
         ## execute atStartUp ##
-        #TODO provide args from outside
-            #nope, arg from outside must be mapped as global var in environment
-            #give an empty 
         executeCommand(EVENT__ON_STARTUP,self.params, "__startup__") 
 
-    def _initParams(self, paramFile):
+    def _initParams(self, paramFile, outsideArgs):
         #create param manager
         self.params = ParameterContainer()
         self.promptWaitingValuable = SimpleValuable(False)
@@ -81,10 +79,25 @@ class CommandExecuter():
         self.params.environment.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,     EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT, typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()),transient=False,readonly=False, removable=False), localParam = False)
         self.params.environment.setParameter(ADDONLIST_KEY,                     EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(), transient = True, readonly = True, removable = False), localParam = False)
         
-        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True), localParam = False)
+        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0,index=1, removable=False, readonly=True), localParam = False)
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY, ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False, readonly=True), localParam = False)
         self.params.context.setParameter(CONTEXT_COLORATION_KEY,ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True), localParam = False)
     
+        #mapped outside argument
+        if outsideArgs is not None:
+            var = self.params.variable.setParameter("*", VarParameter(' '.join(str(x) for x in outsideArgs)), localParam = False) #all in one string
+            var.setTransient(True)
+            var = self.params.variable.setParameter("#", VarParameter(len(outsideArgs)), localParam = False)                      #arg count
+            var.setTransient(True)
+            var = self.params.variable.setParameter("@", VarParameter(outsideArgs), localParam = False)                            #all args
+            var.setTransient(True)
+            #TODO var = self.params.variable.setParameter("?", VarParameter(outsideArgs, localParam = False)                            #value from last command
+            #var.setTransient(True)
+            #TODO var = self.params.variable.setParameter("!", VarParameter(outsideArgs, localParam = False)                            #last pid started in background
+            #var.setTransient(True)
+            var = self.params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = False)                    #current process id #TODO id is not enought, need level
+            var.setTransient(True)
+            
     def _initPrinter(self):
         ## prepare the printing system ##
         printer = Printer.getInstance()
@@ -323,7 +336,7 @@ if __name__ == "__main__":
     ExitAfterScript = True
     Granularity     = sys.maxint
     
-    for o, a in opts:
+    for o, a in opts: #TODO test every args
         if o in ("-h", "--help"):
             help()
             exit()
@@ -347,7 +360,7 @@ if __name__ == "__main__":
         ParameterFile = DEFAULT_PARAMETER_FILE
     
     #run basic instance
-    executer = CommandExecuter(ParameterFile)
+    executer = CommandExecuter(ParameterFile,args)
     
     if ScriptFile != None:
         executer.executeFile(ScriptFile, Granularity)
