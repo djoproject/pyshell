@@ -62,7 +62,94 @@ else:
     #keep track of running event and be able to kill one or all of them
         #manage it in alias object with a static list
             #an alias add itself in the list before to start then remove itself from the list at the end of its execution
-    
+
+class Parser(object):
+    #TODO
+        #exclusion char //
+        
+        #two mode
+            #1) only check grammar
+            #2) check grammar + bind args + bind command
+                #what about parameter binding ?
+
+    def __init__(self,string):
+        self.currentToken   = None
+        self.currentCommand = []
+        self.commandList    = []
+        self.argSpotted     = []
+        self.paramSpotted   = []
+        self._innerParser   = self._subParseNoToken
+        self.string = string
+        
+    def _subParseNoToken(self,char):
+        if char == ' ':
+            return
+            
+        if char == '|':
+            if len(self.currentCommand) > 0:
+                self.commandList.append(self.currentCommand)
+                self.currentCommand = []
+                
+            return
+            
+        self.currentToken = ""
+        
+        if char == '"':
+            self._innerParser = self._subParseWrappedToken
+            return
+            
+        self._innerParser = self._subParseToken
+        self.currentToken += char
+        
+        if char == '$':
+            argSpotted.append(len(currentCommand))
+        elif char == '-':
+            paramSpotted.append(len(currentCommand))
+        
+    def _subParseWrappedToken(self,char):
+        if char == '"':
+            currentCommand.append(currentToken)
+            currentToken = None
+            self._innerParser = self._subParseNoToken
+        else:
+            self.currentToken += char
+        
+    def _subParseToken(self,char):
+        if char == ' ' or char == '|':
+            self.currentCommand.append(self.currentToken)
+            self.currentToken = None
+            self._innerParser = self._subParseNoToken
+            
+            if char == '|':
+                commandList.append(currentCommand)
+                currentCommand = []
+        else:
+            self.currentToken += char
+
+    def parse(self):
+        if self.string is None:
+            return
+            
+        if type(self.string) != str and type(self.string) != unicode:
+            pass #raise
+            
+        self.string = self.string.strip(' \t\n\r')
+        
+        if len(self.string) == 0:
+            return
+                
+        for i in xrange(0,len(self.string)):
+            char = self.string[i]
+            self._innerParser(char)    
+            
+        if self.currentToken is not None:
+            self.currentCommand.append(self.currentToken)
+            self.currentToken = None
+            
+        if len(self.currentCommand) > 0:
+            self.commandList.append(self.currentCommand)
+            self.currentCommand = []
+
 def _isValidBooleanValueForChecker(value):
     try:
         defaultInstanceArgChecker.getbooleanValueArgCheckerInstance().getValue(value)
