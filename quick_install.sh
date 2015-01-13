@@ -20,6 +20,7 @@ rm -rf ../tries
 mv ./pytries/tries ../
 rm -rf ./*
 git clone https://github.com/djo938/supershell.git || quit "Failed to retrieve supershell source code from github"
+rm BRAINSTORMING BUG clean.sh STRUCT TODO test.sh
 rm -rf ../pyshell
 mv ./supershell/* ../
 quit "success to install/update, use exec.sh to start the shell"
