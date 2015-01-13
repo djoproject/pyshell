@@ -4,6 +4,8 @@ function quit {
     echo
     echo "!!!!  $1  !!!!"
     echo
+    echo "Use this script again to try another install/update of this project"
+    echo
     cd ..
     rm -rf ./tmp/
     exit
@@ -20,7 +22,7 @@ rm -rf ../tries
 mv ./pytries/tries ../
 rm -rf ./*
 git clone https://github.com/djo938/supershell.git || quit "Failed to retrieve supershell source code from github"
-rm BRAINSTORMING BUG clean.sh STRUCT TODO test.sh
 rm -rf ../pyshell
 mv ./supershell/* ../
-quit "success to install/update, use exec.sh to start the shell"
+rm ../BRAINSTORMING ../BUG ../clean.sh ../STRUCT ../TODO ../test.sh
+quit "Success to install/update, use exec.sh to start the shell"
