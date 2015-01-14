@@ -64,9 +64,7 @@ else:
             #an alias add itself in the list before to start then remove itself from the list at the end of its execution
 
 class Parser(object):
-    #TODO
-        #exclusion char //
-        
+    #TODO        
         #two mode
             #1) only check grammar
             #2) check grammar + bind args + bind command
@@ -76,20 +74,40 @@ class Parser(object):
         self.currentToken   = None
         self.currentCommand = []
         self.commandList    = []
-        self.argSpotted     = []
-        self.paramSpotted   = []
+        self.argSpotted     = [] #TODO
+        self.paramSpotted   = [] #TODO
         self._innerParser   = self._subParseNoToken
-        self.string = string
-        
+        self.string         = string
+        self.escapeChar     = False
+
+    def _pushCommandInList(self):
+        if len(self.currentCommand) > 0:
+            #TODO search command if mltries defined
+                #raise if not found
+
+            #TODO extract parameter if command found
+                #if variable spotted, need params defined
+                #otherelse no need params
+
+            self.commandList.append(self.currentCommand)
+            self.currentCommand = []
+    
+    def _pushTokenInCommand(self):
+        if self.currentToken is not None:
+            #TODO extract variable if params defined
+                #if not a valid variable, raise
+                #invalid variable no more allowed, the user have to use escape char
+
+            self.currentCommand.append(self.currentToken)
+            self.currentToken = None
+            self._innerParser = self._subParseNoToken
+
     def _subParseNoToken(self,char):
         if char == ' ':
             return
             
         if char == '|':
-            if len(self.currentCommand) > 0:
-                self.commandList.append(self.currentCommand)
-                self.currentCommand = []
-                
+            self._pushCommandInList()
             return
             
         self.currentToken = ""
@@ -99,7 +117,11 @@ class Parser(object):
             return
             
         self._innerParser = self._subParseToken
-        self.currentToken += char
+
+        if char == '\\':
+            self.escapeChar = True
+        else:
+            self.currentToken += char
         
         if char == '$':
             argSpotted.append(len(currentCommand))
@@ -107,22 +129,33 @@ class Parser(object):
             paramSpotted.append(len(currentCommand))
         
     def _subParseWrappedToken(self,char):
+        if char == '\\':
+            if self.escapeChar:
+                self.currentToken += '\\'
+                self.escapeChar    = False
+            else:
+                self.escapeChar = True
+
         if char == '"':
-            currentCommand.append(currentToken)
-            currentToken = None
-            self._innerParser = self._subParseNoToken
+            if self.escapeChar:
+                self.currentToken += '"'
+                self.escapeChar    = False
+            else:
+                self._pushTokenInCommand()
         else:
             self.currentToken += char
         
     def _subParseToken(self,char):
+        if self.escapeChar:
+            self.currentToken += char
+            self.escapeChar    = False
+            return
+
         if char == ' ' or char == '|':
-            self.currentCommand.append(self.currentToken)
-            self.currentToken = None
-            self._innerParser = self._subParseNoToken
-            
+            self._pushTokenInCommand()
+                
             if char == '|':
-                commandList.append(currentCommand)
-                currentCommand = []
+                self._pushCommandInList()
         else:
             self.currentToken += char
 
@@ -142,13 +175,15 @@ class Parser(object):
             char = self.string[i]
             self._innerParser(char)    
             
-        if self.currentToken is not None:
-            self.currentCommand.append(self.currentToken)
-            self.currentToken = None
-            
-        if len(self.currentCommand) > 0:
-            self.commandList.append(self.currentCommand)
-            self.currentCommand = []
+        #push intermediate data
+        self._pushTokenInCommand()
+        self._pushCommandInList()
+
+    def getCommandList(self):
+        return self.commandList
+
+    def isToExecuteInAnotherThread(self):
+        pass #TODO
 
 def _isValidBooleanValueForChecker(value):
     try:
