@@ -69,16 +69,19 @@ class Parser(object):
             #1) only check grammar
             #2) check grammar + bind args + bind command
                 #what about parameter binding ?
-
+        
+        #background parameter &
+    
     def __init__(self,string):
-        self.currentToken   = None
-        self.currentCommand = []
-        self.commandList    = []
-        self.argSpotted     = [] #TODO
-        self.paramSpotted   = [] #TODO
-        self._innerParser   = self._subParseNoToken
-        self.string         = string
-        self.escapeChar     = False
+        self.currentToken    = None
+        self.currentCommand  = []
+        self.commandList     = []
+        self.argSpotted      = [] #TODO
+        self.paramSpotted    = [] #TODO
+        self._innerParser    = self._subParseNoToken
+        self.string          = string
+        self.escapeChar      = False
+        self.runInBackground = False
 
     def _pushCommandInList(self):
         if len(self.currentCommand) > 0:
@@ -97,8 +100,10 @@ class Parser(object):
             #TODO extract variable if params defined
                 #if not a valid variable, raise
                 #invalid variable no more allowed, the user have to use escape char
-
-            self.currentCommand.append(self.currentToken)
+            
+            if len(self.currentToken) > 0:
+                self.currentCommand.append(self.currentToken)
+            
             self.currentToken = None
             self._innerParser = self._subParseNoToken
 
@@ -129,29 +134,38 @@ class Parser(object):
             paramSpotted.append(len(currentCommand))
         
     def _subParseWrappedToken(self,char):
+        if self.escapeChar:
+            self.currentToken += char
+            self.escapeChar    = False
+            return
+    
         if char == '\\':
-            if self.escapeChar:
-                self.currentToken += '\\'
-                self.escapeChar    = False
-            else:
-                self.escapeChar = True
-
-        if char == '"':
-            if self.escapeChar:
-                self.currentToken += '"'
-                self.escapeChar    = False
-            else:
-                self._pushTokenInCommand()
+            self.escapeChar = True
+        elif char == '"':
+            self._innerParser = self._subParseWrappedTokenEnd
         else:
             self.currentToken += char
+            
+    def _subParseWrappedTokenEnd(self, char):
+        if char in (' ','|',):
+            self._pushTokenInCommand()
+            self._innerParser = self._subParseNoToken
+            self._subParseNoToken(char)
+        else:
+            self._innerParser = self._subParseToken
+            self._subParseToken(char)
         
     def _subParseToken(self,char):
         if self.escapeChar:
             self.currentToken += char
             self.escapeChar    = False
             return
-
-        if char == ' ' or char == '|':
+            
+        if char == '\\':
+            self.escapeChar    = True
+        elif char == '"':
+            self._innerParser = self._subParseWrappedToken
+        elif char == ' ' or char == '|':
             self._pushTokenInCommand()
                 
             if char == '|':
@@ -178,12 +192,21 @@ class Parser(object):
         #push intermediate data
         self._pushTokenInCommand()
         self._pushCommandInList()
-
+        
+        #compute runInBackground
+        if len(self.commandList) > 0:
+            if self.commandList[-1][-1] == '&':
+                self.runInBackground = True
+                del self.commandList[-1][-1]
+            elif self.commandList[-1][-1][-1] == '&':
+                self.runInBackground = True
+                self.commandList[-1][-1] = self.commandList[-1][-1][:-1]
+            
     def getCommandList(self):
         return self.commandList
 
     def isToExecuteInAnotherThread(self):
-        pass #TODO
+        return self.runInBackground
 
 def _isValidBooleanValueForChecker(value):
     try:

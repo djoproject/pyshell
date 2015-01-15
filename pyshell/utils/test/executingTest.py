@@ -133,10 +133,39 @@ class ParserTest(unittest.TestCase):
         p.parse()
         self.assertEqual(p.getCommandList(),[['abc', 'def', 'ghi'], ['jkl', 'mno', 'pqr'], ["stu","vwx","yz"]])
 
+    ##### WRAPPED AREA #######
+    def test_wrapped1(self):
+        p = Parser("aa \"$ | \"")
+        p.parse()
+        self.assertEqual(p.getCommandList(),[['aa','$ | ']])
+        
+    def test_wrapped2(self):
+        p = Parser("aa\"$ | \"")
+        p.parse()
+        self.assertEqual(p.getCommandList(),[['aa$ | ']])
+        
+    def test_wrapped3(self):
+        p = Parser("aa\\\"$ | \"")
+        p.parse()
+        self.assertEqual(p.getCommandList(),[['aa"$']])
+        
+    def test_wrapped4(self):
+        p = Parser("aa\"$ | \"bb")
+        p.parse()
+        self.assertEqual(p.getCommandList(),[['aa$ | bb']])
 
     ##### ESCAPE CHAR ########
+    def test_escape1(self):
+        p = Parser("a\|")
+        p.parse()
+        self.assertEqual(p.getCommandList(),[['a|']])
 
-    ##### WRAPPED AREA #######
+    def test_escape2(self):
+        p = Parser("a\|bc\de\\\\ plip| plop")
+        p.parse()
+        self.assertEqual(p.getCommandList(),[['a|bcde\\','plip'],['plop']])
+        
+    #TODO test background
         
 if __name__ == '__main__':
     unittest.main()
