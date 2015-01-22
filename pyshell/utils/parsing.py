@@ -48,6 +48,8 @@ from tries import multiLevelTries
     #create an addon "background" to
         #fire a command on background
         #kill a command on background with an id
+            #hard kill
+            #light kill (stop on next command)
         #list all command executing on background
 
 class Parser(list):
@@ -57,9 +59,11 @@ class Parser(list):
         #remove $ char if var spotted
         #if $ alone, not a var
         #if $ is followed by escape char, not a var
-        #don't remove '-' on spotted parameter
-        #if - alone, not a var
-        #escape '&'
+        
+        #remove '-' on spotted parameter
+        #if - alone, not a parameter
+        
+        #be able to escape '&'
     
     def __init__(self,string):
         list.__init__(self)
@@ -162,7 +166,7 @@ class Parser(list):
             return
             
         if type(self.string) != str and type(self.string) != unicode:
-            pass #raise
+            pass #TODO raise
             
         self.string = self.string.strip(' \t\n\r')
         
@@ -216,26 +220,19 @@ class Solver(list):
     def solve(self):
         for tokenList, argSpotted, paramSpotted in self.parser:
     
-            tokenList                        = self._solveVariables(tokenList,argSpotted)
+            tokenList                        = self._solveVariables(tokenList,argSpotted,paramSpotted)
             command, remainingTokenList      = self._solveCommands(tokenList)
             
-            #TODO update paramSpotted
-                #uuuh not really easy with variable solving... that add maybe a lot of token in the list
-                
-                #SOLUTION 1: compute every new paramSpotted index
-                    #-- look like an ugly solution...
-                    
-                #SOLUTION 2: stop to spot param index and keep old solution
-                    #-- move parameter parsing to solver
-                    #++ already implemented
-            
+            _removeEveryIndexUnder(paramSpotted, len(tokenList) - len(remainingTokenList) )
+            _addValueToIndex(paramSpotted, 0, len(remainingTokenList) - len(tokenList))
+                                    
             mappedParams, remainingTokenList = self._solveDashedParameters(command, remainingTokenList, paramSpotted)
             
             self.append( (command, mappedParams, remainingTokenList) )
             
         self.isSolved = True
         
-    def _solveVariables(self,tokenList,argSpotted):
+    def _solveVariables(self,tokenList,argSpotted, paramSpotted):
         "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
 
         #no arg spotted
@@ -243,8 +240,11 @@ class Solver(list):
             return tokenList
 
         tokenList = list(tokenList)
-
+        indexCorrection = 0
+        
         for argIndex in argSpotted:
+            argIndex += indexCorrection
+        
             #get the token and remove $
             stringToken = tokenList[argIndex][1:]
 
@@ -253,10 +253,17 @@ class Solver(list):
 
             #if not existing var, act as an empty var
             if not self.variablesContainer.hasParameter(stringToken):
-                continue
+                varSize = 0
             else:
                 #insert the var list at the correct place (var is always a list)
-                tokenList[argIndex:argIndex] = self.variablesContainer.getParameter(stringToken).getValue() 
+                values = self.variablesContainer.getParameter(stringToken).getValue()
+                varSize = len(values)
+                tokenList[argIndex:argIndex] =  varSize
+            
+            #update every spotted param index with an index bigger than the var if the value of the var is different of 1
+            if varSize != 1:
+                indexCorrection += varSize-1
+                _addValueToIndex(paramSpotted, argIndex+1, indexCorrection)
                 
         return tuple(tokenList)
 
@@ -319,18 +326,55 @@ class Solver(list):
         
         return tuple(localMappedArgs), tuple(localMappedArgs)
 
-def _mapDashedParams(inputArgs, argTypeList,paramSpotted):#, prefix= "-", exclusion = "\\"): 
-    #TODO in progress
+def _removeEveryIndexUnder(indexList, endIndex):
+    for i in xrange(0,indexList):
+        if indexList[i] < startingIndex:
+            continue
+        
+        del indexList[:i]
+        return
 
-    paramFound           = {}
-    remainingArgs        = []
-    whereToStore         = []
+def _addValueToIndex(indexList, startingIndex, valueToAdd=1):
+    for i in xrange(0,indexList):
+        if indexList[i] < startingIndex:
+            continue
+        
+        indexList[i] += valueToAdd
+
+def _mapDashedParams(inputArgs, argTypeList,paramSpotted):
+    
+    #TODO remove false param
+
+    for index in paramSpotted:
+        #TODO param is bool ?
+            #first token is a valid bool ?
+        
+        #TODO param has a max size ?
+            #grab token until next param
+    
+        #TODO param has a min size ?
+            #enought of token ?
+                #if no, raise, or collect error
+        
+        #TODO where is the next param ?
+            #do not forget to pipe the not used args
+    
+        pass #TODO
+    
+    
+def _mapDashedParamsOLD(inputArgs, argTypeList,paramSpotted): #deprecated    
+    ## init ##
+    paramFound           = {} #map of found parameter with their values
+    remainingArgs        = [] #list of args not used by any params
+    whereToStore         = [] #temporary list of arg that will be used by the current parameter found
     
     lastParamFoundName    = None
     lastParamFoundChecker = None
 
+    ## main loop ##
     for i in xrange(0, len(inputArgs)):
-        ### manage parameter ###
+        
+        ## CASE 1: a parameter was found and we reach the maximal amount of arg for this one ##
         if lastParamFoundChecker != None and lastParamFoundChecker.maximumSize != None and len(whereToStore) == lastParamFoundChecker.maximumSize:
             #no need to check booleanchecker, whereToStore is not empty if the code reach this stateent with booleanchecker
             
@@ -343,38 +387,40 @@ def _mapDashedParams(inputArgs, argTypeList,paramSpotted):#, prefix= "-", exclus
             lastParamFoundChecker = lastParamFoundName = None
             whereToStore = []
     
-        ### standard management ###
-        #exclusion character
-        #if inputArgs[i].startswith(exclusion + prefix):
-        #    whereToStore.append(inputArgs[i][len(exclusion):])
-        #    continue
+        ## filtering the non candidate ##
         
-        #not a param token
-        #if not inputArgs[i].startswith(prefix):
-        #    whereToStore.append(inputArgs[i])
-        #    continue
-
-        paramName = inputArgs[i][len(prefix):]
-
-        #prefix string only
-        #if len(paramName) == 0:
-        #    whereToStore.append(prefix)
-        #    continue
+        #STEP 1: is there a combination of escaping char at the beginning \-
+        if inputArgs[i].startswith("\\-"):
+            whereToStore.append(inputArgs[i][1:])
+            continue
         
-        #is it a negative number ?
+        #STEP 2: the string does not start with a dash
+        if not inputArgs[i].startswith("-"):
+            whereToStore.append(inputArgs[i])
+            continue
+        
+        #STEP 3: is it a single dash ?
+        if inputArgs[i] == "-":
+            whereToStore.append("-")
+            continue
+
+        #STEP 4: is it a number ?
         try:
             float(inputArgs[i])
             whereToStore.append(inputArgs[i])
             continue
         except ValueError:
             pass
+            
+        #remove the dash
+        paramName = inputArgs[i][1:]
 
         #not a param key, manage it like a string
         if paramName not in argTypeList:
             whereToStore.append(inputArgs[i])
             continue
 
-        ### params token found ###
+        ## CASE 2: a new params is found, need to process the previous if exists ##
         if lastParamFoundChecker != None:
             if isinstance(lastParamFoundChecker, booleanValueArgChecker):
                 if len(whereToStore) == 0:
@@ -399,6 +445,7 @@ def _mapDashedParams(inputArgs, argTypeList,paramSpotted):#, prefix= "-", exclus
         lastParamFoundChecker = argChecker
         lastParamFoundName    = paramName
 
+    ## CASE 3: mananage last checker found if exists ##
     if lastParamFoundChecker != None:
         if isinstance(lastParamFoundChecker, booleanValueArgChecker):
             if len(whereToStore) == 0:
