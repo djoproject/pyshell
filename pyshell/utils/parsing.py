@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject,net>
+#Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject.net>
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.utils.parameter import ParameterManagerV3
-from pyshell.utils.exception import DefaultPyshellException, USER_WARNING
+from pyshell.utils.exception import DefaultPyshellException, USER_WARNING, PARSE_ERROR
 from pyshell.command.engine  import EMPTY_MAPPED_ARGS
 from tries import multiLevelTries
 
@@ -62,10 +62,15 @@ class Parser(list):
         
         #remove '-' on spotted parameter
         #if - alone, not a parameter
+        #negativ number are not param
         
         #be able to escape '&'
     
     def __init__(self,string):
+        
+        if type(string) != str and type(string) != unicode:
+            raise DefaultPyshellException("fail to init parser object, a string was expected, got '"+str(type(string))+"'",PARSE_ERROR)
+    
         list.__init__(self)
         self.currentToken    = None
         self.currentCommand  = []
@@ -162,12 +167,6 @@ class Parser(list):
     def parse(self):
         del self[:]
     
-        if self.string is None:
-            return
-            
-        if type(self.string) != str and type(self.string) != unicode:
-            pass #TODO raise
-            
         self.string = self.string.strip(' \t\n\r')
         
         if len(self.string) == 0:
@@ -201,16 +200,16 @@ class Parser(list):
 class Solver(list):
     def __init__(self, parser, mltries, variablesContainer):
         if not isinstance(parser, Parser):
-            pass #TODO raise
+            raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
             
         if not self.isParsed:
-            pass #TODO raise
+            raise DefaultPyshellException("Fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
             
         if not isinstance(variablesContainer,ParameterManagerV3):
-            pass #TODO raise
+            raise DefaultPyshellException("Fail to init solver, a ParameterManager object was expected, got '"+str(type(variablesContainer))+"'",SYSTEM_ERROR)
             
         if not isinstance(mltries, multiLevelTries):
-            pass #TODO raise
+            raise DefaultPyshellException("Fail to init solver, a multiLevelTries object was expected, got '"+str(type(mltries))+"'",SYSTEM_ERROR)
             
         self.parser             = parser
         self.mltries            = mltries
@@ -321,7 +320,7 @@ class Solver(list):
 
         #compute arg mapping for this command
         localMappedArgs = [EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS]
-        paramFound, remainingArgs = _parseDashedParams(remainingTokenList, feeder.argTypeList,paramSpotted)
+        paramFound, remainingArgs = _mapDashedParams(remainingTokenList, feeder.argTypeList,paramSpotted)
         localMappedArgs[indexToSet] = paramFound
         
         return tuple(localMappedArgs), tuple(localMappedArgs)
@@ -341,130 +340,146 @@ def _addValueToIndex(indexList, startingIndex, valueToAdd=1):
         
         indexList[i] += valueToAdd
 
-def _mapDashedParams(inputArgs, argTypeList,paramSpotted):
+def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):  
+    if len(paramSpotted) == 0:
+        return {}, inputArgs
     
-    #TODO remove false param
+    notUsedArgs   = []
+    paramFound    = {}
+    
+    currentName   = None
+    currentParam  = None
+    currentIndex  = 0 
 
     for index in paramSpotted:
-        #TODO param is bool ?
-            #first token is a valid bool ?
-        
-        #TODO param has a max size ?
-            #grab token until next param
+        paramName = inputArgs[index]
     
-        #TODO param has a min size ?
-            #enought of token ?
-                #if no, raise, or collect error
-        
-        #TODO where is the next param ?
-            #do not forget to pipe the not used args
-    
-        pass #TODO
-    
-    
-def _mapDashedParamsOLD(inputArgs, argTypeList,paramSpotted): #deprecated    
-    ## init ##
-    paramFound           = {} #map of found parameter with their values
-    remainingArgs        = [] #list of args not used by any params
-    whereToStore         = [] #temporary list of arg that will be used by the current parameter found
-    
-    lastParamFoundName    = None
-    lastParamFoundChecker = None
-
-    ## main loop ##
-    for i in xrange(0, len(inputArgs)):
-        
-        ## CASE 1: a parameter was found and we reach the maximal amount of arg for this one ##
-        if lastParamFoundChecker != None and lastParamFoundChecker.maximumSize != None and len(whereToStore) == lastParamFoundChecker.maximumSize:
-            #no need to check booleanchecker, whereToStore is not empty if the code reach this stateent with booleanchecker
-            
-            if isinstance(lastParamFoundChecker, booleanValueArgChecker):
-                if not _isValidBooleanValueForChecker(whereToStore[0]):
-                    remainingArgs.append(whereToStore[0])
-                    whereToStore = ("true",)
-
-            paramFound[lastParamFoundName] = tuple(whereToStore)
-            lastParamFoundChecker = lastParamFoundName = None
-            whereToStore = []
-    
-        ## filtering the non candidate ##
-        
-        #STEP 1: is there a combination of escaping char at the beginning \-
-        if inputArgs[i].startswith("\\-"):
-            whereToStore.append(inputArgs[i][1:])
+        #remove false param
+        if paramName not in argTypeMap:
+            inputArgs[index] = "-" + paramName
             continue
         
-        #STEP 2: the string does not start with a dash
-        if not inputArgs[i].startswith("-"):
-            whereToStore.append(inputArgs[i])
-            continue
-        
-        #STEP 3: is it a single dash ?
-        if inputArgs[i] == "-":
-            whereToStore.append("-")
-            continue
-
-        #STEP 4: is it a number ?
-        try:
-            float(inputArgs[i])
-            whereToStore.append(inputArgs[i])
-            continue
-        except ValueError:
-            pass
-            
-        #remove the dash
-        paramName = inputArgs[i][1:]
-
-        #not a param key, manage it like a string
-        if paramName not in argTypeList:
-            whereToStore.append(inputArgs[i])
-            continue
-
-        ## CASE 2: a new params is found, need to process the previous if exists ##
-        if lastParamFoundChecker != None:
-            if isinstance(lastParamFoundChecker, booleanValueArgChecker):
-                if len(whereToStore) == 0:
-                    whereToStore.append("true")
-                else:
-                    if not _isValidBooleanValueForChecker(whereToStore[0]):
-                        remainingArgs.append(whereToStore[0])
-                        whereToStore = ("true",)
-
-            paramFound[lastParamFoundName] = tuple(whereToStore)
-            lastParamFoundChecker = lastParamFoundName = None
+        #manage last met param
+        if currentParam is not None:
+            _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, index)
         else:
-            remainingArgs.extend(whereToStore)
-
-        whereToStore = []
-        argChecker   = argTypeList[paramName]
+            #base case, process the first param index, need to flush available arg before this index
+            notUsedArgs.extends(inputArgs[0:index])
         
-        #does not continue care about empty params (like engine, params, ...)
-        if argTypeList[paramName].maximumSize == 0:
-            continue
-        
-        lastParamFoundChecker = argChecker
-        lastParamFoundName    = paramName
-
-    ## CASE 3: mananage last checker found if exists ##
-    if lastParamFoundChecker != None:
-        if isinstance(lastParamFoundChecker, booleanValueArgChecker):
-            if len(whereToStore) == 0:
-                whereToStore.append("true")
-            else:
-                if not _isValidBooleanValueForChecker(whereToStore[0]):
-                    remainingArgs.append(whereToStore[0])
-                    whereToStore = ("true",)
-
-        paramFound[lastParamFoundName] = tuple(whereToStore)
-    else:
-        remainingArgs.extend(whereToStore)
-
-    return paramFound, remainingArgs
+        currentName  = paramName
+        currentParam = argTypeMap[paramName]
+        currentIndex = index
     
-class Executer(object):
-    def __init__(self,solver,runInBackground = False):
-        pass #TODO
+    if currentParam is None:
+        return {}, inputArgs
+    
+    #manage last param
+    _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, len(inputArgs))
+    
+    return paramFound,notUsedArgs
+    
+def _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, lastIndex):
+    argAvailableCount = lastIndex - currentIndex - 1
+
+    #special case for boolean, parameter alone is equivalent to true
+    if isinstance(currentParam, booleanValueArgChecker):
+        if argAvailableCount == 0:
+            paramFound[currentName] = ("true",)
+        elif _isValidBooleanValueForChecker(inputArgs[currentIndex+1]):
+            paramFound[currentName] = (inputArgs[currentIndex+1],)
+            notUsedArgs.extends( inputArgs[currentIndex+2:lastIndex] )
+        else:
+            paramFound[currentName] = ("true",)
+            notUsedArgs.extends( inputArgs[currentIndex+1:lastIndex] )
+    else:
+        #did we reach max size ?
+        #don't care about minimum size, it will be check during execution phase
+        if currentParam.maximumSize < argAvailableCount:
+            paramFound[currentName] = tuple( inputArgs[currentIndex+1:currentIndex+1+currentParam.maximumSize] )
+            notUsedArgs.extends(inputArgs[currentIndex+1+currentParam.maximumSize:lastIndex])
+        else:
+            paramFound[currentName] = tuple( inputArgs[currentIndex+1:lastIndex] )
+            
+def execute(string, parameterContainer, processName=None, processArg=None):
+    ex     = None
+    engine = None
+    
+    try:
+        #parsing
+        if isinstance(string, Parser):
+            parser = string
+            
+            if not parser.isParsed():
+                parser.parse()
+        else:
+            parser = Parser(string)
+            parser.parse()
+            
+        if len(parser) == 0:
+            return None, None
         
-    def execute(self):
-        pass #TODO
+        #TODO manage run in background from this point
+        
+        params.pushVariableLevelForThisThread()
+        
+        if processArg is not None: 
+            #TODO PROBABLY BUG... if it is a alias, the call of the inner command will call another push and these local variable will not be available...
+            #TODO BUG (?) script execution will cause a lot of this statement, why ?
+                #check with the startup script
+                   
+            params.variable.setParameter("*", VarParameter(' '.join(str(x) for x in processArg)), localParam = True) #all in one string
+            params.variable.setParameter("#", VarParameter(len(processArg)), localParam = True)                      #arg count
+            params.variable.setParameter("@", VarParameter(processArg), localParam = True)                            #all args
+            #TODO params.variable.setParameter("?", VarParameter(processArg, localParam = True)                            #value from last command
+            #TODO params.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
+            params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id #TODO id is not enought, need level
+        
+        solver = Solver(parser, params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), params.variable)
+        solver.solve()
+        
+        #TODO refactore from here
+            #retrieve output from solver
+        
+        #parse and check the string list
+        #cmdStringList = parseArgument(cmdPreParsed, params, processName)
+        
+        #if empty list after parsing, nothing to execute
+        #if len(cmdStringList) == 0:
+        #    return None, None
+        
+        #convert token string to command objects and argument strings
+        #rawCommandList, rawArgList = parseCommand(cmdStringList, params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()) #parameter will raise if leveltries does not exist
+        #rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
+
+        #clone command/alias to manage concurrency state
+        newRawCommandList = []
+        for c in rawCommandList:
+            newRawCommandList.append(c.clone())
+
+        #prepare an engine
+        engine = engineV3(newRawCommandList, rawArgList, mappedArgs, params)
+        
+        #execute 
+        engine.execute()
+    except executionInitException as ex:
+        printException(ex,"Fail to init an execution object: ")
+    except executionException as ex:
+        printException(ex, "Fail to execute: ")
+    except commandException as ex:
+        printException(ex, "Error in command method: ")
+    except engineInterruptionException as ex:
+        if ex.abnormal:
+            printException(ex, "Abnormal execution abort, reason: ")
+        else:
+            printException(ex, "Normal execution abort, reason: ")
+    except argException as ex:
+        printException(ex, "Error while parsing argument: ")
+    except ListOfException as ex:
+        printException(ex,"List of exception(s): ")
+    except Exception as ex:
+        printException(ex)
+    finally:
+        params.popVariableLevelForThisThread()
+
+    return ex, engine
 
