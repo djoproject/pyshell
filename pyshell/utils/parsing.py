@@ -56,14 +56,7 @@ class Parser(list):
     "This object will parse a command line withou any resolution of process, argument, or parameter"
     
     #TODO
-        #remove $ char if var spotted
-        #if $ alone, not a var
         #if $ is followed by escape char, not a var
-        
-        #remove '-' on spotted parameter
-        #if - alone, not a parameter
-        #negativ number are not param
-        
         #be able to escape '&'
     
     def __init__(self,string):
@@ -94,6 +87,9 @@ class Parser(list):
             if len(self.currentToken) > 0:
                 self.currentCommand.append(self.currentToken)
             
+            #TODO manage unique char - and $ that were spotted
+                #they are not arg or param
+
             self.currentToken = None
             self._innerParser = self._subParseNoToken
 
@@ -121,8 +117,8 @@ class Parser(list):
             argSpotted.append(len(currentCommand))
         elif char == '-':
             paramSpotted.append(len(currentCommand))
-            
-        self.currentToken += char
+        else:
+            self.currentToken += char
         
     def _subParseWrappedToken(self,char):
         if self.escapeChar:
@@ -191,13 +187,13 @@ class Parser(list):
                 
         self.isParsed = True
             
-    def isToExecuteInAnotherThread(self):
+    def isToRunInBackground(self):
         return self.runInBackground
         
     def isParsed(self):
         return 
 
-class Solver(list):
+class Solver(object):
     def __init__(self, parser, mltries, variablesContainer):
         if not isinstance(parser, Parser):
             raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
@@ -217,8 +213,11 @@ class Solver(list):
         self.isSolved           = False
             
     def solve(self):
+        commandList    = []
+        argList        = []
+        mappedArgsList = []
+
         for tokenList, argSpotted, paramSpotted in self.parser:
-    
             tokenList                        = self._solveVariables(tokenList,argSpotted,paramSpotted)
             command, remainingTokenList      = self._solveCommands(tokenList)
             
@@ -227,7 +226,9 @@ class Solver(list):
                                     
             mappedParams, remainingTokenList = self._solveDashedParameters(command, remainingTokenList, paramSpotted)
             
-            self.append( (command, mappedParams, remainingTokenList) )
+            commandList.append(    command            )
+            argList.append(        remainingTokenList )
+            mappedArgsList.append( mappedParams       )
             
         self.isSolved = True
         
@@ -358,6 +359,14 @@ def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):
         if paramName not in argTypeMap:
             inputArgs[index] = "-" + paramName
             continue
+
+        #remove number
+        try:
+            float(inputArgs[index])
+            inputArgs[index] = "-" + inputArgs[index]
+            continue
+        except ValueError:
+            pass
         
         #manage last met param
         if currentParam is not None:
@@ -399,11 +408,16 @@ def _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentInd
             notUsedArgs.extends(inputArgs[currentIndex+1+currentParam.maximumSize:lastIndex])
         else:
             paramFound[currentName] = tuple( inputArgs[currentIndex+1:lastIndex] )
-            
+
+#TODO 
+    #deploy in executer and alias
+    #why do we still need to return ex and engine
+        #does not have any sense in background mode
+
 def execute(string, parameterContainer, processName=None, processArg=None):
-    ex     = None
-    engine = None
     
+    ## parsing ##
+    parser = None
     try:
         #parsing
         if isinstance(string, Parser):
@@ -417,7 +431,24 @@ def execute(string, parameterContainer, processName=None, processArg=None):
             
         if len(parser) == 0:
             return None, None
-        
+
+    except Exception as ex:
+        printException(ex)
+        return ex, None
+
+    if parser.isToRunInBackground():
+        t = threading.Thread(None, _execute, None, (parser,parameterContainer,processName,processArg,))
+        t.start()
+        return None,None
+    else:
+        return _execute(parser,parameterContainer, processName, processArg)
+
+def _execute(parser,parameterContainer, processName=None, processArg=None):    
+
+    ## solving then execute ##
+    ex     = None
+    engine = None
+    try:
         #TODO manage run in background from this point
         
         params.pushVariableLevelForThisThread()
@@ -434,23 +465,10 @@ def execute(string, parameterContainer, processName=None, processArg=None):
             #TODO params.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
             params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id #TODO id is not enought, need level
         
+        #solve command, variable, and dashed parameters
         solver = Solver(parser, params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), params.variable)
-        solver.solve()
+        rawCommandList, rawArgList, mappedArgs = solver.solve()
         
-        #TODO refactore from here
-            #retrieve output from solver
-        
-        #parse and check the string list
-        #cmdStringList = parseArgument(cmdPreParsed, params, processName)
-        
-        #if empty list after parsing, nothing to execute
-        #if len(cmdStringList) == 0:
-        #    return None, None
-        
-        #convert token string to command objects and argument strings
-        #rawCommandList, rawArgList = parseCommand(cmdStringList, params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()) #parameter will raise if leveltries does not exist
-        #rawArgList, mappedArgs = extractDashedParams(rawCommandList, rawArgList)
-
         #clone command/alias to manage concurrency state
         newRawCommandList = []
         for c in rawCommandList:
@@ -461,6 +479,7 @@ def execute(string, parameterContainer, processName=None, processArg=None):
         
         #execute 
         engine.execute()
+
     except executionInitException as ex:
         printException(ex,"Fail to init an execution object: ")
     except executionException as ex:
