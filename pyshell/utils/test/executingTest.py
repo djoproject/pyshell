@@ -10,7 +10,7 @@ class ParserTest(unittest.TestCase):
     
     ####### ONE COMMAND ######
 
-    def test_singleCommand1(self):
+    """def test_singleCommand1(self):
         p = Parser("abc def ghi")
         p.parse()
         self.assertEqual(p,[ ( ('abc', 'def', 'ghi'),(),(),) ])
@@ -131,7 +131,7 @@ class ParserTest(unittest.TestCase):
     def test_multipleCommand17(self):
         p = Parser("|abc def ghi | jkl mno pqr | stu vwx yz|")
         p.parse()
-        self.assertEqual(p,[ (('abc', 'def', 'ghi'),(),(),), ( ('jkl', 'mno', 'pqr'),(),(),), ( ("stu","vwx","yz"),(),(),)])
+        self.assertEqual(p,[ (('abc', 'def', 'ghi'),(),(),), ( ('jkl', 'mno', 'pqr'),(),(),), ( ("stu","vwx","yz"),(),(),)])"""
 
     ##### WRAPPED AREA #######
     def test_wrapped1(self):
@@ -139,7 +139,7 @@ class ParserTest(unittest.TestCase):
         p.parse()
         self.assertEqual(p,[ (('aa','$ | ',),(),(),) ])
         
-    def test_wrapped2(self):
+    """def test_wrapped2(self):
         p = Parser("aa\"$ | \"")
         p.parse()
         self.assertEqual(p,[ (('aa$ | ',),(),(),) ])
@@ -163,11 +163,38 @@ class ParserTest(unittest.TestCase):
     def test_escape2(self):
         p = Parser("a\|bc\de\\\\ plip| plop")
         p.parse()
-        self.assertEqual(p,[(('a|bcde\\','plip',),(),(),),(('plop',),(),(),)])
+        self.assertEqual(p,[(('a|bcde\\','plip',),(),(),),(('plop',),(),(),)])"""
     
+    #### VAR CHAR ####
+
+    #echo $\a
+    """def test_var1(self):
+        p = Parser("aa bb cc $\\d")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','$d',),(),(),)])
+
+    #echo $a
+    def test_var2(self):
+        p = Parser("aa bb cc $d")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','d',),(3,),(),)])
+
+    #echo "$\a"
+        #$\a
+    def test_var3(self):
+        p = Parser("aa bb cc \"$\\d\"")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','$d',),(),(),)])
+
+    #echo "$a"
+    def test_var4(self):
+        p = Parser("aa bb cc \"$d\"")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','d',),(3,),(),)])"""
+        
     #TODO test var spotting
     #TODO test parameter spotting
     #TODO test background
-        
+
 if __name__ == '__main__':
     unittest.main()

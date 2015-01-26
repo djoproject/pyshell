@@ -69,11 +69,12 @@ class Parser(list):
         self.currentCommand  = []
         self.argSpotted      = []
         self.paramSpotted    = []
-        self._innerParser    = self._subParseNoToken
+        self._innerParser    = self._parse
         self.string          = string
         self.escapeChar      = False
         self.runInBackground = False
         self.isParsed        = False
+        self.wrapped         = False
 
     def _pushCommandInList(self):
         if len(self.currentCommand) > 0:
@@ -91,72 +92,42 @@ class Parser(list):
                 #they are not arg or param
 
             self.currentToken = None
-            self._innerParser = self._subParseNoToken
+            #self._innerParser = self._subParseNoToken
+            self.wrapped = False
 
-    def _subParseNoToken(self,char):
-        if char in (' ','\t','\n','\r',):
-            return
-            
-        if char == '|':
-            self._pushCommandInList()
-            return
-            
-        self.currentToken = ""
-        
-        if char == '"':
-            self._innerParser = self._subParseWrappedToken
-            return
-            
-        self._innerParser = self._subParseToken
+    def _parse(self,char):
+        print char, self.wrapped, self.escapeChar, self.currentToken
+        if self.currentToken is None:
+            if char in (' ','\t','\n','\r',):
+                return
+                
+            if char == '|':
+                self._pushCommandInList()
+                return
+                
+            self.currentToken = ""
 
-        if char == '\\':
-            self.escapeChar = True
-            return
-            
-        if char == '$':
-            argSpotted.append(len(currentCommand))
-        elif char == '-':
-            paramSpotted.append(len(currentCommand))
-        else:
-            self.currentToken += char
-        
-    def _subParseWrappedToken(self,char):
         if self.escapeChar:
+            #TODO if it was spotted like var or parameter
+                #remove from spotted list
+                #and add back the $ or - in the string
+
             self.currentToken += char
             self.escapeChar    = False
-            return
-    
-        if char == '\\':
-            self.escapeChar = True
-        elif char == '"':
-            self._innerParser = self._subParseWrappedTokenEnd
-        else:
-            self.currentToken += char
-            
-    def _subParseWrappedTokenEnd(self, char):
-        if char in (' ','|','\t','\n','\r',):
-            self._pushTokenInCommand()
-            self._innerParser = self._subParseNoToken
-            self._subParseNoToken(char)
-        else:
-            self._innerParser = self._subParseToken
-            self._subParseToken(char)
-        
-    def _subParseToken(self,char):
-        if self.escapeChar:
-            self.currentToken += char
-            self.escapeChar    = False
-            return
-            
-        if char == '\\':
+
+        elif char == '\\':
             self.escapeChar    = True
         elif char == '"':
-            self._innerParser = self._subParseWrappedToken
-        elif char in (' ','|','\t','\n','\r',):
+            self.wrapped = not self.wrapped
+        elif not self.wrapped and char in (' ','|','\t','\n','\r',):
             self._pushTokenInCommand()
                 
             if char == '|':
                 self._pushCommandInList()
+        elif char == '$' and len(self.currentToken) == 0:
+            self.argSpotted.append(len(self.currentCommand))
+        elif char == '-' and len(self.currentToken) == 0:
+            self.paramSpotted.append(len(self.currentCommand))
         else:
             self.currentToken += char
 
@@ -170,7 +141,7 @@ class Parser(list):
                 
         for i in xrange(0,len(self.string)):
             char = self.string[i]
-            self._innerParser(char)    
+            self._parse(char)    
             
         #push intermediate data
         self._pushTokenInCommand()
