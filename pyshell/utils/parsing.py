@@ -56,7 +56,6 @@ class Parser(list):
     "This object will parse a command line withou any resolution of process, argument, or parameter"
     
     #TODO
-        #if $ is followed by escape char, not a var
         #be able to escape '&'
     
     def __init__(self,string):
@@ -88,15 +87,16 @@ class Parser(list):
             if len(self.currentToken) > 0:
                 self.currentCommand.append(self.currentToken)
             
-            #TODO manage unique char - and $ that were spotted
-                #they are not arg or param
-
+            index = len(self.currentCommand) -1
+            if index in self.argSpotted and (' ' in self.currentToken or len(self.currentToken) == 1):
+                self.argSpotted.remove(index)
+            elif index in self.paramSpotted and (' ' in self.currentToken or len(self.currentToken) == 1):
+                self.paramSpotted.remove(index)
+            
             self.currentToken = None
-            #self._innerParser = self._subParseNoToken
             self.wrapped = False
 
     def _parse(self,char):
-        print char, self.wrapped, self.escapeChar, self.currentToken
         if self.currentToken is None:
             if char in (' ','\t','\n','\r',):
                 return
@@ -108,10 +108,6 @@ class Parser(list):
             self.currentToken = ""
 
         if self.escapeChar:
-            #TODO if it was spotted like var or parameter
-                #remove from spotted list
-                #and add back the $ or - in the string
-
             self.currentToken += char
             self.escapeChar    = False
 
@@ -126,8 +122,10 @@ class Parser(list):
                 self._pushCommandInList()
         elif char == '$' and len(self.currentToken) == 0:
             self.argSpotted.append(len(self.currentCommand))
+            self.currentToken += char
         elif char == '-' and len(self.currentToken) == 0:
             self.paramSpotted.append(len(self.currentCommand))
+            self.currentToken += char
         else:
             self.currentToken += char
 
