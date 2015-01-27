@@ -200,7 +200,7 @@ class Solver(object):
         for tokenList, argSpotted, paramSpotted in self.parser:
             if len(paramSpotted) > 0:
                 paramSpotted = list(paramSpotted)
-            
+
             tokenList                        = self._solveVariables(tokenList,argSpotted,paramSpotted)
             command, remainingTokenList      = self._solveCommands(tokenList)
             
@@ -214,7 +214,6 @@ class Solver(object):
             mappedArgsList.append( mappedParams       )
             
         self.isSolved = True #TODO not really needed if nothing is stored about the parsing...
-        print commandList, argList, mappedArgsList
         return commandList, argList, mappedArgsList
         
     def _solveVariables(self,tokenList,argSpotted, paramSpotted):

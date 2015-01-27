@@ -34,9 +34,8 @@ from pyshell.utils.constants    import *
 from pyshell.utils.utils        import getTerminalSize
 from pyshell.utils.printing     import Printer, warning, error, printException
 from pyshell.utils.valuable     import SimpleValuable
-from pyshell.utils.executing    import executeCommand, preParseLine #TODO remove me as soon as parsing is finished
 from pyshell.utils.aliasManager import AliasFromList, AliasFromFile
-from pyshell.utils.parsing      import execute
+from pyshell.utils.parsing      import Parser, execute
 import thread
 
 class CommandExecuter():
@@ -60,7 +59,7 @@ class CommandExecuter():
         self._initExitEvent()
         
         ## execute atStartUp ##
-        executeCommand(EVENT__ON_STARTUP,self.params, "__startup__") 
+        execute(EVENT__ON_STARTUP,self.params, "__startup__") 
 
     def _initParams(self, paramFile, outsideArgs):
         #create param manager
@@ -144,7 +143,7 @@ class CommandExecuter():
         atexit.register(self.AtExit)
         
     def AtExit(self):
-        executeCommand(EVENT_AT_EXIT,self.params, "__atexit__") #TODO provide args from outside
+        execute(EVENT_AT_EXIT,self.params, "__atexit__") #TODO provide args from outside
             
     def mainLoop(self):
         #enable autocompletion
@@ -202,12 +201,13 @@ class CommandExecuter():
         sys.stdout.flush()
         
     def complete(self,suffix,index):
-        cmdStringList = preParseLine(readline.get_line_buffer())
+        parser = Parser(readline.get_line_buffer())
+        parser.parse()
 
         try:
             ## special case, empty line ##
                 #only print root tokens
-            if len(cmdStringList) == 0:
+            if len(parser) == 0:
                 fullline = ()
                 dic = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue().buildDictionnary(fullline, True, True, False)
 
@@ -219,7 +219,7 @@ class CommandExecuter():
                 toret.append(None)
                 return toret[index]
 
-            fullline = cmdStringList[-1]
+            fullline = parser[-1][0]
 
             ## manage ambiguity ##
             advancedResult = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue().advancedSearch(fullline, False)
