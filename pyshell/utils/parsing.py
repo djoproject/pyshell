@@ -16,9 +16,15 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.parameter import ParameterManagerV3
-from pyshell.utils.exception import DefaultPyshellException, USER_WARNING, PARSE_ERROR
-from pyshell.command.engine  import EMPTY_MAPPED_ARGS
+from pyshell.command.exception import *
+from pyshell.arg.exception     import *
+from pyshell.utils.parameter   import ParameterManagerV3
+from pyshell.utils.exception   import ListOfException, DefaultPyshellException, USER_WARNING, PARSE_ERROR
+from pyshell.command.engine    import EMPTY_MAPPED_ARGS
+from pyshell.utils.printing    import printException
+from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.command.engine    import engineV3, EMPTY_MAPPED_ARGS
+from pyshell.arg.argchecker    import defaultInstanceArgChecker, booleanValueArgChecker
 from tries import multiLevelTries
 
 
@@ -36,17 +42,13 @@ from tries import multiLevelTries
 
     #finish the grammar then refactor the parsing system
 
-    #firing/executing system
-        #for piped command
-            #with a "&" at the end of a script line DONE
-            #with a "fire" at the beginning of a script line TODO create a command to do it, it should be easy
-
     #keep track of running event and be able to kill one or all of them
         #manage it in alias object with a static list
             #an alias add itself in the list before to start then remove itself from the list at the end of its execution
             
     #create an addon "background" to
         #fire a command on background
+            #like the '&' but the parsing of the command occur later
         #kill a command on background with an id
             #hard kill
             #light kill (stop on next command)
@@ -87,11 +89,20 @@ class Parser(list):
             if len(self.currentToken) > 0:
                 self.currentCommand.append(self.currentToken)
             
-            index = len(self.currentCommand) -1
-            if index in self.argSpotted and (' ' in self.currentToken or len(self.currentToken) == 1):
-                self.argSpotted.remove(index)
-            elif index in self.paramSpotted and (' ' in self.currentToken or len(self.currentToken) == 1):
-                self.paramSpotted.remove(index)
+                index = len(self.currentCommand) -1
+
+                if index in self.argSpotted and (' ' in self.currentToken or len(self.currentToken) == 1):
+                    self.argSpotted.remove(index)
+
+                elif index in self.paramSpotted:
+                    if (' ' in self.currentToken or len(self.currentToken) == 1):
+                        self.paramSpotted.remove(index)
+                    else:
+                        try:
+                            float(self.currentToken)
+                            self.paramSpotted.remove(index)
+                        except ValueError:
+                            pass
             
             self.currentToken = None
             self.wrapped = False
@@ -167,7 +178,7 @@ class Solver(object):
         if not isinstance(parser, Parser):
             raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
             
-        if not self.isParsed:
+        if not parser.isParsed:
             raise DefaultPyshellException("Fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
             
         if not isinstance(variablesContainer,ParameterManagerV3):
@@ -187,6 +198,9 @@ class Solver(object):
         mappedArgsList = []
 
         for tokenList, argSpotted, paramSpotted in self.parser:
+            if len(paramSpotted) > 0:
+                paramSpotted = list(paramSpotted)
+            
             tokenList                        = self._solveVariables(tokenList,argSpotted,paramSpotted)
             command, remainingTokenList      = self._solveCommands(tokenList)
             
@@ -199,7 +213,9 @@ class Solver(object):
             argList.append(        remainingTokenList )
             mappedArgsList.append( mappedParams       )
             
-        self.isSolved = True
+        self.isSolved = True #TODO not really needed if nothing is stored about the parsing...
+        print commandList, argList, mappedArgsList
+        return commandList, argList, mappedArgsList
         
     def _solveVariables(self,tokenList,argSpotted, paramSpotted):
         "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
@@ -226,15 +242,19 @@ class Solver(object):
             else:
                 #insert the var list at the correct place (var is always a list)
                 values = self.variablesContainer.getParameter(stringToken).getValue()
+                tokenList = tokenList[0:argIndex] + values + tokenList[argIndex:]
                 varSize = len(values)
-                tokenList[argIndex:argIndex] =  varSize
+
+                #print tokenList, argIndex, varSize, values
+                #tokenList[argIndex:argIndex+varSize-1] = values #TODO bug, does not insert, replace value
+                #print tokenList
             
             #update every spotted param index with an index bigger than the var if the value of the var is different of 1
             if varSize != 1:
                 indexCorrection += varSize-1
                 _addValueToIndex(paramSpotted, argIndex+1, indexCorrection)
                 
-        return tuple(tokenList)
+        return tokenList
 
     def _solveCommands(self, tokenList):
         "indentify command name and args from output of method parseArgument"
@@ -265,7 +285,7 @@ class Solver(object):
             raise DefaultPyshellException("unknown command '"+" ".join(tokenList)+"', token '"+str(tokenList[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING)
 
         #return the command found and the not found token
-        return searchResult.getLastTokenFoundValue(), tuple(searchResult.getNotFoundTokenList())
+        return searchResult.getLastTokenFoundValue(), list(searchResult.getNotFoundTokenList())
         
     def _solveDashedParameters(self, command, remainingTokenList, paramSpotted):
         #empty command list, nothing to map
@@ -276,13 +296,13 @@ class Solver(object):
         firstSingleCommand,useArgs,enabled = command[0]
 
         #extract arfeeder
-        if ( not (hasattr(firstSingleCommand.preProcess, "isDefault") or not firstSingleCommand.preProcess.isDefault)) and hasattr(firstSingleCommand.preProcess, "checker"):
+        if (  (not hasattr(firstSingleCommand.preProcess, "isDefault") or not firstSingleCommand.preProcess.isDefault)) and hasattr(firstSingleCommand.preProcess, "checker"):
             feeder = firstSingleCommand.preProcess.checker
             indexToSet = 0
-        elif (not (hasattr(firstSingleCommand.process, "isDefault") or not firstSingleCommand.process.isDefault)) and hasattr(firstSingleCommand.process, "checker"):
+        elif ( (not hasattr(firstSingleCommand.process, "isDefault") or not firstSingleCommand.process.isDefault)) and hasattr(firstSingleCommand.process, "checker"):
             feeder = firstSingleCommand.process.checker
             indexToSet = 1
-        elif (not (hasattr(firstSingleCommand.postProcess, "isDefault") or not firstSingleCommand.postProcess.isDefault)) and hasattr(firstSingleCommand.postProcess, "checker"):
+        elif ( (not hasattr(firstSingleCommand.postProcess, "isDefault") or not firstSingleCommand.postProcess.isDefault)) and hasattr(firstSingleCommand.postProcess, "checker"):
             feeder = firstSingleCommand.postProcess.checker
             indexToSet = 2
         else:
@@ -293,18 +313,18 @@ class Solver(object):
         paramFound, remainingArgs = _mapDashedParams(remainingTokenList, feeder.argTypeList,paramSpotted)
         localMappedArgs[indexToSet] = paramFound
         
-        return tuple(localMappedArgs), tuple(localMappedArgs)
+        return localMappedArgs, remainingArgs
 
 def _removeEveryIndexUnder(indexList, endIndex):
-    for i in xrange(0,indexList):
-        if indexList[i] < startingIndex:
+    for i in xrange(0,len(indexList)):
+        if indexList[i] < endIndex:
             continue
         
         del indexList[:i]
         return
 
 def _addValueToIndex(indexList, startingIndex, valueToAdd=1):
-    for i in xrange(0,indexList):
+    for i in xrange(0,len(indexList)):
         if indexList[i] < startingIndex:
             continue
         
@@ -322,27 +342,18 @@ def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):
     currentIndex  = 0 
 
     for index in paramSpotted:
-        paramName = inputArgs[index]
+        paramName = inputArgs[index][1:]
     
         #remove false param
         if paramName not in argTypeMap:
-            inputArgs[index] = "-" + paramName
             continue
-
-        #remove number
-        try:
-            float(inputArgs[index])
-            inputArgs[index] = "-" + inputArgs[index]
-            continue
-        except ValueError:
-            pass
         
         #manage last met param
         if currentParam is not None:
             _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, index)
         else:
             #base case, process the first param index, need to flush available arg before this index
-            notUsedArgs.extends(inputArgs[0:index])
+            notUsedArgs.extend(inputArgs[0:index])
         
         currentName  = paramName
         currentParam = argTypeMap[paramName]
@@ -365,18 +376,25 @@ def _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentInd
             paramFound[currentName] = ("true",)
         elif _isValidBooleanValueForChecker(inputArgs[currentIndex+1]):
             paramFound[currentName] = (inputArgs[currentIndex+1],)
-            notUsedArgs.extends( inputArgs[currentIndex+2:lastIndex] )
+            notUsedArgs.extend( inputArgs[currentIndex+2:lastIndex] )
         else:
             paramFound[currentName] = ("true",)
-            notUsedArgs.extends( inputArgs[currentIndex+1:lastIndex] )
+            notUsedArgs.extend( inputArgs[currentIndex+1:lastIndex] )
     else:
         #did we reach max size ?
         #don't care about minimum size, it will be check during execution phase
         if currentParam.maximumSize < argAvailableCount:
             paramFound[currentName] = tuple( inputArgs[currentIndex+1:currentIndex+1+currentParam.maximumSize] )
-            notUsedArgs.extends(inputArgs[currentIndex+1+currentParam.maximumSize:lastIndex])
+            notUsedArgs.extend(inputArgs[currentIndex+1+currentParam.maximumSize:lastIndex])
         else:
             paramFound[currentName] = tuple( inputArgs[currentIndex+1:lastIndex] )
+
+def _isValidBooleanValueForChecker(value):
+    try:
+        defaultInstanceArgChecker.getbooleanValueArgCheckerInstance().getValue(value)
+        return True
+    except Exception:
+        return False
 
 #TODO 
     #deploy in executer and alias
@@ -417,25 +435,23 @@ def _execute(parser,parameterContainer, processName=None, processArg=None):
     ## solving then execute ##
     ex     = None
     engine = None
-    try:
-        #TODO manage run in background from this point
-        
-        params.pushVariableLevelForThisThread()
+    try:        
+        parameterContainer.pushVariableLevelForThisThread()
         
         if processArg is not None: 
             #TODO PROBABLY BUG... if it is a alias, the call of the inner command will call another push and these local variable will not be available...
             #TODO BUG (?) script execution will cause a lot of this statement, why ?
                 #check with the startup script
                    
-            params.variable.setParameter("*", VarParameter(' '.join(str(x) for x in processArg)), localParam = True) #all in one string
-            params.variable.setParameter("#", VarParameter(len(processArg)), localParam = True)                      #arg count
-            params.variable.setParameter("@", VarParameter(processArg), localParam = True)                            #all args
-            #TODO params.variable.setParameter("?", VarParameter(processArg, localParam = True)                            #value from last command
-            #TODO params.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
-            params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id #TODO id is not enought, need level
+            parameterContainer.variable.setParameter("*", VarParameter(' '.join(str(x) for x in processArg)), localParam = True) #all in one string
+            parameterContainer.variable.setParameter("#", VarParameter(len(processArg)), localParam = True)                      #arg count
+            parameterContainer.variable.setParameter("@", VarParameter(processArg), localParam = True)                            #all args
+            #TODO parameterContainer.variable.setParameter("?", VarParameter(processArg, localParam = True)                            #value from last command
+            #TODO parameterContainer.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
+            parameterContainer.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id #TODO id is not enought, need level
         
         #solve command, variable, and dashed parameters
-        solver = Solver(parser, params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), params.variable)
+        solver = Solver(parser, parameterContainer.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), parameterContainer.variable)
         rawCommandList, rawArgList, mappedArgs = solver.solve()
         
         #clone command/alias to manage concurrency state
@@ -444,7 +460,7 @@ def _execute(parser,parameterContainer, processName=None, processArg=None):
             newRawCommandList.append(c.clone())
 
         #prepare an engine
-        engine = engineV3(newRawCommandList, rawArgList, mappedArgs, params)
+        engine = engineV3(newRawCommandList, rawArgList, mappedArgs, parameterContainer)
         
         #execute 
         engine.execute()
@@ -467,7 +483,7 @@ def _execute(parser,parameterContainer, processName=None, processArg=None):
     except Exception as ex:
         printException(ex)
     finally:
-        params.popVariableLevelForThisThread()
+        parameterContainer.popVariableLevelForThisThread()
 
     return ex, engine
 

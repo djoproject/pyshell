@@ -34,8 +34,9 @@ from pyshell.utils.constants    import *
 from pyshell.utils.utils        import getTerminalSize
 from pyshell.utils.printing     import Printer, warning, error, printException
 from pyshell.utils.valuable     import SimpleValuable
-from pyshell.utils.executing    import executeCommand, preParseLine
+from pyshell.utils.executing    import executeCommand, preParseLine #TODO remove me as soon as parsing is finished
 from pyshell.utils.aliasManager import AliasFromList, AliasFromFile
+from pyshell.utils.parsing      import execute
 import thread
 
 class CommandExecuter():
@@ -174,7 +175,7 @@ class CommandExecuter():
  
             #execute command
             self.promptWaitingValuable.setValue(False)
-            executeCommand(cmd, self.params, "__shell__") #TODO provide processName AND processArg from the outside of the sofware
+            execute(cmd, self.params, "__shell__") #TODO provide processName AND processArg from the outside of the sofware
     
     def printAsynchronousOnShellV2(self,message):
         prompt = self.params.environment.getParameter(ENVIRONMENT_PROMPT_KEY, perfectMatch=True).getValue()

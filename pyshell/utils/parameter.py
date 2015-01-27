@@ -233,7 +233,7 @@ class ParameterManagerV3(object):
                     key = self.getCurrentId()
 
                     if key in local_var:
-                        return False
+                        return True
 
                     if not exploreOtherLevel:
                         return False

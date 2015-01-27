@@ -89,7 +89,7 @@ def usageFun(args, mltries):
         raise DefaultPyshellException("command not found, unknown token '"+tokenNotFound[0]+"'", USER_ERROR)
 
     if not searchResult.isAvalueOnTheLastTokenFound():
-        raise DefaultPyshellException("parent token, no usage on this path", USER_WARNING)
+        raise DefaultPyshellException("incomplete command call, no usage information available, try to complete the command name", USER_WARNING)
 
     cmd = searchResult.getLastTokenFoundValue()
     return cmd.usage()
