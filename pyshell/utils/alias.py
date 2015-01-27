@@ -24,16 +24,6 @@ from pyshell.command.command   import UniCommand
 from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
-
-try:
-    pyrev = sys.version_info.major
-except AttributeError:
-    pyrev = sys.version_info[0]
-
-if pyrev == 2:
-    import ConfigParser 
-else:
-    import configparser as ConfigParser
                 
 ### UTILS COMMAND ###
     

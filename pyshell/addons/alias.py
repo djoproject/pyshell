@@ -16,15 +16,15 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.decorator      import shellMethod
-from pyshell.loader.command     import registerCommand, registerSetGlobalPrefix, registerStopHelpTraversalAt
-from pyshell.arg.argchecker     import environmentParameterChecker, filePathArgChecker
-from pyshell.utils.constants    import DEFAULT_CONFIG_DIRECTORY, ENVIRONMENT_LEVEL_TRIES_KEY
-from pyshell.utils.aliasManager import Alias  
-from pyshell.utils.executing    import preParseNotPipedCommand, preParseLine
-from pyshell.utils.exception    import ParameterLoadingException, ListOfException
-from pyshell.loader.parameter   import registerSetEnvironment
-from pyshell.utils.parameter    import EnvironmentParameter
+from pyshell.arg.decorator    import shellMethod
+from pyshell.loader.command   import registerCommand, registerSetGlobalPrefix, registerStopHelpTraversalAt
+from pyshell.arg.argchecker   import environmentParameterChecker, filePathArgChecker
+from pyshell.utils.constants  import DEFAULT_CONFIG_DIRECTORY, ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.alias      import Alias  
+from pyshell.utils.executing  import preParseNotPipedCommand, preParseLine
+from pyshell.utils.exception  import ParameterLoadingException, ListOfException
+from pyshell.loader.parameter import registerSetEnvironment
+from pyshell.utils.parameter  import EnvironmentParameter
 import sys, os
 
 try:

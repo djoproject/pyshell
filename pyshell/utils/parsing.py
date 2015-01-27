@@ -39,6 +39,9 @@ from tries import multiLevelTries
 #
 
 #TODO
+    #move solver to solving.py
+    #move execute to executing.py
+    #finish to refactor addons/alias.py
 
     #finish the grammar then refactor the parsing system
 
