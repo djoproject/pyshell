@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #system library
-import readline, os, sys, atexit, getopt, traceback
+import readline, os, sys, atexit, getopt, traceback, thread
 from contextlib import contextmanager
 
 #tries library
@@ -27,16 +27,16 @@ from tries.exception import triesException, pathNotExistsTriesException
 #local library
 from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
 from pyshell.addons          import addon
-from pyshell.utils.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
-from pyshell.utils.keystore  import KeyStore
-from pyshell.utils.exception import ListOfException
-from pyshell.utils.constants import *
-from pyshell.utils.utils     import getTerminalSize
-from pyshell.utils.printing  import Printer, warning, error, printException
-from pyshell.utils.valuable  import SimpleValuable
 from pyshell.utils.alias     import AliasFromList, AliasFromFile
-from pyshell.utils.parsing   import Parser, execute
-import thread
+from pyshell.utils.constants import *
+from pyshell.utils.exception import ListOfException
+from pyshell.utils.executing import execute
+from pyshell.utils.keystore  import KeyStore
+from pyshell.utils.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
+from pyshell.utils.parsing   import Parser
+from pyshell.utils.printing  import Printer, warning, error, printException
+from pyshell.utils.utils     import getTerminalSize
+from pyshell.utils.valuable  import SimpleValuable
 
 class CommandExecuter():
     def __init__(self, paramFile = None, outsideArgs = None):

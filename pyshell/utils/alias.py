@@ -19,7 +19,7 @@
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.utils       import raiseIfInvalidKeyList
-from pyshell.utils.executing   import executeCommand
+from pyshell.utils.executing   import execute
 from pyshell.command.command   import UniCommand
 from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
@@ -50,7 +50,6 @@ class Alias(UniCommand):
         self.setReadOnly(readonly)
         self.setRemovable(removable)
         self.setTransient(transient)
-        self.needToBepreParsed = False
         
     ### PRE/POST process ###
     @shellMethod(args       = listArgChecker(ArgChecker()),
@@ -75,7 +74,7 @@ class Alias(UniCommand):
         pass #XXX TO OVERRIDE and use _innerExecute
         
     def _innerExecute(self, cmd, name, args, parameters):
-        lastException, engine = executeCommand(cmd, parameters, self.needToBepreParsed, name, args)  
+        lastException, engine = execute(cmd, parameters, name, args)  
 
         if lastException != None: 
             if not isinstance(lastException, PyshellException):
@@ -296,7 +295,6 @@ class AliasFromFile(Alias):
     def __init__(self, filePath, showInHelp = True, readonly = False, removable = True, transient = False):
         Alias.__init__(self, "execute "+str(filePath), showInHelp, readonly, removable, transient )
         self.filePath = filePath
-        self.needToBepreParsed = True
     
     def execute(self, args, parameters):
         #make a copy of the current alias
