@@ -188,6 +188,7 @@ class AliasFromList(Alias):
                 
     #### business method
     
+    #TODO adapt
     def setCommand(self, index, commandStringList):
         self._checkAccess("setCommand", (index,), False)
         raiseIfInvalidKeyList(commandStringList, ParameterException,"Alias", "setCommand")
@@ -206,8 +207,9 @@ class AliasFromList(Alias):
         raiseIfInvalidKeyList(commandStringList, ParameterException,"Alias", "addCommand") 
         self.stringCmdList.append( [commandStringList] )
         return len(self.stringCmdList) - 1
-        
-    def addPipeCommand(self, index, commandStringList):
+    
+    #TODO remove from system
+    """def addPipeCommand(self, index, commandStringList):
         self._checkAccess("addPipeCommand", (index,))
         raiseIfInvalidKeyList(commandStringList, ParameterException,"Alias", "addPipeCommand")
         self.stringCmdList[index].append(commandStringList)
@@ -217,7 +219,7 @@ class AliasFromList(Alias):
         self._checkAccess("removePipeCommand", (index,))
         del self.stringCmdList[index][-1]
         if len(self.stringCmdList[index]) == 0:
-            del self.stringCmdList[index]
+            del self.stringCmdList[index]"""
         
     def removeCommand(self, index):
         self._checkAccess("removeCommand", (index,))
