@@ -21,40 +21,13 @@ from pyshell.utils.exception   import DefaultPyshellException, PARSE_ERROR
 #BNF GRAMMAR OF A COMMAND
 # 
 ## RULE 1 ## <commands>  ::= <command> <threading> <EOL> | <command> "|" <commands>
-## RULE 2 ## <threading> ::= " &" | ""
+## RULE 2 ## <threading> ::= "&" | ""
 ## RULE 3 ## <command>   ::= <token> | <token> " " <command>
-## RULE 4 ## <token>     ::= <string> | "$" <string> | "\$" <string> | "-" <text> | "-" <text> <string> | "\-" <string>
-## RULE 5 ## <string>    ::= <text> | <text> "\ " <string> #TODO conflict with command rule
+## RULE 4 ## <token>     ::= <text> | "$" <text> | "-" <text>
 #
-#
-
-#TODO
-    #TODO create a simple parser be able to parse a list of string
-        #no parsing to do, just prepare the output
-        #create an abstract parser class
-
-    #finish to refactor addons/alias.py
-    #finish to refactor utils/alias.py
-
-    #finish the grammar then refactor the parsing system
-
-    #keep track of running event and be able to kill one or all of them
-        #manage it in alias object with a static list
-            #an alias add itself in the list before to start then remove itself from the list at the end of its execution
-            
-    #create an addon "background" to
-        #fire a command on background
-            #like the '&' but the parsing of the command occur later
-        #kill a command on background with an id
-            #hard kill
-            #light kill (stop on next command)
-        #list all command executing on background
 
 class Parser(list):
     "This object will parse a command line withou any resolution of process, argument, or parameter"
-    
-    #TODO
-        #be able to escape '&'
     
     def __init__(self,string):
         
@@ -66,11 +39,7 @@ class Parser(list):
         self.currentCommand  = []
         self.argSpotted      = []
         self.paramSpotted    = []
-        self._innerParser    = self._parse
         self.string          = string
-        self.escapeChar      = False
-        self.runInBackground = False
-        self.isParsed        = False
         self.wrapped         = False
 
     def _pushCommandInList(self):
@@ -133,11 +102,18 @@ class Parser(list):
         elif char == '-' and len(self.currentToken) == 0:
             self.paramSpotted.append(len(self.currentCommand))
             self.currentToken += char
+        elif char == '&':
+            self.lastBackground = (len(self), len(self.currentCommand), len(self.currentToken))
+            self.currentToken += char
         else:
             self.currentToken += char
 
     def parse(self):
         del self[:]
+        self.escapeChar      = False
+        self.runInBackground = False
+        self.parsed          = False
+        self.lastBackground  = None
     
         self.string = self.string.strip(' \t\n\r')
         
@@ -153,21 +129,23 @@ class Parser(list):
         self._pushCommandInList()
         
         #compute runInBackground
-        if len(self) > 0:
-            if self[-1][0][-1] == '&':
-                self.runInBackground = True
-                del self[-1][0][-1]
-            elif self[-1][0][-1][-1] == '&':
-                self.runInBackground = True
-                self[-1][0][-1] = self[-1][0][-1][:-1]
+        if self.lastBackground is not None and len(self)-1 == self.lastBackground[0] and len(self[-1][0])-1 == self.lastBackground[1] and len(self[-1][0][-1])-1 == self.lastBackground[2]:
+            self.runInBackground = True
+            if len(self[-1][0][-1]) == 1:
+                if len(self[-1][0]) == 1:
+                    del self[-1] #remove command
+                else:
+                    del self[-1][0][-1] #remove token
+            else:
+                self[-1][0][-1] = self[-1][0][-1][:-1] #remove char
                 
-        self.isParsed = True
+        self.parsed = True
             
     def isToRunInBackground(self):
         return self.runInBackground
         
     def isParsed(self):
-        return 
+        return self.parsed
 
 
 

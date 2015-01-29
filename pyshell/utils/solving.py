@@ -23,7 +23,10 @@ from pyshell.utils.parsing   import Parser
 from tries                   import multiLevelTries
 
 class Solver(object):
-    def __init__(self, parser, mltries, variablesContainer):
+    def __init__(self):
+        pass
+            
+    def solve(self, parser, mltries, variablesContainer):
         if not isinstance(parser, Parser):
             raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
             
@@ -39,9 +42,7 @@ class Solver(object):
         self.parser             = parser
         self.mltries            = mltries
         self.variablesContainer = variablesContainer
-        self.isSolved           = False
-            
-    def solve(self):
+
         commandList    = []
         argList        = []
         mappedArgsList = []
@@ -62,7 +63,6 @@ class Solver(object):
             argList.append(        remainingTokenList )
             mappedArgsList.append( mappedParams       )
             
-        self.isSolved = True #TODO not really needed if nothing is stored about the parsing...
         return commandList, argList, mappedArgsList
         
     def _solveVariables(self,tokenList,argSpotted, paramSpotted):

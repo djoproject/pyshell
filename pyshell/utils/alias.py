@@ -18,12 +18,12 @@
 
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
-from pyshell.utils.utils       import raiseIfInvalidKeyList
 from pyshell.utils.executing   import execute
 from pyshell.command.command   import UniCommand
 from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
+from pyshell.utils.parsing     import Parser
                 
 ### UTILS COMMAND ###
     
@@ -188,10 +188,15 @@ class AliasFromList(Alias):
                 
     #### business method
     
-    #TODO adapt
     def setCommand(self, index, commandStringList):
         self._checkAccess("setCommand", (index,), False)
-        raiseIfInvalidKeyList(commandStringList, ParameterException,"Alias", "setCommand")
+
+        parser = Parser(commandString)
+        parser.parse()
+
+        if len(parser) == 0:
+            raise ParameterException("(Alias) addCommand, try to add a command string that does not hold any command")
+
         index = getAbsoluteIndex(index, len(self.stringCmdList))
         
         if index >= len(self.stringCmdList):
@@ -202,25 +207,17 @@ class AliasFromList(Alias):
         
         return index
 
-    def addCommand(self, commandStringList):
+    def addCommand(self, commandString):
         self._checkAccess("addCommand")
-        raiseIfInvalidKeyList(commandStringList, ParameterException,"Alias", "addCommand") 
-        self.stringCmdList.append( [commandStringList] )
+        parser = Parser(commandString)
+        parser.parse()
+
+        if len(parser) == 0:
+            raise ParameterException("(Alias) addCommand, try to add a command string that does not hold any command")
+
+        self.stringCmdList.append( parser )
         return len(self.stringCmdList) - 1
-    
-    #TODO remove from system
-    """def addPipeCommand(self, index, commandStringList):
-        self._checkAccess("addPipeCommand", (index,))
-        raiseIfInvalidKeyList(commandStringList, ParameterException,"Alias", "addPipeCommand")
-        self.stringCmdList[index].append(commandStringList)
-        return getAbsoluteIndex(index, len(self.stringCmdList))
-        
-    def removePipeCommand(self, index):
-        self._checkAccess("removePipeCommand", (index,))
-        del self.stringCmdList[index][-1]
-        if len(self.stringCmdList[index]) == 0:
-            del self.stringCmdList[index]"""
-        
+            
     def removeCommand(self, index):
         self._checkAccess("removeCommand", (index,))
     

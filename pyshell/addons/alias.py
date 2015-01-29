@@ -37,6 +37,9 @@ if pyrev == 2:
 else:
     import configparser as ConfigParser
 
+#XXX TODO REFACTOR IF NEEDED
+    #some update occured in parsing and utils/alias, maybe some refactoring is needed here 
+
 #XXX ALIAS DEFINITION
     #an alias has a string list as name
         #this string list is store in the command tries
@@ -157,6 +160,7 @@ def isBool(value):
 @shellMethod(mltries = environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY),
              filePath = environmentParameterChecker("alias_filepath"))
 def load(mltries, filePath):
+    #TODO refactor
 
     #load file
     filePath = filePath.getValue()
@@ -348,6 +352,10 @@ def fire(name):
 def setProperty(idAlias, name, value):
     pass #TODO
 
+#TODO
+    #XXXXX use a single wrapped string for the command string XXXXX
+
+
 def createAlias(name, command):
     pass #TODO
 
@@ -357,9 +365,6 @@ def removeAlias(idAlias):
     pass #TODO
     
 def addMethodToAlias(idAlias, command):
-    pass #TODO
-
-def addPipedMethodToAlias(idAlias, command):
     pass #TODO
 
 def moveCommandInAlias(idAlias, indexCommand, newIndex):
