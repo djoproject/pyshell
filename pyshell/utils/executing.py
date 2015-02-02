@@ -22,10 +22,9 @@ from pyshell.command.exception import *
 from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR
 from pyshell.utils.parsing     import Parser
-from pyshell.utils.parameter   import VarParameter
 from pyshell.utils.printing    import printException
 from pyshell.utils.solving     import Solver
-import threading, thread
+import threading
 
 #TODO 
     #why do we still need to return ex and engine
@@ -34,9 +33,11 @@ import threading, thread
     #keep track of running event and be able to kill one or all of them
         #manage it in alias object with a static list
             #an alias add itself in the list before to start then remove itself from the list at the end of its execution
-            
 
 def execute(string, parameterContainer, processName=None, processArg=None):
+    
+    #TODO use processArg
+        #push them in the parser
     
     ## parsing ##
     parser = None
@@ -59,32 +60,18 @@ def execute(string, parameterContainer, processName=None, processArg=None):
         return ex, None
 
     if parser.isToRunInBackground():
-        t = threading.Thread(None, _execute, None, (parser,parameterContainer,processName,processArg,))
+        t = threading.Thread(None, _execute, None, (parser,parameterContainer,processName,))
         t.start()
         return None,None
     else:
-        return _execute(parser,parameterContainer, processName, processArg)
+        return _execute(parser,parameterContainer, processName)
 
-def _execute(parser,parameterContainer, processName=None, processArg=None):    
+def _execute(parser,parameterContainer, processName=None):    
 
     ## solving then execute ##
     ex     = None
     engine = None
-    try:        
-        parameterContainer.pushVariableLevelForThisThread()
-        
-        if processArg is not None: 
-            #TODO PROBABLY BUG... if it is a alias, the call of the inner command will call another push and these local variable will not be available...
-            #TODO BUG (?) script execution will cause a lot of this statement, why ?
-                #check with the startup script
-                   
-            parameterContainer.variable.setParameter("*", VarParameter(' '.join(str(x) for x in processArg)), localParam = True) #all in one string
-            parameterContainer.variable.setParameter("#", VarParameter(len(processArg)), localParam = True)                      #arg count
-            parameterContainer.variable.setParameter("@", VarParameter(processArg), localParam = True)                            #all args
-            #TODO parameterContainer.variable.setParameter("?", VarParameter(processArg, localParam = True)                            #value from last command
-            #TODO parameterContainer.variable.setParameter("!", VarParameter(processArg, localParam = True)                            #last pid started in background
-            parameterContainer.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)                    #current process id #TODO id is not enought, need level
-        
+    try:                
         #solve command, variable, and dashed parameters
         rawCommandList, rawArgList, mappedArgs = Solver().solve(parser, parameterContainer.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), parameterContainer.variable)
         
@@ -116,8 +103,6 @@ def _execute(parser,parameterContainer, processName=None, processArg=None):
         printException(ex,"List of exception(s): ")
     except Exception as ex:
         printException(ex)
-    finally:
-        parameterContainer.popVariableLevelForThisThread()
 
     return ex, engine
 

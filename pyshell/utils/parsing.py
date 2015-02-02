@@ -26,6 +26,10 @@ from pyshell.utils.exception   import DefaultPyshellException, PARSE_ERROR
 ## RULE 4 ## <token>     ::= <text> | "$" <text> | "-" <text>
 #
 
+#TODO create escaping method
+    #with wrapping or not
+    #use it in parameter saving
+
 class Parser(list):
     "This object will parse a command line withou any resolution of process, argument, or parameter"
     

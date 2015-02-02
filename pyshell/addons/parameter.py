@@ -182,7 +182,7 @@ def loadParameter(filePath, parameters):
     if os.path.exists(filePath):
         afile = AliasFromFile(filePath)
         afile.setErrorGranularity(None) #never stop to execute
-        afile.execute(args = (), parameters=parameters)
+        afile.execute(parameters=parameters)
     else:
         saveParameter(filePath, parameters)
 

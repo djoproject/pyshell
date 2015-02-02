@@ -54,6 +54,12 @@ def isAValidStringPath(stringPath):
 class ParameterContainer(object):
     SUBCONTAINER_LIST = ["environment", "context", "variable"]
 
+    #TODO
+        #remove complex level management
+        #on push, just add
+        #on pop, just remove
+        #on get, if no level exist, just create 0
+
     def __init__(self):
         self.threadLevel = {} #hold the level of the current thread
         self.environment = ParameterManagerV3()

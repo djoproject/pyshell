@@ -23,7 +23,9 @@ from pyshell.command.command   import UniCommand
 from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
+from pyshell.utils.parameter   import VarParameter
 from pyshell.utils.parsing     import Parser
+import thread
                 
 ### UTILS COMMAND ###
     
@@ -39,6 +41,15 @@ def getAbsoluteIndex(index, listSize):
     
     return index
 
+#TODO
+    #should be able again to give args to the method execute
+
+#TODO brainstorming
+    #create a special endless alias for shell entry point ?
+        #+++
+        
+        #---
+
 class Alias(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
@@ -52,6 +63,18 @@ class Alias(UniCommand):
         self.setTransient(transient)
         
     ### PRE/POST process ###
+    
+    def _setArgs(self,parameterContainer, args):
+        parameterContainer.variable.setParameter("*", VarParameter(' '.join(str(x) for x in args)), localParam = True) #all in one string
+        parameterContainer.variable.setParameter("#", VarParameter(len(args)), localParam = True)                      #arg count
+        parameterContainer.variable.setParameter("@", VarParameter(args), localParam = True)                           #all args
+        #TODO parameterContainer.variable.setParameter("?", VarParameter(args, localParam = True)                            #value from last command
+            #TODO set default as empty
+        #TODO parameterContainer.variable.setParameter("!", VarParameter(args, localParam = True)                            #last pid started in background
+            #should be global ? because thread list is global in the system...
+        
+        parameterContainer.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)             #current process id #TODO id is not enought, need level
+    
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
     def _pre(self, args, parameters):
@@ -59,22 +82,37 @@ class Alias(UniCommand):
         
         if not self.executeOnPre:
             return args
-
-        return self.execute(args, parameters)
+        
+        parameters.pushVariableLevelForThisThread()
+        self._setArgs(parameters, args)
+        try:
+            return self.execute(parameters)
+        finally:
+            parameters.popVariableLevelForThisThread()
 
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
     def _post(self, args, parameters):
+        
         if self.executeOnPre:
             return args
-
-        return self.execute(args, parameters)
         
-    def execute(self, args, parameters):
+        parameters.pushVariableLevelForThisThread()
+        self._setArgs(parameters, args)
+        try:
+            return self.execute(parameters)
+        finally:
+            parameters.popVariableLevelForThisThread()
+        
+    def execute(self, parameters):
         pass #XXX TO OVERRIDE and use _innerExecute
         
-    def _innerExecute(self, cmd, name, args, parameters):
-        lastException, engine = execute(cmd, parameters, name, args)  
+    def _innerExecute(self, cmd, name, parameters):
+        #TODO set "$?"
+            #if error from last execution, set empty
+            #otherwise, set the result if any
+    
+        lastException, engine = execute(cmd, parameters, name)  
 
         if lastException != None: 
             if not isinstance(lastException, PyshellException):
@@ -172,13 +210,13 @@ class AliasFromList(Alias):
     def getStringCmdList(self):
         return self.stringCmdList
                 
-    def execute(self, args, parameters):
+    def execute(self, parameters):
         #e = self.clone() #make a copy of the current alias      
         engine = None
         
         #for cmd in self.stringCmdList:
         for i in xrange(0,len(self.stringCmdList)):
-            lastException, engine = self._innerExecute(self.stringCmdList[i], self.name + " (index: "+str(i)+")", args, parameters)
+            lastException, engine = self._innerExecute(self.stringCmdList[i], self.name + " (index: "+str(i)+")", parameters)
 
         #return the result of last command in the alias
         if engine == None:
@@ -295,7 +333,7 @@ class AliasFromFile(Alias):
         Alias.__init__(self, "execute "+str(filePath), showInHelp, readonly, removable, transient )
         self.filePath = filePath
     
-    def execute(self, args, parameters):
+    def execute(self, parameters):
         #make a copy of the current alias
         engine = None
         
@@ -303,7 +341,7 @@ class AliasFromFile(Alias):
         index = 0
         with open(self.filePath) as f:
             for line in f:
-                lastException, engine = self._innerExecute(line, self.name + " (line: "+str(index)+")", args, parameters) 
+                lastException, engine = self._innerExecute(line, self.name + " (line: "+str(index)+")", parameters) 
                 index += 1
 
         #return the result of last command in the alias
