@@ -54,12 +54,6 @@ def isAValidStringPath(stringPath):
 class ParameterContainer(object):
     SUBCONTAINER_LIST = ["environment", "context", "variable"]
 
-    #TODO
-        #remove complex level management
-        #on push, just add
-        #on pop, just remove
-        #on get, if no level exist, just create 0
-
     def __init__(self):
         self.threadLevel = {} #hold the level of the current thread
         self.environment = ParameterManagerV3()
@@ -71,41 +65,41 @@ class ParameterContainer(object):
         
         #manage first call to this container with this thread
         if tid not in self.threadLevel:
-            previousIsPop, level = True, 0
-            self.threadLevel[tid] = (previousIsPop, level,)
+            level = -1
         else:
-            previousIsPop, level = self.threadLevel[tid]
+            level = self.threadLevel[tid]
         
         #add level
-        if not previousIsPop:
-            self.threadLevel[tid] = (False, level+1,)
+        self.threadLevel[tid] = level+1
 
     def popVariableLevelForThisThread(self):
         tid = current_thread().ident
         
         #manage first call to this container with this thread
         if tid not in self.threadLevel:
-            previousIsPop, level = False, 0
-            self.threadLevel[tid] = (previousIsPop, level,)
+            return 
         else:
-            previousIsPop, level = self.threadLevel[tid]
-            
-        #remove level
-        if previousIsPop:
-            self.threadLevel[tid] = (True, min(0, level-1),)
-
+            level = self.threadLevel[tid]
+        
         #flush parameter manager
         self.environment.flushVariableLevelForThisThread()
         self.context.flushVariableLevelForThisThread()
         self.variable.flushVariableLevelForThisThread()
         
+        #update level map
+        level -= 1
+        if level == -1:
+            del self.threadLevel[tid]
+        else:
+            self.threadLevel[tid] = level
+        
     def getCurrentId(self):
         tid = current_thread().ident
         
         if tid not in self.threadLevel:
-            raise ParameterException("(ParameterContainer) getCurrentId, thread id '"+str(tid)+"' is not registered in this container, before any action push a variable level")
+            self.pushVariableLevelForThisThread()
     
-        return (tid,self.threadLevel[tid][1],)
+        return (tid,self.threadLevel[tid],)
 
 class ParameterManagerV3(object):                    
     def __init__(self, parent = None):

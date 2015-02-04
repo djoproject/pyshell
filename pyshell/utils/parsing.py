@@ -30,6 +30,26 @@ from pyshell.utils.exception   import DefaultPyshellException, PARSE_ERROR
     #with wrapping or not
     #use it in parameter saving
 
+def escapeString(string, wrapped = True):
+
+    string.replace("\"","\\$")
+    if wrapped:
+    
+    else:
+
+    string.replace("$","\\$")
+    string.replace("&","\\&")
+    string.replace("|","\\|")
+    string.replace("-","\\$")
+    
+    string.replace(" ","\\ ")
+    string.replace("\t","\\\t")
+    string.replace("\n","\\\n")
+    string.replace("\r","\\\r")
+    
+    string.replace("\\","\\\\")
+    return string
+
 class Parser(list):
     "This object will parse a command line withou any resolution of process, argument, or parameter"
     

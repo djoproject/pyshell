@@ -18,6 +18,7 @@
 
 from pyshell.arg.argchecker  import booleanValueArgChecker,defaultInstanceArgChecker
 from pyshell.command.engine  import EMPTY_MAPPED_ARGS
+from pyshell.utils.exception import DefaultPyshellException, SYSTEM_ERROR, USER_WARNING
 from pyshell.utils.parameter import ParameterManagerV3
 from pyshell.utils.parsing   import Parser
 from tries                   import multiLevelTries
