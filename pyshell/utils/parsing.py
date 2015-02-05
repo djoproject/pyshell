@@ -32,11 +32,19 @@ from pyshell.utils.exception   import DefaultPyshellException, PARSE_ERROR
 
 def escapeString(string, wrapped = True):
 
+    string.replace("\\","\\\\")
     string.replace("\"","\\$")
-    if wrapped:
     
+    if wrapped:
+        pass 
+        #TODO
+            #escape \
+            #escape "
+            #escape first char if in ('$','-',)
+            #add " at the beginning and the end
     else:
-
+        pass #TODO escape everything
+    
     string.replace("$","\\$")
     string.replace("&","\\&")
     string.replace("|","\\|")
@@ -47,7 +55,6 @@ def escapeString(string, wrapped = True):
     string.replace("\n","\\\n")
     string.replace("\r","\\\r")
     
-    string.replace("\\","\\\\")
     return string
 
 class Parser(list):
@@ -126,7 +133,7 @@ class Parser(list):
         elif char == '-' and len(self.currentToken) == 0:
             self.paramSpotted.append(len(self.currentCommand))
             self.currentToken += char
-        elif char == '&':
+        elif char == '&' and not self.wrapped:
             self.lastBackground = (len(self), len(self.currentCommand), len(self.currentToken))
             self.currentToken += char
         else:
