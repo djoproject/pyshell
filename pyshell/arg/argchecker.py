@@ -31,8 +31,8 @@ import os
 from threading               import Lock
 
 from pyshell.arg.exception   import *
-from pyshell.utils.keystore  import Key
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEYSTORE_SECTION_NAME
+from pyshell.system.keystore import Key
 
 #string argchecker definition
 ARGCHECKER_TYPENAME                 = "any"

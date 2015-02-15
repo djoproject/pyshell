@@ -23,8 +23,8 @@ from pyshell.command.command   import UniCommand
 from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
-from pyshell.utils.parameter   import VarParameter
 from pyshell.utils.parsing     import Parser
+from pyshell.system.parameter  import VarParameter
 import thread
                 
 ### UTILS COMMAND ###

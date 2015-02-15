@@ -18,7 +18,7 @@
 
 from pyshell.arg.decorator  import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, ArgChecker
-#from pyshell.utils.utils    import toHexString
+#from pyshell.utils.misc    import toHexString
 from pyshell.utils.printing import printShell, strLength
 import re
 

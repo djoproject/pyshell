@@ -21,10 +21,10 @@ from pyshell.arg.argchecker    import defaultInstanceArgChecker, environmentPara
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt
 from pyshell.loader.keystore   import registerKey
 from pyshell.utils.constants   import KEYSTORE_SECTION_NAME, ENVIRONMENT_KEY_STORE_FILE_KEY, ENVIRONMENT_SAVE_KEYS_KEY
+from pyshell.utils.misc        import createParentDirectory
 from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 from pyshell.utils.exception   import KeyStoreLoadingException, ListOfException
-from pyshell.utils.utils        import createParentDirectory
 
 import sys, os
 try:

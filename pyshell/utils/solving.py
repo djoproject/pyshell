@@ -16,12 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker  import booleanValueArgChecker,defaultInstanceArgChecker
-from pyshell.command.engine  import EMPTY_MAPPED_ARGS
-from pyshell.utils.exception import DefaultPyshellException, SYSTEM_ERROR, USER_WARNING
-from pyshell.utils.parameter import ParameterManagerV3
-from pyshell.utils.parsing   import Parser
-from tries                   import multiLevelTries
+from pyshell.arg.argchecker   import booleanValueArgChecker,defaultInstanceArgChecker
+from pyshell.command.engine   import EMPTY_MAPPED_ARGS
+from pyshell.utils.exception  import DefaultPyshellException, SYSTEM_ERROR, USER_WARNING
+from pyshell.utils.parsing    import Parser
+from pyshell.system.parameter import ParameterManagerV3
+from tries                    import multiLevelTries
 
 class Solver(object):
     def __init__(self):

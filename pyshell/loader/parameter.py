@@ -22,10 +22,10 @@
         
 from pyshell.loader.exception import LoadException
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
-from pyshell.utils.parameter  import isAValidStringPath, EnvironmentParameter, ContextParameter, VarParameter
 from pyshell.arg.argchecker   import defaultInstanceArgChecker
 from pyshell.utils.constants  import ENVIRONMENT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.exception  import ListOfException, ParameterException
+from pyshell.system.parameter import isAValidStringPath, EnvironmentParameter, ContextParameter, VarParameter
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(ParamaterLoader.__module__+"."+ParamaterLoader.__name__,ParamaterLoader, 3, subLoaderName)

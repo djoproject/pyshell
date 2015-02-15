@@ -23,10 +23,10 @@ from pyshell.arg.decorator     import shellMethod
 import os, sys
 from pyshell.utils.postProcess import printColumn, stringListResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
-from pyshell.utils.parameter   import EnvironmentParameter
 from pyshell.utils.constants   import ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
+from pyshell.system.parameter  import EnvironmentParameter
 
 ADDON_PREFIX  = "pyshell.addons."
 

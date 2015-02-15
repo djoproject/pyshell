@@ -25,18 +25,19 @@ from tries import multiLevelTries
 from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
-from pyshell.arg.argchecker  import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
-from pyshell.addons          import addon
-from pyshell.utils.alias     import AliasFromList, AliasFromFile
-from pyshell.utils.constants import *
-from pyshell.utils.exception import ListOfException
-from pyshell.utils.executing import execute
-from pyshell.utils.keystore  import KeyStore
-from pyshell.utils.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
-from pyshell.utils.parsing   import Parser
-from pyshell.utils.printing  import Printer, warning, error, printException
-from pyshell.utils.utils     import getTerminalSize
-from pyshell.utils.valuable  import SimpleValuable
+from pyshell.arg.argchecker   import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
+from pyshell.addons           import addon
+from pyshell.utils.constants  import *
+from pyshell.utils.exception  import ListOfException
+from pyshell.utils.executing  import execute
+from pyshell.utils.misc       import getTerminalSize
+from pyshell.utils.parsing    import Parser
+from pyshell.utils.printing   import Printer, warning, error, printException
+from pyshell.utils.valuable   import SimpleValuable
+from pyshell.system.alias     import AliasFromList, AliasFromFile
+from pyshell.system.keystore  import KeyStore
+from pyshell.system.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
+
 
 class CommandExecuter():
     def __init__(self, paramFile = None, outsideArgs = None):

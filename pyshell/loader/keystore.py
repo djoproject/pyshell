@@ -18,10 +18,10 @@
 
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import LoadException
-from pyshell.utils.keystore   import Key, KeyStore
-from pyshell.utils.parameter  import EnvironmentParameter
 from pyshell.utils.constants  import KEYSTORE_SECTION_NAME
 from pyshell.utils.exception  import ListOfException
+from pyshell.system.keystore  import Key, KeyStore
+from pyshell.system.parameter import EnvironmentParameter
 
 LOADING_METHOD_NAME    = "load"
 UNLOADING_METHOD_NAME  = "unload"
