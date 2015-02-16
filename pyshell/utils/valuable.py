@@ -43,6 +43,7 @@ class SimpleValuable(SelectableValuable):
         
     def setValue(self, value):
         self.value = value
+        return value
 
     def getSelectedValue(self):
         return self.value

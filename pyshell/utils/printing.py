@@ -19,26 +19,26 @@
 import threading, sys, re, os, traceback
 from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException, ListOfException
-from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, CONTEXT_COLORATION_NONE, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
 
 _EMPTYSTRING = ""
 
 #http://misc.flogisoft.com/bash/tip_colors_and_formatting
 LIGHTMAUVE     = '\033[95m'
 LIGHTBLUE      = '\033[94m'
-LIGHTGREEN     = '\033[92m'
 LIGHTORANGE    = '\033[93m'
+LIGHTGREEN     = '\033[92m'
 LIGHTRED       = '\033[91m'
 
 DARKMAUVE      = '\033[35m'
 DARKBLUE       = '\033[34m'
-DARKGREEN      = '\033[32m'
 DARKORANGE     = '\033[33m'
+DARKGREEN      = '\033[32m'
 DARKRED        = '\033[31m'
 
-ENDC           = '\033[0m'
-BOLT           = '\033[1m'
 UNDERLINE      = '\033[4m'
+BOLT           = '\033[1m'
+ENDC           = '\033[0m'
 
 ANSI_ESCAPE = re.compile(r'\x1b[^m]*m')
 
@@ -51,10 +51,10 @@ class Printer(object):
             raise Exception("(Printer) __init__, Try to create a new instance of printer, only one is allowed for a whole instance of this application, use getInstance method")
     
         self.replWriteFunction   = None
-        self.shellContext        = DefaultValuable(None)
+        self.shellContext        = DefaultValuable(CONTEXT_COLORATION_NONE)
         self.promptShowedContext = DefaultValuable(False)
         self.spacingContext      = DefaultValuable(TAB_SIZE)
-        self.backgroundContext   = DefaultValuable(None)
+        self.backgroundContext   = DefaultValuable(CONTEXT_EXECUTION_SCRIPT)
         self.debugContext        = DefaultValuable(0)
     
     def __enter__(self):
@@ -220,7 +220,7 @@ class Printer(object):
     
 def _toLineString(args, kwargs):
     s = ' '.join(str(x) for x in args)
-    s2 = ', '.join(str(k)+"="+str(v) for k,v in kwargs.items())
+    s2 = ' '.join(str(k)+"="+str(v) for k,v in kwargs.items())
     
     if len(s) > 0:
         if len(s2) > 0:
