@@ -291,7 +291,6 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
     if prefix is None:
         prefix = _EMPTYSTRING
         
-    isList = False
     if isinstance(exception, PyshellException):
         if isinstance(exception, ListOfException):
             if len(exception.exceptions) == 0:
@@ -299,16 +298,18 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
 
             toprint = ""
             printFun = printer.formatRed
+            
             if prefix != _EMPTYSTRING:
-                toprint += printer.formatRed(prefix)
-
-            space = " " * printer.spacingContext.getValue()
+                toprint += printer.formatRed(prefix) + "\n"
+                space = " " * printer.spacingContext.getValue()
+            else:
+                space = _EMPTYSTRING
 
             for e in exception.exceptions:
-                toprint += "\n"+space+formatException(e, space, False)
-
-            isList = True
-
+                toprint += space + formatException(e, printStackTraceInCaseOfDebug=False) + "\n"
+            
+            #remove last \n
+            toprint = toprint[:-1]
         else: 
             if exception.severity >= NOTICE:
                 printFun = printer.formatGreen
@@ -323,7 +324,7 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         printFun = printer.formatRed
         toprint  = printer.formatRed(prefix + str(exception))
 
-    if not isList and printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
+    if printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
         toprint += printFun("\n\n"+traceback.format_exc())
 
     return toprint

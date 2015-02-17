@@ -78,7 +78,11 @@ class ListOfException(DefaultPyshellException):
     def __str__(self):
         if len(self.exceptions) == 0:
             return "no error, this exception shouldn't be throwed"
-
+        
+        #TODO improve
+            #if only one exception, on one line
+            #if several exception, new line and list the exception
+            
         to_ret = ""
         for e in self.exceptions:
             to_ret += str(e)+"\n"

@@ -16,4 +16,40 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
+import unittest
+from pyshell.utils.exception import ListOfException
+
+
+class ExceptionTest(unittest.TestCase):
+    def setUp(self):
+        pass
+        
+    def test_emptyListOfException(self):
+        l = ListOfException()
+        self.assertFalse(l.isThrowable())
+        self.assertEqual(str(l),"no error, this exception shouldn't be throwed")
+        
+    def test_invalidException(self):
+        l = ListOfException()
+        self.assertRaises(Exception,l.addException, ("plop",))
+        
+    def test_addOneException(self):
+        l = ListOfException()
+        l.addException(Exception("plop"))
+        self.assertEqual(len(l.exceptions),1)
+        
+    def test_addSeveralExceptions(self):
+        l = ListOfException()
+        l.addException(Exception("plop"))
+        l.addException(Exception("plip"))
+        
+        self.assertEqual(len(l.exceptions),2)
+        
+        l2 = ListOfException()
+        l2.addException(l)
+        
+        self.assertEqual(len(l2.exceptions),2)
+        
+
+if __name__ == '__main__':
+    unittest.main()
