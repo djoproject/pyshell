@@ -57,6 +57,8 @@ def raiseIfInvalidKeyList(keyList, exceptionClass,packageName, methName):
         if len(key) == 0:
             raise exceptionClass("("+packageName+") "+methName+", empty key is not allowed")
             
+    return keyList
+            
 def createParentDirectory(filePath):
     if not os.path.exists(os.path.dirname(filePath)):
         try:

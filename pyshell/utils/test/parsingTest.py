@@ -229,6 +229,7 @@ class ParserTest(unittest.TestCase):
              
     #TODO test parameter spotting
     #TODO test background
+    #TODO test escaping method
 
 if __name__ == '__main__':
     unittest.main()

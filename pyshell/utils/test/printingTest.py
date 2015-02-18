@@ -289,7 +289,7 @@ class PrintingTest(unittest.TestCase):
         l.addException(DefaultPyshellException("plip", WARNING))
         l.addException(DefaultPyshellException("toto", NOTICE))
         
-        self.assertEqual(formatException(l, "plap"), LIGHTRED+"plap"+ENDC+"\n" + "     "+LIGHTRED+"plop"+ENDC +"\n"+ "     "+LIGHTORANGE+"plip"+ENDC +"\n"+ "     "+LIGHTGREEN+"toto"+ENDC) #TODO
+        self.assertEqual(formatException(l, "plap"), LIGHTRED+"plap"+ENDC+"\n" + "     "+LIGHTRED+"plop"+ENDC +"\n"+ "     "+LIGHTORANGE+"plip"+ENDC +"\n"+ "     "+LIGHTGREEN+"toto"+ENDC)
 
     def test_formatException7(self):
         self.debugContext.setValue(1)
