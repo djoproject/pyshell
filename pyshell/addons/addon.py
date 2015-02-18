@@ -21,7 +21,7 @@ from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, 
 from pyshell.loader.utils      import GlobalLoaderLoadingState, DEFAULT_SUBADDON_NAME
 from pyshell.arg.decorator     import shellMethod
 import os, sys
-from pyshell.utils.postProcess import printColumn, stringListResultHandler
+from pyshell.utils.postProcess import printColumn, listResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
 from pyshell.utils.constants   import ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.exception   import ListOfException
@@ -355,7 +355,7 @@ registerCommand( ("subloader",) ,             pro=subLoaderReload)
 registerSetTempPrefix( () )
 registerStopHelpTraversalAt( ("reload",) )
 registerCommand( ("load",) ,                  pro=loadAddonFun)
-registerCommand( ("info",) ,                  pro=getAddonInformation,post=stringListResultHandler)
+registerCommand( ("info",) ,                  pro=getAddonInformation,post=listResultHandler)
 registerSetTempPrefix( ("onstartup",  ) )
 registerCommand( ("add",) ,                   pro=addOnStartUp)
 registerCommand( ("remove",) ,                pro=removeOnStartUp)

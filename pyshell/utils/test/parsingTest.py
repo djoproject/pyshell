@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.utils.parsing import Parser
+from pyshell.utils.parsing import Parser, escapeString
 
 class ParserTest(unittest.TestCase):
     def setUp(self):
@@ -182,26 +182,21 @@ class ParserTest(unittest.TestCase):
     
     #### VAR CHAR ####
 
-    #echo $\a
     def test_var1(self):
         p = Parser("aa bb cc $\\d")
         p.parse()
         self.assertEqual(p,[(('aa','bb','cc','$d',),(3,),(),)])
 
-    #echo $a
     def test_var2(self):
         p = Parser("aa bb cc $d")
         p.parse()
         self.assertEqual(p,[(('aa','bb','cc','$d',),(3,),(),)])
 
-    #echo "$\a"
-        #$\a
     def test_var3(self):
         p = Parser("aa bb cc \"$\\d\"")
         p.parse()
         self.assertEqual(p,[(('aa','bb','cc','$d',),(3,),(),)])
 
-    #echo "$a"
     def test_var4(self):
         p = Parser("aa bb cc \"$d\"")
         p.parse()
@@ -226,10 +221,127 @@ class ParserTest(unittest.TestCase):
         p = Parser("aa bb cc $")
         p.parse()
         self.assertEqual(p,[(('aa','bb','cc','$',),(),(),)])   
-             
-    #TODO test parameter spotting
-    #TODO test background
-    #TODO test escaping method
+        
+    #### PARAM CHAR ####
+
+    def test_param1(self):
+        p = Parser("aa bb cc -\\d")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','-d',),(),(3,),)])
+
+    def test_param2(self):
+        p = Parser("aa bb cc -d")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','-d',),(),(3,),)])
+
+    def test_param3(self):
+        p = Parser("aa bb cc \"-\\d\"")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','-d',),(),(3,),)])
+
+    def test_param4(self):
+        p = Parser("aa bb cc \"-d\"")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','-d',),(),(3,),)])
+        
+    def test_param5(self):
+        p = Parser("aa bb cc \"- d\"")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','- d',),(),(),)])
+        
+    def test_param6(self):
+        p = Parser("aa bb cc -\\ d")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','- d',),(),(),)])
+        
+    def test_param7(self):
+        p = Parser("aa bb cc \"-\"")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','-',),(),(),)])
+        
+    def test_param8(self):
+        p = Parser("aa bb cc -")
+        p.parse()
+        self.assertEqual(p,[(('aa','bb','cc','-',),(),(),)]) 
+    
+    ### BACKGROUND ###
+    
+    def test_background1(self):
+        p = Parser("")
+        p.parse()
+        self.assertFalse(p.isToRunInBackground())
+        
+    def test_background2(self):
+        p = Parser("&")
+        p.parse()
+        self.assertEqual(len(p),0)
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background3(self):
+        p = Parser("& | a")
+        p.parse()
+        self.assertEqual(len(p),2)
+        self.assertFalse(p.isToRunInBackground())
+        
+    def test_background4(self):
+        p = Parser("aaa&")
+        p.parse()
+        self.assertEqual(len(p),1)
+        self.assertEqual(p,[(('aaa',),(),(),)])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background5(self):
+        p = Parser("aaa &")
+        p.parse()
+        self.assertEqual(len(p),1)
+        self.assertEqual(p,[(('aaa',),(),(),)])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background6(self):
+        p = Parser("aaa bbb &")
+        p.parse()
+        self.assertEqual(len(p),1)
+        self.assertEqual(p,[(('aaa','bbb'),(),(),)])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background7(self):
+        p = Parser("aaa bbb&")
+        p.parse()
+        self.assertEqual(len(p),1)
+        self.assertEqual(p,[(('aaa','bbb'),(),(),)])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background8(self):
+        p = Parser("aaa bbb |&")
+        p.parse()
+        self.assertEqual(len(p),1)
+        self.assertEqual(p,[(('aaa','bbb'),(),(),)])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background9(self):
+        p = Parser("aaa bbb | ccc&")
+        p.parse()
+        self.assertEqual(len(p),2)
+        self.assertEqual(p,[(('aaa','bbb'),(),(),),(('ccc',),(),(),)])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background10(self):
+        p = Parser("aaa bbb| cdf &")
+        p.parse()
+        self.assertEqual(len(p),2)
+        self.assertEqual(p,[(('aaa','bbb'),(),(),), (('cdf',),(),(),) ])
+        self.assertTrue(p.isToRunInBackground())
+        
+    def test_background11(self):
+        p = Parser("aaa bbb | ccc&c")
+        p.parse()
+        self.assertEqual(len(p),2)
+        self.assertEqual(p,[(('aaa','bbb'),(),(),),(('ccc&c',),(),(),)])
+        self.assertFalse(p.isToRunInBackground())
+    
+    ### ESCAPING ###    
+        #TODO test escaping method
+            #wrapped or not
 
 if __name__ == '__main__':
     unittest.main()

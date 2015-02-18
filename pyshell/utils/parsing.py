@@ -26,34 +26,26 @@ from pyshell.utils.exception   import DefaultPyshellException, PARSE_ERROR
 ## RULE 4 ## <token>     ::= <text> | "$" <text> | "-" <text>
 #
 
-#TODO create escaping method
-    #with wrapping or not
-    #use it in parameter saving
-
 def escapeString(string, wrapped = True):
 
-    string.replace("\\","\\\\")
-    string.replace("\"","\\$")
+    string = string.replace("\\","\\\\")
+    string = string.replace("\"","\\\"")
     
     if wrapped:
-        pass 
-        #TODO
-            #escape \
-            #escape "
-            #escape first char if in ('$','-',)
-            #add " at the beginning and the end
-    else:
-        pass #TODO escape everything
+        if string[0] in ('$','-',):
+            string = "\\"+string
+        
+        return "\""+string+"\""
     
-    string.replace("$","\\$")
-    string.replace("&","\\&")
-    string.replace("|","\\|")
-    string.replace("-","\\$")
+    string = string.replace("$","\\$")
+    string = string.replace("&","\\&")
+    string = string.replace("|","\\|")
+    string = string.replace("-","\\$")
     
-    string.replace(" ","\\ ")
-    string.replace("\t","\\\t")
-    string.replace("\n","\\\n")
-    string.replace("\r","\\\r")
+    string = string.replace(" ","\\ ")
+    string = string.replace("\t","\\\t")
+    string = string.replace("\n","\\\n")
+    string = string.replace("\r","\\\r")
     
     return string
 
@@ -166,9 +158,13 @@ class Parser(list):
                 if len(self[-1][0]) == 1:
                     del self[-1] #remove command
                 else:
-                    del self[-1][0][-1] #remove token
+                    l = list(self[-1][0])
+                    del l[-1]
+                    self[-1] = (tuple(l),self[-1][1],self[-1][2])
             else:
-                self[-1][0][-1] = self[-1][0][-1][:-1] #remove char
+                l = list(self[-1][0])
+                l[-1] = l[-1][:-1]
+                self[-1] = (tuple(l),self[-1][1],self[-1][2])
                 
         self.parsed = True
             

@@ -17,13 +17,241 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_LIGHT
+from pyshell.utils.test.printingTest import NewOutput
+from pyshell.utils.postProcess import listResultHandler, listFlatResultHandler, printStringCharResult, printBytesAsString, printColumnWithouHeader, printColumn
+from pyshell.utils.printing  import Printer
+from pyshell.utils.valuable  import SimpleValuable
 
 class PostProcessTest(unittest.TestCase):
     def setUp(self):
-        pass 
+        p = Printer.getInstance()
         
-    def test_(self):
-        pass #TODO
+        self.shellContext = SimpleValuable(CONTEXT_EXECUTION_SHELL) #CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON
+        p.setShellContext(self.shellContext)
+        
+        self.promptShowedContext = SimpleValuable(True) #True or False
+        p.setPromptShowedContext(self.promptShowedContext)
+        
+        self.spacingContext = SimpleValuable(5) #an integer bigger than 0
+        p.setSpacingContext(self.spacingContext)
+        
+        self.backgroundContext = SimpleValuable(CONTEXT_COLORATION_LIGHT) #CONTEXT_COLORATION_LIGHT, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_NONE
+        p.setBakcgroundContext(self.backgroundContext)
+        
+        self.debugContext = SimpleValuable(0) #an integer between [0,5]
+        p.setDebugContext(self.debugContext)
+    
+    def test_listResultHandler1(self):
+        no = NewOutput()
+        
+        listResultHandler( () )
+        self.assertEqual(no.lastOutPut, "")
+        
+        no.restore()
+        
+    def test_listResultHandler2(self):
+        no = NewOutput()
+        
+        listResultHandler( ("aa",) )
+        self.assertEqual(no.lastOutPut, "     aa\n")
+        
+        no.restore()
+        
+    def test_listResultHandler3(self):
+        no = NewOutput()
+        
+        listResultHandler( ("aa",42,) )
+        self.assertEqual(no.lastOutPut, "     aa\n     42\n")
+        
+        no.restore()
+        
+    ###
+        
+    def test_listFlatResultHandler1(self):
+        no = NewOutput()
+        
+        listFlatResultHandler( () )
+        self.assertEqual(no.lastOutPut, "     \n")
+        
+        no.restore()
+        
+    def test_listFlatResultHandler2(self):
+        no = NewOutput()
+        
+        listFlatResultHandler( ("aa",) )
+        self.assertEqual(no.lastOutPut, "     aa\n")
+        
+        no.restore()
+        
+    def test_listFlatResultHandler3(self):
+        no = NewOutput()
+        
+        listFlatResultHandler( ("aa",42,) )
+        self.assertEqual(no.lastOutPut, "     aa 42\n")
+        
+        no.restore()
+        
+    ###
+    
+    def test_printStringCharResult1(self):
+        no = NewOutput()
+        
+        printStringCharResult( () )
+        self.assertEqual(no.lastOutPut, "     \n")
+        
+        no.restore()
+        
+    def test_printStringCharResult2(self):
+        no = NewOutput()
+        
+        printStringCharResult( (60,) )
+        self.assertEqual(no.lastOutPut, "     <\n")
+        
+        no.restore()
+        
+    def test_printStringCharResult3(self):
+        no = NewOutput()
+        
+        printStringCharResult( (60,42,) )
+        self.assertEqual(no.lastOutPut, "     <*\n")
+        
+        no.restore()
+        
+    ###
+    
+    def test_printBytesAsString1(self):
+        no = NewOutput()
+        
+        printBytesAsString( () )
+        self.assertEqual(no.lastOutPut, "     \n")
+        
+        no.restore()
+        
+    def test_printBytesAsString2(self):
+        no = NewOutput()
+        
+        printBytesAsString( (0x25,) )
+        self.assertEqual(no.lastOutPut, "     25\n")
+        
+        no.restore()
+        
+    def test_printBytesAsString3(self):
+        no = NewOutput()
+        
+        printBytesAsString( (0x25,0x42,) )
+        self.assertEqual(no.lastOutPut, "     2542\n")
+        
+        no.restore()
+        
+    ###
+    
+    def test_printColumnWithouHeader1(self):
+        no = NewOutput()
+        
+        printColumnWithouHeader( () )
+        self.assertEqual(no.lastOutPut, "")
+        
+        no.restore()
+        
+    def test_printColumnWithouHeader2(self):
+        no = NewOutput()
+        
+        printColumnWithouHeader( ("TOTO",) )
+        self.assertEqual(no.lastOutPut, "     TOTO\n")
+        
+        no.restore()
+        
+    def test_printColumnWithouHeader3(self):
+        no = NewOutput()
+        
+        printColumnWithouHeader( ("TOTO","TUTUTU",) )
+        self.assertEqual(no.lastOutPut, "     TOTO\n     TUTUTU\n")
+        
+        no.restore()
+        
+    def test_printColumnWithouHeader4(self):
+        no = NewOutput()
+        
+        printColumnWithouHeader( ("TOTO","TUTUTU", "tata",) )
+        self.assertEqual(no.lastOutPut, "     TOTO\n     TUTUTU\n     tata\n")
+        
+        no.restore()
+        
+    def test_printColumnWithouHeader5(self):
+        no = NewOutput()
+        
+        printColumnWithouHeader( ( ("TOTO","tata"),"TUTUTU",) )
+        self.assertEqual(no.lastOutPut, "     TOTO    tata\n     TUTUTU\n")
+        
+        no.restore()
+
+    def test_printColumnWithouHeader6(self):
+        no = NewOutput()
+        
+        printColumnWithouHeader( ( ("TOTO","tata"),"TUTUTU",("aaaaaaaaaa","bbbbbbbb","cccccc",),) )
+        self.assertEqual(no.lastOutPut, "     TOTO        tata\n     TUTUTU\n     aaaaaaaaaa  bbbbbbbb  cccccc\n")
+        
+        no.restore()
+        
+    ###
+    
+    def test_printColumn1(self):
+        no = NewOutput()
+        
+        printColumn( () )
+        self.assertEqual(no.lastOutPut, "")
+        
+        no.restore()
+        
+    def test_printColumn2(self):
+        no = NewOutput()
+        
+        printColumn( ("TOTO",) )
+        self.assertEqual(no.lastOutPut, "     TOTO\n")
+        
+        no.restore()
+        
+    def test_printColumn3(self):
+        no = NewOutput()
+        
+        printColumn( ("TOTO","TUTUTU",) )
+        self.assertEqual(no.lastOutPut, "     TOTO\n      TUTUTU\n")
+        
+        no.restore()
+        
+    def test_printColumn4(self):
+        no = NewOutput()
+        
+        printColumn( ("TOTO","TUTUTU", "tata",) )
+        self.assertEqual(no.lastOutPut, "     TOTO\n      TUTUTU\n      tata\n")
+        
+        no.restore()
+        
+    def test_printColumn5(self):
+        no = NewOutput()
+        
+        printColumn( ( ("TOTO","tata"),"TUTUTU",) )
+        self.assertEqual(no.lastOutPut, "     TOTO     tata\n      TUTUTU\n")
+        
+        no.restore()
+
+    def test_printColumn6(self):
+        no = NewOutput()
+        
+        printColumn( ( ("TOTO","tata"),"TUTUTU",("aaaaaaaaaa","bbbbbbbb","cccccc",),) )
+        self.assertEqual(no.lastOutPut, "     TOTO         tata\n      TUTUTU\n      aaaaaaaaaa   bbbbbbbb   cccccc\n")
+        
+        no.restore()
+        
+    def test_printColumn7(self):
+        no = NewOutput()
+        
+        printColumn( ( ("TOTO","tata","plapplap"),"TUTUTU",("aaaaaaaaaa","bbbbbbbb","cccccc",),("lalala","lulu"),) )
+        self.assertEqual(no.lastOutPut, "     TOTO         tata       plapplap\n      TUTUTU\n      aaaaaaaaaa   bbbbbbbb   cccccc\n      lalala       lulu\n")
+        
+        no.restore()
+        
         
 if __name__ == '__main__':
     unittest.main()

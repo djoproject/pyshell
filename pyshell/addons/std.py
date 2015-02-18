@@ -24,7 +24,7 @@ from pyshell.loader.command    import registerStopHelpTraversalAt, registerComma
 from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, ENVIRONMENT_USE_HISTORY_KEY, ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.exception   import DefaultPyshellException, USER_WARNING, USER_ERROR, WARNING
 from pyshell.utils.misc        import createParentDirectory
-from pyshell.utils.postProcess import listFlatResultHandler, stringListResultHandler
+from pyshell.utils.postProcess import listFlatResultHandler, listResultHandler
 import readline
 ## FUNCTION SECTION ##
 
@@ -312,8 +312,8 @@ registerCommand( ("echo16",) ,                        post=echo16)
 registerCommand( ("toascii",) ,                       post=intToAscii)
 
 registerCommand( ("usage",) ,                         pro=usageFun,     post=listFlatResultHandler)
-registerCommand( ("help",) ,                          pro=helpFun,      post=stringListResultHandler)
-registerCommand( ("?",) ,                             pro=helpFun,      post=stringListResultHandler)
+registerCommand( ("help",) ,                          pro=helpFun,      post=listResultHandler)
+registerCommand( ("?",) ,                             pro=helpFun,      post=listResultHandler)
 registerStopHelpTraversalAt( ("?",) )
 registerCommand( ("range",) ,                         pre=generator)
 registerCommand( ("history","load",) ,                pro=historyLoad)

@@ -23,7 +23,8 @@ from pyshell.loader.command    import registerStopHelpTraversalAt, registerComma
 from pyshell.utils.constants   import PARAMETER_NAME, CONTEXT_ATTRIBUTE_NAME, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENT_PARAMETER_FILE_KEY, VARIABLE_ATTRIBUTE_NAME, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.exception   import ListOfException, DefaultPyshellException, PyshellException
 from pyshell.utils.misc        import createParentDirectory
-from pyshell.utils.postProcess import stringListResultHandler,listResultHandler,printColumn, listFlatResultHandler,printColumnWithouHeader
+from pyshell.utils.postProcess import listResultHandler,printColumn, listFlatResultHandler,printColumnWithouHeader
+from pyshell.utils.parsing     import escapeString
 from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.system.alias      import AliasFromFile
 from pyshell.system.parameter  import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
@@ -209,9 +210,9 @@ def saveParameter(filePath, parameters):
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join( escapeString(str(x)) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
                 else:
-                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+str(parameter.getValue())+" -isList false -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+escapeString(str(parameter.getValue()))+" -isList false -noCreationIfExist true -localVar false\n" )
                 
                 properties = parameter.getProperties()
                 
@@ -614,7 +615,7 @@ def listVars(parameter, key=None, startWithLocal = True, exploreOtherLevel=True)
 registerSetTempPrefix( (VARIABLE_ATTRIBUTE_NAME, ) )
 registerCommand( ("set",) ,                    post=setVar)
 registerCommand( ("create",) ,                 post=setVar) #compatibility issue
-registerCommand( ("get",) ,                    pre=getVar, pro=stringListResultHandler)
+registerCommand( ("get",) ,                    pre=getVar, pro=listResultHandler)
 registerCommand( ("unset",) ,                  pro=unsetVar)
 registerCommand( ("list",) ,                   pre=listVars, pro=printColumn)
 registerCommand( ("add",) ,                    pre=pre_addValues, pro=pro_addValues, post=post_addValues)

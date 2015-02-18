@@ -18,37 +18,26 @@
 
 from pyshell.arg.decorator  import shellMethod
 from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker, IntegerArgChecker, ArgChecker
-#from pyshell.utils.misc    import toHexString
 from pyshell.utils.printing import printShell, strLength
 import re
-
-@shellMethod(result=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance())  )
-def stringListResultHandler(result):
-    if len(result) == 0:
-        return
-    
-    ret = ""
-    for i in result:
-        ret += i +"\n"
-        
-    printShell(ret[:-1])
 
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def listResultHandler(result):
     if len(result) == 0:
-        return
+        return result
 
     ret = ""
     for i in result:
         ret += str(i) +"\n"
 
     printShell(ret[:-1])
+    return result
         
 @shellMethod(result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def listFlatResultHandler(result):
     if len(result) == 0:
         printShell("")
-        return
+        return result
 
     s = ""
     for i in result:
@@ -62,13 +51,15 @@ def listFlatResultHandler(result):
 def printStringCharResult(string):
     s = ""
     for char in string:
-        s += chr(char)
+        s += chr(char) #TODO comportement étrange lorsque l'on essaye d'imprimer '#' par exemple (code 23), ça print '\x17'
         
     printShell(s)
+    return string
 
 @shellMethod(byteList=listArgChecker(IntegerArgChecker(0,255)))
 def printBytesAsString(byteList):
     if len(byteList) == 0:
+        printShell("")
         return byteList
         
     ret = ""
@@ -82,58 +73,57 @@ def printBytesAsString(byteList):
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumnWithouHeader(listOfLine):
     if len(listOfLine) == 0:
-        return
+        return listOfLine
     
     #compute size
-    size = {}
+    column_size = {}
     spaceToAdd = 2 #at least two space column separator
     
     for row_index in range(0,len(listOfLine)):
         line = listOfLine[row_index]
                 
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
-            if 0 not in size:
-                size[0] = strLength(str(line)) + spaceToAdd
+            if 0 not in column_size:
+                column_size[0] = strLength(str(line)) + spaceToAdd
             else:
-                size[0] = max(size[0],strLength(str(line)) + spaceToAdd)
+                column_size[0] = max(column_size[0],strLength(str(line)) + spaceToAdd)
         else:
             for column_index in range(0,len(line)):
-                if column_index not in size:
-                    size[column_index] = strLength(str(line[column_index])) + spaceToAdd
+                if column_index not in column_size:
+                    column_size[column_index] = strLength(str(line[column_index])) + spaceToAdd
                 else:
-                    size[column_index] = max(size[column_index], strLength (str(line[column_index])) +spaceToAdd )
+                    column_size[column_index] = max(column_size[column_index], strLength (str(line[column_index])) +spaceToAdd )
     
     to_print = ""
     #print table
-    defaultPrefix = ""
     for row_index in range(0,len(listOfLine)):
         line = listOfLine[row_index]
                 
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
-            to_print += defaultPrefix + str(line) + "\n"
+            to_print += str(line) + "\n"
             
-            #no need of pading if the line has only one column
+            #no need of pading if the line has only the first column
         else:
             line_to_print = ""
             for column_index in range(0,len(line)):
-                padding = size[column_index] - strLength(str(line[column_index])) - len(defaultPrefix)
-                
-                #no padding on last column
-                if column_index == len(size) - 1:
-                    line_to_print += defaultPrefix + str(line[column_index])
+                if column_index == len(column_size) - 1 or column_index == len(line) - 1: #no padding on last column
+                    line_to_print += str(line[column_index])
                 else:
-                    line_to_print += defaultPrefix + str(line[column_index]) + " "*padding
+                    padding = column_size[column_index] - strLength(str(line[column_index]))
+                    line_to_print += str(line[column_index]) + " "*padding
                 
             to_print +=  line_to_print + "\n"
      
     printShell(to_print[:-1])
+    return listOfLine
 
 @shellMethod(listOfLine=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def printColumn(listOfLine):
     if len(listOfLine) == 0:
-        return
+        return listOfLine
+        
     #compute size
-    size = {}
+    column_size = {}
     spaceToAdd = 2 #at least two space column separator
     
     for row_index in range(0,len(listOfLine)):
@@ -143,16 +133,16 @@ def printColumn(listOfLine):
             spaceToAdd += 1
         
         if type(line) == str or type(line) == unicode or not hasattr(line,"__getitem__"):
-            if 0 not in size:
-                size[0] = strLength(str(line)) + spaceToAdd
+            if 0 not in column_size:
+                column_size[0] = strLength(str(line)) + spaceToAdd
             else:
-                size[0] = max(size[0],strLength(str(line)) + spaceToAdd)
+                column_size[0] = max(column_size[0],strLength(str(line)) + spaceToAdd)
         else:
             for column_index in range(0,len(line)):
-                if column_index not in size:
-                    size[column_index] = strLength(str(line[column_index])) + spaceToAdd
+                if column_index not in column_size:
+                    column_size[column_index] = strLength(str(line[column_index])) + spaceToAdd
                 else:
-                    size[column_index] = max(size[column_index], strLength (str(line[column_index])) +spaceToAdd )
+                    column_size[column_index] = max(column_size[column_index], strLength (str(line[column_index])) +spaceToAdd )
     
     to_print = ""
     #print table
@@ -170,15 +160,14 @@ def printColumn(listOfLine):
         else:
             line_to_print = ""
             for column_index in range(0,len(line)):
-                padding = size[column_index] - strLength(str(line[column_index])) - len(defaultPrefix)
-                
-                #no padding on last column
-                if column_index == len(size) - 1:
+                if column_index == len(column_size) - 1 or column_index == len(line) - 1: #no padding on last column
                     line_to_print += defaultPrefix + str(line[column_index])
                 else:
+                    padding = column_size[column_index] - strLength(str(line[column_index])) - len(defaultPrefix)
                     line_to_print += defaultPrefix + str(line[column_index]) + " "*padding
                 
             to_print +=  line_to_print + "\n"
      
     printShell(to_print[:-1])
+    return listOfLine
     
