@@ -17,6 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+from tries import multiLevelTries
 
 class SolvingTest(unittest.TestCase):
     def setUp(self):

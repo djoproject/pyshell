@@ -23,10 +23,7 @@ from pyshell.utils.parsing    import Parser
 from pyshell.system.parameter import ParameterManagerV3
 from tries                    import multiLevelTries
 
-class Solver(object):
-    def __init__(self):
-        pass
-            
+class Solver(object):            
     def solve(self, parser, mltries, variablesContainer):
         if not isinstance(parser, Parser):
             raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
