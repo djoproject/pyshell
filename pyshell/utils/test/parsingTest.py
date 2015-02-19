@@ -340,8 +340,30 @@ class ParserTest(unittest.TestCase):
         self.assertFalse(p.isToRunInBackground())
     
     ### ESCAPING ###    
-        #TODO test escaping method
-            #wrapped or not
+            
+    def test_escaping1(self):
+        original = "plop"
+        s = escapeString(original)
+        self.assertEqual(s,"\"plop\"")
+        p = Parser(s)
+        p.parse()
+        self.assertEqual(p,[((original,),(),(),)])
+        
+    def test_escaping2(self):
+        original = "$p\"l$o\\p"
+        s = escapeString(original)
+        self.assertEqual(s,"\"\\$p\\\"l$o\\\\p\"")
+        p = Parser(s)
+        p.parse()
+        self.assertEqual(p,[((original,),(),(),)])
+        
+    def test_escaping3(self):
+        original = "-a$b | cde\nfg\\hi& "
+        s = escapeString(original, False)
+        self.assertEqual(s,"\\-a\\$b\\ \\|\\ cde\\\nfg\\\\hi\\&\\ ")
+        p = Parser(s)
+        p.parse()
+        self.assertEqual(p,[((original,),(),(),)])
 
 if __name__ == '__main__':
     unittest.main()

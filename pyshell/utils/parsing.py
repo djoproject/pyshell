@@ -40,7 +40,7 @@ def escapeString(string, wrapped = True):
     string = string.replace("$","\\$")
     string = string.replace("&","\\&")
     string = string.replace("|","\\|")
-    string = string.replace("-","\\$")
+    string = string.replace("-","\\-")
     
     string = string.replace(" ","\\ ")
     string = string.replace("\t","\\\t")
@@ -138,8 +138,6 @@ class Parser(list):
         self.parsed          = False
         self.lastBackground  = None
     
-        self.string = self.string.strip(' \t\n\r')
-        
         if len(self.string) == 0:
             return
                 
