@@ -28,7 +28,7 @@ class Solver(object):
         if not isinstance(parser, Parser):
             raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
             
-        if not parser.isParsed:
+        if not parser.isParsed():
             raise DefaultPyshellException("Fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
             
         if not isinstance(variablesContainer,ParameterManagerV3):
@@ -164,6 +164,9 @@ def _removeEveryIndexUnder(indexList, endIndex):
         
         del indexList[:i]
         return
+    
+    if len(indexList) > 0:
+        del indexList[:]
 
 def _addValueToIndex(indexList, startingIndex, valueToAdd=1):
     for i in xrange(0,len(indexList)):
@@ -201,6 +204,7 @@ def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):
         currentParam = argTypeMap[paramName]
         currentIndex = index
     
+    #never found any valid and existing param
     if currentParam is None:
         return {}, inputArgs
     
@@ -225,7 +229,7 @@ def _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentInd
     else:
         #did we reach max size ?
         #don't care about minimum size, it will be check during execution phase
-        if currentParam.maximumSize < argAvailableCount:
+        if currentParam.maximumSize is not None and currentParam.maximumSize < argAvailableCount:
             paramFound[currentName] = tuple( inputArgs[currentIndex+1:currentIndex+1+currentParam.maximumSize] )
             notUsedArgs.extend(inputArgs[currentIndex+1+currentParam.maximumSize:lastIndex])
         else:

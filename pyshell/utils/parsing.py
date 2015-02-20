@@ -64,6 +64,7 @@ class Parser(list):
         self.paramSpotted    = []
         self.string          = string
         self.wrapped         = False
+        self.parsed          = False
 
     def _pushCommandInList(self):
         if len(self.currentCommand) > 0:
