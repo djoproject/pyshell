@@ -318,7 +318,7 @@ class PrintingTest(unittest.TestCase):
                    + "Traceback (most recent call last):\n" \
                    + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 325, in test_formatException8\n" \
                    + "    raise l\n" \
-                   + "ListOfException: plop\nplip\ntoto\n\n" \
+                   + "ListOfException: 3 exception(s) in list\n" \
                    + ""+ENDC
         
         try:
@@ -338,14 +338,22 @@ class PrintingTest(unittest.TestCase):
                    + "Traceback (most recent call last):\n" \
                    + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 345, in test_formatException9\n" \
                    + "    raise l\n" \
-                   + "ListOfException: plop\nplip\ntoto\n\n" \
+                   + "ListOfException: 3 exception(s) in list\n" \
                    + ""+ENDC
         
         try:
             raise l
         except Exception as ex:
             self.assertEqual(formatException(ex, "plap"), stackTrace)
-
+    
+    def test_indentString(self):
+        p = Printer.getInstance()
+        self.assertEqual(p.indentString("plop"),"     plop")
+        self.assertEqual(p.indentString("plop\nplip\nplap\n"),"     plop\n     plip\n     plap\n     ")
+        
+    def test_indentTokenList(self):
+        p = Printer.getInstance()
+        self.assertEqual(p.indentListOfToken( ("plop","plop\nplip\nplap\n")),["     plop","     plop\n     plip\n     plap\n     "])
             
 if __name__ == '__main__':
     unittest.main()

@@ -16,6 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #mapDashedParams does not use tries yet
+        #convert it
+        #add test for that
+        #check old test (everything should be ok) 
+
 from pyshell.arg.argchecker   import booleanValueArgChecker,defaultInstanceArgChecker
 from pyshell.command.engine   import EMPTY_MAPPED_ARGS
 from pyshell.utils.exception  import DefaultPyshellException, SYSTEM_ERROR, USER_WARNING
@@ -190,7 +196,7 @@ def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):
         paramName = inputArgs[index][1:]
     
         #remove false param
-        if paramName not in argTypeMap:
+        if paramName not in argTypeMap: #TODO should use tries
             continue
         
         #manage last met param
@@ -201,7 +207,7 @@ def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):
             notUsedArgs.extend(inputArgs[0:index])
         
         currentName  = paramName
-        currentParam = argTypeMap[paramName]
+        currentParam = argTypeMap[paramName] #TODO should use tries
         currentIndex = index
     
     #never found any valid and existing param

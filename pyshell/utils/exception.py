@@ -79,15 +79,7 @@ class ListOfException(DefaultPyshellException):
         if len(self.exceptions) == 0:
             return "no error, this exception shouldn't be throwed"
         
-        #TODO improve
-            #if only one exception, on one line
-            #if several exception, new line and list the exception
-            
-        to_ret = ""
-        for e in self.exceptions:
-            to_ret += str(e)+"\n"
-            
-        return to_ret
+        return str(len(self.exceptions))+" exception(s) in list"
         
 class ParameterLoadingException(DefaultPyshellException):
     def __init__(self,value):

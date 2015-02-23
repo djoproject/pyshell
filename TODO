@@ -72,7 +72,7 @@ remplacer les " == None " par "is None"
 #############################  
 
 #needed for alias
-    shif, set
+    shift, set
 
 #go outside of shell scope, really needed ? (see brainstorming)
     loop, if, goto, ...

@@ -66,7 +66,7 @@ def execute(string, parameterContainer, processName=None, processArg=None):
     else:
         return _execute(parser,parameterContainer, processName)
 
-def _execute(parser,parameterContainer, processName=None):    
+def _execute(parser,parameterContainer, processName=None): #TODO processName is never used...
 
     ## solving then execute ##
     ex     = None
@@ -78,6 +78,8 @@ def _execute(parser,parameterContainer, processName=None):
         #clone command/alias to manage concurrency state
         newRawCommandList = []
         for c in rawCommandList:
+            #TODO check if there is an empty command, if yes, stop execution
+        
             newRawCommandList.append(c.clone())
 
         #prepare an engine

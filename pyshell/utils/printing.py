@@ -147,19 +147,37 @@ class Printer(object):
         if not self.isInShell() or ( not self.isDarkBackGround() and not self.isLightBackGround()) or not (os.fstat(0) == os.fstat(1)):
             out = ANSI_ESCAPE.sub('', str(out))
         
-        outs = out.split("\n")
-        out = ""
-        space = " " * self.spacingContext.getValue()
-        for o in outs:
-            out += space + o + "\n"
-            
-        out = out[:-1]
+        out = self.indentString(out)
         
         with Printer._printerLock:
             if self.isInShell() and self.isPromptShowed() and self.replWriteFunction is not None:
                 self.replWriteFunction(out)
             else:
                 print(out)
+    
+    def indentListOfToken(self, tokenList):
+        if len(tokenList) == 0: 
+            return ()
+        
+        to_ret = []
+
+        for token in tokenList:
+            to_ret.append(self.indentString(str(token)))
+            
+        return to_ret
+            
+    def indentString(self, string):
+        
+        strings = string.split("\n")
+        out = ""
+        space = " " * self.spacingContext.getValue()
+        
+        for s in strings:
+            out += space + s + "\n"
+            
+        out = out[:-1]
+        
+        return out
     
     def _formatColor(self, text, light, dark):
         if not self.isInShell():
@@ -287,9 +305,6 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         return _EMPTYSTRING
 
     printer = Printer.getInstance()
-
-    if prefix is None:
-        prefix = _EMPTYSTRING
         
     if isinstance(exception, PyshellException):
         if isinstance(exception, ListOfException):
@@ -299,11 +314,11 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
             toprint = ""
             printFun = printer.formatRed
             
-            if prefix != _EMPTYSTRING:
+            if prefix is None:
+                space = _EMPTYSTRING
+            else:
                 toprint += printer.formatRed(prefix) + "\n"
                 space = " " * printer.spacingContext.getValue()
-            else:
-                space = _EMPTYSTRING
 
             for e in exception.exceptions:
                 toprint += space + formatException(e, printStackTraceInCaseOfDebug=False) + "\n"
@@ -311,6 +326,9 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
             #remove last \n
             toprint = toprint[:-1]
         else: 
+            if prefix is None:
+                prefix = _EMPTYSTRING
+        
             if exception.severity >= NOTICE:
                 printFun = printer.formatGreen
                 toprint  = printer.formatGreen(prefix + str(exception))
@@ -321,6 +339,9 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
                 printFun = printer.formatRed
                 toprint  = printer.formatRed(prefix + str(exception))
     else:
+        if prefix is None:
+            prefix = _EMPTYSTRING
+    
         printFun = printer.formatRed
         toprint  = printer.formatRed(prefix + str(exception))
 
