@@ -26,18 +26,18 @@ from pyshell.utils.printing    import printException
 from pyshell.utils.solving     import Solver
 import threading
 
-#TODO 
-    #why do we still need to return ex and engine
-        #does not have any sense in background mode
-
-    #keep track of running event and be able to kill one or all of them
-        #manage it in alias object with a static list
-            #an alias add itself in the list before to start then remove itself from the list at the end of its execution
+#execute return engine and lastException to the calling alias
+    #engine to retrieve any output
+    #exception, to check granularity and eventually stop the execution
 
 def execute(string, parameterContainer, processName=None, processArg=None):
     
     #TODO use processArg
         #push them in the parser
+
+        #could be a string or a list, manage both
+            #just append string
+            #OR join list on ' ' then append
     
     ## parsing ##
     parser = None
@@ -51,12 +51,13 @@ def execute(string, parameterContainer, processName=None, processArg=None):
         else:
             parser = Parser(string)
             parser.parse()
-            
+        
+        #no command to execute
         if len(parser) == 0:
             return None, None
 
     except Exception as ex:
-        printException(ex)
+        printException(ex, "Fail to parse command: ")
         return ex, None
 
     if parser.isToRunInBackground():
@@ -66,7 +67,16 @@ def execute(string, parameterContainer, processName=None, processArg=None):
     else:
         return _execute(parser,parameterContainer, processName)
 
-def _execute(parser,parameterContainer, processName=None): #TODO processName is never used...
+def _execute(parser,parameterContainer, processName=None): 
+
+    #TODO processName is never used...
+        #should be used to construct the error message if 
+            #not in shell 
+            #OR not in main thread 
+            #OR not on root level 0
+
+    #TODO command name should also be used in error message 
+        #with same condition as processName
 
     ## solving then execute ##
     ex     = None
@@ -78,7 +88,7 @@ def _execute(parser,parameterContainer, processName=None): #TODO processName is 
         #clone command/alias to manage concurrency state
         newRawCommandList = []
         for c in rawCommandList:
-            #TODO check if there is an empty command, if yes, stop execution
+            #TODO check if there is at least one empty command, if yes, raise
         
             newRawCommandList.append(c.clone())
 

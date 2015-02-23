@@ -16,6 +16,21 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #keep track of running event and be able to kill one or all of them
+        #manage it in alias object with a static list
+            #an alias add itself in the list before to start then remove itself from the list at the end of its execution
+                #what about main process ? (must be an alias ?)
+
+        #soft kill
+            #mark the thread to stop it on next command
+
+        #hard kill
+            #just manage to kill the thread immediatelly
+                #what about lock in this case ?
+
+        #implement static method in alias class
+
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
 from pyshell.utils.executing   import execute
@@ -35,7 +50,7 @@ def getAbsoluteIndex(index, listSize):
     
     index = listSize + index
     
-    #python work like that
+    #python work like that (?)
     if index < 0:
         return 0
     
@@ -45,10 +60,18 @@ def getAbsoluteIndex(index, listSize):
     #should be able again to give args to the method execute
 
 #TODO brainstorming
-    #create a special endless alias for shell entry point ?
+    #create a special endless alias for shell entry point ? if yes, an AliasFromList
         #+++
-        
+            #everything will be alias, no need to manage a special case for the shell execution
+
         #---
+            #add a layer without really needed it
+
+        #TODO
+            #add a way in the alias to choose the next index to execute
+            #add a command in shell to call this index selection
+                #how to do it ? throught the engine
+            #create a command to start readline, get the command and execute it
 
 class Alias(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):

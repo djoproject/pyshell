@@ -93,6 +93,8 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         -Parameter name (OK)
         -var name (avant de résoudre ici, voir si les var ne vont pas disparaitre et etre remplacée par des generic parameter) (OK)
         -addon name (TODO)
+        -dashed parameter name (TODO)
+            dans solving
         -...
 
     look after dictionary init { everywhere in the code

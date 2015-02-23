@@ -51,7 +51,7 @@ def listFlatResultHandler(result):
 def printStringCharResult(string):
     s = ""
     for char in string:
-        s += chr(char) #TODO comportement étrange lorsque l'on essaye d'imprimer '#' par exemple (code 23), ça print '\x17'
+        s += chr(char)
         
     printShell(s)
     return string
