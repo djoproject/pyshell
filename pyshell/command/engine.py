@@ -35,14 +35,14 @@ PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
 
-class FalseLock(object):
+class FakeLock(object):
     def __enter__(self):
         return self
         
     def __exit__(self, type, value, traceback):
         pass
         
-FALSELOCK = FalseLock()
+FAKELOCK = FakeLock()
 
 class _emptyDataToken(object):
     pass
@@ -1021,7 +1021,7 @@ class engineV3(object):
             
         else:
             data = {}
-            lock = FALSELOCK
+            lock = FAKELOCK
 
         #execute Xprocess (X for pre/pro/post)
         with lock:

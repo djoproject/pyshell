@@ -17,10 +17,10 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.exception     import *
-from pyshell.command.engine    import engineV3
+from pyshell.command.engine    import engineV3, FAKELOCK
 from pyshell.command.exception import *
-from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY
-from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR
+from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SHELL
+from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR, CORE_WARNING
 from pyshell.utils.parsing     import Parser
 from pyshell.utils.printing    import printException
 from pyshell.utils.solving     import Solver
@@ -32,13 +32,12 @@ import threading
 
 def execute(string, parameterContainer, processName=None, processArg=None):
     
-    #TODO use processArg
-        #push them in the parser
-
-        #could be a string or a list, manage both
-            #just append string
-            #OR join list on ' ' then append
-    
+    #add external parameters at the end of the command
+    if hasattr(processArg, "__iter__"):
+        string += ' '.join(str(x) for x in processArg)
+    elif type(processArg) == str or type(processArg) == unicode:
+        string += processArg
+            
     ## parsing ##
     parser = None
     try:
@@ -63,20 +62,44 @@ def execute(string, parameterContainer, processName=None, processArg=None):
     if parser.isToRunInBackground():
         t = threading.Thread(None, _execute, None, (parser,parameterContainer,processName,))
         t.start()
-        return None,None
+        return None,None #not possible to retrieve exception or engine, it is another thread
     else:
         return _execute(parser,parameterContainer, processName)
 
+def _generatePrefix(parameterContainer, prefix = None):
+
+    #is is a shell execution ?
+    isInShell = False
+    if parameterContainer.context.hasParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True):
+        param = parameterContainer.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True)
+        with param.getLock():
+            isInShell = param.getSelectedValue() == CONTEXT_EXECUTION_SHELL
+            
+    if not isInShell or not parameterContainer.isMainThread() or parameterContainer.getCurrentId()[1] > 0:
+        pass
+    
+        #TODO build a prefix with "processName", "command name", "thread id", "level id", "file line", ...
+            #processName => from argument (could be none)
+            #command name => TODO ?
+                #be carefull engine could be not available yet
+                
+                #IDEA 1: if we can get command index (from engine or from clone loop) AND if the command is stored byt the solver
+                    #just get it from the solver
+                    #--- need to store it in parser object
+                    #+++ easy to implement
+                    
+                #IDEA 2: solve again the command from the parser to the solver
+                    #+++ no need to store anything
+                    #--- * 2 maybe it will not retrieve the same command name...
+                    
+                #IDEA 3: ?
+                
+            #thread id => parameterContainer.getCurrentId()[0]
+            #level id => parameterContainer.getCurrentId()[1]
+                    
+    return prefix
+
 def _execute(parser,parameterContainer, processName=None): 
-
-    #TODO processName is never used...
-        #should be used to construct the error message if 
-            #not in shell 
-            #OR not in main thread 
-            #OR not on root level 0
-
-    #TODO command name should also be used in error message 
-        #with same condition as processName
 
     ## solving then execute ##
     ex     = None
@@ -87,10 +110,13 @@ def _execute(parser,parameterContainer, processName=None):
         
         #clone command/alias to manage concurrency state
         newRawCommandList = []
-        for c in rawCommandList:
-            #TODO check if there is at least one empty command, if yes, raise
+        for i in xrange(0,len(rawCommandList)):
+            c = rawCommandList[i].clone()
+            
+            if len(c) == 0:#check if there is at least one empty command, if yes, raise
+                raise DefaultPyshellException(_generatePrefix(parameterContainer,"Empty command at index "+str(i)),CORE_WARNING) #TODO append command name, how to build it
         
-            newRawCommandList.append(c.clone())
+            newRawCommandList.append(c)
 
         #prepare an engine
         engine = engineV3(newRawCommandList, rawArgList, mappedArgs, parameterContainer)
@@ -99,22 +125,22 @@ def _execute(parser,parameterContainer, processName=None):
         engine.execute()
 
     except executionInitException as ex:
-        printException(ex,"Fail to init an execution object: ")
+        printException(ex,_generatePrefix(parameterContainer,"Fail to init an execution object: "))
     except executionException as ex:
-        printException(ex, "Fail to execute: ")
+        printException(ex, _generatePrefix(parameterContainer,"Fail to execute: "))
     except commandException as ex:
-        printException(ex, "Error in command method: ")
+        printException(ex, _generatePrefix(parameterContainer,"Error in command method: "))
     except engineInterruptionException as ex:
         if ex.abnormal:
-            printException(ex, "Abnormal execution abort, reason: ")
+            printException(ex, _generatePrefix(parameterContainer,"Abnormal execution abort, reason: "))
         else:
-            printException(ex, "Normal execution abort, reason: ")
+            printException(ex, _generatePrefix(parameterContainer,"Normal execution abort, reason: "))
     except argException as ex:
-        printException(ex, "Error while parsing argument: ")
+        printException(ex, _generatePrefix(parameterContainer,"Error while parsing argument: "))
     except ListOfException as ex:
-        printException(ex,"List of exception(s): ")
+        printException(ex,_generatePrefix(parameterContainer,"List of exception(s): "))
     except Exception as ex:
-        printException(ex)
+        printException(ex,_generatePrefix(parameterContainer))
 
     return ex, engine
 

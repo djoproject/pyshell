@@ -59,6 +59,7 @@ class ParameterContainer(object):
         self.environment = ParameterManagerV3()
         self.context     = ParameterManagerV3()
         self.variable    = ParameterManagerV3()
+        self.mainThread  = current_thread().ident
 
     def pushVariableLevelForThisThread(self):
         tid = current_thread().ident
@@ -100,6 +101,9 @@ class ParameterContainer(object):
             self.pushVariableLevelForThisThread()
     
         return (tid,self.threadLevel[tid],)
+        
+    def isMainThread(self):
+        return self.mainThread == current_thread().ident
 
 class ParameterManagerV3(object):                    
     def __init__(self, parent = None):
