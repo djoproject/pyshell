@@ -56,10 +56,11 @@ def compareByteList(varLists, bytePerLine = 4, parameters = None):
     varListsValues = {}
     for i in range(0, len(varLists)):
         varKey = varLists[i]
-        if not parameters.hasParameter(varKey):
+        var = parameters.getParameter(varKey).getValue()
+        if var is None:
             raise DefaultPyshellException("unknown variable '"+str(varKey)+"'", )
 
-        varListsValues[varKey] = byteListChecker.getValue(parameters.getParameter(varKey).getValue(), i, varKey)
+        varListsValues[varKey] = byteListChecker.getValue(var, i, varKey)
     
     #get the size of the bigger list of byte
     maxSize = 0

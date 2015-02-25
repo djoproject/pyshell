@@ -30,7 +30,7 @@ class EngineStackTest(unittest.TestCase):
         self.assertTrue(self.stack[-1][0] == 5)
         self.assertTrue(self.stack[-1][1] == 6)
         self.assertTrue(self.stack[-1][2] == 7)
-        self.assertTrue(self.stack[-1][3] == None)
+        self.assertTrue(self.stack[-1][3] is None)
         self.stack.raiseIfEmpty()
         self.stack.raiseIfEmpty("plop")
         self.assertTrue(self.stack.size() == 2)

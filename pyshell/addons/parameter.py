@@ -66,11 +66,12 @@ def getParameter(key,parameters,attributeType, startWithLocal = True, exploreOth
         raise Exception("Unknow parameter type '"+str(attributeType)+"'")
 
     container = getattr(parameters, attributeType)
-
-    if not container.hasParameter(key, perfectMatch=perfectMatch, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel):
+    param = container.getParameter(key, perfectMatch = perfectMatch, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
+    
+    if param is None:
         raise Exception("Unknow parameter of type '"+str(attributeType)+"' with key '"+str(key)+"'")
 
-    return container.getParameter(key, perfectMatch = perfectMatch, localParam = startWithLocal, exploreOtherLevel=exploreOtherLevel)
+    return param
 
 def setProperties(key, propertyInfo, propertyValue, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
     

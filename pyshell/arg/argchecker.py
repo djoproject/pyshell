@@ -154,28 +154,28 @@ class ArgChecker(object):
         self.maximumSize         = maximumSize
         
     def checkSize(self,minimumSize, maximumSize):
-        if minimumSize != None:
+        if minimumSize is not None:
             if type(minimumSize) != int:
                 raise argInitializationException("("+self.typeName+") Minimum size must be an integer, got type '"+str(type(minimumSize))+"' with the following value <"+str(minimumSize)+">")
                 
             if minimumSize < 0:
                 raise argInitializationException("("+self.typeName+") Minimum size must be a positive value, got <"+str(minimumSize)+">")
         
-        if maximumSize != None:
+        if maximumSize is not None:
             if type(maximumSize) != int:
                 raise argInitializationException("("+self.typeName+") Maximum size must be an integer, got type '"+str(type(maximumSize))+"' with the following value <"+str(maximumSize)+">") 
         
             if maximumSize < 0:
                 raise argInitializationException("("+self.typeName+") Maximum size must be a positive value, got <"+str(maximumSize)+">") 
     
-        if minimumSize != None and maximumSize != None and maximumSize < minimumSize:
+        if minimumSize is not None and maximumSize is not None and maximumSize < minimumSize:
             raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximumSize)+"> can not be smaller than Minimum size <"+str(minimumSize)+">") 
         
     def isVariableSize(self):
-        return (self.minimumSize == self.maximumSize == None) or self.minimumSize != self.maximumSize
+        return (self.minimumSize == self.maximumSize is None) or self.minimumSize != self.maximumSize
     
     def needData(self):
-        return self.minimumSize != None and self.minimumSize > 0
+        return self.minimumSize is not None and self.minimumSize > 0
         #return not (self.minimumSize == self.maximumSize == 0)
         
     def getValue(self,value,argNumber=None, argNameToBind=None):
@@ -202,7 +202,7 @@ class ArgChecker(object):
     
         self.hasDefault = True
         
-        if value == None:
+        if value is None:
             self.default = None
             return
             
@@ -225,11 +225,11 @@ class ArgChecker(object):
         if not hasattr(self.engine,"getEnv"):
             self._raiseArgException("can not get Environment, linked engine does not have a method to get the environment", argNumber, argNameToBind)
             
-        if self.engine.getEnv() == None:
+        if self.engine.getEnv() is None:
             self._raiseArgException("can not get Environment, no environment linked to the engine", argNumber, argNameToBind)
     
     def _isEnvAvailable(self):
-        return not (self.engine == None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() == None)
+        return not (self.engine is None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() is None)
         
     def _raiseArgException(self, message, argNumber=None, argNameToBind=None):
         prefix = ""
@@ -261,14 +261,14 @@ class stringArgChecker(ArgChecker):
         if minimumStringSize < 0:
             raise argInitializationException("("+self.typeName+") Minimum string size must be a positive value bigger or equal to 0, got <"+str(minimumStringSize)+">")
     
-        if maximumStringSize != None:
+        if maximumStringSize is not None:
             if type(maximumStringSize) != int:
                 raise argInitializationException("("+self.typeName+") Maximum string size must be an integer, got type '"+str(type(maximumStringSize))+"' with the following value <"+str(maximumStringSize)+">") 
         
             if maximumStringSize < 1:
                 raise argInitializationException("("+self.typeName+") Maximum string size must be a positive value bigger than 0, got <"+str(maximumStringSize)+">") 
     
-        if minimumStringSize != None and maximumStringSize != None and maximumStringSize < minimumStringSize:
+        if minimumStringSize is not None and maximumStringSize is not None and maximumStringSize < minimumStringSize:
             raise argInitializationException("("+self.typeName+") Maximum string size <"+str(maximumSize)+"> can not be smaller than Minimum string size <"+str(minimumStringSize)+">") 
     
         self.minimumStringSize = minimumStringSize
@@ -307,13 +307,13 @@ class IntegerArgChecker(ArgChecker):
         if not hasattr(self, "bases"):
             self.bases = [10, 16, 2]
         
-        if minimum != None and type(minimum) != int and type(minimum) != float:
+        if minimum is not None and type(minimum) != int and type(minimum) != float:
             raise argInitializationException("("+self.typeName+") Minimum must be an integer or None, got <"+str(type(minimum))+">")
             
-        if maximum != None and type(maximum) != int and type(maximum) != float:
+        if maximum is not None and type(maximum) != int and type(maximum) != float:
             raise argInitializationException("("+self.typeName+") Maximum must be an integer or None, got <"+str(type(maximum))+">")
             
-        if minimum != None and maximum != None and maximum < minimum:
+        if minimum is not None and maximum is not None and maximum < minimum:
             raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximum)+"> can not be smaller than Minimum size <"+str(minimum)+">")
         
         self.minimum = minimum
@@ -322,7 +322,7 @@ class IntegerArgChecker(ArgChecker):
     def getValue(self, value,argNumber=None, argNameToBind=None):
         value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
     
-        if value == None:
+        if value is None:
             self._raiseArgException("the "+self.typeName.lower()+" arg can't be None", argNumber, argNameToBind)
         
         castedValue = None
@@ -336,7 +336,7 @@ class IntegerArgChecker(ArgChecker):
                 except ValueError as ve:
                     continue
 
-        if castedValue == None:
+        if castedValue is None:
             
             if len(self.bases) == 1:
                 message = "Only a number in base <"+str(self.bases[0])+"> is allowed"
@@ -345,23 +345,23 @@ class IntegerArgChecker(ArgChecker):
         
             self._raiseArgException("this arg is not a valid "+self.typeName.lower()+", got <"+str(value)+">. "+message, argNumber, argNameToBind)
 
-        if self.minimum != None:
+        if self.minimum is not None:
             if castedValue < self.minimum:
                 self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) +">, got <"+str(value)+">", argNumber, argNameToBind)
                 
-        if self.maximum != None:
+        if self.maximum is not None:
             if castedValue > self.maximum:
                 self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+">, got <"+str(value)+">", argNumber, argNameToBind)
 
         return castedValue
             
     def getUsage(self):
-        if self.minimum != None:
-            if self.maximum != None:
+        if self.minimum is not None:
+            if self.maximum is not None:
                 return "<"+self.shortType+" "+str(self.minimum)+"-"+str(self.maximum)+">"
             return "<"+self.shortType+" "+str(self.minimum)+"-*>"
         else:
-            if self.maximum != None:
+            if self.maximum is not None:
                 return "<"+self.shortType+" *-"+str(self.maximum)+">"
         return "<"+self.shortType+">"
 
@@ -409,7 +409,7 @@ class tokenValueArgChecker(stringArgChecker):
 
         try:
             node = self.localtries.search(value)
-            if node == None:
+            if node is None:
                 self._raiseArgException("this arg '"+str(value)+"' is not an existing token, valid token are ("+ ("|".join(self.localtries.getKeyList())) + ")", argNumber, argNameToBind)
             return node.value
             
@@ -421,10 +421,10 @@ class tokenValueArgChecker(stringArgChecker):
 
 class booleanValueArgChecker(tokenValueArgChecker):
     def __init__(self,TrueName=None,FalseName=None):
-        if TrueName == None:
+        if TrueName is None:
             TrueName = "true"
             
-        if FalseName == None:
+        if FalseName is None:
             FalseName = "false"
     
         #the constructor of tokenValueArgChecker will check if every keys are 
@@ -447,13 +447,13 @@ class floatTokenArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
         ArgChecker.__init__(self,1,1,True, FLOATCHECKER_TYPENAME)
     
-        if minimum != None and type(minimum) != float and type(minimum) != int:
+        if minimum is not None and type(minimum) != float and type(minimum) != int:
             raise argInitializationException("("+self.typeName+") Minimum must be a float or None, got '"+str(type(minimum))+"'")
             
-        if maximum != None and type(maximum) != float and type(maximum) != int:
+        if maximum is not None and type(maximum) != float and type(maximum) != int:
             raise argInitializationException("("+self.typeName+") Maximum must be a float or None, got '"+str(type(maximum))+"'")
             
-        if minimum != None and maximum != None and maximum < minimum:
+        if minimum is not None and maximum is not None and maximum < minimum:
             raise argInitializationException("("+self.typeName+") Maximum <"+str(maximum)+"> can not be smaller than Minimum <"+str(minimum)+">")
     
         self.minimum = minimum
@@ -462,7 +462,7 @@ class floatTokenArgChecker(ArgChecker):
     def getValue(self, value,argNumber=None, argNameToBind=None):
         value = ArgChecker.getValue(self, value,argNumber, argNameToBind)
     
-        if value == None:
+        if value is None:
             self._raiseArgException("the float arg can't be None", argNumber, argNameToBind)
         
         try:
@@ -470,23 +470,23 @@ class floatTokenArgChecker(ArgChecker):
         except ValueError:
             self._raiseArgException("this arg is not a valid float or hexadecimal, got <"+str(value)+">", argNumber, argNameToBind)
                 
-        if self.minimum != None:
+        if self.minimum is not None:
             if castedValue < self.minimum:
                 self._raiseArgException("the lowest value must be bigger or equal than <"+str(self.minimum) + ">, got <"+str(value)+">", argNumber, argNameToBind)
                 
-        if self.maximum != None:
+        if self.maximum is not None:
             if castedValue > self.maximum:
                 self._raiseArgException("the biggest value must be lower or equal than <"+str(self.maximum)+ ">, got <"+str(value)+">", argNumber, argNameToBind)
 
         return castedValue    
         
     def getUsage(self):
-        if self.minimum != None:
-            if self.maximum != None:
+        if self.minimum is not None:
+            if self.maximum is not None:
                 return "<float "+str(self.minimum)+"-"+str(self.maximum)+">"
             return "<float "+str(self.minimum)+"-*.*>"
         else:
-            if self.maximum != None:
+            if self.maximum is not None:
                 return "<float *.*-"+str(self.maximum)+">"
         return "<float>"
 
@@ -563,17 +563,23 @@ class abstractParameterChecker(ArgChecker):
     def getValue(self,value,argNumber=None, argNameToBind=None):
         container = self._getContainer(argNumber, argNameToBind)
 
-        if not container.hasParameter(self.keyname):#self.keyname not in self.engine.getEnv():
+        param = container.getParameter(self.keyname)
+        if param is None:
             self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
     
-        return container.getParameter(self.keyname) #self.engine.getEnv()[self.keyname][0]
+        return param
         
     def usage(self):
         return ""
         
     def getDefaultValue(self, argNameToBind=None):
-        container = self._getContainer(None, argNameToBind)
-        return container.getParameter(self.keyname)
+        container = self._getContainer(argNumber, argNameToBind)
+
+        param = container.getParameter(self.keyname)
+        if param is None:
+            self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
+    
+        return param
         
     def hasDefaultValue(self, argNameToBind=None):
         container = self._getContainer(None, argNameToBind)
@@ -606,10 +612,11 @@ class abstractParameterDynamicChecker(ArgChecker):
 
         container = getattr(env, self.containerAttribute)
 
-        if not container.hasParameter(value): #value not in self.engine.getEnv():
+        param = container.getParameter(value)
+        if param is None:
             self._raiseArgException("the key '"+str(value)+"' is not available but needed", argNumber, argNameToBind)
     
-        return container.getParameter(value) #self.engine.getEnv()[value][0]
+        return param
     
     def hasDefaultValue(self, argNameToBind=None):
         return False
@@ -664,7 +671,7 @@ class listArgChecker(ArgChecker):
             raise argInitializationException("("+LISTCHECKER_TYPENAME+") checker must be an instance of ArgChecker but can not be an instance of listArgChecker, got '"+str(type(checker))+"'")
 
         #checker must have a fixed size
-        if checker.minimumSize != checker.maximumSize or checker.minimumSize == None or checker.minimumSize == 0:
+        if checker.minimumSize != checker.maximumSize or checker.minimumSize is None or checker.minimumSize == 0:
             if checker.minimumSize is None:
                 checkerSize = "]-Inf,"
             else:
@@ -683,10 +690,10 @@ class listArgChecker(ArgChecker):
     def checkSize(self,minimumSize, maximumSize):
         ArgChecker.checkSize(self,minimumSize, maximumSize)
     
-        if minimumSize != None and (minimumSize % self.checker.minimumSize)  != 0:
+        if minimumSize is not None and (minimumSize % self.checker.minimumSize)  != 0:
             raise argInitializationException("("+LISTCHECKER_TYPENAME+") the minimum size of the list <"+str(minimumSize)+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">")
             
-        if maximumSize != None and (maximumSize % self.checker.minimumSize)  != 0:
+        if maximumSize is not None and (maximumSize % self.checker.minimumSize)  != 0:
             raise argInitializationException("("+LISTCHECKER_TYPENAME+") the maximum size of the list <"+str(maximumSize)+"> is not a multiple of the checker size <"+str(self.checker.minimumSize)+">")
     
     def getValue(self,values,argNumber=None, argNameToBind=None):    
@@ -711,7 +718,7 @@ class listArgChecker(ArgChecker):
                 self._raiseArgException("need at least "+str(self.minimumSize))+" items, got "+str(len(values),argNumber, argNameToBind)
         
         #build range limite and manage max size
-        if self.maximumSize != None:
+        if self.maximumSize is not None:
             if len(values) < self.maximumSize:
                 msize = len(values)
             else:
@@ -721,7 +728,7 @@ class listArgChecker(ArgChecker):
         
         #check every args
         ret = []
-        if argNumber != None:
+        if argNumber is not None:
             for i in range(0,msize, self.checker.minimumSize):
                 if self.checker.minimumSize == 1:
                     ret.append(self.checker.getValue(values[i],argNumber, argNameToBind))
@@ -744,7 +751,7 @@ class listArgChecker(ArgChecker):
         if self.hasDefault:
             return self.default
     
-        if self.minimumSize == None:
+        if self.minimumSize is None:
             return []
     
         if self.checker.hasDefaultValue(argNameToBind):
@@ -753,11 +760,11 @@ class listArgChecker(ArgChecker):
         self._raiseArgException("getDefaultValue, there is no default value", None, argNameToBind)
         
     def hasDefaultValue(self,argNameToBind=None):
-        return self.hasDefault or self.minimumSize == None or self.checker.hasDefaultValue(argNameToBind)
+        return self.hasDefault or self.minimumSize is None or self.checker.hasDefaultValue(argNameToBind)
     
     def getUsage(self):
-        if self.minimumSize == None :
-            if self.maximumSize == None :
+        if self.minimumSize is None :
+            if self.maximumSize is None :
                 return "("+self.checker.getUsage()+" ... "+self.checker.getUsage()+")"
             elif self.maximumSize == 1:
                 return "("+self.checker.getUsage()+")"
@@ -779,7 +786,7 @@ class listArgChecker(ArgChecker):
             else:
                 part1 = self.checker.getUsage() + "0 ... " + self.checker.getUsage()+str(self.minimumSize-1)
         
-            if self.maximumSize == None :
+            if self.maximumSize is None :
                 return part1 + " (... "+self.checker.getUsage()+")"
             else:
                 notMandatorySpace = self.maximumSize - self.minimumSize
@@ -921,17 +928,17 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
     def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
         stringArgChecker.__init__(self, 1,None, KEYTRANSLATORCHECKER_TYPENAME)
         
-        if keySize != None:
+        if keySize is not None:
             if type(keySize) != int:
                 raise argInitializationException("("+self.typeName+") keySize must be an integer, got '"+str(type(keySize))+"'")
                 
             if type(keySize) < 0:
                 raise argInitializationException("("+self.typeName+") keySize must be bigger than 0, got <"+str(tkeySize)+">")
         
-        if allowdifferentKeySize == None or type(allowdifferentKeySize) != bool:
+        if allowdifferentKeySize is None or type(allowdifferentKeySize) != bool:
             raise argInitializationException("("+self.typeName+") allowdifferentKeySize must be a boolean, got '"+str(type(allowdifferentKeySize))+"'")
         
-        if byteKey == None or type(byteKey) != bool:
+        if byteKey is None or type(byteKey) != bool:
             raise argInitializationException("("+self.typeName+") byteKey must be a boolean, got '"+str(type(byteKey))+"'")
         
         self.allowdifferentKeySize = allowdifferentKeySize
@@ -943,10 +950,11 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         env = self.engine.getEnv()
         value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
 
-        if not self.engine.getEnv().environment.hasParameter(KEYSTORE_SECTION_NAME):
+        param = self.engine.getEnv().environment.getParameter(KEYSTORE_SECTION_NAME)
+        if param is None:
             self._raiseArgException("keystore is not available in parameters but is needed to get key '"+str(value)+"'", argNumber, argNameToBind)
 
-        keystore = self.engine.getEnv().environment.getParameter(KEYSTORE_SECTION_NAME).getValue()
+        keystore = param.getValue()
         
         if not keystore.hasKey(value):
             self._raiseArgException("unknown key '"+str(value)+"'", argNumber, argNameToBind)
@@ -954,7 +962,7 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         keyInstance = keystore.getKey(value)
         
         #check type
-        if self.byteKey != None:
+        if self.byteKey is not None:
             if self.byteKey and keyInstance.getKeyType() !=  Key.KEYTYPE_HEXA:
                 self._raiseArgException("the key '"+str(value)+"' is a bit key and the process need a byte key", argNumber, argNameToBind)
                 
@@ -962,7 +970,7 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
                 self._raiseArgException("the key '"+str(value)+"' is a byte key and the process need a bit key", argNumber, argNameToBind)
         
         #check size
-        if self.keySize != None and not self.allowdifferentKeySize and keyInstance.getKeySize() < self.keySize:
+        if self.keySize is not None and not self.allowdifferentKeySize and keyInstance.getKeySize() < self.keySize:
             if Key.KEYTYPE_HEXA == keyInstance.getKeyType():
                 keytype = "byte(s)"
             else:

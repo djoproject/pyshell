@@ -47,9 +47,10 @@ class Solver(object):
         self.mltries            = mltries
         self.variablesContainer = variablesContainer
 
-        commandList    = []
-        argList        = []
-        mappedArgsList = []
+        commandList     = []
+        commandNameList = []
+        argList         = []
+        mappedArgsList  = []
 
         for tokenList, argSpotted, paramSpotted in self.parser:
             if len(paramSpotted) > 0:
@@ -58,7 +59,10 @@ class Solver(object):
             tokenList                        = self._solveVariables(tokenList,argSpotted,paramSpotted)
             command, remainingTokenList      = self._solveCommands(tokenList)
             
-            _removeEveryIndexUnder(paramSpotted, len(tokenList) - len(remainingTokenList) )
+            commandTokenLength = len(tokenList) - len(remainingTokenList)
+            commandNameList.append( tuple(tokenList[0:commandTokenLength]) )
+            
+            _removeEveryIndexUnder(paramSpotted,  commandTokenLength)
             _addValueToIndex(paramSpotted, 0, len(remainingTokenList) - len(tokenList))
                                     
             mappedParams, remainingTokenList = self._solveDashedParameters(command, remainingTokenList, paramSpotted)
@@ -67,7 +71,7 @@ class Solver(object):
             argList.append(        remainingTokenList )
             mappedArgsList.append( mappedParams       )
             
-        return commandList, argList, mappedArgsList
+        return commandList, argList, mappedArgsList, commandNameList
         
     def _solveVariables(self,tokenList,argSpotted, paramSpotted):
         "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
@@ -89,11 +93,12 @@ class Solver(object):
             del tokenList[argIndex]
 
             #if not existing var, act as an empty var
-            if not self.variablesContainer.hasParameter(stringToken):
+            var = self.variablesContainer.getParameter(stringToken)
+            if var is None:
                 varSize = 0
             else:
                 #insert the var list at the correct place (var is always a list)
-                values = self.variablesContainer.getParameter(stringToken).getValue()
+                values = var.getValue()
                 tokenList = tokenList[0:argIndex] + values + tokenList[argIndex:]
                 varSize = len(values)
             

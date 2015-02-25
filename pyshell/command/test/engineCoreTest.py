@@ -571,7 +571,7 @@ class EngineCoreTest(unittest.TestCase):
             self.assertTrue(typ == PREPROCESS_INSTRUCTION or typ == PROCESS_INSTRUCTION or typ == POSTPROCESS_INSTRUCTION)
             
             #check enablingMap
-            if enablingMap != None:
+            if enablingMap is not None:
                 self.assertEqual(type(enablingMap), list)
                 self.assertEqual(len(enablingMap), len(cmd))
                 for b in enablingMap:
@@ -579,7 +579,7 @@ class EngineCoreTest(unittest.TestCase):
 
             #an index can not be set if it is disabled in map or in cmd
             c,u,e = cmd[path[-1]]
-            self.assertTrue(e and (enablingMap == None or enablingMap[path[-1]]))
+            self.assertTrue(e and (enablingMap is None or enablingMap[path[-1]]))
             
             
     def test_limitReaching(self):

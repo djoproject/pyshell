@@ -77,7 +77,7 @@ def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, subLo
     _raiseIfInvalidKeyList(keyList, "registerCommand")
     loader = _local_getAndInitCallerModule(subLoaderName)
     
-    if loader.TempPrefix != None:
+    if loader.TempPrefix is not None:
         name = " ".join(loader.TempPrefix) + " " + " ".join(keyList)
     else:
         name = " ".join(keyList)
@@ -93,7 +93,7 @@ def registerCreateMultiCommand(keyList, showInHelp=True, subLoaderName = None):
     #check cmd and keylist
     _raiseIfInvalidKeyList(keyList, "registerCreateMultiCommand")
     
-    if loader.TempPrefix != None:
+    if loader.TempPrefix is not None:
         name = " ".join(loader.TempPrefix) + " " + " ".join(keyList)
     else:
         name = " ".join(keyList)
@@ -128,10 +128,11 @@ class CommandLoader(AbstractLoader):
     
         AbstractLoader.load(self, parameterManager, subLoaderName)
     
-        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True):
+        param = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True)
+        if param is None:
             raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
             
-        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True).getValue()
+        mltries = param.getValue()
 
         exceptions = ListOfException()
     
@@ -167,11 +168,11 @@ class CommandLoader(AbstractLoader):
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
     
-        if not parameterManager.environment.hasParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True):
+        param = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True)
+        if param is None:
             raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
-            return
             
-        mltries = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True).getValue()
+        mltries = param.getValue()
         
         exceptions = ListOfException()
     
@@ -188,7 +189,7 @@ class CommandLoader(AbstractLoader):
             try:
                 searchResult = mltries.searchNode(key, False)
                 
-                if searchResult == None or not searchResult.isPathFound():
+                if searchResult is None or not searchResult.isPathFound():
                     continue
                 
             except triesException as te:
@@ -204,7 +205,7 @@ class CommandLoader(AbstractLoader):
             raise exceptions 
         
     def addCmd(self, name, keyList, cmd):
-        if self.TempPrefix != None:
+        if self.TempPrefix is not None:
             prefix = list(self.TempPrefix)
             prefix.extend(keyList)
         else:

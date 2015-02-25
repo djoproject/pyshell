@@ -15,13 +15,13 @@ class EngineUtilsTest(unittest.TestCase):
         path2 = [0]
 
         equals, sameLength, equalsCount, path1IsHigher = equalPath(path1,path2)
-        self.assertTrue(not equals and not sameLength and equalsCount == 1 and path1IsHigher == None)
+        self.assertTrue(not equals and not sameLength and equalsCount == 1 and path1IsHigher is None)
 
         path2 = [0,1]
         path1 = [0]
 
         equals, sameLength, equalsCount, path1IsHigher = equalPath(path1,path2)
-        self.assertTrue(not equals and not sameLength and equalsCount == 1 and path1IsHigher == None)
+        self.assertTrue(not equals and not sameLength and equalsCount == 1 and path1IsHigher is None)
 
 
         #same path
@@ -32,7 +32,7 @@ class EngineUtilsTest(unittest.TestCase):
             path2.append(i)
 
             equals, sameLength, equalsCount, path1IsHigher = equalPath(path1,path2)
-            self.assertTrue(equals and sameLength and equalsCount == i and path1IsHigher == None)
+            self.assertTrue(equals and sameLength and equalsCount == i and path1IsHigher is None)
 
         #same length but 2 is always higher
         path1 = []

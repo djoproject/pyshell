@@ -27,7 +27,7 @@ def registerDependOnAddon(name, subName = None, subLoaderName = None):
     if type(name) != str and type(name) != unicode:
         raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon name are allowed")
 
-    if subName != None and (type(subName) != str and type(subName) != unicode):
+    if subName is not None and (type(subName) != str and type(subName) != unicode):
         raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon subName are allowed")
 
     loader = _local_getAndInitCallerModule(subLoaderName)
@@ -44,10 +44,11 @@ class DependanciesLoader(AbstractLoader):
         if len(self.dep) == 0:
             return
         
-        if not parameterManager.environment.hasParameter(ADDONLIST_KEY, perfectMatch = True):
+        param = parameterManager.environment.getParameter(ADDONLIST_KEY, perfectMatch = True)
+        if param is None:
             raise LoadException("(DependanciesLoader) load, no addon list defined")
         
-        addon_dico = parameterManager.environment.getParameter(ADDONLIST_KEY, perfectMatch = True).getValue()
+        addon_dico = param.getValue()
         
         for (name, subname) in self.dep:
             if name not in addon_dico:

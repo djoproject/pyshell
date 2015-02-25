@@ -13,7 +13,7 @@ class commandTest(unittest.TestCase):
     #init an empty one and check the args
     def testEmptyCommand(self):
         mc = MultiCommand("plop", False)
-        self.assertTrue(mc.name == "plop" and mc.helpMessage == None and not mc.showInHelp)
+        self.assertTrue(mc.name == "plop" and mc.helpMessage is None and not mc.showInHelp)
         
     #addProcess
     def testAddProcess(self):
@@ -27,16 +27,16 @@ class commandTest(unittest.TestCase):
             pass
         
         toto.checker = 52
-        self.assertTrue(mc.addProcess(toto) == None)
+        self.assertTrue(mc.addProcess(toto) is None)
         self.assertTrue(mc.usageBuilder == 52) 
         self.assertEqual(mc.helpMessage,"tata")
         
         toto.checker = 53
-        self.assertTrue(mc.addProcess(None,toto) == None)
+        self.assertTrue(mc.addProcess(None,toto) is None)
         self.assertTrue(mc.usageBuilder == 52) #the usage builder is still the builder of the first command inserted
         
         toto.checker = 54
-        self.assertTrue(mc.addProcess(None,None,toto) == None)
+        self.assertTrue(mc.addProcess(None,None,toto) is None)
         self.assertTrue(mc.usageBuilder == 52) #the usage builder is still the builder of the first command inserted
         
         mc = MultiCommand("plop", False)
@@ -84,7 +84,7 @@ class commandTest(unittest.TestCase):
         self.assertRaises(commandException,mc.addStaticCommand,23)
         
         #try to insert a valid cmd
-        self.assertTrue(mc.addStaticCommand(c) == None)
+        self.assertTrue(mc.addStaticCommand(c) is None)
         
         #try to insert where there is a dynamic command in in
         mc.dymamicCount = 1
@@ -121,7 +121,7 @@ class commandTest(unittest.TestCase):
         #reset and test
         finalCount = len(mc) - mc.dymamicCount
         mc.reset()
-        #self.assertTrue(mc.args == None)
+        #self.assertTrue(mc.args is None)
         self.assertTrue(mc.dymamicCount == 0)
         self.assertTrue(len(mc.onlyOnceDict) == 0)
         self.assertTrue(mc.preCount == mc.proCount == mc.postCount == 0)
@@ -149,7 +149,7 @@ class commandTest(unittest.TestCase):
         mc.flushArgs()
         
         #it must always be None
-        self.assertTrue(mc.args == None)"""
+        self.assertTrue(mc.args is None)"""
     
     #addDynamicCommand
     def testAddDynamicCommand(self):
@@ -180,9 +180,9 @@ class commandTest(unittest.TestCase):
             pass
         
         #then with different kind of args
-        self.assertTrue(UniCommand("plop", toto) != None )
-        self.assertTrue(UniCommand("plop", None, toto) != None )
-        self.assertTrue(UniCommand("plop", None,None,toto) != None )
+        self.assertTrue(UniCommand("plop", toto) is not None )
+        self.assertTrue(UniCommand("plop", None, toto) is not None )
+        self.assertTrue(UniCommand("plop", None,None,toto) is not None )
 
         #try to add another command
         uc = UniCommand("plop", toto)

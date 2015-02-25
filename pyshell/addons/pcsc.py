@@ -120,7 +120,7 @@ class CardManager( CardObserver ):
         
         r = ""  #card connected or removed
         #ac = "" #autoconnect result
-        if addedcards != None and len(addedcards) > 0:
+        if addedcards is not None and len(addedcards) > 0:
             r += "Added card(s) " + str(addedcards) 
             
             #TODO should be in critical section
@@ -134,7 +134,7 @@ class CardManager( CardObserver ):
             
             #ac = self.autoConnect()
         
-        if removedcards != None and len(removedcards) > 0:
+        if removedcards is not None and len(removedcards) > 0:
             
             if len(r) > 0:
                 r += "\n"
@@ -216,7 +216,7 @@ def _checkList(l, index, item_type):
 @shellMethod(bytes=listArgChecker(IntegerArgChecker(0,255)))
 def printATR(bytes):
     "convert a string of bytes into a human readable comprehension of the ATR"
-    if bytes == None or not isinstance(bytes,list) or len(bytes) < 1:
+    if bytes is None or not isinstance(bytes,list) or len(bytes) < 1:
         printShell("The value is not a valid ATR")
         return
     

@@ -38,6 +38,8 @@ from pyshell.system.alias     import AliasFromList, AliasFromFile
 from pyshell.system.keystore  import KeyStore
 from pyshell.system.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
 
+#TODO
+    #there is no NoneCheck after .getParameter, could be interesting to manage these case
 
 class CommandExecuter():
     def __init__(self, paramFile = None, outsideArgs = None):
@@ -364,7 +366,7 @@ if __name__ == "__main__":
     #run basic instance
     executer = CommandExecuter(ParameterFile,args)
     
-    if ScriptFile != None:
+    if ScriptFile is not None:
         executer.executeFile(ScriptFile, Granularity)
     else:
         ExitAfterScript = False

@@ -33,10 +33,11 @@ ADDON_PREFIX  = "pyshell.addons."
 ## FUNCTION SECTION ##
 
 def _tryToGetDicoFromParameters(parameters):
-    if not parameters.environment.hasParameter(ADDONLIST_KEY, perfectMatch = True):
+    param = parameters.environment.getParameter(ADDONLIST_KEY, perfectMatch = True)
+    if param is None:
         raise Exception("no addon list defined")
 
-    return parameters.environment.getParameter(ADDONLIST_KEY, perfectMatch = True).getValue()
+    return param.getValue()
 
 def _tryToGetAddonFromDico(addon_dico, name):
     if name not in addon_dico:

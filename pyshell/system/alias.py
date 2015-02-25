@@ -137,7 +137,7 @@ class Alias(UniCommand):
     
         lastException, engine = execute(cmd, parameters, name)  
 
-        if lastException != None: 
+        if lastException is not None: 
             if not isinstance(lastException, PyshellException):
                 raise engineInterruptionException("internal command has been interrupted because of an enexpected exception", abnormal=True)
             
@@ -242,7 +242,7 @@ class AliasFromList(Alias):
             lastException, engine = self._innerExecute(self.stringCmdList[i], self.name + " (index: "+str(i)+")", parameters)
 
         #return the result of last command in the alias
-        if engine == None:
+        if engine is None:
             return ()
             
         return engine.getLastResult()
@@ -368,7 +368,7 @@ class AliasFromFile(Alias):
                 index += 1
 
         #return the result of last command in the alias
-        if engine == None:
+        if engine is None:
             return ()
             
         return engine.getLastResult()

@@ -53,10 +53,10 @@ class ArgFeeder(ArgsChecker):
         self.argTypeList = argTypeList
     
     def manageMappedArg(self, name, checker, args):
-        if checker.maximumSize != None and len(args) > checker.maximumSize:
+        if checker.maximumSize is not None and len(args) > checker.maximumSize:
             args = args[:checker.maximumSize]
 
-        if checker.minimumSize != None and len(args) < checker.minimumSize:
+        if checker.minimumSize is not None and len(args) < checker.minimumSize:
             raise argException("(ArgFeeder) not enough data for the dash mapped argument '"+name+"', expected at least '"+str(checker.minimumSize)+"', got '"+str(len(args))+"'")
 
         if checker.minimumSize == checker.maximumSize == 1:
@@ -93,7 +93,7 @@ class ArgFeeder(ArgsChecker):
                 continue
         
             #is there a minimum limit
-            if checker.minimumSize != None:
+            if checker.minimumSize is not None:
                 #is there at least minimumSize item in the data stream?
                 if len(argsList[dataIndex:]) < checker.minimumSize:
                     #no more string token, end of stream ?
@@ -105,13 +105,13 @@ class ArgFeeder(ArgsChecker):
                         raise argException("(ArgFeeder) not enough data for the argument '"+name+"'")
             
             #is there a maximum limit?
-            if checker.maximumSize == None:
+            if checker.maximumSize is None:
                 #No max limit, it consumes all remaining data
                 ret[name] = checker.getValue(argsList[dataIndex:],dataIndex, name)
                 dataIndex = len(argsList) #will not stop the loop but will notify that every data has been consumed
             else:
                 #special case: checker only need one item? (most common case)
-                if checker.minimumSize != None and checker.minimumSize == checker.maximumSize == 1:
+                if checker.minimumSize is not None and checker.minimumSize == checker.maximumSize == 1:
                     value = argsList[dataIndex:(dataIndex+checker.maximumSize)][0]
                 else:
                     value = argsList[dataIndex:(dataIndex+checker.maximumSize)]

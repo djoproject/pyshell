@@ -24,7 +24,7 @@ class engineStack(list):
         
     def raiseIfEmpty(self, methName = None):
         if len(self) == 0:
-            if methName == None:
+            if methName is None:
                 raise executionException("(engine) engineStack, no item on the stack")
             else:
                 raise executionException("(engine) "+methName+", no item on the stack")
@@ -114,7 +114,7 @@ class engineStack(list):
         methToCall  = object.__getattribute__(self, name)
 
         def meth(*args):
-            if index == None:
+            if index is None:
                 if len(args) > 0:
                     lindex = int(args[0])
                     startIndex = 1
@@ -125,7 +125,7 @@ class engineStack(list):
                 startIndex = 0
                 lindex = index
 
-            if sub != None:
+            if sub is not None:
                 lindex = sub - lindex
 
             nargs = [lindex]

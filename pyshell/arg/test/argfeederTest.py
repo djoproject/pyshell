@@ -11,7 +11,7 @@ class ArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, ArgFeeder, "toto")
         self.assertRaises(argInitializationException, ArgFeeder, 52)
         
-        self.assertTrue(ArgFeeder({}) != None)
+        self.assertTrue(ArgFeeder({}) is not None)
         
     def test_checkArgs(self):
         #test a list of 1 arg without limit size

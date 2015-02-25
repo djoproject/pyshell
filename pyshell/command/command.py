@@ -91,10 +91,10 @@ class MultiCommand(list):
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
         c = Command()
         
-        if preProcess == process == postProcess == None:
+        if preProcess == process == postProcess is None:
             raise commandException("(MultiCommand) addProcess, at least one of the three callable pre/pro/post object must be different of None")
         
-        if preProcess != None:
+        if preProcess is not None:
             #preProcess must be callable
             if not hasattr(preProcess, "__call__"):
                 raise commandException("(MultiCommand) addProcess, the given preProcess is not a callable object")
@@ -103,13 +103,13 @@ class MultiCommand(list):
             c.preProcess = preProcess
             
             #check if this callable object has an usage builder
-            if self.usageBuilder == None and hasattr(preProcess, "checker"):
+            if self.usageBuilder is None and hasattr(preProcess, "checker"):
                 self.usageBuilder = preProcess.checker
                 
-            if self.helpMessage == None and hasattr(preProcess,"__doc__") and preProcess.__doc__ != None and len(preProcess.__doc__) > 0:
+            if self.helpMessage is None and hasattr(preProcess,"__doc__") and preProcess.__doc__ is not None and len(preProcess.__doc__) > 0:
                 self.helpMessage = preProcess.__doc__
         
-        if process != None:
+        if process is not None:
             #process must be callable
             if not hasattr(process, "__call__"):
                 raise commandException("(MultiCommand) addProcess, the given process is not a callable object")
@@ -118,13 +118,13 @@ class MultiCommand(list):
             c.process = process
             
             #check if this callable object has an usage builder
-            if self.usageBuilder == None and hasattr(process, "checker"):
+            if self.usageBuilder is None and hasattr(process, "checker"):
                 self.usageBuilder = process.checker
                 
-            if self.helpMessage == None and hasattr(process,"__doc__") and process.__doc__ != None and len(process.__doc__) > 0:
+            if self.helpMessage is None and hasattr(process,"__doc__") and process.__doc__ is not None and len(process.__doc__) > 0:
                 self.helpMessage = process.__doc__
             
-        if postProcess != None:
+        if postProcess is not None:
             #postProcess must be callable
             if not hasattr(postProcess, "__call__"):
                 raise commandException("(MultiCommand) addProcess, the given postProcess is not a callable object")
@@ -132,10 +132,10 @@ class MultiCommand(list):
             #set postProcess
             c.postProcess = postProcess
             
-            if self.usageBuilder == None and hasattr(postProcess, "checker"):
+            if self.usageBuilder is None and hasattr(postProcess, "checker"):
                 self.usageBuilder = postProcess.checker
                 
-            if self.helpMessage == None and hasattr(postProcess,"__doc__") and postProcess.__doc__ != None and len(postProcess.__doc__) > 0:
+            if self.helpMessage is None and hasattr(postProcess,"__doc__") and postProcess.__doc__ is not None and len(postProcess.__doc__) > 0:
                 self.helpMessage = postProcess.__doc__
         
         self.append( (c,useArgs,True,) )
@@ -150,11 +150,11 @@ class MultiCommand(list):
             raise commandException("(MultiCommand) addStaticCommand, can't insert static command while dynamic command are present, reset the MultiCommand then insert static command")
     
         #if usageBuilder is not set, take the preprocess builder of the cmd 
-        if self.usageBuilder == None and hasattr(cmd.preProcess, "checker"):
+        if self.usageBuilder is None and hasattr(cmd.preProcess, "checker"):
             self.usageBuilder = cmd.preProcess.checker
     
         #build help message
-        if self.helpMessage == None and hasattr(cmd.preProcess,"__doc__") and cmd.preProcess.__doc__ != None and len(cmd.preProcess.__doc__) > 0:
+        if self.helpMessage is None and hasattr(cmd.preProcess,"__doc__") and cmd.preProcess.__doc__ is not None and len(cmd.preProcess.__doc__) > 0:
             self.helpMessage = cmd.preProcess.__doc__
     
         #add the command
@@ -167,7 +167,7 @@ class MultiCommand(list):
                 #normaly only the case if we use addStaticCommand or addDynamicCommand
                 #normaly no problem with addProcess
     
-        if self.usageBuilder == None :
+        if self.usageBuilder is None :
             return self.name+": no args needed"
         else:
             return self.name+" `"+self.usageBuilder.usage()+"`"

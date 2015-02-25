@@ -42,12 +42,12 @@ def isAValidIndex(li, index, cmdName = None, listName = None, context="engine", 
     try:
         noop = li[index]
     except IndexError:
-        if cmdName != None:
+        if cmdName is not None:
             cmdName += ", "
         else:
             cmdName = ""
         
-        if listName != None:
+        if listName is not None:
             listName = " on list '"+listName+"'"
         else:
             listName = ""
@@ -55,10 +55,10 @@ def isAValidIndex(li, index, cmdName = None, listName = None, context="engine", 
         raise ex("("+context+") "+cmdName+"list index out of range"+listName)
 
 def equalMap(map1,map2):
-    if map1 == None and map2 == None:
+    if map1 is None and map2 is None:
         return True
 
-    if map1 != None and map2 != None:
+    if map1 is not None and map2 is not None:
         if len(map1) != len(map2):
             return False
 
@@ -71,7 +71,7 @@ def equalMap(map1,map2):
     return False
 
 def isValidMap(emap, expectedLength):
-    if emap == None:
+    if emap is None:
         return True
 
     if not isinstance(emap,list):
@@ -95,7 +95,7 @@ def isValidMap(emap, expectedLength):
 
 def raisIfInvalidMap(emap, expectedLength, cmdName = None, context="engine", ex = executionException):
     if not isValidMap(emap, expectedLength):
-        if cmdName != None:
+        if cmdName is not None:
             cmdName += ", "
         else:
             cmdName = ""
@@ -112,13 +112,13 @@ def raiseIfInvalidPath(cmdPath, cmdList, methName):
 
 def getFirstEnabledIndexInEnablingMap(enablingMap, cmd, starting=0, cmdName = None, context="engine", ex = executionException):
     i = 0
-    if enablingMap != None:
+    if enablingMap is not None:
         #there is at least one True item in list, otherwise raisIfInvalidMap had raise an exception
         for i in xrange(starting,len(enablingMap)):
             if enablingMap[i] and not cmd.isdisabledCmd(i):
                 return i
 
-        if cmdName != None:
+        if cmdName is not None:
             cmdName += ", "
         else:
             cmdName = ""

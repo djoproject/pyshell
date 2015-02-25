@@ -99,7 +99,7 @@ def usageFun(args, mltries):
 def helpFun(mltries, args=None):
     "print the help"
     
-    if args == None:
+    if args is None:
         args = ()
 
     #little hack to be able to get help about for a function who has another function as suffix
@@ -112,7 +112,7 @@ def helpFun(mltries, args=None):
         fullArgs = None
 
     #manage ambiguity cases
-    if fullArgs != None:
+    if fullArgs is not None:
         advancedResult = mltries.getValue().advancedSearch(fullArgs, False)
         ambiguityOnLastToken = False
         if advancedResult.isAmbiguous():
@@ -136,11 +136,11 @@ def helpFun(mltries, args=None):
     #cmd with stop traversal, this will retrieve every tuple path/value
     dic = mltries.getValue().buildDictionnary(args, ignoreStopTraversal=False, addPrexix=True, onlyPerfectMatch=False)
     for k in dic.keys():
-        #if (fullArgs == None and len(k) < len(args)) or (fullArgs != None and len(k) < len(fullArgs)):
+        #if (fullArgs is None and len(k) < len(args)) or (fullArgs is not None and len(k) < len(fullArgs)):
         #    continue
 
         #the last corresponding token in k must start with the last token of args => suffix
-        if suffix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(suffix):
+        if suffix is not None and len(k) >= (len(args)+1) and not k[len(args)].startswith(suffix):
             continue
 
         #is it a hidden cmd ?
@@ -149,7 +149,7 @@ def helpFun(mltries, args=None):
 
         line = " ".join(k)
         hmess = dic[k].helpMessage
-        if hmess != None and len(hmess) > 0:
+        if hmess is not None and len(hmess) > 0:
             line += ": "+hmess
         
         found.append(  (k,hmess,)  )
@@ -163,11 +163,11 @@ def helpFun(mltries, args=None):
         if k in dic:
             continue
         
-        #if (fullArgs == None and len(k) < len(args)) or (fullArgs != None and len(k) < len(fullArgs)):
+        #if (fullArgs is None and len(k) < len(args)) or (fullArgs is not None and len(k) < len(fullArgs)):
         #    continue
 
         #the last corresponding token in k must start with the last token of args => suffix
-        if suffix != None and len(k) >= (len(args)+1) and not k[len(args)].startswith(suffix):
+        if suffix is not None and len(k) >= (len(args)+1) and not k[len(args)].startswith(suffix):
             continue
 
         #is it a hidden cmd ? only for final node, because they don't appear in dic2
@@ -192,7 +192,7 @@ def helpFun(mltries, args=None):
 
                 #if the disabled string token is in the args to print, it is equivalent to enabled
                 equiv = False
-                if fullArgs != None and len(fullArgs) >= len(k[0:i]):
+                if fullArgs is not None and len(fullArgs) >= len(k[0:i]):
                     equiv = True
                     for j in range(0,min(  len(fullArgs), len(k) ) ):
                         if not k[j].startswith(fullArgs[j]):
@@ -211,7 +211,7 @@ def helpFun(mltries, args=None):
             if i == (len(k) -1):
                 line = " ".join(k)
                 hmess = dic2[k].helpMessage
-                if hmess != None and len(hmess) > 0:
+                if hmess is not None and len(hmess) > 0:
                     line += ": "+hmess
                 
                 found.append( (k,hmess,) )
@@ -227,7 +227,7 @@ def helpFun(mltries, args=None):
         
             return ()
         elif len(found) == 1 :
-            if found[0][1] == None:
+            if found[0][1] is None:
                 description = "No description"
             else:
                 description = found[0][1]

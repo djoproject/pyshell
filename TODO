@@ -2,7 +2,9 @@
 ### MISC                  ###
 #############################
 
-remplacer les " == None " par "is None"
+    #with the modification in getParameter, check if remaining hasParameter are still usefull
+        grep -lr "\.hasParameter" *
+
 
 #############################
 ### QUESTION              ###
@@ -26,7 +28,7 @@ remplacer les " == None " par "is None"
             QUESTION, What about the locking part for the properties access ?
 
 #############################
-### MAJOR                 ###
+### MAJOR ISSUES          ###
 #############################
     1) not possible to do that:
         var add toto | echo 1 2 3

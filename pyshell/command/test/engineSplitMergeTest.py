@@ -179,16 +179,16 @@ class splitAndMergeTest(unittest.TestCase):
         engine.appendData("44")
         engine.appendData("55")
         
-        #map1 != None with wrong size
+        #map1 is not None with wrong size
         self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, [True, False], None)
         
-        #map1 != None with current index disabled
+        #map1 is not None with current index disabled
         self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, [False, True, True], None)
         
-        #map1 != None with wrong size
+        #map1 is not None with wrong size
         self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, None, [True, False])
         
-        #map1 != None and fully disabled
+        #map1 is not None and fully disabled
         self.assertRaises(executionException, engine.splitDataAndSetEnablingMap, -1, 1, None, [False, False, False])
         
         #split at 0 index

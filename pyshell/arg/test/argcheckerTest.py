@@ -11,7 +11,7 @@ class ArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, ArgChecker, -1)
         self.assertRaises(argInitializationException, ArgChecker, 1, -1)
         self.assertRaises(argInitializationException, ArgChecker, 5, 1)
-        self.assertTrue(ArgChecker() != None)
+        self.assertTrue(ArgChecker() is not None)
     
     def test_defaultValue(self):
         a = ArgChecker()
@@ -60,9 +60,9 @@ class IntegerArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, IntegerArgChecker, 5, 1)
         self.assertRaises(argInitializationException, IntegerArgChecker, 5.5, 1.0)
         
-        self.assertTrue(IntegerArgChecker(None) != None)
-        self.assertTrue(IntegerArgChecker(1, None) != None)
-        self.assertTrue(IntegerArgChecker(None, 1) != None)
+        self.assertTrue(IntegerArgChecker(None) is not None)
+        self.assertTrue(IntegerArgChecker(1, None) is not None)
+        self.assertTrue(IntegerArgChecker(None, 1) is not None)
         
     def test_check(self):
         self.assertRaises(argException, self.checker.getValue, None, 1)
@@ -242,9 +242,9 @@ class floatArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, floatTokenArgChecker, 5, 1)
         self.assertRaises(argInitializationException, floatTokenArgChecker, 5.5, 1.0)
         
-        self.assertTrue(floatTokenArgChecker(None) != None)
-        self.assertTrue(floatTokenArgChecker(1.2, None) != None)
-        self.assertTrue(floatTokenArgChecker(None, 1.5) != None)
+        self.assertTrue(floatTokenArgChecker(None) is not None)
+        self.assertTrue(floatTokenArgChecker(1.2, None) is not None)
+        self.assertTrue(floatTokenArgChecker(None, 1.5) is not None)
     
     def test_check(self):
         self.assertRaises(argException, self.checker.getValue, None, 1)
@@ -358,8 +358,8 @@ class listArgCheckerTest(unittest.TestCase):
         self.assertRaises(argInitializationException, listArgChecker, defaultValueChecker(42))
         self.assertRaises(argInitializationException, listArgChecker, "plop")
         
-        self.assertTrue(listArgChecker(IntegerArgChecker()) != None)
-        self.assertTrue(listArgChecker(stringArgChecker()) != None)
+        self.assertTrue(listArgChecker(IntegerArgChecker()) is not None)
+        self.assertTrue(listArgChecker(stringArgChecker()) is not None)
         
     def test_get(self):
         #check/get, test special case with 1 item

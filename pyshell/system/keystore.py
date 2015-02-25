@@ -141,7 +141,7 @@ class Key(object):
             return "0b"+self.key+" ( BinaryKey, size="+str(self.keySize)+" bit(s), transient="+str(self.transient)+" )"
     
     def getKey(self,start,end=None,paddingEnable=True):
-        if end != None and end < start:
+        if end is not None and end < start:
             return ()
         
         #part to extract from key
@@ -152,7 +152,7 @@ class Key(object):
             keyPart = []
         else:
             limit = self.keySize
-            if end != None:
+            if end is not None:
                 if end <= self.keySize:
                     limit = end
             else:

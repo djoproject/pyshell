@@ -55,7 +55,7 @@ class funAnalyser(object):
         
 
         #how much default value ?
-        if self.inspect_result.defaults == None:
+        if self.inspect_result.defaults is None:
             self.lendefault = 0
         else:
             self.lendefault = len(self.inspect_result.defaults)

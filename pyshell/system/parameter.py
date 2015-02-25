@@ -213,17 +213,17 @@ class ParameterManagerV3(object):
                         return local_var[key]
 
                     if not exploreOtherLevel:
-                        raise ParameterException("(ParameterManager) getParameter, unknown local parameter '"+stringPath+"'")
+                        break
                 else:
                     if global_var is not None:
                         return global_var
 
                     if not exploreOtherLevel:
-                        raise ParameterException("(ParameterManager) getParameter, unknown global parameter '"+stringPath+"'")
+                        break
 
                 localParam = not localParam
 
-        raise ParameterException("(ParameterManager) getParameter, unknown parameter '"+stringPath+"'")
+        return None
     
     @synchronous()
     def hasParameter(self, stringPath, raiseIfAmbiguous = True, perfectMatch = False, localParam = True, exploreOtherLevel=True):

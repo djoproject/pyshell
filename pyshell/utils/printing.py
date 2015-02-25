@@ -70,17 +70,28 @@ class Printer(object):
         self.replWriteFunction = fun
     
     def configureFromParameters(self, params):
-        if params.context.hasParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True):
-            self.setShellContext(params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True))
+        #TODO this form of assignement is not evolutive
+            #eg. if the needed parameter does not exist yet at the creation of printing instance
+                #and the parameter start to exist after
+                #it will never updated in printing
+                
+            #SOLUTION retrieve parameter everytime it is needed, and if not available, use default value
         
-        if params.environment.hasParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True):
-            self.setSpacingContext(params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True))
+        param = params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True)
+        if param is not None:
+            self.setShellContext(param)
         
-        if params.context.hasParameter(CONTEXT_COLORATION_KEY, perfectMatch = True):
-            self.setBakcgroundContext(params.context.getParameter(CONTEXT_COLORATION_KEY, perfectMatch = True))
+        param = params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True)
+        if param is not None:
+            self.setSpacingContext(param)
         
-        if params.context.hasParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True):
-            self.setDebugContext(params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True))
+        param = params.context.getParameter(CONTEXT_COLORATION_KEY, perfectMatch = True)
+        if param is not None:
+            self.setBakcgroundContext(param)
+        
+        param = params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True)
+        if param is not None:
+            self.setDebugContext(param)
     
     def setShellContext(self, context):    
         if not isinstance(context, SelectableValuable):

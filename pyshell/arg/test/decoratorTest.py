@@ -18,7 +18,7 @@ class decoratorTest(unittest.TestCase):
             pass
         
         fa = funAnalyser(toto)
-        self.assertTrue(fa != None)
+        self.assertTrue(fa is not None)
         self.assertTrue(fa.lendefault == 0)
         self.assertRaises(decoratorException,fa.has_default,"plop")
         self.assertRaises(decoratorException,fa.get_default,"plop")
@@ -29,7 +29,7 @@ class decoratorTest(unittest.TestCase):
             pass
         
         fa = funAnalyser(toto)
-        self.assertTrue(fa != None)
+        self.assertTrue(fa is not None)
         self.assertTrue(fa.lendefault == 0)
         self.assertTrue(not fa.has_default("plop"))
         self.assertRaises(decoratorException,fa.get_default,"plop")
@@ -40,7 +40,7 @@ class decoratorTest(unittest.TestCase):
             pass
         
         fa = funAnalyser(toto)
-        self.assertTrue(fa != None)
+        self.assertTrue(fa is not None)
         self.assertTrue(fa.lendefault == 1)
         self.assertTrue(fa.has_default("plop"))
         self.assertTrue(fa.get_default("plop") == "plap")
@@ -50,7 +50,7 @@ class decoratorTest(unittest.TestCase):
             pass
         
         fa = funAnalyser(toto)
-        self.assertTrue(fa != None)
+        self.assertTrue(fa is not None)
         self.assertTrue(fa.lendefault == 1)
         self.assertTrue(fa.has_default("plop"))
         self.assertTrue(fa.get_default("plop") == "plap")

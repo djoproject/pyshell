@@ -71,7 +71,10 @@ class SolvingTest(unittest.TestCase):
         
         self.var.setParameter("plop",VarParameter( () ))
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -91,7 +94,10 @@ class SolvingTest(unittest.TestCase):
         
         self.var.setParameter("plop",VarParameter( () ))
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -113,7 +119,10 @@ class SolvingTest(unittest.TestCase):
         
         self.var.setParameter("plop",VarParameter( ("uhuh",) ))
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -135,7 +144,10 @@ class SolvingTest(unittest.TestCase):
         
         self.var.setParameter("plop",VarParameter( ("uhuh","ihih","ohoho",) ))
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -156,7 +168,10 @@ class SolvingTest(unittest.TestCase):
         
         self.var.setParameter("plop",VarParameter( ("uhuh","ihih","ohoho",) ))
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -177,7 +192,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -197,7 +215,10 @@ class SolvingTest(unittest.TestCase):
         
         self.var.setParameter("plop",VarParameter( ("uhuh",) ))
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -255,7 +276,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("plop")
         p.parse()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -273,7 +297,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("plop aaa bbb ccc ddd")
         p.parse()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -294,7 +321,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -311,7 +341,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tata",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tata",) ).getValue() )
@@ -329,7 +362,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plapA",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plapA",) ).getValue() )
@@ -350,7 +386,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plapB",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plapB",) ).getValue() )
@@ -371,7 +410,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plapC",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plapC",) ).getValue() )
@@ -392,7 +434,10 @@ class SolvingTest(unittest.TestCase):
         
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("plop",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("plop",) ).getValue() )
@@ -417,7 +462,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("tutu -param1 1 2 3 4 5 6 -param2 aa bb cc")
         p.parse()
         s = Solver()
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tutu",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tutu",) ).getValue() )
@@ -448,7 +496,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("tutu -param1 1 2 3 -param2 aa bb cc")
         p.parse()
         s = Solver()
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tutu",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tutu",) ).getValue() )
@@ -478,7 +529,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("tutu -param1 1 -param2 aa bb cc")
         p.parse()
         s = Solver()
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tutu",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tutu",) ).getValue() )
@@ -508,7 +562,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("tutu -param1 1 2 3 4 5 6")
         p.parse()
         s = Solver()
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tutu",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tutu",) ).getValue() )
@@ -535,7 +592,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("tutu -param1 1 2 3")
         p.parse()
         s = Solver()
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tutu",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tutu",) ).getValue() )
@@ -561,7 +621,10 @@ class SolvingTest(unittest.TestCase):
         p = Parser("tutu -param1 1 2")
         p.parse()
         s = Solver()
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("tutu",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("tutu",) ).getValue() )
@@ -588,7 +651,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -615,7 +681,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -645,7 +714,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -674,7 +746,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -705,7 +780,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -733,7 +811,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -764,7 +845,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -791,7 +875,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -821,7 +908,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )
@@ -849,7 +939,10 @@ class SolvingTest(unittest.TestCase):
         p.parse()
         s = Solver()
         
-        commandList, argList, mappedArgsList = s.solve(p, self.mltries, self.var)
+        commandList, argList, mappedArgsList, commandNameList = s.solve(p, self.mltries, self.var)
+        
+        self.assertEqual(len(commandNameList), 1)
+        self.assertEqual(commandNameList[0], ("boo",))
         
         self.assertEqual(len(commandList), 1)
         self.assertEqual(commandList[0], self.mltries.search( ("boo",) ).getValue() )

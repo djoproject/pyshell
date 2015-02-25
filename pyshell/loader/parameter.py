@@ -109,11 +109,10 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        if not container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False):
+        envObject = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
+        if envObject is None:
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToRemove)+"' to '"+str(keyName)+"': unknow key name"))
             return
-        
-        envObject = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
 
         try:
             envObject.removeValues(valueToRemove)
@@ -127,12 +126,11 @@ class ParamaterLoader(AbstractLoader):
 
         container = getattr(parameterManager, attributeName)
 
-        if not container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False):
+        envObject = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
+        if envObject is None:
             listOfExceptions.addException(LoadException("(ParamaterLoader) addValueTo, fail to add value '"+str(valueToAdd)+"' to '"+str(keyName)+"': unknow key name"))
             return
         
-        envObject = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
-
         try:
             envObject.addValues(valueToAdd)
             self.valueToRemove.append(  (keyName, valueToAdd, attributeName)  )
@@ -147,12 +145,11 @@ class ParamaterLoader(AbstractLoader):
         container = getattr(parameterManager, attributeName)
         
         #still exist ?
-        if not container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False):
+        envItem = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
+        if envItem is None:
             listOfExceptions.addException(LoadException("(ParamaterLoader) unsetValueTo, fail to unset value with key '"+str(keyName)+"': key does not exist"))
         
-        if exist:
-            envItem = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
-            
+        if exist: #TODO could try to use envItem even if it is None, no ?
             #if current value is still the value loaded with this addon, restore the old value
             if envItem.getValue() == value:
                 envItem.setValue(oldValue)
@@ -169,11 +166,11 @@ class ParamaterLoader(AbstractLoader):
             return
 
         container = getattr(parameterManager, attributeName)
-
-        exist = container.hasParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
+        param = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False)
+        exist = param is not None
         oldValue = None
         if exist:
-            oldValue = container.getParameter(keyName, perfectMatch = True, startWithLocal = False, exploreOtherLevel=False).getValue()
+            oldValue = param.getValue()
             if not override:
                 if not noErrorIfKeyExist:
                     listOfExceptions.addException(LoadException("(ParamaterLoader) setValueTo, fail to set value with key '"+str(keyName)+"': key already exists"))
@@ -190,7 +187,7 @@ class ParamaterLoader(AbstractLoader):
         self.valueToRemove = []
         AbstractLoader.load(self, parameterManager, subLoaderName)
     
-        if parameterManager == None:
+        if parameterManager is None:
             return
 
         exceptions = ListOfException()
@@ -210,7 +207,7 @@ class ParamaterLoader(AbstractLoader):
     def unload(self, parameterManager = None, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
     
-        if parameterManager == None:
+        if parameterManager is None:
             return
 
         exceptions = ListOfException()
