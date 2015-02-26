@@ -19,15 +19,20 @@
 import unittest, threading
 from tries import multiLevelTries
 from pyshell.utils.executing  import execute, _generateSuffix, _execute
-from pyshell.system.parameter import ParameterContainer,EnvironmentParameter
-from pyshell.utils.constants  import ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.exception  import ListOfException
+from pyshell.system.parameter import ParameterContainer,EnvironmentParameter, ContextParameter
+from pyshell.utils.constants  import ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_EXECUTION_KEY
 from pyshell.command.command  import UniCommand, Command, MultiCommand
 from pyshell.arg.decorator    import shellMethod
 from pyshell.arg.argchecker   import defaultInstanceArgChecker,listArgChecker
 from pyshell.utils.parsing    import Parser
+from pyshell.arg.exception     import *
+from pyshell.command.exception import *
+from pyshell.utils.test.printingTest import NewOutput
 from time import sleep
 
-RESULT = None
+RESULT     = None
+RESULT_BIS = None
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def plop_meth(param):
@@ -36,11 +41,59 @@ def plop_meth(param):
     RESULT = param
     return param
 
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def tutu_meth(param):
+    global RESULT_BIS
+    param.append(threading.current_thread().ident)
+    RESULT_BIS = param
+    return param
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc1(param):
+    raise executionInitException("test 1")
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc2(param):
+    raise executionException("test 2")
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc3(param):
+    raise commandException("test 3")
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc4(param):
+    e = engineInterruptionException("test 4")
+    e.abnormal = True
+    raise e
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc5(param):
+    e = engineInterruptionException("test 5")
+    e.abnormal = False
+    raise e
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc6(param):
+    raise argException("test 6") 
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc7(param):
+    l = ListOfException()
+    l.addException(Exception("test 7"))
+    raise l
+
+@shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+def raiseExc8(param):
+    raise Exception("test 8")  
+
 class ExecutingTest(unittest.TestCase):
     def setUp(self):
-        global RESULT
+        global RESULT, RESULT_BIS
         
         self.params = ParameterContainer()
+
+        self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False, readonly=True)
+        self.params.context.setParameter(CONTEXT_EXECUTION_KEY, self.shellContext, localParam = False)
         
         self.mltries = multiLevelTries()
         
@@ -49,6 +102,7 @@ class ExecutingTest(unittest.TestCase):
         
         self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries,transient=True,readonly=True, removable=False), localParam = False)
         RESULT = None
+        RESULT_BIS = None
         
         self.m = MultiCommand("plap")
         self.mltries.insert( ("plap",) ,self.m)
@@ -124,6 +178,7 @@ class ExecutingTest(unittest.TestCase):
             if t.ident == threadId[0]:
                 t.join(4)
                 break
+        sleep(0.1)
         
         self.assertNotEqual(RESULT,None)
         self.assertEqual(len(RESULT),4)
@@ -134,19 +189,139 @@ class ExecutingTest(unittest.TestCase):
         self.assertRaises(Exception, execute, "plap", self.params, processArg=object())
         self.assertEqual(RESULT,None)
         
-    def test_execute10(self):#check if commands are correctly cloned
-        #IDEA #self.m.addDynamicCommand(Command())
-            #create a multiCommand with a static and a dynamic command
-            #only the static will be executed
-        
-        pass #TODO
+    def test_execute10(self):#check if commands are correctly cloned        
+        m = MultiCommand("tutu")
+        m.addProcess(process=plop_meth)
+
+        c = Command()
+        c.process = tutu_meth
+        m.addDynamicCommand(c)
+
+        self.mltries.insert( ("tutu",) ,m)
+
+        self.assertEqual(RESULT, None)
+        self.assertEqual(RESULT_BIS, None)
+
+        lastException, engine = execute("tutu aa bb cc", self.params)
+
+        self.assertEqual(lastException, None)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(RESULT, ["aa", "bb", "cc",threading.current_thread().ident ])
+        self.assertEqual(RESULT_BIS, None)
         
     def test_execute11(self):#raise every exception
         #IDEA create a command that raise a defined exception, and call it
     
-        pass #TODO
-        
+        n = NewOutput()
+
+        m = MultiCommand("test_1")
+        m.addProcess(process=raiseExc1)
+
+        self.mltries.insert( ("test_1",) ,m)
+
+        lastException, engine = execute("test_1 aa bb cc", self.params)
+        self.assertIsInstance(lastException, executionInitException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "Fail to init an execution object: test 1\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_2")
+        m.addProcess(process=raiseExc2)
+
+        self.mltries.insert( ("test_2",) ,m)
+
+        lastException, engine = execute("test_2 aa bb cc", self.params)
+        self.assertIsInstance(lastException, executionException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "Fail to execute: test 2\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_3")
+        m.addProcess(process=raiseExc3)
+
+        self.mltries.insert( ("test_3",) ,m)
+
+        lastException, engine = execute("test_3 aa bb cc", self.params)
+        self.assertIsInstance(lastException, commandException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "Error in command method: test 3\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_4")
+        m.addProcess(process=raiseExc4)
+
+        self.mltries.insert( ("test_4",) ,m)
+
+        lastException, engine = execute("test_4 aa bb cc", self.params)
+        self.assertIsInstance(lastException, engineInterruptionException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "Abnormal execution abort, reason: test 4\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_5")
+        m.addProcess(process=raiseExc5)
+
+        self.mltries.insert( ("test_5",) ,m)
+
+        lastException, engine = execute("test_5 aa bb cc", self.params)
+        self.assertIsInstance(lastException, engineInterruptionException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "Normal execution abort, reason: test 5\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_6")
+        m.addProcess(process=raiseExc6)
+
+        self.mltries.insert( ("test_6",) ,m)
+
+        lastException, engine = execute("test_6 aa bb cc", self.params)
+        self.assertIsInstance(lastException, argException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "Error while parsing argument: test 6\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_7")
+        m.addProcess(process=raiseExc7)
+
+        self.mltries.insert( ("test_7",) ,m)
+
+        lastException, engine = execute("test_7 aa bb cc", self.params)
+        self.assertIsInstance(lastException, ListOfException)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "List of exception(s): \ntest 7\n")
+        n.flush()
+
+        ##
+
+        m = MultiCommand("test_8")
+        m.addProcess(process=raiseExc8)
+
+        self.mltries.insert( ("test_8",) ,m)
+
+        lastException, engine = execute("test_8 aa bb cc", self.params)
+        self.assertIsInstance(lastException, Exception)
+        self.assertNotEqual(engine, None)
+        self.assertEqual(n.lastOutPut, "test 8\n")
+        n.flush()
+
+        n.restore()
+
     ### _generateSuffix test ###
+    def test_generateSuffix0(self):#no suffix production
+        self.assertEqual(_generateSuffix(self.params,("plop",),None,"__process__"),None)
+
     def test_generateSuffix1(self):#test with debug
         pass #TODO
         
