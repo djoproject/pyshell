@@ -172,7 +172,7 @@ class MultiCommand(list):
         else:
             return self.name+" `"+self.usageBuilder.usage()+"`"
 
-    def reset(self):
+    def reset(self): #TODO is it still usefull ? reset become deprecated because of cloning, no?
         #remove dynamic command
         del self[len(self)-self.dymamicCount:]
         self.dymamicCount = 0

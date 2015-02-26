@@ -40,6 +40,8 @@ from pyshell.system.parameter import EnvironmentParameter, ContextParameter, Var
 
 #TODO
     #there is no NoneCheck after .getParameter, could be interesting to manage these case
+    
+    #use constant EVENT_TO_CREATE_ON_STARTUP to create the list of alias for these event at startup
 
 class CommandExecuter():
     def __init__(self, paramFile = None, outsideArgs = None):
@@ -106,7 +108,7 @@ class CommandExecuter():
         printer = Printer.getInstance()
         printer.setREPLFunction(self.printAsynchronousOnShellV2)
         printer.setPromptShowedContext(self.promptWaitingValuable)
-        printer.configureFromParameters(self.params)
+        printer.setParameters(self.params)
 
     def _initStartUpEvent(self):
         ## prepare atStartUp ##

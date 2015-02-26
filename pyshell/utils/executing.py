@@ -19,11 +19,12 @@
 from pyshell.arg.exception     import *
 from pyshell.command.engine    import engineV3, FAKELOCK
 from pyshell.command.exception import *
-from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SHELL
-from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR, CORE_WARNING
+from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SHELL, DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR, CORE_WARNING,CORE_ERROR
 from pyshell.utils.parsing     import Parser
 from pyshell.utils.printing    import printException
 from pyshell.utils.solving     import Solver
+from pyshell.system.parameter  import VarParameter
 import threading
 
 #execute return engine and lastException to the calling alias
@@ -34,10 +35,12 @@ def execute(string, parameterContainer, processName=None, processArg=None):
     
     #add external parameters at the end of the command
     if hasattr(processArg, "__iter__"):
-        string += ' '.join(str(x) for x in processArg)
+        string += " " + ' '.join(str(x) for x in processArg)
     elif type(processArg) == str or type(processArg) == unicode:
-        string += processArg
-            
+        string += " "+processArg
+    elif processArg is not None:
+        raise DefaultPyshellException("unknown type or process args, expect a list or a string, got '"+type(processArg)+"'",CORE_ERROR)
+        
     ## parsing ##
     parser = None
     try:
@@ -62,35 +65,37 @@ def execute(string, parameterContainer, processName=None, processArg=None):
     if parser.isToRunInBackground():
         t = threading.Thread(None, _execute, None, (parser,parameterContainer,processName,))
         t.start()
+        parameterContainer.variable.setParameter("$!", VarParameter(str(t.ident)), localParam = True)
         return None,None #not possible to retrieve exception or engine, it is another thread
     else:
         return _execute(parser,parameterContainer, processName)
 
-def _generatePrefix(parameterContainer, prefix = None, commandNameList=None, engine=None, processName=None):
+def _generateSuffix(parameterContainer, commandNameList=None, engine=None, processName=None):
 
-    #TODO print if in debug ?
-        #so no need to check if in shell if debug
+    #print if in debug ? 
+    param = parameterContainer.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True)
+    showAdvancedResult= (param is not None and param.getSelectedValue() > 0)
 
-    #is is a shell execution ?
-    param = parameterContainer.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True)
-    isInShell= (param is not None and param.getSelectedValue() == CONTEXT_EXECUTION_SHELL)
+    if not showAdvancedResult:
+        #is is a shell execution ?
+        param = parameterContainer.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True)
+        showAdvancedResult = (param is None or param.getSelectedValue() != CONTEXT_EXECUTION_SHELL)
             
-    if not isInShell or not parameterContainer.isMainThread() or parameterContainer.getCurrentId()[1] > 0:
+    if showAdvancedResult or not parameterContainer.isMainThread() or parameterContainer.getCurrentId()[1] > 0:
         threadId, levelId = parameterContainer.getCurrentId()
-        message = "On thread "+str(threadId)+", level "+str(levelId)
+        message = " (threadId="+str(threadId)+", level="+str(levelId)
         
         if processName is not None:
-            message += ", process '"+str(processName)+"'"
-            
+            message += ", process='"+str(processName)+"'"
+        
         if commandNameList is not None and engine is not None and not engine.stack.isEmpty():
             commandIndex = engine.stack.cmdIndexOnTop()
-            message += ", command '"+" ".join(commandNameList[commandIndex]) + "'"
-            
-        if prefix is not None:
-            message += ": "+str(prefix)
-            
+            message += ", command='"+" ".join(commandNameList[commandIndex]) + "'"
+        
+        message += ")"
+
         return message
-    return prefix
+    return None
 
 def _execute(parser,parameterContainer, processName=None): 
 
@@ -101,7 +106,6 @@ def _execute(parser,parameterContainer, processName=None):
     try:                
         #solve command, variable, and dashed parameters
         rawCommandList, rawArgList, mappedArgs, commandNameList = Solver().solve(parser, parameterContainer.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), parameterContainer.variable)
-        
         #clone command/alias to manage concurrency state
         newRawCommandList = []
         for i in xrange(0,len(rawCommandList)):
@@ -119,22 +123,22 @@ def _execute(parser,parameterContainer, processName=None):
         engine.execute()
 
     except executionInitException as ex:
-        printException(ex,_generatePrefix(parameterContainer,prefix="Fail to init an execution object: ", commandNameList=commandNameList, engine=engine,processName=processName))
+        printException(ex,prefix="Fail to init an execution object: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except executionException as ex:
-        printException(ex, _generatePrefix(parameterContainer,prefix="Fail to execute: ", commandNameList=commandNameList, engine=engine,processName=processName))
+        printException(ex,prefix="Fail to execute: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except commandException as ex:
-        printException(ex, _generatePrefix(parameterContainer,prefix="Error in command method: ", commandNameList=commandNameList, engine=engine,processName=processName))
+        printException(ex,prefix="Error in command method: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except engineInterruptionException as ex:
         if ex.abnormal:
-            printException(ex, _generatePrefix(parameterContainer,prefix="Abnormal execution abort, reason: ", commandNameList=commandNameList, engine=engine,processName=processName))
+            printException(ex, prefix="Abnormal execution abort, reason: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
         else:
-            printException(ex, _generatePrefix(parameterContainer,prefix="Normal execution abort, reason: ", commandNameList=commandNameList, engine=engine,processName=processName))
+            printException(ex,prefix="Normal execution abort, reason: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except argException as ex:
-        printException(ex, _generatePrefix(parameterContainer,prefix="Error while parsing argument: ", commandNameList=commandNameList, engine=engine,processName=processName))
+        printException(ex, prefix="Error while parsing argument: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except ListOfException as ex:
-        printException(ex,_generatePrefix(parameterContainer,prefix="List of exception(s): ", commandNameList=commandNameList, engine=engine,processName=processName))
+        printException(ex, prefix="List of exception(s): ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except Exception as ex:
-        printException(ex,_generatePrefix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
+        printException(ex,suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
 
     return ex, engine
 

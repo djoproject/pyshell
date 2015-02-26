@@ -58,6 +58,11 @@ def getAbsoluteIndex(index, listSize):
 
 #TODO
     #should be able again to give args to the method execute
+        #really needed ? argument go to special var $
+        
+    #change name, it not alias anymore, but what is it ?
+        #process, script, procedure, ...
+        #inner, sub, stored, ...
 
 #TODO brainstorming
     #create a special endless alias for shell entry point ? if yes, an AliasFromList
@@ -65,7 +70,7 @@ def getAbsoluteIndex(index, listSize):
             #everything will be alias, no need to manage a special case for the shell execution
 
         #---
-            #add a layer without really needed it
+            #add a layer without really need it
 
         #TODO
             #add a way in the alias to choose the next index to execute

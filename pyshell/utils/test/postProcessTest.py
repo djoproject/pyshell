@@ -17,17 +17,34 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL, CONTEXT_COLORATION_LIGHT
+from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, CONTEXT_EXECUTION_KEY, DEBUG_ENVIRONMENT_NAME, CONTEXT_EXECUTION_SHELL,CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_COLORATION_LIGHT, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_NONE
 from pyshell.utils.test.printingTest import NewOutput
 from pyshell.utils.postProcess import listResultHandler, listFlatResultHandler, printStringCharResult, printBytesAsString, printColumnWithouHeader, printColumn
 from pyshell.utils.printing  import Printer
 from pyshell.utils.valuable  import SimpleValuable
+from pyshell.system.parameter import ParameterContainer,ContextParameter, EnvironmentParameter
+from pyshell.arg.argchecker   import defaultInstanceArgChecker, IntegerArgChecker
 
 class PostProcessTest(unittest.TestCase):
     def setUp(self):
         p = Printer.getInstance()
+        self.params = ParameterContainer()
         
-        self.shellContext = SimpleValuable(CONTEXT_EXECUTION_SHELL) #CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON
+        self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0,index=0, removable=False, readonly=True)
+        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME, self.debugContext, localParam = False)
+        
+        self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False, readonly=True)
+        self.params.context.setParameter(CONTEXT_EXECUTION_KEY, self.shellContext, localParam = False)
+        
+        self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True)
+        self.params.context.setParameter(CONTEXT_COLORATION_KEY, self.backgroundContext, localParam = False)
+        
+        self.spacingContext = EnvironmentParameter(value=5, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False)
+        self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY, self.spacingContext, localParam = False)
+        
+        p.setParameters(self.params)
+        
+        """self.shellContext = SimpleValuable(CONTEXT_EXECUTION_SHELL) #CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON
         p.setShellContext(self.shellContext)
         
         self.promptShowedContext = SimpleValuable(True) #True or False
@@ -40,7 +57,7 @@ class PostProcessTest(unittest.TestCase):
         p.setBakcgroundContext(self.backgroundContext)
         
         self.debugContext = SimpleValuable(0) #an integer between [0,5]
-        p.setDebugContext(self.debugContext)
+        p.setDebugContext(self.debugContext)"""
     
     def test_listResultHandler1(self):
         no = NewOutput()

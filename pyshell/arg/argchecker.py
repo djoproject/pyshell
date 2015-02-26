@@ -571,7 +571,8 @@ class abstractParameterChecker(ArgChecker):
         
     def usage(self):
         return ""
-        
+    
+    #TODO est ce qu'il existe vraiment un cas de figure ou les valeurs par defaut peuvent être appellée avec un argument de taille min=0, max=0 ?
     def getDefaultValue(self, argNameToBind=None):
         container = self._getContainer(argNumber, argNameToBind)
 

@@ -18,14 +18,11 @@
 
 import os
 
-#TODO check if every constant are still used
-
 ### MISC ###
 DEFAULT_CONFIG_DIRECTORY = os.path.join(os.path.expanduser("~"), ".pyshell")
 MAIN_CATEGORY            = "main"
 SHELL_CATEGORY           = "shell"
 PARAMETER_NAME           = "parameter"
-DEFAULT_SEPARATOR        = ","
 DEFAULT_SUBADDON_NAME    = "default"
 
 ### EVENT ###
@@ -35,7 +32,6 @@ EVENT_AT_EXIT         = "atexit" #at application exit
 EVENT_AT_ADDON_LOAD   = "onaddonload" #at addon load (args=addon name)
 EVENT_AT_ADDON_UNLOAD = "onaddonunload" #at addon unload (args=addon name)
 
-#TODO use it in executer
 EVENT_TO_CREATE_ON_STARTUP = (EVENT__ON_STARTUP, EVENT_ON_STARTUP, EVENT_AT_EXIT, EVENT_AT_ADDON_LOAD, EVENT_AT_ADDON_UNLOAD, )
 
 ### ENVIRONMENT ###
@@ -69,7 +65,7 @@ ENVIRONMENT_USE_HISTORY_VALUE       = True
 ENVIRONMENT_ADDON_TO_LOAD_KEY       = MAIN_CATEGORY+".addonToLoad"
 ENVIRONMENT_ADDON_TO_LOAD_DEFAULT   = ("pyshell.addons.std","pyshell.addons.keystore","pyshell.addons.parameter")
 
-ADDONLIST_KEY                       = "main.loader_addon"
+ADDONLIST_KEY                       = MAIN_CATEGORY+".loader_addon"
 
 ### CONTEXT ###
 CONTEXT_ATTRIBUTE_NAME   = "context"

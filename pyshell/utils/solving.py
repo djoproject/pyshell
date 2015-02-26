@@ -21,6 +21,8 @@
         #convert it
         #add test for that
         #check old test (everything should be ok) 
+        
+        #need to refactore argFeeder before to do that
 
 from pyshell.arg.argchecker   import booleanValueArgChecker,defaultInstanceArgChecker
 from pyshell.command.engine   import EMPTY_MAPPED_ARGS

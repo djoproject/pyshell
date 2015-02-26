@@ -20,6 +20,7 @@ import threading, sys, re, os, traceback
 from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException, ListOfException
 from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, CONTEXT_COLORATION_NONE, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
+from pyshell.system.parameter import ParameterContainer
 
 _EMPTYSTRING = ""
 
@@ -51,11 +52,8 @@ class Printer(object):
             raise Exception("(Printer) __init__, Try to create a new instance of printer, only one is allowed for a whole instance of this application, use getInstance method")
     
         self.replWriteFunction   = None
-        self.shellContext        = DefaultValuable(CONTEXT_COLORATION_NONE)
         self.promptShowedContext = DefaultValuable(False)
-        self.spacingContext      = DefaultValuable(TAB_SIZE)
-        self.backgroundContext   = DefaultValuable(CONTEXT_EXECUTION_SCRIPT)
-        self.debugContext        = DefaultValuable(0)
+        self.params              = ParameterContainer()
     
     def __enter__(self):
         return Printer._printerLock.__enter__()
@@ -69,77 +67,62 @@ class Printer(object):
             
         self.replWriteFunction = fun
     
-    def configureFromParameters(self, params):
-        #TODO this form of assignement is not evolutive
-            #eg. if the needed parameter does not exist yet at the creation of printing instance
-                #and the parameter start to exist after
-                #it will never updated in printing
-                
-            #SOLUTION retrieve parameter everytime it is needed, and if not available, use default value
-        
-        param = params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True)
-        if param is not None:
-            self.setShellContext(param)
-        
-        param = params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True)
-        if param is not None:
-            self.setSpacingContext(param)
-        
-        param = params.context.getParameter(CONTEXT_COLORATION_KEY, perfectMatch = True)
-        if param is not None:
-            self.setBakcgroundContext(param)
-        
-        param = params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True)
-        if param is not None:
-            self.setDebugContext(param)
+    def setParameters(self, params):
+        if not isinstance(params, ParameterContainer):
+            raise Exception("(Printer) setParameters, invalid params, a ParameterContainer was expected, got '"+type(params)+"'")
     
-    def setShellContext(self, context):    
-        if not isinstance(context, SelectableValuable):
-            raise Exception("(Printer) setShellContext, invalid shell context, must be an instance of SelectableValuable")
-    
-        self.shellContext = context
-    
+        self.params = params
+        
     def setPromptShowedContext(self, context):    
         if not isinstance(context, Valuable):
             raise Exception("(Printer) setPromptShowedContext, invalid running context, must be an instance of Valuable")
     
         self.promptShowedContext = context
-        
-    def setSpacingContext(self, context):    
-        if not isinstance(context, Valuable):
-            raise Exception("(Printer) setSpacingContext, invalid spacing context, must be an instance of Valuable")
-    
-        self.spacingContext = context
-        
-    def setBakcgroundContext(self, context):
-        if not isinstance(context, SelectableValuable):
-            raise Exception("(Printer) setBakcgroundContext, invalid background context, must be an instance of SelectableValuable")
-    
-        self.backgroundContext = context
-    
-    def setDebugContext(self, context):
-        if not isinstance(context, SelectableValuable):
-            raise Exception("(Printer) setBakcgroundContext, invalid debug context, must be an instance of SelectableValuable")
-    
-        self.debugContext = context
 
     def isDarkBackGround(self):
-        return self.backgroundContext.getSelectedValue() == CONTEXT_COLORATION_DARK
+        param = self.params.context.getParameter(CONTEXT_COLORATION_KEY, perfectMatch = True)
+        if param is not None:
+            return param.getSelectedValue() == CONTEXT_COLORATION_DARK
+            
+        return False
         
     def isLightBackGround(self):
-        return self.backgroundContext.getSelectedValue() == CONTEXT_COLORATION_LIGHT
+        param = self.params.context.getParameter(CONTEXT_COLORATION_KEY, perfectMatch = True)
+        if param is not None:
+            return param.getSelectedValue() == CONTEXT_COLORATION_LIGHT
+            
+        return False
     
     def isInShell(self):
-        return self.shellContext.getSelectedValue() == CONTEXT_EXECUTION_SHELL
+        param = self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch = True)
+        if param is not None:
+            return param.getSelectedValue() == CONTEXT_EXECUTION_SHELL
+                
+        return False
     
     def isPromptShowed(self):
         return self.promptShowedContext.getValue()
 
     def isDebugEnabled(self):
-        return self.debugContext.getSelectedValue() > 0
+        param = self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True)
+        if param is not None:
+            return param.getSelectedValue() > 0
+        
+        return False
 
     def getDebugLevel(self):
-        return self.debugContext.getSelectedValue()
+        param = self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True)
+        if param is not None:
+            return param.getSelectedValue()
+        
+        return 0
+        
+    def getSpacingSize(self):
+        param = self.params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY, perfectMatch = True)
+        if param is not None:
+            return param.getValue()
+            
+        return 0    
     
     @staticmethod
     def getInstance():
@@ -181,7 +164,7 @@ class Printer(object):
         
         strings = string.split("\n")
         out = ""
-        space = " " * self.spacingContext.getValue()
+        space = " " * self.getSpacingSize()
         
         for s in strings:
             out += space + s + "\n"
@@ -308,10 +291,10 @@ def debug(level, *args, **kwargs):
     printer = Printer.getInstance()
     printer.debug(level, _toLineString(args, kwargs))
 
-def printException(exception, prefix = None):
-    printShell(formatException(exception, prefix))
+def printException(exception, prefix = None, suffix=None):
+    printShell(formatException(exception=exception, prefix=prefix, suffix=suffix))
     
-def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = True):
+def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = True, suffix=None):
     if exception is None:
         return _EMPTYSTRING
 
@@ -328,8 +311,15 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
             if prefix is None:
                 space = _EMPTYSTRING
             else:
-                toprint += printer.formatRed(prefix) + "\n"
-                space = " " * printer.spacingContext.getValue()
+                toprint += prefix
+                space = " " * printer.getSpacingSize()
+            
+            if suffix is not None:
+                toprint += suffix
+            
+            if len(toprint) > 0:
+                toprint = printer.formatRed(toprint) 
+                toprint +="\n"
 
             for e in exception.exceptions:
                 toprint += space + formatException(e, printStackTraceInCaseOfDebug=False) + "\n"
@@ -342,22 +332,40 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         
             if exception.severity >= NOTICE:
                 printFun = printer.formatGreen
-                toprint  = printer.formatGreen(prefix + str(exception))
             elif exception.severity >= WARNING:
                 printFun = printer.formatOrange
-                toprint  = printer.formatOrange(prefix + str(exception))
             else:
                 printFun = printer.formatRed
-                toprint  = printer.formatRed(prefix + str(exception))
-    else:
-        if prefix is None:
-            prefix = _EMPTYSTRING
+                
+            toprint = ""
     
+            if prefix is not None:
+                toprint += prefix
+        
+            toprint += str(exception)
+            
+            if suffix is not None:
+                toprint += suffix
+                
+            toprint = printFun(toprint)
+    else:
+        toprint = ""
+    
+        if prefix is not None:
+            toprint += prefix
+    
+        toprint += str(exception)
+        
+        if suffix is not None:
+            toprint += suffix
+        
+        toprint  = printer.formatRed(toprint)
         printFun = printer.formatRed
-        toprint  = printer.formatRed(prefix + str(exception))
 
     if printer.isDebugEnabled() and printStackTraceInCaseOfDebug:
-        toprint += printFun("\n\n"+traceback.format_exc())
+        stacktrace = traceback.format_exc()
+        if stacktrace is not None:
+            toprint += printFun("\n\n"+stacktrace)
 
     return toprint
 

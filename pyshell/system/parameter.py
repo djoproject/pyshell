@@ -200,8 +200,7 @@ class ParameterManagerV3(object):
             
     @synchronous()
     def getParameter(self, stringPath, perfectMatch = False, localParam = True, exploreOtherLevel=True):
-        advancedResult = self._getAdvanceResult("getParameter",stringPath, perfectMatch=perfectMatch) #this call will raise if value not found or ambiguous
-        (global_var, local_var, ) = advancedResult.getValue()
+        advancedResult = self._getAdvanceResult("getParameter",stringPath, perfectMatch=perfectMatch, raiseIfNotFound=False) #this call will raise if value not found or ambiguous
         
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()

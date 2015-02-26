@@ -2,9 +2,8 @@
 ### MISC                  ###
 #############################
 
-    #with the modification in getParameter, check if remaining hasParameter are still usefull
-        grep -lr "\.hasParameter" *
-
+    #a lot of place in the code just raise default exception "raise Exception"
+        #replace with pyshell exception raising
 
 #############################
 ### QUESTION              ###
