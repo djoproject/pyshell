@@ -21,13 +21,14 @@ from tries import multiLevelTries
 from pyshell.utils.executing  import execute, _generateSuffix, _execute
 from pyshell.utils.exception  import ListOfException
 from pyshell.system.parameter import ParameterContainer,EnvironmentParameter, ContextParameter
-from pyshell.utils.constants  import ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_EXECUTION_KEY
+from pyshell.utils.constants  import ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_EXECUTION_KEY, CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE
 from pyshell.command.command  import UniCommand, Command, MultiCommand
 from pyshell.arg.decorator    import shellMethod
-from pyshell.arg.argchecker   import defaultInstanceArgChecker,listArgChecker
+from pyshell.arg.argchecker   import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
 from pyshell.utils.parsing    import Parser
 from pyshell.arg.exception     import *
 from pyshell.command.exception import *
+from pyshell.command.engine    import engineV3
 from pyshell.utils.test.printingTest import NewOutput
 from time import sleep
 
@@ -92,8 +93,17 @@ class ExecutingTest(unittest.TestCase):
         
         self.params = ParameterContainer()
 
+        self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0,index=0, removable=False, readonly=True)
+        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME, self.debugContext, localParam = False)
+        
         self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False, readonly=True)
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY, self.shellContext, localParam = False)
+        
+        self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True)
+        self.params.context.setParameter(CONTEXT_COLORATION_KEY, self.backgroundContext, localParam = False)
+        
+        self.spacingContext = EnvironmentParameter(value=5, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False)
+        self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY, self.spacingContext, localParam = False)
         
         self.mltries = multiLevelTries()
         
@@ -320,31 +330,45 @@ class ExecutingTest(unittest.TestCase):
 
     ### _generateSuffix test ###
     def test_generateSuffix0(self):#no suffix production
-        self.assertEqual(_generateSuffix(self.params,("plop",),None,"__process__"),None)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
 
     def test_generateSuffix1(self):#test with debug
-        pass #TODO
+        self.debugContext.setIndexValue(1)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.debugContext.setIndexValue(0)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
         
     def test_generateSuffix2(self):#test outside shell context
-        pass #TODO
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
-    def test_generateSuffix3(self):#test with processName provided
-        pass #TODO
-        
-    def test_generateSuffix4(self):#test without processName provided
-        pass #TODO
+    def test_generateSuffix3(self):#test with processName provided or not
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,None)," (threadId="+str(threading.current_thread().ident)+", level=0)")
         
     def test_generateSuffix5(self):#test without commandNameList
-        pass #TODO
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"] )
+        self.assertEqual(_generateSuffix(self.params,None,e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix6(self):#test with None engine
-        pass #TODO
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix7(self):#test with empty engine
-        pass #TODO
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
+        del e.stack[:]
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix8(self):#test with valid engine and commandNameList
-        pass #TODO
+        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__', command='plop')")
+
         
 if __name__ == '__main__':
     unittest.main()

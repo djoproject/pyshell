@@ -588,10 +588,8 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
     def setIndexValue(self,value):
         try:
             self.index = self.value.index(self.typ.checker.getValue(value))
-        except IndexError:
-            raise ParameterException("(ContextParameter) setIndexValue, invalid index value")
-        except TypeError:
-            raise ParameterException("(ContextParameter) setIndexValue, invalid index value, the value must exist in the context")
+        except ValueError:
+            raise ParameterException("(ContextParameter) setIndexValue, unexisting value '"+str(value)+"', the value must exist in the context")
             
     def getIndex(self):
         return self.index
