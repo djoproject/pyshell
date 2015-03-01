@@ -34,14 +34,14 @@ from pyshell.utils.misc       import getTerminalSize
 from pyshell.utils.parsing    import Parser
 from pyshell.utils.printing   import Printer, warning, error, printException
 from pyshell.utils.valuable   import SimpleValuable
-from pyshell.system.alias     import AliasFromList, AliasFromFile
+from pyshell.system.procedure import ProcedureFromList, ProcedureFromFile
 from pyshell.system.keystore  import KeyStore
 from pyshell.system.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
 
 #TODO
     #there is no NoneCheck after .getParameter, could be interesting to manage these case
     
-    #use constant EVENT_TO_CREATE_ON_STARTUP to create the list of alias for these event at startup
+    #use constant EVENT_TO_CREATE_ON_STARTUP to create the list of procedure for these event at startup
 
 class CommandExecuter():
     def __init__(self, paramFile = None, outsideArgs = None):
@@ -113,7 +113,7 @@ class CommandExecuter():
     def _initStartUpEvent(self):
         ## prepare atStartUp ##
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
-        _atstartup = AliasFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        _atstartup = ProcedureFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         _atstartup.setErrorGranularity(None) #never stop, don't care about error
         
         _atstartup.addCommand( "addon load pyshell.addons.parameter" )
@@ -125,7 +125,7 @@ class CommandExecuter():
         _atstartup.setReadOnly(True)
         mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )
         
-        atstartup = AliasFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         atstartup.setErrorGranularity(None) #never stop, don't care about error
         atstartup.addCommand( "history load" )
         atstartup.addCommand( "key load" )
@@ -135,7 +135,7 @@ class CommandExecuter():
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
     
         ## prepare atExit ##
-        atExit = AliasFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
+        atExit = ProcedureFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
         atExit.setErrorGranularity(None) #never stop, don't care about error
         
         atExit.addCommand( "parameter save" ) #TODO need to have parameters addons parameter loaded before to save
@@ -298,7 +298,7 @@ class CommandExecuter():
 
     def executeFile(self,filename, granularity = None):            
         self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        afile = AliasFromFile(filename)
+        afile = ProcedureFromFile(filename)
         afile.setErrorGranularity(granularity)
         
         with self.ExceptionManager("An error occured during the script execution: "):

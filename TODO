@@ -72,7 +72,7 @@
 ### Bash like             ###
 #############################  
 
-#needed for alias
+#needed for Procedure
     shift, set
 
 #go outside of shell scope, really needed ? (see brainstorming)
@@ -201,12 +201,12 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
     
     prévoir un "reset" pour remettre les paramètre à ceux de démarrage
 
-#####################
-### alias manager ###
-#####################
+#########################
+### Procedure manager ###
+#########################
 
     main core element are ready
-    still need to find a way to use easyly the alias editing in command line
+    still need to find a way to use easyly the Procedure editing in command line
     implementer "set" et "shift" comme dans un vrai bash
         dans le std
         
@@ -259,7 +259,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #...
         
     #pour l'instant les ressource seront lockée pour un single process
-        #pas pour une commande, ni une multicommande, ni une piped commande, ni un aliasevent, ni ...
+        #pas pour une commande, ni une multicommande, ni une piped commande, ni un procedureevent, ni ...
         #est ce une bonne idée ?
         
     #What about parameter only accessible in a single thread ?

@@ -61,17 +61,19 @@ class ParameterContainer(object):
         self.variable    = ParameterManagerV3()
         self.mainThread  = current_thread().ident
 
-    def pushVariableLevelForThisThread(self):
+    def pushVariableLevelForThisThread(self, procedure = None):
         tid = current_thread().ident
         
         #manage first call to this container with this thread
         if tid not in self.threadLevel:
             level = -1
+            procedureStack = []
         else:
-            level = self.threadLevel[tid]
+            level, procedureStack = self.threadLevel[tid]
         
         #add level
-        self.threadLevel[tid] = level+1
+        procedureStack.append(procedure)
+        self.threadLevel[tid] = level+1, procedureStack
 
     def popVariableLevelForThisThread(self):
         tid = current_thread().ident
@@ -80,7 +82,7 @@ class ParameterContainer(object):
         if tid not in self.threadLevel:
             return 
         else:
-            level = self.threadLevel[tid]
+            level, procedureStack = self.threadLevel[tid]
         
         #flush parameter manager
         self.environment.flushVariableLevelForThisThread()
@@ -92,7 +94,8 @@ class ParameterContainer(object):
         if level == -1:
             del self.threadLevel[tid]
         else:
-            self.threadLevel[tid] = level
+            del procedureStack[-1]
+            self.threadLevel[tid] = level, procedureStack
         
     def getCurrentId(self):
         tid = current_thread().ident
@@ -100,10 +103,14 @@ class ParameterContainer(object):
         if tid not in self.threadLevel:
             self.pushVariableLevelForThisThread()
     
-        return (tid,self.threadLevel[tid],)
+        return (tid,self.threadLevel[tid][0],)
         
     def isMainThread(self):
         return self.mainThread == current_thread().ident
+
+    def getCurrentProcedure(self):
+        tid = current_thread().ident
+        return self.threadLevel[tid][1]
 
 class ParameterManagerV3(object):                    
     def __init__(self, parent = None):
@@ -160,7 +167,7 @@ class ParameterManagerV3(object):
             raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(stringPath)+"', an instance of Parameter was expected, got "+str(type(param)))
 
         #check safety and existing
-        advancedResult = self._getAdvanceResult("getParameter",stringPath, False, False, True)
+        advancedResult = self._getAdvanceResult("setParameter",stringPath, False, False, True)
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()
             

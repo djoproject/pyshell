@@ -16,20 +16,30 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #keep track of running event and be able to kill one or all of them
-        #manage it in alias object with a static list
-            #an alias add itself in the list before to start then remove itself from the list at the end of its execution
-                #what about main process ? (must be an alias ?)
-
-        #soft kill
-            #mark the thread to stop it on next command
-
-        #hard kill
+#TODO in addon std
+    #shift args
+        #info in param.var
+    #set args
+        #info in param.var
+    #goto (procedure line)
+        #get procedure from parameterContainer
+    #soft kill (thread id) (level or None)
+        #get procedure from parameterContainer
+    #hard kill
+        #HOWTO ? is it reallistic to implement ?
             #just manage to kill the thread immediatelly
                 #what about lock in this case ?
+    #list process
+        #get procedure list from parameterContainer
+    #command to startreadline then execute
+        #HOWTO ?
 
-        #implement static method in alias class
+#TODO in executer
+    #create an endless "shell" procedure
+    #use object ProcedureFromList
+
+#TODO here
+    #hard kill ?
 
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
@@ -56,29 +66,7 @@ def getAbsoluteIndex(index, listSize):
     
     return index
 
-#TODO
-    #should be able again to give args to the method execute
-        #really needed ? argument go to special var $
-        
-    #change name, it not alias anymore, but what is it ?
-        #process, script, procedure, ...
-        #inner, sub, stored, ...
-
-#TODO brainstorming
-    #create a special endless alias for shell entry point ? if yes, an AliasFromList
-        #+++
-            #everything will be alias, no need to manage a special case for the shell execution
-
-        #---
-            #add a layer without really need it
-
-        #TODO
-            #add a way in the alias to choose the next index to execute
-            #add a command in shell to call this index selection
-                #how to do it ? throught the engine
-            #create a command to start readline, get the command and execute it
-
-class Alias(UniCommand):
+class Procedure(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
         
@@ -89,29 +77,29 @@ class Alias(UniCommand):
         self.setReadOnly(readonly)
         self.setRemovable(removable)
         self.setTransient(transient)
+
+        self.interrupt       = False
+        self.interruptReason = None
         
     ### PRE/POST process ###
     
-    def _setArgs(self,parameterContainer, args):
-        parameterContainer.variable.setParameter("*", VarParameter(' '.join(str(x) for x in args)), localParam = True) #all in one string
-        parameterContainer.variable.setParameter("#", VarParameter(len(args)), localParam = True)                      #arg count
-        parameterContainer.variable.setParameter("@", VarParameter(args), localParam = True)                           #all args
-        #TODO parameterContainer.variable.setParameter("?", VarParameter(args, localParam = True)                            #value from last command
-            #TODO set default as empty
-        #TODO parameterContainer.variable.setParameter("!", VarParameter(args, localParam = True)                            #last pid started in background
-            #should be global ? because thread list is global in the system...
-        
-        parameterContainer.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = True)             #current process id #TODO id is not enought, need level
-    
+    def _setArgs(self,parameters, args):
+        parameters.variable.setParameter("*", VarParameter(' '.join(str(x) for x in args)), localParam = True)    #all in one string
+        parameters.variable.setParameter("#", VarParameter(len(args)), localParam = True)                         #arg count
+        parameters.variable.setParameter("@", VarParameter(args), localParam = True)                              #all args
+        parameters.variable.setParameter("?", VarParameter( ()), localParam = True)                               #value from last command
+        parameters.variable.setParameter("!", VarParameter( ()), localParam = True)                               #last pid started in background        
+        parameters.variable.setParameter("$", VarParameter(parameters.getCurrentId()), localParam = True) #current process id 
+
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
     def _pre(self, args, parameters):
-        "this command is an alias"
+        "this command is a procedure"
         
         if not self.executeOnPre:
             return args
         
-        parameters.pushVariableLevelForThisThread()
+        parameters.pushVariableLevelForThisThread(self)
         self._setArgs(parameters, args)
         try:
             return self.execute(parameters)
@@ -125,61 +113,80 @@ class Alias(UniCommand):
         if self.executeOnPre:
             return args
         
-        parameters.pushVariableLevelForThisThread()
+        parameters.pushVariableLevelForThisThread(self)
         self._setArgs(parameters, args)
         try:
             return self.execute(parameters)
         finally:
             parameters.popVariableLevelForThisThread()
-        
+    
+    def interrupt(self, reason=None):
+        self.interrupt       = True
+        self.interruptReason = reason
+
     def execute(self, parameters):
         pass #XXX TO OVERRIDE and use _innerExecute
         
     def _innerExecute(self, cmd, name, parameters):
-        #TODO set "$?"
-            #if error from last execution, set empty
-            #otherwise, set the result if any
-    
+        if self.interrupt:
+            if self.interruptReason is None:
+                raise engineInterruptionException("this process has been interrupted", abnormal=True)
+            else:
+                raise engineInterruptionException("this process has been interrupted, reason: '"+str(self.interruptReason)+"'", abnormal=True)
+
         lastException, engine = execute(cmd, parameters, name)  
+        param = parameters.variable.getParameter("?",perfectMatch = True, localParam = True, exploreOtherLevel=False)
 
         if lastException is not None: 
+            #set empty the variable "?"
+            param.setValue( () )
+
+            #manage exception
             if not isinstance(lastException, PyshellException):
                 raise engineInterruptionException("internal command has been interrupted because of an enexpected exception", abnormal=True)
             
             if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
                 raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed", abnormal=False)               
-        
+        else:
+            if engine is not None and engine.getLastResult() is not None and len(engine.getLastResult()) > 0:
+                param.setValue( engine.getLastResult() )
+            else:
+                param.setValue( () )
+
         return lastException, engine
         
     ###### get/set method
     
+    def setNextCommandIndex(self, index):
+        raise DefaultPyshellException("(Procedure) setNextCommandIndex, not possible to set next command index on this king of procedure")
+
     def setReadOnly(self, value):
         if type(value) != bool:
-            raise ParameterException("(Alias) setReadOnly, expected a bool type as state, got '"+str(type(value))+"'")
+            raise ParameterException("(Procedure) setReadOnly, expected a bool type as state, got '"+str(type(value))+"'")
             
         self.readonly = value
         
     def setRemovable(self, value):
         if type(value) != bool:
-            raise ParameterException("(Alias) setRemovable, expected a bool type as state, got '"+str(type(value))+"'")
+            raise ParameterException("(Procedure) setRemovable, expected a bool type as state, got '"+str(type(value))+"'")
             
         self.removable = value
         
     def setTransient(self, value):
         if type(value) != bool:
-            raise ParameterException("(Alias) setTransient, expected a bool type as state, got '"+str(type(value))+"'")
+            raise ParameterException("(Procedure) setTransient, expected a bool type as state, got '"+str(type(value))+"'")
             
         self.transient = value  
     
     def setErrorGranularity(self, value):
         if value is not None and (type(value) != int or value < 0):
-            raise ParameterException("(Alias) setErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
+            raise ParameterException("(Procedure) setErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
     
         self.errorGranularity = value
         
     def setExecuteOnPre (self, value):
         if type(value) != bool:
-            raise ParameterException("(Alias) setExecuteOnPre, expected a boolean value as parameter, got '"+str(type(value))+"'")
+            raise ParameterException("(Procedure) setExecuteOnPre, expected a boolean value as parameter, got '"+str(type(value))+"'")
     
         self.executeOnPre = value
                 
@@ -200,7 +207,7 @@ class Alias(UniCommand):
         
     def clone(self, From=None):
         if From is None:
-            From = Alias(self.name)
+            From = Procedure(self.name)
         
         From.errorGranularity = self.errorGranularity
         From.executeOnPre     = self.executeOnPre
@@ -210,25 +217,26 @@ class Alias(UniCommand):
         
         return UniCommand.clone(self,From)
             
-class AliasFromList(Alias):
+class ProcedureFromList(Procedure):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
-        Alias.__init__(self, name, showInHelp, readonly, removable, transient)
+        Procedure.__init__(self, name, showInHelp, readonly, removable, transient)
         
         #specific command system
         self.stringCmdList    = [] 
-        self.lockedTo = -1
+        self.lockedTo         = -1
+        self.nextCommandIndex = None
     
     def setLockedTo(self, value):
         try:
             value = int(value)
         except ValueError as va:
-            raise ParameterException("(Alias) setLockedTo, expected an integer value as parameter: "+str(va))
+            raise ParameterException("(Procedure) setLockedTo, expected an integer value as parameter: "+str(va))
     
         if value < -1 or value >= len(self.stringCmdList):
             if len(self.stringCmdList) == 0:
-                raise ParameterException("(Alias) setLockedTo, only -1 is allowed because alias list is empty, got '"+str(value)+"'")
+                raise ParameterException("(Procedure) setLockedTo, only -1 is allowed because procedure list is empty, got '"+str(value)+"'")
             else:
-                raise ParameterException("(Alias) setLockedTo, only a value from -1 to '"+str(len(self.stringCmdList) - 1)+"' is allowed, got '"+str(value)+"'")
+                raise ParameterException("(Procedure) setLockedTo, only a value from -1 to '"+str(len(self.stringCmdList) - 1)+"' is allowed, got '"+str(value)+"'")
             
         self.lockedTo = value
         
@@ -239,20 +247,38 @@ class AliasFromList(Alias):
         return self.stringCmdList
                 
     def execute(self, parameters):
-        #e = self.clone() #make a copy of the current alias      
+        #e = self.clone() #make a copy of the current procedure   
         engine = None
         
         #for cmd in self.stringCmdList:
-        for i in xrange(0,len(self.stringCmdList)):
+        i = 0
+        while i < len(self.stringCmdList):
             lastException, engine = self._innerExecute(self.stringCmdList[i], self.name + " (index: "+str(i)+")", parameters)
 
-        #return the result of last command in the alias
+            if self.nextCommandIndex is not None:
+                i = self.nextCommandIndex
+                self.nextCommandIndex = None
+            else:
+                i += 1
+
+        #return the result of last command in the procedure
         if engine is None:
             return ()
             
         return engine.getLastResult()
                 
     #### business method
+
+    def setNextCommandIndex(self, index):
+        try:
+            value = int(index)
+        except ValueError as va:
+            raise ParameterException("(Procedure) setNextCommandIndex, expected an integer index as parameter, got '"+str(type(va))+"'")
+    
+        if value < 0:
+            raise ParameterException("(Procedure) setNextCommandIndex, negativ value not allowed, got '"+str(value)+"'")
+            
+        self.nextCommandIndex = value
     
     def setCommand(self, index, commandStringList):
         self._checkAccess("setCommand", (index,), False)
@@ -261,7 +287,7 @@ class AliasFromList(Alias):
         parser.parse()
 
         if len(parser) == 0:
-            raise ParameterException("(Alias) addCommand, try to add a command string that does not hold any command")
+            raise ParameterException("(Procedure) addCommand, try to add a command string that does not hold any command")
 
         index = getAbsoluteIndex(index, len(self.stringCmdList))
         
@@ -279,7 +305,7 @@ class AliasFromList(Alias):
         parser.parse()
 
         if len(parser) == 0:
-            raise ParameterException("(Alias) addCommand, try to add a command string that does not hold any command")
+            raise ParameterException("(Procedure) addCommand, try to add a command string that does not hold any command")
 
         self.stringCmdList.append( parser )
         return len(self.stringCmdList) - 1
@@ -308,7 +334,7 @@ class AliasFromList(Alias):
     
     def _checkAccess(self,methName, indexToCheck = (), raiseIfOutOfBound = True):
         if self.isReadOnly():
-            raise ParameterException("(Alias) "+methName+", this alias is readonly, can not do any update on its content")
+            raise ParameterException("(Procedure) "+methName+", this procedure is readonly, can not do any update on its content")
             
         for index in indexToCheck:
             #check validity
@@ -323,9 +349,9 @@ class AliasFromList(Alias):
                     else:
                         message = "A value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
                 
-                    raise ParameterException("(Alias) "+methName+", index out of bound. "+message+", got '"+str(index)+"'")
+                    raise ParameterException("(Procedure) "+methName+", index out of bound. "+message+", got '"+str(index)+"'")
             except TypeError as te:
-                raise ParameterException("(Alias) "+methName+", invalid index: "+str(te))
+                raise ParameterException("(Procedure) "+methName+", invalid index: "+str(te))
         
             #make absolute index
             index = getAbsoluteIndex(index, len(self.stringCmdList))
@@ -339,7 +365,7 @@ class AliasFromList(Alias):
                 else:
                     message = "A value between 0 and "+str(len(self.stringCmdList)-1) + " was expected"
             
-                raise ParameterException("(Alias) "+methName+", invalid index. "+message+", got '"+str(index)+"'")
+                raise ParameterException("(Procedure) "+methName+", invalid index. "+message+", got '"+str(index)+"'")
         
     def upCommand(self,index):
         self.moveCommand(index,index-1)
@@ -349,20 +375,20 @@ class AliasFromList(Alias):
     
     def clone(self, From=None):
         if From is None:
-            From = AliasFromList(self.name)
+            From = ProcedureFromList(self.name)
         
         From.stringCmdList = self.stringCmdList[:]
         From.lockedTo      = self.lockedTo
         
-        return Alias.clone(self,From)       
+        return Procedure.clone(self,From)       
         
-class AliasFromFile(Alias):
+class ProcedureFromFile(Procedure):
     def __init__(self, filePath, showInHelp = True, readonly = False, removable = True, transient = False):
-        Alias.__init__(self, "execute "+str(filePath), showInHelp, readonly, removable, transient )
+        Procedure.__init__(self, "execute "+str(filePath), showInHelp, readonly, removable, transient )
         self.filePath = filePath
     
     def execute(self, parameters):
-        #make a copy of the current alias
+        #make a copy of the current procedure
         engine = None
         
         #for cmd in self.stringCmdList:
@@ -372,7 +398,7 @@ class AliasFromFile(Alias):
                 lastException, engine = self._innerExecute(line, self.name + " (line: "+str(index)+")", parameters) 
                 index += 1
 
-        #return the result of last command in the alias
+        #return the result of last command in the procedure
         if engine is None:
             return ()
             
@@ -380,7 +406,7 @@ class AliasFromFile(Alias):
     
     def clone(self, From=None):
         if From is None:
-            From = AliasFile(self.filePath)
+            From = ProcedureFile(self.filePath)
             
-        return Alias.clone(self,From)
+        return Procedure.clone(self,From)
     

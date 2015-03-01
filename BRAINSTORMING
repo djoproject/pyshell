@@ -34,12 +34,12 @@ we want to be able to redirect output without executing process on the last comm
         
     IDEA 2 : implement an addon to manage IF/GOTO/LOOP
         really easy to implement in addon ?
-            seems to be easier to manage it in alias object
+            seems to be easier to manage it in procedure object
             
-        every thing should be alias object
+        every thing should be procedure object
             main shell
             script from outside
-            alias form alias file
+            procedure form procedure file
             
         there is no statement begin/end in shell
             indicateur could be marker (toto:) or line number

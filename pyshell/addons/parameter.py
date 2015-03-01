@@ -26,7 +26,7 @@ from pyshell.utils.misc        import createParentDirectory
 from pyshell.utils.postProcess import listResultHandler,printColumn, listFlatResultHandler,printColumnWithouHeader
 from pyshell.utils.parsing     import escapeString
 from pyshell.utils.printing    import formatBolt, formatOrange
-from pyshell.system.alias      import AliasFromFile
+from pyshell.system.procedure  import ProcedureFromFile
 from pyshell.system.parameter  import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
 import os 
 
@@ -182,7 +182,7 @@ def loadParameter(filePath, parameters):
     filePath = filePath.getValue()
 
     if os.path.exists(filePath):
-        afile = AliasFromFile(filePath)
+        afile = ProcedureFromFile(filePath)
         afile.setErrorGranularity(None) #never stop to execute
         afile.execute(parameters=parameters)
     else:

@@ -293,9 +293,9 @@ def filter(data, from = 0, to=None):
         #two main case, arg are not stored at the same place:
             #arg from call outside the python application
                 #store in params (? need to brainstorm, see TODO file)
-            #arg in an alias
+            #arg in an procedure
                 #where to store them (? need to brainstorm, see TODO file)
-                    #currently in alias 
+                    #currently in procedure 
         
 ### REGISTER SECTION ###
 

@@ -27,23 +27,23 @@ from pyshell.loader.utils import getAndInitCallerModule, AbstractLoader
     
 
 def _local_getAndInitCallerModule(subLoaderName = None)
-    return getAndInitCallerModule(AliasLoader.__module__+"."+AliasLoader.__name__,AliasLoader, 3, subLoaderName)
+    return getAndInitCallerModule(ProcedureLoader.__module__+"."+ProcedureLoader.__name__,ProcedureLoader, 3, subLoaderName)
 
-class AliasLoader(AbstractLoader):
+class ProcedureLoader(AbstractLoader):
     def __init__(self):
         #adding part
         self.listToLoad = []
         self.indexNotFree = {}
         
         #removing part
-        self.aliasCreated = []
+        self.procedureCreated = []
         self.indexAdded = []
         
     def load(self, parameterManager, subLoaderName = None):
         AbstractLoader.load(self, parameterManager, subLoaderName)
         
-        for aliasName, aliasCommand, index in self.listToLoad:
-            #TODO alias exist ?
+        for procedureName, procedureCommand, index in self.listToLoad:
+            #TODO procedure exist ?
                 #if not create it and register it as a new one
             
             if index is None:
@@ -51,40 +51,40 @@ class AliasLoader(AbstractLoader):
             else:
                 pass #TODO
                 
-            #TODO register the index to remove if it is an existing alias
-                #check in the aliasCreated list
+            #TODO register the index to remove if it is an existing procedure
+                #check in the procedureCreated list
             
             pass #TODO
         
     def unload(self, parameterManager, subLoaderName = None):
         AbstractLoader.unload(self, parameterManager, subLoaderName)
         
-        for created in self.aliasCreated:
+        for created in self.procedureCreated:
             pass #TODO remove or not ? if there is more cmd inside than at the insertion ?
         
         for index in self.indexAdded:
             pass #TODO remove or not ? how to know if it is still the same index ?
         
-def registerAddAliasCommand(aliasName, aliasCommand, subLoaderName = None):
+def registerAddProcedureCommand(procedureName, procedureCommand, subLoaderName = None):
     loader = _local_getAndInitCallerModule(subLoaderName)
     
-    #TODO valid alias name ?
+    #TODO valid procedure name ?
     
-    #TODO valid alias command ?
+    #TODO valid procedure command ?
         
     #add in list
-    self.listToLoad.append( (aliasName, aliasCommand, None) )
+    self.listToLoad.append( (procedureName, procedureCommand, None) )
     
-def registerSetAliasCommand(index, aliasName, aliasCommand, override = False, subLoaderName = None):
+def registerSetProcedureCommand(index, procedureName, procedureCommand, override = False, subLoaderName = None):
     loader = _local_getAndInitCallerModule(subLoaderName)
     
     #TODO valid index ?
     
-    #TODO valid aliasName ?
+    #TODO valid procedureName ?
     
-    #TODO valid aliasCommand ?
+    #TODO valid procedureCommand ?
     
     #TODO free index ?
     
     #add in list
-    self.listToLoad.append( (aliasName, aliasCommand, index) )
+    self.listToLoad.append( (procedureName, procedureCommand, index) )

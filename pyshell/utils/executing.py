@@ -27,7 +27,7 @@ from pyshell.utils.solving     import Solver
 from pyshell.system.parameter  import VarParameter
 import threading
 
-#execute return engine and lastException to the calling alias
+#execute return engine and lastException to the calling procedure
     #engine to retrieve any output
     #exception, to check granularity and eventually stop the execution
 
@@ -65,7 +65,7 @@ def execute(string, parameterContainer, processName=None, processArg=None):
     if parser.isToRunInBackground():
         t = threading.Thread(None, _execute, None, (parser,parameterContainer,processName,))
         t.start()
-        parameterContainer.variable.setParameter("$!", VarParameter(str(t.ident)), localParam = True)
+        parameterContainer.variable.setParameter("!", VarParameter(str(t.ident)), localParam = True)
         return None,None #not possible to retrieve exception or engine, it is another thread
     else:
         return _execute(parser,parameterContainer, processName)
@@ -106,7 +106,7 @@ def _execute(parser,parameterContainer, processName=None):
     try:                
         #solve command, variable, and dashed parameters
         rawCommandList, rawArgList, mappedArgs, commandNameList = Solver().solve(parser, parameterContainer.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue(), parameterContainer.variable)
-        #clone command/alias to manage concurrency state
+        #clone command/procedure to manage concurrency state
         newRawCommandList = []
         for i in xrange(0,len(rawCommandList)):
             c = rawCommandList[i].clone()
@@ -121,7 +121,7 @@ def _execute(parser,parameterContainer, processName=None):
         
         #execute 
         engine.execute()
-
+        
     except executionInitException as ex:
         printException(ex,prefix="Fail to init an execution object: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except executionException as ex:

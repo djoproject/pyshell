@@ -182,7 +182,7 @@ class ExecutingTest(unittest.TestCase):
         self.assertEqual(lastException, None)
         self.assertEqual(engine, None)
         
-        threadId = self.params.variable.getParameter("$!").getValue()
+        threadId = self.params.variable.getParameter("!").getValue()
         
         for t in threading.enumerate():
             if t.ident == threadId[0]:
