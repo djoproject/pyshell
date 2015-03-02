@@ -124,6 +124,7 @@ class CommandExecuter():
         
         _atstartup.setReadOnly(True)
         mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )
+        #TODO _atstartup should be hidden in tries
         
         atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         atstartup.setErrorGranularity(None) #never stop, don't care about error

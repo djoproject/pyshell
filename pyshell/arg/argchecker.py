@@ -574,11 +574,11 @@ class abstractParameterChecker(ArgChecker):
     
     #TODO est ce qu'il existe vraiment un cas de figure ou les valeurs par defaut peuvent être appellée avec un argument de taille min=0, max=0 ?
     def getDefaultValue(self, argNameToBind=None):
-        container = self._getContainer(argNumber, argNameToBind)
+        container = self._getContainer(None, argNameToBind)
 
         param = container.getParameter(self.keyname)
         if param is None:
-            self._raiseArgException("the key '"+self.keyname+"' is not available but needed", argNumber, argNameToBind)
+            self._raiseArgException("the key '"+self.keyname+"' is not available but needed", None, argNameToBind)
     
         return param
         

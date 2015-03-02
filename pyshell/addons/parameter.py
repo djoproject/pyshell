@@ -179,10 +179,8 @@ def listParameter(parameters, key=None):
 def loadParameter(filePath, parameters):
     "load parameters from the settings file"
 
-    filePath = filePath.getValue()
-
-    if os.path.exists(filePath):
-        afile = ProcedureFromFile(filePath)
+    if os.path.exists(filePath.getValue()):
+        afile = ProcedureFromFile(filePath.getValue())
         afile.setErrorGranularity(None) #never stop to execute
         afile.execute(parameters=parameters)
     else:
@@ -195,7 +193,7 @@ def saveParameter(filePath, parameters):
 
     #TODO is there something to save ?
         #should compare the content of the file, the memory and the starting parameter...
-
+    
     filePath = filePath.getValue()
 
     #create directory if needed
