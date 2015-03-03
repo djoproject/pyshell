@@ -16,6 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO 
+    #split in separates files (container, parameter, context, var, ...)
+    #could not be possible to insert env in context container, and so on
+
 from pyshell.arg.argchecker  import ArgChecker, defaultInstanceArgChecker, listArgChecker
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable  import Valuable, SelectableValuable

@@ -37,9 +37,29 @@
 #TODO in executer
     #create an endless "shell" procedure
     #use object ProcedureFromList
+        #need some new command before to do that
+            #GOTO or LOOP
+            #command to readline and execute
 
 #TODO here
-    #hard kill ?
+    #hard kill ? need brainstorming
+    
+    #special case, what append in procedure level 0
+        #exception should never interrupt a procedure at level 0, because it could stop the application
+            #default granularity = None, print a warning message if a procedure with lower granularity is executed at level 0
+    
+    #manage stack of process call
+        #if an exception occur in a command of level X, the procedure of level X will raise an interrupting exception to the upper level
+            #each procedure will raise an interrupting exception until the level 0 or until a procedure allowing the granularity
+            #so if there is 5 level (and no granularity stop), 5 error message (and stacktrace if debug) will be printed
+                #really ugly, only the first message and first stacktrace are relevant.
+            
+        #IDEA: raise exception from procedure to procedure with printing disabled
+            #until we reach level 0 or a procedure that accept this level of granularity
+            #then when we reach the last procedure, print a stacktrace of the procedure call
+            #use the same exception
+                #at procedure business code, catch exception, add information about current process, then re raise the exception
+            #at the final level (0 or granularity stop), print procedure stack trace (even if debug disabled)
 
 import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
@@ -178,6 +198,8 @@ class Procedure(UniCommand):
             
         self.transient = value  
     
+    #TODO not obvious, maximum level allowed ? or minimum level allowed ? bound included or not ?
+        #update method name
     def setErrorGranularity(self, value):
         if value is not None and (type(value) != int or value < 0):
             raise ParameterException("(Procedure) setErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
@@ -189,7 +211,7 @@ class Procedure(UniCommand):
             raise ParameterException("(Procedure) setExecuteOnPre, expected a boolean value as parameter, got '"+str(type(value))+"'")
     
         self.executeOnPre = value
-                
+    
     def getErrorGranularity(self):
         return self.errorGranularity
         

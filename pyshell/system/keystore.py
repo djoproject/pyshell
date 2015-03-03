@@ -16,6 +16,42 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO BRAINSTORMING
+    #is it still usefull to keep a keystore like this ?
+        #for the moment keystore is an EnvironmentParameter, each key should be a single parameter
+    
+        #could be stored in environment container as list EnvironmentParameter
+            #with a keyArgChecker
+            
+        #+++
+            #become an homogene part of the current system
+            #generic way to save and load
+        
+        #---
+            #keystore will be in the same file as every parameters
+            #if we want to cipher key, it becomes more complicated
+            
+        #PRBLM
+            #1 storing the key should be a string BUT retrieving the key in a command should be a list of int
+                #SOLUTION 1
+                    #create a serializable method in parameter
+                        #for key, it will return a different value as the getValue
+                        #but for the others parameter the behaviour will be the same as 
+                    
+                    #create a method to get serialized type
+                        #because a string is not a list    
+                #SOLUTION 2 XXX prefere this one
+                    #the opposite of solution 1, a key is always a string and so an environmentParameter that is not a list
+                    #but key method are still available (getSize, getItem, getType, ...)
+                
+            #2 how to know if it is a binary of a byte key
+                #create a new object that inherit from EnvironmentParameter and add a field bynaryOrNot
+            #2b yeah, then how to kwon in shell if it is binnary or not?
+                #don't think it is possible to know it with the current system, so not really a prblm
+                #so if we retrieve key object in a command, a key method will be available to know this information
+            #3 how to list them
+                #create a whole new container just to them
+            
 from tries                   import tries
 from tries.exception         import ambiguousPathException
 from pyshell.utils.exception import KeyStoreException

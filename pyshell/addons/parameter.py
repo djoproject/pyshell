@@ -192,7 +192,9 @@ def saveParameter(filePath, parameters):
     "save not transient parameters to the settings file"
 
     #TODO is there something to save ?
-        #should compare the content of the file, the memory and the starting parameter...
+        #SOLUTION1 should compare the content of the file, the memory and the starting parameter...
+        #SOLUTION2 historized parameters
+            #store old value, when it has been change and by what
     
     filePath = filePath.getValue()
 
