@@ -17,7 +17,10 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO 
-    #split in separates files (container, parameter, context, var, ...)
+    #split in separates files (container, parameter, context, var, key, ...)
+        #Parameter and ParameterManagerV3 could be in the same file
+            #add abstract method on ParameterManagerV3 (isAnAllowedObject, )
+        #each other file hold an object that inherit from ParameterManagerV3 and another from Parameter (or a child class of Parameter)
     #could not be possible to insert env in context container, and so on
 
 from pyshell.arg.argchecker  import ArgChecker, defaultInstanceArgChecker, listArgChecker

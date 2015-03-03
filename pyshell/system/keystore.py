@@ -51,6 +51,15 @@
                 #so if we retrieve key object in a command, a key method will be available to know this information
             #3 how to list them
                 #create a whole new container just to them
+
+            #XXX MAIN SOLUTION XXX
+                #keep Key object
+                #remove KeyStore object
+                #Parameter Container for key (as new keystore object)
+                #EnvironmentParameter with keyArgChecker
+                #adapt keyStoreTranslatorArgChecker, KeyArgChecker
+                #adapt addon/keystore
+
             
 from tries                   import tries
 from tries.exception         import ambiguousPathException
