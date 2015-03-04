@@ -4,32 +4,17 @@
 
     #a lot of place in the code just raise default exception "raise Exception"
         #replace with pyshell exception raising
-
-#############################
-### QUESTION              ###
-#############################
-
-    how to parametrize on a return value ?
-        e.g. : echo 1 2 3 | write
-            if write has an address argument only available on dashed params ?
-            
-    a thread execution should have private variable
-        e.g. : to store status world mechanism
-        
-        variable only accessible in local scope ?
-            not necessary variable, could also be context/env/var
-            only transient, never stored
-            so lock is always disabled
-            must be flushed at the end of the thread execution (useless for the staying thread)
-            
-            PRETTY GOOD, TODO move to corresponding part
-            
-            QUESTION, What about the locking part for the properties access ?
-
+ 
 #############################
 ### MAJOR ISSUES          ###
 #############################
-    1) not possible to do that:
+    1) how to parametrize on a return value ?
+        e.g. : echo 1 2 3 | write
+            if write has an address argument only available on dashed params ?
+            
+        the goal is to be able to set the adress from the echo, but is is not possible because only tokens are returned, not key/value
+
+    2) not possible to do that:
         var add toto | echo 1 2 3
 
     because token "toto" will be sent to the pre of var, then pre of echo, then processed in echo post, and ...
@@ -38,10 +23,10 @@
 
         FIXED but need process in pre to store args
 
-    2) not possible to do that:
+    3) not possible to do that:
         process | echo16
 
-    bacause pro of process will never be executed, only process of echo16 will be
+    because pro of process will never be executed, only process of echo16 will be
 
     SOLUTION1:
         could be possible to get access to previous command and execute its pro from current args
@@ -57,16 +42,16 @@
 ### Help/usage            ###
 #############################
 
-    #try to integrate default value in usage
+    #integrate default value in usage
     
     #allow helping description on several lines
         #maybe it already works but need to test
         #the problem is the help print with several different command, only one line is allowed
             #and currently, there is no filtering
         
-    #show in helping message, some example of method call
+    #auto generate and show in helping message, some example of method call
     
-    #show in help message which params need to be used with a dash
+    #auto generate and show in help message which params need to be used with a dash
 
 #############################
 ### Bash like             ###
@@ -77,11 +62,6 @@
 
 #go outside of shell scope, really needed ? (see brainstorming)
     loop, if, goto, ...
-
-#############################
-### keystore              ###
-#############################    
-    be able to cypher it
 
 #############################
 ### utilisation des tries ###
@@ -119,7 +99,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 #################
 ### stdaddons ###
 #################      
-    #gérer les commentaires
+    #gérer les commentaires, dans le parser plutot, non ?
         #voir shell.py
         
     #echo/echo16/toascii execut themself only in postprocess now
@@ -133,7 +113,7 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
 #####################
 
 	#an interface with a few meth		
-		#adapter printing pour pouvoir utiliser le package log
+		#adapter printing pour pouvoir facilement utiliser le package log
 		
     #gérer des trucs comme >, >>, 2>, 2>>, ...
         #changer le flux d'output pour la commande
@@ -187,32 +167,32 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #type de framew
         #...
 
-##################################################################################################################################
-##### futur work (part 1) ########################################################################################################
-##################################################################################################################################
-
-    (threading/event/thread-safe/application-safe/...)
-    
-    work in progress, see file EventManager and parameter
-
 #####################
 ### parameter     ###
 #####################
     
     prévoir un "reset" pour remettre les paramètre à ceux de démarrage
+    
+    be able to cypher the parameter file
+    
+    About history.
+        WHY?
+            PBLM 1 how to know if is it necessary to recreate stored config or not ?
+            PBLM 2 loader add/create parameter on loading and should remove then on unloading
+                   except if another element update the value (custom update, other addon, ...) 
+                   
+        SOLUTION
+        
+        PRBLM
+            if we just overwritte the full parameter, not only set a new value
 
 #########################
 ### Procedure manager ###
 #########################
-
-    main core element are ready
-    still need to find a way to use easyly the Procedure editing in command line
-    implementer "set" et "shift" comme dans un vrai bash
-        dans le std
         
-    stored file is just ugly...
+    stored file is just ugly... (still the case ?)
     
-    use the function to check the existence of the directory
+    use the function to check the existence of the directory (still the case ?)
         see utils.utils file
     
 #####################
@@ -256,17 +236,15 @@ plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un 
         #objet partagé avec pyro ? chiant avec pyro, besoin d'une lib externe...
         #fichier de lock ?
         #analyse des process en memoire ? (need to be root)
+        #flux de com en mémoire ?
         #...
         
     #pour l'instant les ressource seront lockée pour un single process
         #pas pour une commande, ni une multicommande, ni une piped commande, ni un procedureevent, ni ...
         #est ce une bonne idée ?
-        
-    #What about parameter only accessible in a single thread ?
-        a parameter object only accessible in thread environment, not in the whole app 
 
 ##################################################################################################################################
-##### futur work (part 2) ########################################################################################################
+##### futur work  ################################################################################################################
 ##################################################################################################################################
 
 #############################

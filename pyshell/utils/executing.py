@@ -24,7 +24,7 @@ from pyshell.utils.exception   import DefaultPyshellException, ListOfException, 
 from pyshell.utils.parsing     import Parser
 from pyshell.utils.printing    import printException
 from pyshell.utils.solving     import Solver
-from pyshell.system.parameter  import VarParameter
+from pyshell.system.variable   import VarParameter
 import threading
 
 #execute return engine and lastException to the calling procedure

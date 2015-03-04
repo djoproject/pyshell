@@ -20,7 +20,8 @@ from pyshell.command.command     import MultiOutput, MultiCommand, Command
 from pyshell.command.exception   import *
 from pyshell.command.stackEngine import engineStack
 from pyshell.command.utils       import *
-from pyshell.system.parameter    import ParameterContainer, EnvironmentParameter, ParametersLocker
+from pyshell.system.container    import ParameterContainer
+from pyshell.system.environment  import EnvironmentParameter, ParametersLocker
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test    

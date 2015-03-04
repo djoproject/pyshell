@@ -56,7 +56,9 @@
                 #keep Key object
                 #remove KeyStore object
                 #Parameter Container for key (as new keystore object)
+                    #set should allow string and key object
                 #EnvironmentParameter with keyArgChecker
+                    #just override constructor
                 #adapt keyStoreTranslatorArgChecker, KeyArgChecker
                 #adapt addon/keystore
 

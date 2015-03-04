@@ -21,7 +21,9 @@ from pyshell.utils.printing   import Printer, LIGHTRED, ENDC, DARKRED, BOLT, _to
 from pyshell.utils.valuable   import SimpleValuable
 from pyshell.utils.constants  import ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, CONTEXT_EXECUTION_KEY, DEBUG_ENVIRONMENT_NAME, CONTEXT_EXECUTION_SHELL,CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_COLORATION_LIGHT, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_NONE
 from pyshell.utils.exception  import DefaultPyshellException, WARNING, NOTICE, ListOfException
-from pyshell.system.parameter import ParameterContainer, ContextParameter, EnvironmentParameter
+from pyshell.system.container   import ParameterContainer
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.context     import ContextParameter
 from pyshell.arg.argchecker   import defaultInstanceArgChecker, IntegerArgChecker
 
 class NewOutput(object):
@@ -315,7 +317,7 @@ class PrintingTest(unittest.TestCase):
         
         stackTrace = LIGHTORANGE + "toto" + ENDC + LIGHTORANGE + "\n\n" \
                    + "Traceback (most recent call last):\n" \
-                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 324, in test_formatException7\n" \
+                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 326, in test_formatException7\n" \
                    + "    raise DefaultPyshellException(\"toto\", WARNING)\n" \
                    + "DefaultPyshellException: toto\n" \
                    + ""+ENDC
@@ -335,7 +337,7 @@ class PrintingTest(unittest.TestCase):
         
         stackTrace = LIGHTRED+"plop"+ENDC +"\n"+ LIGHTORANGE+"plip"+ENDC +"\n"+ LIGHTGREEN+"toto"+ENDC + LIGHTRED + "\n\n" \
                    + "Traceback (most recent call last):\n" \
-                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 344, in test_formatException8\n" \
+                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 346, in test_formatException8\n" \
                    + "    raise l\n" \
                    + "ListOfException: 3 exception(s) in list\n" \
                    + ""+ENDC
@@ -355,7 +357,7 @@ class PrintingTest(unittest.TestCase):
         
         stackTrace = LIGHTRED+"plap"+ENDC+"\n" + "     "+LIGHTRED+"plop"+ENDC +"\n"+ "     "+LIGHTORANGE+"plip"+ENDC +"\n"+ "     "+LIGHTGREEN+"toto"+ENDC + LIGHTRED + "\n\n" \
                    + "Traceback (most recent call last):\n" \
-                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 364, in test_formatException9\n" \
+                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 366, in test_formatException9\n" \
                    + "    raise l\n" \
                    + "ListOfException: 3 exception(s) in list\n" \
                    + ""+ENDC

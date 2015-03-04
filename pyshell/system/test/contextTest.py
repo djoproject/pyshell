@@ -17,9 +17,9 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.system.procedure import Procedure, ProcedureFromList, ProcedureFromFile
+from pyshell.system.context import ContextParameter
 
-class ProcedureTest(unittest.TestCase):
+class ContextTest(unittest.TestCase):
     def setUp(self):
         pass
 

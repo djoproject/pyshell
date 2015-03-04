@@ -20,7 +20,7 @@ import threading, sys, re, os, traceback
 from pyshell.utils.valuable   import Valuable, DefaultValuable, SelectableValuable
 from pyshell.utils.exception  import NOTICE, WARNING, PyshellException, ListOfException
 from pyshell.utils.constants  import CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_COLORATION_DARK, CONTEXT_COLORATION_LIGHT, CONTEXT_COLORATION_NONE, TAB_SIZE,  CONTEXT_EXECUTION_KEY, ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME
-from pyshell.system.parameter import ParameterContainer
+from pyshell.system.container import ParameterContainer
 
 _EMPTYSTRING = ""
 

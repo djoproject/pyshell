@@ -18,17 +18,19 @@
 
 import unittest, threading
 from tries import multiLevelTries
-from pyshell.utils.executing  import execute, _generateSuffix, _execute
-from pyshell.utils.exception  import ListOfException
-from pyshell.system.parameter import ParameterContainer,EnvironmentParameter, ContextParameter
-from pyshell.utils.constants  import ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_EXECUTION_KEY, CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE
-from pyshell.command.command  import UniCommand, Command, MultiCommand
-from pyshell.arg.decorator    import shellMethod
-from pyshell.arg.argchecker   import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
-from pyshell.utils.parsing    import Parser
-from pyshell.arg.exception     import *
-from pyshell.command.exception import *
-from pyshell.command.engine    import engineV3
+from pyshell.utils.executing    import execute, _generateSuffix, _execute
+from pyshell.utils.exception    import ListOfException
+from pyshell.system.container   import ParameterContainer
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.context     import ContextParameter
+from pyshell.utils.constants    import ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_EXECUTION_KEY, CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE
+from pyshell.command.command    import UniCommand, Command, MultiCommand
+from pyshell.arg.decorator      import shellMethod
+from pyshell.arg.argchecker     import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker
+from pyshell.utils.parsing      import Parser
+from pyshell.arg.exception      import *
+from pyshell.command.exception  import *
+from pyshell.command.engine     import engineV3
 from pyshell.utils.test.printingTest import NewOutput
 from time import sleep
 

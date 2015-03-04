@@ -21,7 +21,8 @@ from tries import multiLevelTries
 from pyshell.utils.exception  import DefaultPyshellException
 from pyshell.utils.solving    import Solver, _removeEveryIndexUnder, _addValueToIndex, _isValidBooleanValueForChecker
 from pyshell.utils.parsing    import Parser
-from pyshell.system.parameter import ParameterManagerV3, VarParameter
+from pyshell.system.parameter import ParameterManager
+from pyshell.system.variable  import VarParameter
 from pyshell.command.command  import UniCommand, MultiCommand
 from pyshell.arg.decorator    import shellMethod
 from pyshell.arg.argchecker   import defaultInstanceArgChecker,listArgChecker, ArgChecker, booleanValueArgChecker
@@ -37,7 +38,7 @@ class SolvingTest(unittest.TestCase):
         m = UniCommand("plop", plop_meth)
         self.mltries.insert( ("plop",) ,m)
         
-        self.var     = ParameterManagerV3()
+        self.var     = ParameterManager()
     
     ### INIT ###
     

@@ -27,7 +27,11 @@ from pyshell.utils.postProcess import listResultHandler,printColumn, listFlatRes
 from pyshell.utils.parsing     import escapeString
 from pyshell.utils.printing    import formatBolt, formatOrange
 from pyshell.system.procedure  import ProcedureFromFile
-from pyshell.system.parameter  import ParameterContainer,isAValidStringPath, Parameter, EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.system.container  import ParameterContainer
+from pyshell.system.parameter  import Parameter, isAValidStringPath
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.context    import ContextParameter
+from pyshell.system.variable   import VarParameter
 import os 
 
 ## CONSTANT SECTION ##

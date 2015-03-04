@@ -55,7 +55,7 @@ from pyshell.utils.postProcess import printColumn
 from pyshell.loader.parameter  import registerSetEnvironment
 from pyshell.utils.printing    import Printer, notice, printShell, formatBolt
 from pyshell.utils.exception   import DefaultPyshellException, LIBRARY_ERROR
-from pyshell.system.parameter  import EnvironmentParameter
+from pyshell.system.environment import EnvironmentParameter
 from apdu.misc.apdu            import toHexString
 
 try:

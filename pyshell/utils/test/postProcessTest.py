@@ -22,7 +22,9 @@ from pyshell.utils.test.printingTest import NewOutput
 from pyshell.utils.postProcess import listResultHandler, listFlatResultHandler, printStringCharResult, printBytesAsString, printColumnWithouHeader, printColumn
 from pyshell.utils.printing  import Printer
 from pyshell.utils.valuable  import SimpleValuable
-from pyshell.system.parameter import ParameterContainer,ContextParameter, EnvironmentParameter
+from pyshell.system.container   import ParameterContainer
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.context     import ContextParameter
 from pyshell.arg.argchecker   import defaultInstanceArgChecker, IntegerArgChecker
 
 class PostProcessTest(unittest.TestCase):

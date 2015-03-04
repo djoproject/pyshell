@@ -24,7 +24,7 @@ from pyshell.utils.constants  import DEFAULT_CONFIG_DIRECTORY, ENVIRONMENT_LEVEL
 from pyshell.utils.executing  import preParseNotPipedCommand, preParseLine
 from pyshell.utils.exception  import ParameterLoadingException, ListOfException
 from pyshell.system.procedure import Procedure 
-from pyshell.system.parameter import EnvironmentParameter
+from pyshell.system.environment import EnvironmentParameter
 
 import sys, os
 

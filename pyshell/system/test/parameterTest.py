@@ -16,4 +16,15 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
+import unittest
+from pyshell.system.parameter import Parameter
+
+class ParameterTest(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_(self):
+        pass #TODO
+        
+if __name__ == '__main__':
+    unittest.main()

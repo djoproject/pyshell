@@ -21,7 +21,7 @@ from pyshell.loader.exception import LoadException
 from pyshell.utils.constants  import KEYSTORE_SECTION_NAME
 from pyshell.utils.exception  import ListOfException
 from pyshell.system.keystore  import Key, KeyStore
-from pyshell.system.parameter import EnvironmentParameter
+from pyshell.system.environment import EnvironmentParameter
 
 LOADING_METHOD_NAME    = "load"
 UNLOADING_METHOD_NAME  = "unload"

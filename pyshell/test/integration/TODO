@@ -1,0 +1,4 @@
+INTEGRATION TEST
+    -execution of two process in parallele threading with argument synchronisation
+    -test of configuration loading and saving
+    -

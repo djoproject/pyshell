@@ -25,7 +25,10 @@ from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.arg.argchecker   import defaultInstanceArgChecker
 from pyshell.utils.constants  import ENVIRONMENT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.exception  import ListOfException, ParameterException
-from pyshell.system.parameter import isAValidStringPath, EnvironmentParameter, ContextParameter, VarParameter
+from pyshell.system.parameter import isAValidStringPath
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.context import ContextParameter
+from pyshell.system.variable import VarParameter
 
 def _local_getAndInitCallerModule(subLoaderName = None):
     return getAndInitCallerModule(ParamaterLoader.__module__+"."+ParamaterLoader.__name__,ParamaterLoader, 3, subLoaderName)

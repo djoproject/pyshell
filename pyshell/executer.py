@@ -36,7 +36,10 @@ from pyshell.utils.printing   import Printer, warning, error, printException
 from pyshell.utils.valuable   import SimpleValuable
 from pyshell.system.procedure import ProcedureFromList, ProcedureFromFile
 from pyshell.system.keystore  import KeyStore
-from pyshell.system.parameter import EnvironmentParameter, ContextParameter, VarParameter, ParameterContainer
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.context import ContextParameter
+from pyshell.system.variable import VarParameter
+from pyshell.system.container import ParameterContainer
 
 #TODO
     #there is no NoneCheck after .getParameter, could be interesting to manage these case

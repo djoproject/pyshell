@@ -28,7 +28,7 @@ from pyshell.arg.argchecker   import booleanValueArgChecker,defaultInstanceArgCh
 from pyshell.command.engine   import EMPTY_MAPPED_ARGS
 from pyshell.utils.exception  import DefaultPyshellException, SYSTEM_ERROR, USER_WARNING
 from pyshell.utils.parsing    import Parser
-from pyshell.system.parameter import ParameterManagerV3
+from pyshell.system.parameter import ParameterManager
 from tries                    import multiLevelTries
 
 class Solver(object):            
@@ -39,7 +39,7 @@ class Solver(object):
         if not parser.isParsed():
             raise DefaultPyshellException("Fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
             
-        if not isinstance(variablesContainer,ParameterManagerV3):
+        if not isinstance(variablesContainer,ParameterManager):
             raise DefaultPyshellException("Fail to init solver, a ParameterManager object was expected, got '"+str(type(variablesContainer))+"'",SYSTEM_ERROR)
             
         if not isinstance(mltries, multiLevelTries):
