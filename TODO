@@ -1,347 +1,416 @@
-#############################
-### MISC                  ###
-#############################
 
-    #a lot of place in the code just raise default exception "raise Exception"
-        #replace with pyshell exception raising
- 
-#############################
-### MAJOR ISSUES          ###
-#############################
-    1) how to parametrize on a return value ?
-        e.g. : echo 1 2 3 | write
-            if write has an address argument only available on dashed params ?
+#################### EXECUTER ###################################################################################################
+
+    ################
+    ### executer ###
+    ################
+        #manage sigint, sigkill, ...
+            #interrompre l'ensemble des process en cours
+            #ou flinguer le courant et demander pour la suite
+                #comme dans un terminal classique
+
+    #####################
+    ### event manager ###
+    #####################
+        #system event
+            #not removable
+            #at startup, at exit, onContextChange, ...
+            #could be empty
+
+        #need to create the default event, the other part of the code are ready
+
+#################### ADDON ###################################################################################################
+    
+    #################
+    ### Procedure ###
+    #################
             
-        the goal is to be able to set the adress from the echo, but is is not possible because only tokens are returned, not key/value
+        stored file is just ugly... (still the case ?)
 
-    2) not possible to do that:
-        var add toto | echo 1 2 3
-
-    because token "toto" will be sent to the pre of var, then pre of echo, then processed in echo post, and ...
-        should be possible to set parameter for command var add, and set the key to toto
-        with an argchecker, if it is possible to get an access to the engine, could be possible to get access to the current command object
-
-        FIXED but need process in pre to store args
-
-    3) not possible to do that:
-        process | echo16
-
-    because pro of process will never be executed, only process of echo16 will be
-
-    SOLUTION1:
-        could be possible to get access to previous command and execute its pro from current args
-        COULD be possible to access to any command of the current engine execution
-
-    SOLUTION2:
-        double || to have similar behaviour as classical bash
-
-    SOLUTION3:
-        ... 
-
-#############################
-### Help/usage            ###
-#############################
-
-    #integrate default value in usage
-    
-    #allow helping description on several lines
-        #maybe it already works but need to test
-        #the problem is the help print with several different command, only one line is allowed
-            #and currently, there is no filtering
+    #################
+    ### parameter ###
+    #################
         
-    #auto generate and show in helping message, some example of method call
-    
-    #auto generate and show in help message which params need to be used with a dash
+        prévoir un "reset" pour remettre les paramètre à ceux de démarrage
+        
+        be able to cypher the parameter file
 
-#############################
-### Bash like             ###
-#############################  
+    ###################
+    ### addon addon ###
+    ###################
 
-#needed for Procedure
-    shift, set
+        use tries to load addons
 
-#go outside of shell scope, really needed ? (see brainstorming)
-    loop, if, goto, ...
+    #################
+    ### Bash like ###
+    #################  
 
-#############################
-### utilisation des tries ###
-#############################
+    #needed for Procedure
+        shift, set
 
-plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un peu dommage et ça casse la synergie
-    
-    Where to update:
-        -Parameter parent name (DOES NOT EXIST ANYMORE)
-        -Parameter name (OK)
-        -var name (avant de résoudre ici, voir si les var ne vont pas disparaitre et etre remplacée par des generic parameter) (OK)
-        -addon name (TODO)
-        -dashed parameter name (TODO)
-            dans solving
-        -...
+    #go outside of shell scope, really needed ? (see brainstorming)
+        loop, if, goto, ...
 
-    look after dictionary init { everywhere in the code
-        grep -r "{}" * | grep -v "~"
-    
-    IDEA (TODO ?)
-        faire une fonction qui gère les ambiguité
-            construire un message d'erreur generique a toute l'applic
-            ce message contiendra l'ensemble des possibilités (ou un subset)
+    #################
+    ### std addon ###
+    #################      
+        #gérer les commentaires, dans le parser plutot, non ?
+            #voir shell.py
             
-            l'objectif est de réduire la duplication de code du au tries pour la gestion des ambiguité
+        #echo/echo16/toascii execut themself only in postprocess now
+            #this is the better place to be executed
+            #but this kind of function does not work: prox read 0 | pcs tran | echo16
+                #the solution is echo16 | prox read 0 | pcs tran
+                    #not intuitive at all...
 
-################
-### executer ###
-################
-    #manage sigint, sigkill, ...
-        #interrompre l'ensemble des process en cours
-        #ou flinguer le courant et demander pour la suite
-            #comme dans un terminal classique
-    
-#################
-### stdaddons ###
-#################      
-    #gérer les commentaires, dans le parser plutot, non ?
-        #voir shell.py
-        
-    #echo/echo16/toascii execut themself only in postprocess now
-        #this is the better place to be executed
-        #but this kind of function does not work: prox read 0 | pcs tran | echo16
-            #the solution is echo16 | prox read 0 | pcs tran
-                #not intuitive at all...
+        ## Help/usage
+
+            #allow helping description on several lines
+                #maybe it already works but need to test
+                #the problem is the help print with several different command, only one line is allowed
+                    #and currently, there is no filtering
                 
-#####################
-### print service ###
-#####################
-
-	#an interface with a few meth		
-		#adapter printing pour pouvoir facilement utiliser le package log
-		
-    #gérer des trucs comme >, >>, 2>, 2>>, ...
-        #changer le flux d'output pour la commande
-        #le restaurer ensuiste
-        #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
-            #pour eviter d'avoir plusieurs descripteur vers le même fichier
-            #et ainsi eviter d'avoir des overlaps dans le fichier
-
-    #commande pour rediriger l'output vers un fichier
-        #faire une commande de flush
-        #flush and close at exit
-        #si on fait un close, il faut retirer l'event at_exit
-
-
-############
-### rfid ###
-############
-
-    #adapter l'ensemble du code existant au nouveau shell
-        #l'ensemble du code de rfidshell a été transféré dans apdu
-            #non débuggé !!!
-        #il reste à faire les addons pour pyshell
-        #in progress
-
-    #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
-        le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
-            afficher un message pour dire que c'est normal
-            oui mais le message d'erreur ne s'affiche pas toujours, comment savoir s'il s'est affiché ou non ?
-   
-    #faire un système de gestion des codes d'erreurs
-	    à faire dans executeAPDU
-	    -pouvoir ajouter son propre handler d'erreur dans les modules  
-	    
-	    #!!!! ça existe dans pyscard, reutilisez
-	    
-    #creer de nouveau event: oncardconnect, oncarddisconnect, onreaderconnect, onreaderdisconnect, ...
-        #quand le systeme multi event sera implémenté
-    
-    #la commande wait est pourrie dans pyscard, ça fait friser le raspi
-        #essayer de voir s'il n'y a pas moyen d'en faire une custom moins agressive
-
-    #faire des tests de multi process
-        #lancer deux instances de l'application et essayer de se connecter à la même carte
-            #pyscard est-il thread safe ? ou pcsc?
+            #auto generate and show in helping message, some example of method call
             
-    #element faisant partie du contexte
-        #type de lecteur
-        #version du firmware du lecteur
-        #type de carte
-        #version de la carte
-        #type de framew
-        #...
+            #auto generate and show in help message which params need to be used with a dash
 
-#####################
-### parameter     ###
-#####################
-    
-    prévoir un "reset" pour remettre les paramètre à ceux de démarrage
-    
-    be able to cypher the parameter file
-    
-    About history.
-        WHY?
-            PBLM 1 how to know if is it necessary to recreate stored config or not ?
-            PBLM 2 loader add/create parameter on loading and should remove then on unloading
-                   except if another element update the value (custom update, other addon, ...) 
-                   
-        SOLUTION
-        
-        PRBLM
-            if we just overwritte the full parameter, not only set a new value
+    ###################
+    ### rfid addons ###
+    ###################
 
-#########################
-### Procedure manager ###
-#########################
-        
-    stored file is just ugly... (still the case ?)
-    
-    use the function to check the existence of the directory (still the case ?)
-        see utils.utils file
-    
-#####################
-### event manager ###
-#####################
-    #system event
-        #not removable
-        #at startup, at exit, onContextChange, ...
-        #could be empty
+        #adapter l'ensemble du code existant au nouveau shell
+            #l'ensemble du code de rfidshell a été transféré dans apdu
+                #non débuggé !!!
+            #il reste à faire les addons pour pyshell
+            #in progress
 
-##########################################
-### threading management brainstorming ###
-##########################################
-
-    #definition 
-        #groupe de commande 
-            #liste de 1 à n commande
-        
-        #process de lock
-            #tous les locks sont connu
-            #ils sont classé dans ordre précis
-            #on les acquierent toujours dans le même ordre
+        #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
+            le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
+                afficher un message pour dire que c'est normal
+                oui mais le message d'erreur ne s'affiche pas toujours, comment savoir s'il s'est affiché ou non ?
+       
+        #faire un système de gestion des codes d'erreurs
+            à faire dans executeAPDU
+            -pouvoir ajouter son propre handler d'erreur dans les modules  
             
-        #lock static
-            #exemple l'utilisation d'une fonction à accès unique dans une librairie
+            #!!!! ça existe dans pyscard, reutilisez
             
-        #lock dynamique
-            #un lecteur de carte, une carte a puce, ...
-
-### NOT YET SOLVED ####
-
-    #XXX    Quid des ressource dynamique necessitant un verrou d'utilisation
-        #exemple une connexion vers une carte rfid
+        #creer de nouveau event: oncardconnect, oncarddisconnect, onreaderconnect, onreaderdisconnect, ...
+            #quand le systeme multi event sera implémenté
         
-        #solution a la con
-            #ne pas stocker de ressource devant avoir leur propre lock dans des structures ne possedant qu'un seul lock
-            #dans le cas de la rfid, il suffirait de stocker les connexions et les cartes chacune dans un env indépendant
-                #du coup chaque objet aurait son lock, on augmente le threading et ça résoud le problème
+        #la commande wait est pourrie dans pyscard, ça fait friser le raspi
+            #essayer de voir s'il n'y a pas moyen d'en faire une custom moins agressive
+
+        #faire des tests de multi process
+            #lancer deux instances de l'application et essayer de se connecter à la même carte
+                #pyscard est-il thread safe ? ou pcsc?
+                
+        #element faisant partie du contexte
+            #type de lecteur
+            #version du firmware du lecteur
+            #type de carte
+            #version de la carte
+            #type de framew
+            #...
+
+#################### ARG #####################################################################################################
+
+    #####################
+    ### arg feeder    ###
+    #####################
+
+        pouvoir générer un tries à partir du dico de parameter pour l'utiliser avec les "dashed parameter name" dans utils/solving
+
+        integrate default value in usage
+
+#################### COMMAND #################################################################################################
+#################### LOADER ##################################################################################################
+#################### SYSTEM ##################################################################################################
+
+    #####################
+    ### parameter     ###
+    #####################
             
-    #quid de l'execution de deux instances de l'application...
-        #objet partagé avec pyro ? chiant avec pyro, besoin d'une lib externe...
-        #fichier de lock ?
-        #analyse des process en memoire ? (need to be root)
-        #flux de com en mémoire ?
-        #...
+        About history (after brainstorming, it is not really an history, it is value origin)
+            WHY?
+                PBLM 1 how to know if is it necessary to recreate stored config or not ? SOLVED
+                    for not transient parameter, we have to know if the final value is different of the original value
+
+                    SOLUTION
+                        generate a hash of the parameter file on loading and compare it with a new hash at the saving process
+                            if hash is equal and no difference in parameter AND there is no new candidate to be saved, don't save at exit
+                            also keep the filePath, if a different parameter file is loaded OR the file destination is different, save at exit
+
+                        add a single couple of data to parameter about current value origin, here are the possible values: (NEW FIELD: origin)
+                            System         + None 
+                            File           + filePath
+                            Loader         + addonName
+                            Procedure      + None
+
+                        ABSOLUTLY SAVE IN FOLLOWING CASES:
+                            Origin=Procedure
+                            Origin=File AND path is different of the destination file
+                        
+                        CANDIDATE FOR SAVING BUT DO NOT TRIGGER IT IN FOLLOWING CASES:
+                            Origin=File AND path is the same of the destination file
+                            
+                        DON'T SAVE IN FOLLOWING CASES:
+                            Origin=System
+                            Origin=Loader
+
+                PBLM 2 loader add/create parameter on loading and should remove then on unloading SOLVED
+                    except if another element update the value (custom update, other addon, ...)
+
+                    not exactly, the problem is if two or several different addons want to create a parameter with the same key
+                        the first loaded addon will create the parameter
+                        the others parameter won't create again the parameter
+                        if the first loaded addon is unloaded, it will remove the parameter, the other addons won't
+
+
+                    SOLUTION
+                        record a list of addon that need this parameter (NEW FIELD)
+                        and only removed the parameter on the last addon unloading (or program exit) AND if the current value origin is Addon
+                            an addon record itself in the list, or remove itself from the list through the loader system
+
+                        on statup ONLY, if a value exist from file, it can't be overwritte by an addon
+                            after the startup, if an addon is loaded, it could overwritte the value
+                                need to find a way to say to the loader that this is the startup procedure
+                                ideally forbide to execute startup a second time
+
+                PRBLM 1B: if we just overwritte the full parameter, not only set a new value
+                         setParameter from container in place of setValue from parameter
+                    
+                    it will overwrite the information stored into the parameter
+
+                    TODO choose a solution.
+
+                    SOLUTION 1: if parameter already exists, manage it into the container and merge information from old one with the new one
+                    SOLUTION 2: store these information outside of the parameter, so you will never lose them
+               
+
+#################### UTILS ###################################################################################################
+
+    #####################
+    ### print service ###
+    #####################
+
+        #adapter printing pour pouvoir facilement utiliser le package log
+            
+        #gérer des trucs comme >, >>, 2>, 2>>, ...
+            #changer le flux d'output pour la commande
+            #le restaurer ensuiste
+            #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
+                #pour eviter d'avoir plusieurs descripteur vers le même fichier
+                #et ainsi eviter d'avoir des overlaps dans le fichier
+
+        #commande pour rediriger l'output vers un fichier
+            #faire une commande de flush
+            #flush and close at exit
+            #si on fait un close, il faut retirer l'event at_exit
+
+#################### MISC ####################################################################################################
+
+    #############################
+    ### MISC                  ###
+    #############################
+
+        #a lot of place in the code just raise default exception "raise Exception"
+            #replace with pyshell exception raising
+     
+    #############################
+    ### DESIGN ISSUES         ###
+    #############################
+        1) how to parametrize on a return value ?
+            e.g. : echo 1 2 3 | write
+                if write has an address argument only available on dashed params ?
+                
+            the goal is to be able to set the adress from the echo, but is is not possible because only tokens are returned, not key/value
+
+        2) not possible to do that:
+            var add toto | echo 1 2 3
+
+        because token "toto" will be sent to the pre of var, then pre of echo, then processed in echo post, and ...
+            should be possible to set parameter for command var add, and set the key to toto
+            with an argchecker, if it is possible to get an access to the engine, could be possible to get access to the current command object
+
+            FIXED but need process in pre to store args
+
+        3) not possible to do that:
+            process | echo16
+
+        because pro of process will never be executed, only process of echo16 will be
+
+        SOLUTION1:
+            could be possible to get access to previous command and execute its pro from current args
+            COULD be possible to access to any command of the current engine execution
+
+        SOLUTION2:
+            double || to have similar behaviour as classical bash
+
+        SOLUTION3:
+            ... 
+
+    #############################
+    ### utilisation des tries ###
+    #############################
+
+    plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un peu dommage et ça casse la synergie du "tout en prefix"
         
-    #pour l'instant les ressource seront lockée pour un single process
-        #pas pour une commande, ni une multicommande, ni une piped commande, ni un procedureevent, ni ...
-        #est ce une bonne idée ?
+        Where to update:
+            -addon name (TODO)
+            -dashed parameter name (TODO)
+                dans solving
+            -...
+
+        look after dictionary init { everywhere in the code
+            grep -r "{}" * | grep -v "~"
+        
+        IDEA (TODO ?)
+            faire une fonction qui gère les ambiguité
+                construire un message d'erreur generique a toute l'applic
+                ce message contiendra l'ensemble des possibilités (ou un subset)
+                
+                l'objectif est de réduire la duplication de code du au tries pour la gestion des ambiguité
+
+    ##########################################
+    ### threading management brainstorming ###
+    ##########################################
+
+        #definition 
+            #groupe de commande 
+                #liste de 1 à n commande
+            
+            #process de lock
+                #tous les locks sont connu
+                #ils sont classé dans ordre précis
+                #on les acquierent toujours dans le même ordre
+                
+            #lock static
+                #exemple l'utilisation d'une fonction à accès unique dans une librairie
+                
+            #lock dynamique
+                #un lecteur de carte, une carte a puce, ...
+
+    ### NOT YET SOLVED ####
+
+        #XXX    Quid des ressource dynamique necessitant un verrou d'utilisation
+            #exemple une connexion vers une carte rfid
+            
+            #solution a la con
+                #ne pas stocker de ressource devant avoir leur propre lock dans des structures ne possedant qu'un seul lock
+                #dans le cas de la rfid, il suffirait de stocker les connexions et les cartes chacune dans un env indépendant
+                    #du coup chaque objet aurait son lock, on augmente le threading et ça résoud le problème
+                
+        #quid de l'execution de deux instances de l'application...
+            #objet partagé avec pyro ? chiant avec pyro, besoin d'une lib externe...
+            #fichier de lock ?
+            #analyse des process en memoire ? (need to be root)
+            #flux de com en mémoire ?
+            #...
+            
+        #pour l'instant les ressource seront lockée pour un single process
+            #pas pour une commande, ni une multicommande, ni une piped commande, ni un procedureevent, ni ...
+            #est ce le meilleur choix de design ?
 
 ##################################################################################################################################
 ##### futur work  ################################################################################################################
 ##################################################################################################################################
 
-#############################
-### state machine process ### OLD NAME : workflow, application
-#############################
-    #d'une certaine manière, une application dans le shell
-        #possede un etat (creer un objet etat qui peut stocker plein de chose)
-            #le stocker dans les parametres
-            #le rendre transient ou non
-            
-        #creer un package pour stocker les app
-        #possibilité d'en importer de l'exterieur
-    
-    #deux types d'app:
-        #simple: chaque execution d'action ramene a l'etat initiale, une sorte de simple application
-            #en fait c'est une complexe sans rien de défini
-        
-        #complexe: une action peut conduire vers un nouvel etat dans lequel seulement certaines actions sont possibles
-            #definir dans quel cas on va où, et aussi gérer les cas d'erreur
-            
-    #action par defaut: startApp
-        #disponible lorsque l'on se trouve dans le shell au démarrage avec le tries par défaut
-        #cette action va remplacer le tries courant par celui de la machine à état
-        #seule les actions de la state machine sont disponibles maintenant
-        
-    #action par defaut: exit
-        #disponible uniquement dans une application
-        #toujours disponible quelque soit l'etat de l'application
-        #soit renvoi dans le shell
-            #et restaure l'ancien tries
-            
-        #soit quitte completement le shell
-        
-    #action par defaut: reset
-        #disponible uniquement dans une application
-        #toujours disponible quelque soit l'etat de l'application
-        #ramene a l'etat initial si possible
-        #reset l'état de l'application
-        
-    #comment definir une action, que se passe t'il dedans? definir les liaison ? etc.
-        #pourrait être interessant d'utiliser les decorations
-        #TODO
-
-
-#########################
-### service installer ###
-#########################
-
-    #être en mesure d'activer des applications en tant que service
-        #au démarrage entre autre
-    
-    #need to have a loop instruction
-        #or could simply use the loop instruction in shell
-
-    #manage deaemon system
-        #think about log file, how and where to store it
-
-        #-add argument to software entering point
-            #-d start as daemon
-                #by default, a daemon must be a loop
-                #think to a system able to stop it easily   
-                    #stop the daemon from command
-                    #another argument -k (?)       
-            
-            #always need a file
-                #could be possible to set it in parameter
-
-            #create an addon to manage daemon
-                #start, stop, restart, kill, list, ...
-                #be able to manage these action from command line
-
-######################
-### code generator ###
-######################
-
-    #génerer du code executable en dehors du shell
-    
-    #trois level de code executable:
-        #level 0: un maximum de chose ont déjà été interprété (calcul d'apdu, de checksum, etc.)
-            #il ne reste plus qu'à transmettre les données au framework
-            #minimiser au maximum les imports en provenance du pyshell
-            
-        #level 1: rien n'a encore été calculé (calcul d'apdu, ...)
-            #on génére le code avec les appels de fonction encore parametrable
-            #implique une dépendance au code calculant les apdus
-            
-            créer un objet special capable de résoudre des path dans le tries, genre:
-                pytries_exec.con.sel.val("debug",0).pipe(pytries_exec.echo())
+    #############################
+    ### state machine process ### OLD NAME : workflow, application
+    #############################
+        #d'une certaine manière, une application dans le shell
+            #possede un etat (creer un objet etat qui peut stocker plein de chose)
+                #le stocker dans les parametres
+                #le rendre transient ou non
                 
-                ça devrait être possible en overridant des methodes style getAttr, __call__, ....
+            #creer un package pour stocker les app
+            #possibilité d'en importer de l'exterieur
+        
+        #deux types d'app:
+            #simple: chaque execution d'action ramene a l'etat initiale, une sorte de simple application
+                #en fait c'est une complexe sans rien de défini
             
-        #level 2: rien n'est calculé, on execute via le shell
-            #on est en niveau de script
-            #besoin de l'ensemble du code
+            #complexe: une action peut conduire vers un nouvel etat dans lequel seulement certaines actions sont possibles
+                #definir dans quel cas on va où, et aussi gérer les cas d'erreur
+                
+        #action par defaut: startApp
+            #disponible lorsque l'on se trouve dans le shell au démarrage avec le tries par défaut
+            #cette action va remplacer le tries courant par celui de la machine à état
+            #seule les actions de la state machine sont disponibles maintenant
+            
+        #action par defaut: exit
+            #disponible uniquement dans une application
+            #toujours disponible quelque soit l'etat de l'application
+            #soit renvoi dans le shell
+                #et restaure l'ancien tries
+                
+            #soit quitte completement le shell
+            
+        #action par defaut: reset
+            #disponible uniquement dans une application
+            #toujours disponible quelque soit l'etat de l'application
+            #ramene a l'etat initial si possible
+            #reset l'état de l'application
+            
+        #comment definir une action, que se passe t'il dedans? definir les liaison ? etc.
+            #pourrait être interessant d'utiliser les decorations
+            #TODO
 
-###########
-### ... ###
-###########
+
+    #########################
+    ### service installer ###
+    #########################
+
+        #être en mesure d'activer des applications en tant que service
+            #au démarrage entre autre
+        
+        #need to have a loop instruction
+            #or could simply use the loop instruction in shell
+
+        #manage deaemon system
+            #think about log file, how and where to store it
+
+            #-add argument to software entering point
+                #-d start as daemon
+                    #by default, a daemon must be a loop
+                    #think to a system able to stop it easily   
+                        #stop the daemon from command
+                        #another argument -k (?)       
+                
+                #always need a file
+                    #could be possible to set it in parameter
+
+                #create an addon to manage daemon
+                    #start, stop, restart, kill, list, ...
+                    #be able to manage these action from command line
+
+    ######################
+    ### code generator ###
+    ######################
+
+        #génerer du code executable en dehors du shell
+        
+        #trois level de code executable:
+            #level 0: un maximum de chose ont déjà été interprété (calcul d'apdu, de checksum, etc.)
+                #il ne reste plus qu'à transmettre les données au framework
+                #minimiser au maximum les imports en provenance du pyshell
+                
+            #level 1: rien n'a encore été calculé (calcul d'apdu, ...)
+                #on génére le code avec les appels de fonction encore parametrable
+                #implique une dépendance au code calculant les apdus
+                
+                créer un objet special capable de résoudre des path dans le tries, genre:
+                    pytries_exec.con.sel.val("debug",0).pipe(pytries_exec.echo())
+                    
+                    ça devrait être possible en overridant des methodes style getAttr, __call__, ....
+                
+            #level 2: rien n'est calculé, on execute via le shell
+                #on est en niveau de script
+                #besoin de l'ensemble du code
+
+    ################
+    ### other... ###
+    ################
 
 
