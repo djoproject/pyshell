@@ -26,6 +26,9 @@ from pyshell.utils.printing    import formatGreen, formatBolt
 from pyshell.utils.postProcess import listFlatResultHandler, printColumn
 from pyshell.utils.exception   import KeyStoreLoadingException, ListOfException
 
+#TODO
+    #refactor, lot of thing has changed or does not exist in the import
+
 import sys, os
 try:
     pyrev = sys.version_info.major

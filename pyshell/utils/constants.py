@@ -48,10 +48,10 @@ TAB_SIZE                            = 4
 
 ENVIRONMENT_LEVEL_TRIES_KEY         = MAIN_CATEGORY+".levelTries"
 
-ENVIRONMENT_KEY_STORE_FILE_KEY      = MAIN_CATEGORY+".keystoreFile"
-DEFAULT_KEYSTORE_FILE               = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_keystore")
+#ENVIRONMENT_KEY_STORE_FILE_KEY      = MAIN_CATEGORY+".keystoreFile"
+#DEFAULT_KEYSTORE_FILE               = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshell_keystore")
 
-KEYSTORE_SECTION_NAME               = MAIN_CATEGORY+".keystore"
+#KEYSTORE_SECTION_NAME               = MAIN_CATEGORY+".keystore"
 
 ENVIRONMENT_SAVE_KEYS_KEY           = MAIN_CATEGORY+".saveKeys"
 ENVIRONMENT_SAVE_KEYS_DEFAULT       = True
@@ -63,7 +63,7 @@ ENVIRONMENT_USE_HISTORY_KEY         = SHELL_CATEGORY+".useHistory"
 ENVIRONMENT_USE_HISTORY_VALUE       = True
 
 ENVIRONMENT_ADDON_TO_LOAD_KEY       = MAIN_CATEGORY+".addonToLoad"
-ENVIRONMENT_ADDON_TO_LOAD_DEFAULT   = ("pyshell.addons.std","pyshell.addons.keystore","pyshell.addons.parameter")
+ENVIRONMENT_ADDON_TO_LOAD_DEFAULT   = ("pyshell.addons.std","pyshell.addons.parameter")#,"pyshell.addons.keystore"
 
 ADDONLIST_KEY                       = MAIN_CATEGORY+".loader_addon"
 
@@ -85,4 +85,6 @@ CONTEXT_COLORATION_NONE  = "none"
 ### VARIABLE ###
 VARIABLE_ATTRIBUTE_NAME = "variable"
 
+### KEY ###
+KEY_ATTRIBUTE_NAME = "key"
 

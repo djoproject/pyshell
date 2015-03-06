@@ -17,14 +17,42 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-#TODO from pyshell.system.key import KeyParameter
+from pyshell.system.key import CryptographicKeyParameter, CryptographicKeyParameterManager
+from pyshell.utils.key import CryptographicKey
+from pyshell.system.environment import EnvironmentParameter
 
 class KeyTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_(self):
-        pass #TODO
+    def test_manager(self):
+        self.assertNotEqual(CryptographicKeyParameterManager(), None)
+        
+    def test_addNotYetParametrizedButValidKey(self):
+        manager = CryptographicKeyParameterManager()
+        manager.setParameter("test.key", "0x1122ff")
+        self.assertTrue(manager.hasParameter("t.k"))
+        param = manager.getParameter("te.ke")
+        self.assertTrue(isinstance(param, CryptographicKeyParameter))
+        self.assertTrue(isinstance(param.getValue(), CryptographicKey))
+        self.assertEqual(str(param.getValue()), "0x1122ff")
+        
+    def test_addNotYetParametrizedAndInValidKey(self):
+        manager = CryptographicKeyParameterManager()
+        self.assertRaises(Exception,manager.setParameter, "test.key", "0xplop")
+        
+    def test_addValidParameter(self):
+        manager = CryptographicKeyParameterManager()
+        manager.setParameter("test.key", CryptographicKeyParameter("0x1122ff"))
+        self.assertTrue(manager.hasParameter("t.k"))
+        param = manager.getParameter("te.ke")
+        self.assertTrue(isinstance(param, CryptographicKeyParameter))
+        self.assertTrue(isinstance(param.getValue(), CryptographicKey))
+        self.assertEqual(str(param.getValue()), "0x1122ff")
+        
+    def test_addNotAllowedParameter(self):
+        manager = CryptographicKeyParameterManager()
+        self.assertRaises(Exception,manager.setParameter, "test.key", EnvironmentParameter("0x1122ff"))
         
 if __name__ == '__main__':
     unittest.main()

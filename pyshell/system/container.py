@@ -16,20 +16,22 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.system.context     import ContextParameterManager
 from pyshell.system.environment import EnvironmentParameterManager
-from pyshell.system.context import ContextParameterManager
-from pyshell.system.variable import VariableParameterManager
+from pyshell.system.key         import CryptographicKeyParameterManager
+from pyshell.system.variable    import VariableParameterManager
 
 from threading import current_thread
 
 class ParameterContainer(object):
-    SUBCONTAINER_LIST = ["environment", "context", "variable"]
+    SUBCONTAINER_LIST = ["environment", "context", "variable", "key"]
 
     def __init__(self):
         self.threadLevel = {} #hold the level of the current thread
         self.environment = EnvironmentParameterManager()
         self.context     = ContextParameterManager()
         self.variable    = VariableParameterManager()
+        self.key         = CryptographicKeyParameterManager()
         self.mainThread  = current_thread().ident
 
     def pushVariableLevelForThisThread(self, procedure = None):

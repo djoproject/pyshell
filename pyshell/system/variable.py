@@ -17,11 +17,11 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.system.parameter import ParameterManager
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
 from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
 
 class VariableParameterManager(ParameterManager):
-    def getAllowedInstanceType(self):
+    def getAllowedType(self):
         return VarParameter
 
 class VarParameter(EnvironmentParameter):
@@ -49,7 +49,7 @@ class VarParameter(EnvironmentParameter):
                 else:
                     tmp_value_parsed.append(str(v))
 
-        EnvironmentParameter.__init__(self,parsed_value, typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()), transient = False, readonly = False, removable = True)    
+        EnvironmentParameter.__init__(self,parsed_value, typ=DEFAULT_CHECKER, transient = False, readonly = False, removable = True)    
     
     def __str__(self):
         to_ret = ""

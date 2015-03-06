@@ -112,7 +112,7 @@ class ExecutingTest(unittest.TestCase):
         m = UniCommand("plop", plop_meth)
         self.mltries.insert( ("plop",) ,m)
         
-        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries,transient=True,readonly=True, removable=False), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance(),transient=True,readonly=True, removable=False), localParam = False)
         RESULT = None
         RESULT_BIS = None
         

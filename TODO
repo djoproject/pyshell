@@ -141,6 +141,9 @@
                             if hash is equal and no difference in parameter AND there is no new candidate to be saved, don't save at exit
                             also keep the filePath, if a different parameter file is loaded OR the file destination is different, save at exit
 
+                            count the number of parameter loaded from file, if there is less or more at the saving time, recreate the parameter file
+                                if the number is equal from the loading, don't save
+
                         add a single couple of data to parameter about current value origin, here are the possible values: (NEW FIELD: origin)
                             System         + None 
                             File           + filePath
@@ -157,6 +160,10 @@
                         DON'T SAVE IN FOLLOWING CASES:
                             Origin=System
                             Origin=Loader
+
+						add a boolean "force" on removeParameter in container
+			                if true, remove the parameter in anyway
+                            if false AND there is at least one loader register, raise
 
                 PBLM 2 loader add/create parameter on loading and should remove then on unloading SOLVED
                     except if another element update the value (custom update, other addon, ...)

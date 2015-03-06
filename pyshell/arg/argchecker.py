@@ -31,34 +31,36 @@ import os
 from threading               import Lock
 
 from pyshell.arg.exception   import *
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEYSTORE_SECTION_NAME
-from pyshell.system.keystore import Key
+from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEY_ATTRIBUTE_NAME
+from pyshell.utils.key       import CryptographicKey
 
 #string argchecker definition
-ARGCHECKER_TYPENAME                 = "any"
-STRINGCHECKER_TYPENAME              = "string"
-INTEGERCHECKER_TYPENAME             = "integer"
-LIMITEDINTEGERCHECKER_TYPENAME      = "limited integer"
-HEXACHECKER_TYPENAME                = "hexadecimal"
-BINARYCHECKER_TYPENAME              = "binary"
-FILEPATHCHECKER_TYPENAME            = "filePath"
-LISTCHECKER_TYPENAME                = "list"
-DEFAULTVALUE_TYPENAME               = "default"
-ENVIRONMENTDYNAMICCHECKER_TYPENAME  = "environment dynamic"
-CONTEXTDYNAMICCHECKER_TYPENAME      = "context dynamic"
-VARIABLEDYNAMICCHECKER_TYPENAME     = "variable dynamic"
-ENVIRONMENTCHECKER_TYPENAME         = "environment"
-CONTEXTCHECKER_TYPENAME             = "context"
-VARIABLECHECKER_TYPENAME            = "variable"
-PARAMETERDYNAMICCHECKER_TYPENAME    = "parameter dynamic"
-PARAMETERCHECKER_TYPENAME           = "parameter"
-COMPLETEENVIRONMENTCHECKER_TYPENAME = "complete Environment"
-ENGINECHECKER_TYPENAME              = "engine"
-FLOATCHECKER_TYPENAME               = "float"
-BOOLEANCHECKER_TYPENAME             = "boolean"
-TOKENCHECKER_TYPENAME               = "token"
-KEYCHECKER_TYPENAME                 = "key"
+ARGCHECKER_TYPENAME                  = "any"
+STRINGCHECKER_TYPENAME               = "string"
+INTEGERCHECKER_TYPENAME              = "integer"
+LIMITEDINTEGERCHECKER_TYPENAME       = "limited integer"
+HEXACHECKER_TYPENAME                 = "hexadecimal"
+BINARYCHECKER_TYPENAME               = "binary"
+FILEPATHCHECKER_TYPENAME             = "filePath"
+LISTCHECKER_TYPENAME                 = "list"
+DEFAULTVALUE_TYPENAME                = "default"
+ENVIRONMENTDYNAMICCHECKER_TYPENAME   = "environment dynamic"
+CONTEXTDYNAMICCHECKER_TYPENAME       = "context dynamic"
+VARIABLEDYNAMICCHECKER_TYPENAME      = "variable dynamic"
+ENVIRONMENTCHECKER_TYPENAME          = "environment"
+CONTEXTCHECKER_TYPENAME              = "context"
+VARIABLECHECKER_TYPENAME             = "variable"
+PARAMETERDYNAMICCHECKER_TYPENAME     = "parameter dynamic"
+PARAMETERCHECKER_TYPENAME            = "parameter"
+COMPLETEENVIRONMENTCHECKER_TYPENAME  = "complete Environment"
+ENGINECHECKER_TYPENAME               = "engine"
+FLOATCHECKER_TYPENAME                = "float"
+BOOLEANCHECKER_TYPENAME              = "boolean"
+TOKENCHECKER_TYPENAME                = "token"
+KEYCHECKER_TYPENAME                  = "key"
 KEYTRANSLATORCHECKER_TYPENAME       = "keyTranslator"
+KEYTRASNLATORCHECKER_TYPENAME        = "keyTranslator"
+KEYTRANSLATORDYNAMICCHECKER_TYPENAME = "keyTranslator dynamic"
 
 class defaultInstanceArgChecker(object):
     _lock = Lock()
@@ -80,7 +82,6 @@ class defaultInstanceArgChecker(object):
                            FLOATCHECKER_TYPENAME        :None,
                            ENVIRONMENTCHECKER_TYPENAME  :None,
                            KEYCHECKER_TYPENAME          :None,
-                           KEYTRANSLATORCHECKER_TYPENAME:None,
                            ENGINECHECKER_TYPENAME       :None,
                            FILEPATHCHECKER_TYPENAME     :None}
 
@@ -122,10 +123,6 @@ class defaultInstanceArgChecker(object):
     def getKeyChecker():
         return defaultInstanceArgChecker._getCheckerInstance(KEYCHECKER_TYPENAME, KeyArgChecker)
     
-    @staticmethod
-    def getKeyTranslatorChecker():
-        return defaultInstanceArgChecker._getCheckerInstance(KEYTRANSLATORCHECKER_TYPENAME, keyStoreTranslatorArgChecker)
-
     @staticmethod
     def getEngineChecker():
         return defaultInstanceArgChecker._getCheckerInstance(ENGINECHECKER_TYPENAME, engineChecker)
@@ -700,7 +697,8 @@ class listArgChecker(ArgChecker):
     def getValue(self,values,argNumber=None, argNameToBind=None):    
         #check if it's a list
         if not hasattr(values, "__iter__"):#if not isinstance(values,list):
-            self._raiseArgException("this arg is not a valid list, not iterable",argNumber, argNameToBind)
+            values = (values,)
+            #self._raiseArgException("this arg is not a valid list, not iterable",argNumber, argNameToBind)
         
         #len(values) must always be a multiple of self.checker.minimumSize
             #even if there is to much data, it is a sign of anomalies
@@ -922,8 +920,8 @@ class filePathArgChecker(stringArgChecker):
     
     def getUsage(self):
         return "<file_path>"
-        
-class keyStoreTranslatorArgChecker(stringArgChecker):
+
+class abstractKeyStoreTranslatorArgChecker(stringArgChecker):
     "retrieve a key from the keystore"
 
     def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
@@ -947,20 +945,7 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
         self.byteKey               = byteKey
         
     def getValue(self, value,argNumber=None, argNameToBind=None):
-        self._raiseIfEnvIsNotAvailable(argNumber, argNameToBind)
-        env = self.engine.getEnv()
-        value = stringArgChecker.getValue(self, value,argNumber, argNameToBind)
-
-        param = self.engine.getEnv().environment.getParameter(KEYSTORE_SECTION_NAME)
-        if param is None:
-            self._raiseArgException("keystore is not available in parameters but is needed to get key '"+str(value)+"'", argNumber, argNameToBind)
-
-        keystore = param.getValue()
-        
-        if not keystore.hasKey(value):
-            self._raiseArgException("unknown key '"+str(value)+"'", argNumber, argNameToBind)
-        
-        keyInstance = keystore.getKey(value)
+        keyInstance = value
         
         #check type
         if self.byteKey is not None:
@@ -983,7 +968,25 @@ class keyStoreTranslatorArgChecker(stringArgChecker):
 
     def getUsage(self):
         return "<key name>"
+        
+class KeyParameterChecker(abstractParameterChecker, abstractKeyStoreTranslatorArgChecker):
+    def __init__(self, environmentStringPath, keySize = None, byteKey=True, allowdifferentKeySize = False):
+        abstractParameterChecker.__init__(self, environmentStringPath, KEY_ATTRIBUTE_NAME, KEYTRASNLATORCHECKER_TYPENAME)
+        abstractKeyStoreTranslatorArgChecker.__init__(self,keySize, byteKey, allowdifferentKeySize)
+        
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        parameter = abstractParameterChecker.getValue(value, argNumber, argNameToBind)
+        return abstractKeyStoreTranslatorArgChecker.getValue(parameter.getValue())
 
+class KeyParameterDynamicChecker(abstractParameterDynamicChecker, abstractKeyStoreTranslatorArgChecker):
+    def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
+        abstractParameterDynamicChecker.__init__(self, KEY_ATTRIBUTE_NAME, KEYTRANSLATORDYNAMICCHECKER_TYPENAME)
+        abstractKeyStoreTranslatorArgChecker.__init__(self,keySize, byteKey, allowdifferentKeySize)
+        
+    def getValue(self, value,argNumber=None, argNameToBind=None):
+        parameter = abstractParameterChecker.getValue(value, argNumber, argNameToBind)
+        return abstractKeyStoreTranslatorArgChecker.getValue(parameter.getValue())
+        
 class KeyArgChecker(IntegerArgChecker):
     "create a key from the input"
     def __init__(self):
@@ -995,7 +998,7 @@ class KeyArgChecker(IntegerArgChecker):
         intvalue = IntegerArgChecker.getValue(self, value,argNumber, argNameToBind)
 
         try:
-            return Key(value)
+            return CryptographicKey(value)
         except Exception as e:
             self._raiseArgException("Fail to resolve key: "+str(e), argNumber, argNameToBind)
         

@@ -35,7 +35,6 @@ from pyshell.utils.parsing    import Parser
 from pyshell.utils.printing   import Printer, warning, error, printException
 from pyshell.utils.valuable   import SimpleValuable
 from pyshell.system.procedure import ProcedureFromList, ProcedureFromFile
-from pyshell.system.keystore  import KeyStore
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.context import ContextParameter
 from pyshell.system.variable import VarParameter
@@ -78,9 +77,7 @@ class CommandExecuter():
         self.params.environment.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,    EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=True,readonly=False, removable=False), localParam = False)
         self.params.environment.setParameter(ENVIRONMENT_PROMPT_KEY,            EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT, typ=defaultInstanceArgChecker.getStringArgCheckerInstance(),transient=False,readonly=False, removable=False), localParam = False)
         self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,          EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=multiLevelTries(),transient=True,readonly=True, removable=False), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_KEY_STORE_FILE_KEY,    EnvironmentParameter(value=DEFAULT_KEYSTORE_FILE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), localParam = False)
-        self.params.environment.setParameter(KEYSTORE_SECTION_NAME,             EnvironmentParameter(value=KeyStore(),transient=True,readonly=True, removable=False), localParam = False) 
+        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=multiLevelTries(), typ=defaultInstanceArgChecker.getArgCheckerInstance(),transient=True,readonly=True, removable=False), localParam = False)
         self.params.environment.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,         EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), localParam = False)
         self.params.environment.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY, EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True),transient=False,readonly=False, removable=False), localParam = False)
         self.params.environment.setParameter(ENVIRONMENT_USE_HISTORY_KEY,       EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),transient=False,readonly=False, removable=False), localParam = False)
@@ -132,7 +129,7 @@ class CommandExecuter():
         atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
         atstartup.setErrorGranularity(None) #never stop, don't care about error
         atstartup.addCommand( "history load" )
-        atstartup.addCommand( "key load" )
+        #atstartup.addCommand( "key load" )
         mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
 
     def _initExitEvent(self):
@@ -145,7 +142,7 @@ class CommandExecuter():
         atExit.addCommand( "parameter save" ) #TODO need to have parameters addons parameter loaded before to save
             #TODO load parameter addon but do not print any error if already loaded, add a parameter to addon load
         atExit.addCommand( "history save" )
-        atExit.addCommand( "key save" )
+        #atExit.addCommand( "key save" )
         
         atExit.setReadOnly(True)
         mltries.insert( (EVENT_AT_EXIT, ), atExit )

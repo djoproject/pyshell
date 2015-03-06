@@ -15,3 +15,18 @@
 
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from pyshell.arg.argchecker     import listArgChecker, defaultInstanceArgChecker
+from pyshell.utils.exception    import KeyStoreException
+from pyshell.system.parameter   import ParameterManager
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.arg.argchecker     import defaultInstanceArgChecker
+
+class CryptographicKeyParameterManager(ParameterManager):
+    def getAllowedType(self):
+        return CryptographicKeyParameter
+
+class CryptographicKeyParameter(EnvironmentParameter):
+    def __init__(self, value, transient = False, readonly = False, removable = True):
+        EnvironmentParameter.__init__(self,value,defaultInstanceArgChecker.getKeyChecker(),transient, readonly, removable)
+

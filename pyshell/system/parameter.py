@@ -97,18 +97,26 @@ class ParameterManager(object):
                         
         return advancedResult
     
-    #TODO update it as "is an allowed type?" 
-    def getAllowedInstanceType(self):
+    def getAllowedType(self):#XXX to override if needed
         return Parameter
+    
+    def isAnAllowedType(self,value): #XXX to override if needed
+        return isinstance(value,self.getAllowedType())
         
-    #TODO create a method get instance param from value (and use it in setParameter)
+    def extractParameter(self, value): #XXX to override if needed
+        if self.isAnAllowedType(value):
+            return value
+            
+        return self.getAllowedType()(value) #try to instanciate parameter, may raise if invalid type
         
     @synchronous()
     def setParameter(self,stringPath, param, localParam = True):
 
+        param = self.extractParameter(param)
+
         #must be an instance of Parameter
-        if not isinstance(param, self.getAllowedInstanceType()):
-            raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(stringPath)+"', an instance of Parameter was expected, got "+str(type(param)))
+        #if not isAnAllowedType(param):
+            #raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(stringPath)+"', an instance of Parameter was expected, got "+str(type(param)))
 
         #check safety and existing
         advancedResult = self._getAdvanceResult("setParameter",stringPath, False, False, True)

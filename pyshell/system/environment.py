@@ -17,11 +17,14 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.system.parameter import Parameter,ParameterManager
+from pyshell.arg.argchecker   import ArgChecker, listArgChecker, defaultInstanceArgChecker
+
 from threading import Lock
-from pyshell.arg.argchecker  import ArgChecker, listArgChecker
+
+DEFAULT_CHECKER = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance())
 
 class EnvironmentParameterManager(ParameterManager):
-    def getAllowedInstanceType(self):
+    def getAllowedType(self):
         return EnvironmentParameter
 
 def _lockSorter(param1, param2):
@@ -49,10 +52,13 @@ class EnvironmentParameter(Parameter):
         Parameter.__init__(self, transient)
         self.readonly = False #need to be false at the beginning to define the different class fields
         self.setRemovable(removable)
-
-        #typ must be argChecker
-        if typ is not None and not isinstance(typ,ArgChecker):
-            raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
+        
+        if typ is None:
+            typ = DEFAULT_CHECKER
+        else:
+            #typ must be argChecker
+            if not isinstance(typ,ArgChecker):
+                raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
 
         self.isListType = isinstance(typ, listArgChecker)
         self.typ = typ
@@ -141,11 +147,7 @@ class EnvironmentParameter(Parameter):
 
     def setValue(self, value):
         self._raiseIfReadOnly("setValue")
-        
-        if self.typ is None:
-            self.value = value
-        else:
-            self.value = self.typ.getValue(value)
+        self.value = self.typ.getValue(value)
 
     def isReadOnly(self):
         return self.readonly

@@ -17,12 +17,12 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.system.parameter import ParameterManager
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.environment import EnvironmentParameter,DEFAULT_CHECKER
 from pyshell.utils.valuable  import SelectableValuable
 from pyshell.arg.argchecker  import listArgChecker
 
 class ContextParameterManager(ParameterManager):
-    def getAllowedInstanceType(self):
+    def getAllowedType(self):
         return ContextParameter
 
 def _convertToSetList(orig):
@@ -31,20 +31,23 @@ def _convertToSetList(orig):
     return [ x for x in orig if not (x in seen or seen_add(x))]
 
 class ContextParameter(EnvironmentParameter, SelectableValuable):
-    def __init__(self, value, typ, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True):
+    def __init__(self, value, typ=None, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True):
 
-        if not isinstance(typ,listArgChecker):            
-            typ = listArgChecker(typ,1)
-        else:        
-            typ.setSize(1,None)
-            
-        if typ.checker.maximumSize != 1:
-            raise ParameterException("(ContextParameter) __init__, inner checker must have a maximum length of 1, got '"+str(typ.checker.maximumSize)+"'")
+        if typ is None:
+            typ = DEFAULT_CHECKER
+        else:
+            if not isinstance(typ,listArgChecker):            
+                typ = listArgChecker(typ,1)
+            else:        
+                typ.setSize(1,None) #why (?)
+                
+            if typ.checker.maximumSize != 1:
+                raise ParameterException("(ContextParameter) __init__, inner checker must have a maximum length of 1, got '"+str(typ.checker.maximumSize)+"'")
         
         self.defaultIndex = 0
         self.index = 0
         
-        EnvironmentParameter.__init__(self, value, typ, transient, False, removable)#, sep)
+        EnvironmentParameter.__init__(self, value, typ, transient, False, removable)
         self.tryToSetDefaultIndex(defaultIndex)
         self.tryToSetIndex(index)
         self.setTransientIndex(transientIndex)
