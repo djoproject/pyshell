@@ -13,18 +13,18 @@ from pyshell.arg.argchecker import ArgChecker, IntegerArgChecker
     #-enable (MultiCommand)
 
 #TODO choses qui ne vont pas dans ces tests :
-	#-s'il n'y a qu'un argument l'ensemble des args ne lui est pas lié automatiquement
-		#ok le comportement correcte a avoir
-			#s'il n'y a qu'un args, on bind to sur lui
-			#s'il n'y a pas d'arg, pas grave
-			#s'il y a plusieurs args, on doit faire sauter une exception a l'ajout du process
-	#-pas vraiment un probleme mais obligation d'avoir un retour dans le post pour ce cas ci, sinon l'encapsulation ne marche pas
-		#-car arg3 n'a pas de valeur par défaut
+    #-s'il n'y a qu'un argument l'ensemble des args ne lui est pas lié automatiquement
+        #ok le comportement correcte a avoir
+            #s'il n'y a qu'un args, on bind to sur lui
+            #s'il n'y a pas d'arg, pas grave
+            #s'il y a plusieurs args, on doit faire sauter une exception a l'ajout du process
+    #-pas vraiment un probleme mais obligation d'avoir un retour dans le post pour ce cas ci, sinon l'encapsulation ne marche pas
+        #-car arg3 n'a pas de valeur par défaut
 
 #TODO TO TEST
-	#_computeTheNextChildToExecute
-	#_executeMethod
-	#stopExecution
+    #_computeTheNextChildToExecute
+    #_executeMethod
+    #stopExecution
 
 def noneFun():
     pass

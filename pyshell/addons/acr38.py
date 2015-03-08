@@ -31,21 +31,21 @@ def stopAsMainProcess(anything):
 
 @shellMethod(cardType = tokenValueArgChecker(acr38uAPDUBuilder.SELECT_TYPE))
 def selectFun(cardType = "AUTO"):
-	return acr38uAPDUBuilder.selectType(cardType)
+    return acr38uAPDUBuilder.selectType(cardType)
 
 """@shellMethod(address = IntegerArgChecker(0,0x3ff),
-	         length  = IntegerArgChecker(0,0xff))
+             length  = IntegerArgChecker(0,0xff))
 def readFun(address = 0, length = 0):
-	return acr38uAPDUBuilder.read(address, length)
+    return acr38uAPDUBuilder.read(address, length)
 
 @shellMethod(datas   = listArgChecker(IntegerArgChecker(0,255)),
              address = IntegerArgChecker(0,65535))
 def writeFun(datas, address=0):
-	return acr38uAPDUBuilder.write(address, datas)
+    return acr38uAPDUBuilder.write(address, datas)
 
 @shellMethod(pin = listArgChecker(IntegerArgChecker(0,255),2,2))
 def checkPin(pin):
-	return acr38uAPDUBuilder.checkPinCode(pin)"""
+    return acr38uAPDUBuilder.checkPinCode(pin)"""
 
 
 ## I2C ##

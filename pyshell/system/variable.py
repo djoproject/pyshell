@@ -45,9 +45,9 @@ class VarParameter(EnvironmentParameter):
                         parsed_value.append(subv)
                         
                 elif hasattr(v, "__iter__"):
-                    tmp_value_parsed.extend(v)
+                    value_to_parse.extend(v)
                 else:
-                    tmp_value_parsed.append(str(v))
+                    value_to_parse.append(str(v))
 
         EnvironmentParameter.__init__(self,parsed_value, typ=DEFAULT_CHECKER, transient = False, readonly = False, removable = True)    
     

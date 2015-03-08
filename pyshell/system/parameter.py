@@ -103,9 +103,12 @@ class ParameterManager(object):
     def isAnAllowedType(self,value): #XXX to override if needed
         return isinstance(value,self.getAllowedType())
         
-    def extractParameter(self, value): #XXX to override if needed
+    def extractParameter(self, value):
         if self.isAnAllowedType(value):
             return value
+
+        if isinstance(value, Parameter):
+            raise ParameterException("(ParameterManager) extractParameter, can not use an object of type '"+type(value)+"' in this manager")
             
         return self.getAllowedType()(value) #try to instanciate parameter, may raise if invalid type
         

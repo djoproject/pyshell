@@ -1,22 +1,22 @@
 A)on peut toujours registerer une commande avec des arguments sans avoir de decorator shellMethod associé
-	du coup le binder d'argument ne lui fourni aucun argument
-	et on a une erreur du genre Unknown error: echo16() takes exactly 1 argument (0 given)
+    du coup le binder d'argument ne lui fourni aucun argument
+    et on a une erreur du genre Unknown error: echo16() takes exactly 1 argument (0 given)
     
     modification a faire dans commande, à l'ajout de pre/pro/post process
     détail de la manière de gèrer ça dans engineCoreTest
 
 B) dans les exception du shellMethod decorator, on ne donne pas le nom de la methode
-	pas pratique s'il y a une erreur et qu'on vient d'ajouter plusieurs process
+    pas pratique s'il y a une erreur et qu'on vient d'ajouter plusieurs process
 
 C) autocompletion bug
-	ex: 
-		1) write "ad"
-		2) press tab
-		3) press enter
-		4) press up arrow
-		5) press tab
+    ex: 
+        1) write "ad"
+        2) press tab
+        3) press enter
+        4) press up arrow
+        5) press tab
 
-		it will print "l" in place of "addon l"
+        it will print "l" in place of "addon l"
 
 D) prblm when autocompletion with var used in command name
     ex:

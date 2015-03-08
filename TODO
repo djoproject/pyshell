@@ -130,6 +130,7 @@
     #####################
     ### parameter     ###
     #####################
+        TODO a parameter also becomes elligible to be saved if a properties is updated !!!
             
         About history (after brainstorming, it is not really an history, it is value origin)
             WHY?
@@ -161,8 +162,8 @@
                             Origin=System
                             Origin=Loader
 
-						add a boolean "force" on removeParameter in container
-			                if true, remove the parameter in anyway
+                        add a boolean "force" on removeParameter in container
+                            if true, remove the parameter in anyway
                             if false AND there is at least one loader register, raise
 
                 PBLM 2 loader add/create parameter on loading and should remove then on unloading SOLVED

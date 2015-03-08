@@ -146,7 +146,7 @@ class ArgChecker(object):
         self.engine              = None
         
     def setSize(self, minimumSize=None, maximumSize=None):
-        self.checkSize(minimumSize=None, maximumSize=None)
+        self.checkSize(minimumSize, maximumSize)
         self.minimumSize         = minimumSize
         self.maximumSize         = maximumSize
         

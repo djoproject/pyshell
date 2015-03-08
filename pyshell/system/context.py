@@ -17,9 +17,12 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.system.parameter import ParameterManager
-from pyshell.system.environment import EnvironmentParameter,DEFAULT_CHECKER
+from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.valuable  import SelectableValuable
-from pyshell.arg.argchecker  import listArgChecker
+from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
+
+CONTEXT_DEFAULT_CHECKER = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance())
+CONTEXT_DEFAULT_CHECKER.setSize(1,None)
 
 class ContextParameterManager(ParameterManager):
     def getAllowedType(self):
@@ -34,12 +37,12 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
     def __init__(self, value, typ=None, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True):
 
         if typ is None:
-            typ = DEFAULT_CHECKER
+            typ = CONTEXT_DEFAULT_CHECKER
         else:
             if not isinstance(typ,listArgChecker):            
-                typ = listArgChecker(typ,1)
-            else:        
-                typ.setSize(1,None) #why (?)
+                typ = listArgChecker(typ,1) #minimal size = 1, because we need at least one element to have a context
+            else:
+                typ.setSize(1,None) #TODO why None (?) need brainstorming
                 
             if typ.checker.maximumSize != 1:
                 raise ParameterException("(ContextParameter) __init__, inner checker must have a maximum length of 1, got '"+str(typ.checker.maximumSize)+"'")
@@ -54,7 +57,12 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.setReadOnly(readonly)
     
     def getProperties(self):
-        return  ( ("defaultIndex", self.defaultIndex,), ("index", self.index,), ("removable", self.removable, ), ("readonly", self.readonly, ), )
+        prop = [ ("defaultIndex", self.defaultIndex,), ("removable", self.removable, ), ("readonly", self.readonly, ) ]
+
+        if not self.transientIndex:
+            prop.append( ("index", self.index,) )
+
+        return tuple(prop)
 
     def setValue(self,value):
         EnvironmentParameter.setValue(self,value)
@@ -81,8 +89,9 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             pass
         except TypeError:
             pass
-            
-        self.index = self.defaultIndex
+        
+        self.tryToSetDefaultIndex(self.defaultIndex) #default index is still valid ?
+        self.index = self.defaultIndex 
 
     def setIndexValue(self,value):
         try:
@@ -151,6 +160,8 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         #remove
         EnvironmentParameter.removeValues(self, values)
         
+        #TODO can not remove all value, at least one value must remain
+
         #recompute index if needed
         self.tryToSetDefaultIndex(self.defaultIndex)
         self.tryToSetIndex(self.index)
