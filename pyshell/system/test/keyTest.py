@@ -20,6 +20,8 @@ import unittest
 from pyshell.system.key import CryptographicKeyParameter, CryptographicKeyParameterManager
 from pyshell.utils.key import CryptographicKey
 from pyshell.system.environment import EnvironmentParameter
+from pyshell.utils.exception import ParameterException
+from pyshell.arg.exception import argException
 
 class KeyTest(unittest.TestCase):
     def setUp(self):
@@ -39,7 +41,7 @@ class KeyTest(unittest.TestCase):
         
     def test_addNotYetParametrizedAndInValidKey(self):
         manager = CryptographicKeyParameterManager()
-        self.assertRaises(Exception,manager.setParameter, "test.key", "0xplop")
+        self.assertRaises(argException,manager.setParameter, "test.key", "0xplop")
         
     def test_addValidParameter(self):
         manager = CryptographicKeyParameterManager()
@@ -52,7 +54,7 @@ class KeyTest(unittest.TestCase):
         
     def test_addNotAllowedParameter(self):
         manager = CryptographicKeyParameterManager()
-        self.assertRaises(Exception,manager.setParameter, "test.key", EnvironmentParameter("0x1122ff"))
+        self.assertRaises(ParameterException,manager.setParameter, "test.key", EnvironmentParameter("0x1122ff"))
         
 if __name__ == '__main__':
     unittest.main()

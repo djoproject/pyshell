@@ -19,6 +19,7 @@
 from pyshell.system.parameter import ParameterManager
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.valuable  import SelectableValuable
+from pyshell.utils.exception import ParameterException
 from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
 
 CONTEXT_DEFAULT_CHECKER = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance())
@@ -40,9 +41,9 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             typ = CONTEXT_DEFAULT_CHECKER
         else:
             if not isinstance(typ,listArgChecker):            
-                typ = listArgChecker(typ,1) #minimal size = 1, because we need at least one element to have a context
+                typ = listArgChecker(typ,minimumSize=1,maximumSize=None) #minimal size = 1, because we need at least one element to have a context
             else:
-                typ.setSize(1,None) #TODO why None (?) need brainstorming
+                typ.setSize(1,typ.maximumSize)
                 
             if typ.checker.maximumSize != 1:
                 raise ParameterException("(ContextParameter) __init__, inner checker must have a maximum length of 1, got '"+str(typ.checker.maximumSize)+"'")
@@ -153,15 +154,25 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.value = _convertToSetList(self.value)
                 
     def removeValues(self, values):
+        self._raiseIfReadOnly("removeValues")
+        
+        values = _convertToSetList(values)
+        
+        newValues = []
+        for v in values:
+            if v in self.value:
+                newValues.append(v)
+                
+        if len(newValues) == 0:
+            return
+    
         #must stay at least one item in list
-        if len(self.value) == 1:
-            raise ParameterException("(ContextParameter) removeValues, can remove more value from this context, at least one value must stay in the list")
+        if (len(self.value) - len(newValues)) == 0:
+            raise ParameterException("(ContextParameter) removeValues, can remove all the value in this context, at least one value must stay in the list")
         
         #remove
-        EnvironmentParameter.removeValues(self, values)
+        EnvironmentParameter.removeValues(self, newValues)
         
-        #TODO can not remove all value, at least one value must remain
-
         #recompute index if needed
         self.tryToSetDefaultIndex(self.defaultIndex)
         self.tryToSetIndex(self.index)

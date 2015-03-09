@@ -101,14 +101,14 @@ class ParameterManager(object):
         return Parameter
     
     def isAnAllowedType(self,value): #XXX to override if needed
-        return isinstance(value,self.getAllowedType())
+        return isinstance(value,self.getAllowedType()) and value.__class__.__name__ == self.getAllowedType().__name__ #second condition is to forbidde child class
         
     def extractParameter(self, value):
         if self.isAnAllowedType(value):
             return value
 
         if isinstance(value, Parameter):
-            raise ParameterException("(ParameterManager) extractParameter, can not use an object of type '"+type(value)+"' in this manager")
+            raise ParameterException("(ParameterManager) extractParameter, can not use an object of type '"+str(type(value))+"' in this manager")
             
         return self.getAllowedType()(value) #try to instanciate parameter, may raise if invalid type
         

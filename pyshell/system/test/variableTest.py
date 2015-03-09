@@ -19,6 +19,7 @@
 import unittest
 from pyshell.system.variable import VarParameter,VariableParameterManager
 from pyshell.system.environment import EnvironmentParameter
+from pyshell.utils.exception import ParameterException
 
 class Anything(object):
     def __init__(self, text):
@@ -45,7 +46,7 @@ class VariableTest(unittest.TestCase):
 
     def test_addNotAllowedParameter(self):
         manager = VariableParameterManager()
-        self.assertRaises(Exception,manager.setParameter, "test.var", EnvironmentParameter("0x1122ff"))
+        self.assertRaises(ParameterException,manager.setParameter, "test.var", EnvironmentParameter("0x1122ff"))
 
     def test_noProperties(self):
         v = VarParameter("plop")

@@ -224,6 +224,10 @@
 
         #a lot of place in the code just raise default exception "raise Exception"
             #replace with pyshell exception raising
+            
+        #dans les tests, ne pas utiliser le type de base Exception dans les assertRaises
+        
+        #tous les noms de classe devraient commencer par une majuscule
      
     #############################
     ### DESIGN ISSUES         ###

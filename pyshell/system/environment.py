@@ -18,6 +18,7 @@
 
 from pyshell.system.parameter import Parameter,ParameterManager
 from pyshell.arg.argchecker   import ArgChecker, listArgChecker, defaultInstanceArgChecker
+from pyshell.utils.exception  import ParameterException
 
 from threading import Lock
 
@@ -36,7 +37,7 @@ class ParametersLocker(object):
                 
     def __enter__(self):
         for param in self.parametersList:
-            param.getLock().acquire(True)
+            param.getLock().acquire(True) #blocking=True
         
         return self
             
@@ -55,10 +56,8 @@ class EnvironmentParameter(Parameter):
         
         if typ is None:
             typ = DEFAULT_CHECKER
-        else:
-            #typ must be argChecker
-            if not isinstance(typ,ArgChecker):
-                raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
+        elif not isinstance(typ,ArgChecker):#typ must be argChecker
+            raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
 
         self.isListType = isinstance(typ, listArgChecker)
         self.typ = typ
