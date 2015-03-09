@@ -170,3 +170,6 @@ class EnvironmentParameter(Parameter):
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)
+
+    def __str__(self):
+        return str(self.value)

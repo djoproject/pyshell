@@ -21,7 +21,9 @@ from pyshell.system.environment import EnvironmentParameter, EnvironmentParamete
 from pyshell.utils.exception import ParameterException
 from pyshell.system.context import ContextParameter
 from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker
+from pyshell.arg.exception   import argException
 from threading import Lock
+from thread import LockType
 
 class DummyLock(object):
     def __init__(self,value):
@@ -118,87 +120,138 @@ class EnvironmentTest(unittest.TestCase):
         self.assertTrue(e.isAListType())
         
     ## parameter method ##
-        
-    def test_environmentMethod1(self): #test getProperties
-        pass #TODO
-        
+            
     def test_environmentMethod2(self): #_raiseIfReadOnly with not readonly
-        pass #TODO
+        e = EnvironmentParameter("plop", readonly = False)
+        self.assertEqual(e._raiseIfReadOnly(),None)
         
     def test_environmentMethod3(self): #_raiseIfReadOnly with readonly and method name
-        pass #TODO
+        e = EnvironmentParameter("plop", readonly = True)
+        self.assertRaises(ParameterException,e._raiseIfReadOnly,"meth")
         
     def test_environmentMethod4(self): #_raiseIfReadOnly with readonly and no method name
-        pass #TODO
+        e = EnvironmentParameter("plop", readonly = True)
+        self.assertRaises(ParameterException,e._raiseIfReadOnly)
         
     def test_environmentMethod5(self): #getLock with lock disabled
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        e.lockable = False
+        self.assertEqual(e.getLock(),None)
+        self.assertEqual(e.getLockID(),-1)
+        self.assertFalse(e.isLockEnable())
         
     def test_environmentMethod6(self): #getLock without lock disabled
-        pass #TODO
-        
-    def test_environmentMethod7(self): #getLockID with lock disabled
-        pass #TODO
-        
-    def test_environmentMethod8(self): #getLockID without lock disabled
-        pass #TODO
-        
-    def test_environmentMethod9(self): #isLockEnable
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        e.lockable = True
+        self.assertEqual(type(e.getLock()),LockType)
+        self.assertEqual(e.getLockID(),0)
+        self.assertTrue(e.isLockEnable())
         
     def test_environmentMethod10(self): #addValues readonly
-        pass #TODO
+        e = EnvironmentParameter("plop", readonly=True)
+        self.assertRaises(ParameterException, e.addValues, ("aa", "bb", "cc",))
         
     def test_environmentMethod11(self): #addValues with non list typ
-        pass #TODO
+        e = EnvironmentParameter(42, IntegerArgChecker())
+        self.assertRaises(ParameterException, e.addValues, (1, 23, 69,))
         
     def test_environmentMethod12(self): #addValues with not iterable value
-        pass #TODO
+        e = EnvironmentParameter(42)
+        e.addValues(33)
+        self.assertEqual(e.getValue(), [42,33])
         
     def test_environmentMethod13(self): #addValues with invalid values in front of the checker
-        pass #TODO
+        e = EnvironmentParameter(42, listArgChecker(IntegerArgChecker()))
+        self.assertRaises(argException, e.addValues, ("plop", "plip", "plap",))
+
+    def test_environmentMethod13b(self): #addValues success
+        e = EnvironmentParameter("plop")
+        e.addValues( ("aa", "bb", "cc",))
+        self.assertEqual(e.getValue(), ["plop", "aa", "bb", "cc"])
         
     def test_environmentMethod14(self): #removeValues readonly
-        pass #TODO
+        e = EnvironmentParameter("plop", readonly=True)
+        self.assertRaises(ParameterException, e.removeValues,"plop" )
         
     def test_environmentMethod15(self): #removeValues with non list typ
-        pass #TODO
+        e = EnvironmentParameter(42, IntegerArgChecker())
+        self.assertRaises(ParameterException, e.removeValues,42 )
         
     def test_environmentMethod16(self): #removeValues with not iterable value
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        e.removeValues("plop" )
+        self.assertEqual(e.getValue(),[])
         
     def test_environmentMethod17(self): #removeValues with existing and not existing value
-        pass #TODO
+        e = EnvironmentParameter(["plop","plip","plap","plup"])
+        e.removeValues( ("plip", "plip", "ohoh", "titi", "plop",))
+        self.assertEqual(e.getValue(),["plap","plup"])
         
     def test_environmentMethod18(self): #setValue valid
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        self.assertEqual(e.getValue(),["plop"])
+        e.setValue("plip")
+        self.assertEqual(e.getValue(),["plip"])
+        e.setValue( ("aa","bb","cc",))
+        self.assertEqual(e.getValue(),["aa","bb","cc"])
+
+        e = EnvironmentParameter(42, IntegerArgChecker())
+        self.assertEqual(e.getValue(),42)
+        e.setValue(23)
+        self.assertEqual(e.getValue(),23)
         
-    def test_environmentMethod19(self): #setValue unvalid
-        pass #TODO
-        
-    def test_environmentMethod20(self): #isReadOnly from consctructor
-        pass #TODO
-        
-    def test_environmentMethod21(self): #isRemovable from consctructor
-        pass #TODO
-        
+    def test_environmentMethod19(self): #setValue unvalid 
+        e = EnvironmentParameter(42, IntegerArgChecker())
+        self.assertRaises(argException, e.setValue, "plop")
+
+        e = EnvironmentParameter(42, listArgChecker(IntegerArgChecker()))
+        self.assertRaises(argException, e.setValue, ("plop","plap",))
+                
     def test_environmentMethod22(self): #setReadOnly with not valid bool
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        self.assertRaises(ParameterException, e.setReadOnly, object())
         
-    def test_environmentMethod23(self): #setReadOnly with valid bool
-        pass #TODO
+    def test_environmentMethod23(self): #setReadOnly with valid bool + getProp
+        e = EnvironmentParameter("plop")
+        self.assertFalse(e.isReadOnly())
+        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+
+        e.setReadOnly(True)
+        self.assertTrue(e.isReadOnly())
+        self.assertEqual(e.getProperties(), (("removable", True),("readonly",True),) )
+
+        e.setReadOnly(False)
+        self.assertFalse(e.isReadOnly())
+        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
         
     def test_environmentMethod24(self): #setRemovable readonly
-        pass #TODO
+        e = EnvironmentParameter("plop", readonly = True)
+        self.assertRaises(ParameterException, e.setRemovable, True)
         
     def test_environmentMethod25(self): #setRemovable with not valid bool
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        self.assertRaises(ParameterException, e.setRemovable, object())
         
-    def test_environmentMethod26(self): #setRemovable with valid bool
-        pass #TODO
+    def test_environmentMethod26(self): #setRemovable with valid bool + getProp
+        e = EnvironmentParameter("plop")
+        self.assertTrue(e.isRemovable())
+        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+
+        e.setRemovable(False)
+        self.assertFalse(e.isRemovable())
+        self.assertEqual(e.getProperties(), (("removable", False),("readonly",False),) )
+
+        e.setRemovable(True)
+        self.assertTrue(e.isRemovable())
+        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
         
     def test_environmentMethod27(self): #repr
-        pass #TODO
+        e = EnvironmentParameter("plop")
+        self.assertEqual(repr(e),"Environment, value:['plop']")
+
+    def test_environmentMethod28(self): #str
+        e = EnvironmentParameter("plop")
+        self.assertEqual(str(e),"['plop']")
         
 if __name__ == '__main__':
     unittest.main()
