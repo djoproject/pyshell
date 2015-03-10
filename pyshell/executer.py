@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #system library
-import readline, os, sys, atexit, getopt, traceback, thread
+import readline, os, sys, atexit, getopt, traceback
 from contextlib import contextmanager
 
 #tries library
@@ -71,6 +71,7 @@ class CommandExecuter():
     def _initParams(self, paramFile, outsideArgs):
         #create param manager
         self.params = ParameterContainer()
+        self.params.pushVariableLevelForThisThread() #init local level #TODO remove me as soon as shell has its own procedure
         self.promptWaitingValuable = SimpleValuable(False)
 
         ## init original params ##
@@ -94,14 +95,16 @@ class CommandExecuter():
             var.setTransient(True)
             var = self.params.variable.setParameter("#", VarParameter(len(outsideArgs)), localParam = False)                      #arg count
             var.setTransient(True)
-            var = self.params.variable.setParameter("@", VarParameter(outsideArgs), localParam = False)                            #all args
+            var = self.params.variable.setParameter("@", VarParameter(outsideArgs), localParam = False)                           #all args
             var.setTransient(True)
-            #TODO var = self.params.variable.setParameter("?", VarParameter(outsideArgs, localParam = False)                            #value from last command
+            #TODO var = self.params.variable.setParameter("!", VarParameter(outsideArgs), localParam = False)                            #last pid started in background
             #var.setTransient(True)
-            #TODO var = self.params.variable.setParameter("!", VarParameter(outsideArgs, localParam = False)                            #last pid started in background
-            #var.setTransient(True)
-            var = self.params.variable.setParameter("$", VarParameter(thread.get_ident()), localParam = False)                    #current process id #TODO id is not enought, need level
-            var.setTransient(True)
+       
+        var = self.params.variable.setParameter("$", VarParameter(self.params.getCurrentId()), localParam = False)                    #current process id #TODO id is not enought, need level
+        var.setTransient(True)
+
+        var = self.params.variable.setParameter("?", VarParameter( () ), localParam = True)                                   #value from last command #TODO remove me as soon as shell will be in its self procedure
+        var.setTransient(True)
             
     def _initPrinter(self):
         ## prepare the printing system ##

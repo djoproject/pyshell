@@ -20,43 +20,84 @@ from pyshell.system.context     import ContextParameterManager
 from pyshell.system.environment import EnvironmentParameterManager
 from pyshell.system.key         import CryptographicKeyParameterManager
 from pyshell.system.variable    import VariableParameterManager
+from pyshell.utils.constants    import ORIGIN_PROCESS, AVAILABLE_ORIGIN
+from pyshell.utils.exception    import DefaultPyshellException
 
 from threading import current_thread
 
-class ParameterContainer(object):
+class _ThreadInfo(object):
+    def __init__(self):
+        self.level          = -1
+        self.procedureStack = []
+        self.origin         = ORIGIN_PROCESS
+
+    def canBeDeleted(self):
+        return self.level == 1 and self.origin == ORIGIN_PROCESS
+
+class AbstractParameterContainer(object):
+    def getCurrentId(self):
+        pass #TO OVERRIDE
+
+    def getOrigin(self):
+        pass #TO OVERRIDE
+
+    def setOrigin(self, origin):
+        pass #TO OVERRIDE
+
+class DummyParameterContainer(AbstractParameterContainer):
+    def __init__(self):
+        self.origin = ORIGIN_PROCESS
+
+    def getCurrentId(self):
+        return current_thread().ident
+
+    def getOrigin(self):
+        return self.origin
+
+    def setOrigin(self, origin):
+        if origin not in AVAILABLE_ORIGIN:
+            raise DefaultPyshellException("(DummyParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
+
+        self.origin = origin
+
+class ParameterContainer(AbstractParameterContainer):
     SUBCONTAINER_LIST = ["environment", "context", "variable", "key"]
 
     def __init__(self):
-        self.threadLevel = {} #hold the level of the current thread
-        self.environment = EnvironmentParameterManager()
-        self.context     = ContextParameterManager()
-        self.variable    = VariableParameterManager()
-        self.key         = CryptographicKeyParameterManager()
+        self.threadInfo = {} #hold the level of the current thread
+        self.environment = EnvironmentParameterManager(self)
+        self.context     = ContextParameterManager(self)
+        self.variable    = VariableParameterManager(self)
+        self.key         = CryptographicKeyParameterManager(self)
         self.mainThread  = current_thread().ident
 
-    def pushVariableLevelForThisThread(self, procedure = None):
+    def getThreadInfo(self):
         tid = current_thread().ident
-        
-        #manage first call to this container with this thread
-        if tid not in self.threadLevel:
-            level = -1
-            procedureStack = []
-        else:
-            level, procedureStack = self.threadLevel[tid]
-        
-        #add level
-        procedureStack.append(procedure)
-        self.threadLevel[tid] = level+1, procedureStack
 
-    def popVariableLevelForThisThread(self):
-        tid = current_thread().ident
+        if tid in self.threadInfo:
+            return self.threadInfo[tid]
         
-        #manage first call to this container with this thread
-        if tid not in self.threadLevel:
+        ti = _ThreadInfo()
+        self.threadInfo[tid] = ti
+        return ti
+
+    def isThreadRegistered(self):
+        return current_thread().ident in self.threadInfo
+
+    def pushVariableLevelForThisThread(self, procedure = None):
+        info = self.getThreadInfo()
+        info.procedureStack.append(procedure)
+        info.level += 1
+
+    def popVariableLevelForThisThread(self):        
+        if not self.isThreadRegistered():
             return 
-        else:
-            level, procedureStack = self.threadLevel[tid]
-        
+
+        info = self.getThreadInfo()
+                
+        if info.level == -1: #this info only hold the origin
+            return
+
         #flush parameter manager
         self.environment.flushVariableLevelForThisThread()
         self.context.flushVariableLevelForThisThread()
@@ -64,24 +105,54 @@ class ParameterContainer(object):
         self.key.flushVariableLevelForThisThread()
         
         #update level map
-        level -= 1
-        if level == -1:
-            del self.threadLevel[tid]
-        else:
-            del procedureStack[-1]
-            self.threadLevel[tid] = level, procedureStack
+        info.level -= 1
+
+        if info.canBeDeleted():
+            del self.threadInfo[current_thread().ident]
         
-    def getCurrentId(self):
-        tid = current_thread().ident
-        
-        if tid not in self.threadLevel:
+    def getCurrentId(self):        
+        if not self.isThreadRegistered():
+            self.pushVariableLevelForThisThread()
+
+        info = self.getThreadInfo()
+
+        if info.level == -1:
             self.pushVariableLevelForThisThread()
     
-        return (tid,self.threadLevel[tid][0],)
+        return (current_thread().ident,info.level,)
         
     def isMainThread(self):
         return self.mainThread == current_thread().ident
 
-    def getCurrentProcedure(self): #TODO what about empty stack...
-        tid = current_thread().ident
-        return self.threadLevel[tid][1]
+    def getCurrentProcedure(self):
+        if not self.isThreadRegistered():
+            return None
+
+        info = self.getThreadInfo()
+
+        if len(info.procedureStack) == 0:
+            return None
+
+        return info.procedureStack[-1]
+
+    def getOrigin(self):
+        if not self.isThreadRegistered():
+            return ORIGIN_PROCESS
+
+        info = self.getThreadInfo()
+        return info.origin
+
+    def setOrigin(self, origin):
+        if origin == ORIGIN_PROCESS:
+            if self.isThreadRegistered():
+                info = self.getThreadInfo()
+                info.origin = ORIGIN_PROCESS
+
+                if info.canBeDeleted():
+                    del self.threadInfo[current_thread().ident]
+
+        if origin not in ORIGIN_PROCESS:
+            raise DefaultPyshellException("(ParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
+
+        info = self.getThreadInfo()
+        info.origin = origin

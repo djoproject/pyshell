@@ -88,3 +88,9 @@ VARIABLE_ATTRIBUTE_NAME = "variable"
 ### KEY ###
 KEY_ATTRIBUTE_NAME = "key"
 
+### PARAMETER ORIGIN ###
+ORIGIN_FILE      = "origin file"
+ORIGIN_SYSTEM    = "origin system"
+ORIGIN_PROCESS   = "origin process"
+ORIGIN_LOADER    = "origin loader"
+AVAILABLE_ORIGIN = [ORIGIN_FILE, ORIGIN_SYSTEM, ORIGIN_PROCESS, ORIGIN_LOADER]

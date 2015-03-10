@@ -18,7 +18,8 @@
 
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
-from threading import Lock, current_thread
+#TODO from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER, AbstractParameterContainer
+from threading import Lock
 from functools import wraps
 from tries import multiLevelTries
 from shlex import shlex
@@ -57,12 +58,13 @@ class ParameterManager(object):
         self.threadLocalVar = {}                #hold the paths for the current level of the current thread
     
         if parent is None:
-            self.getCurrentId = self._getCurrentId
+            self.parentContainer = DEFAULT_DUMMY_PARAMETER_CONTAINER
         else:
-            self.getCurrentId = parent.getCurrentId
-    
-    def _getCurrentId(self):
-        return current_thread().ident
+            #TODO cyclic redonduncy, solve it
+            #if not isinstance(parent, AbstractParameterContainer):
+            #    raise ParameterException("(ParameterManager) __init__, expect an instance of AbstractParameterContainer, got '"+str(type(parent))+"'")
+
+            self.parentContainer = parent
     
     def _buildExistingPathFromError(self, wrongPath, advancedResult):
         pathToReturn = list(advancedResult.getFoundCompletePath())
@@ -114,12 +116,7 @@ class ParameterManager(object):
         
     @synchronous()
     def setParameter(self,stringPath, param, localParam = True):
-
         param = self.extractParameter(param)
-
-        #must be an instance of Parameter
-        #if not isAnAllowedType(param):
-            #raise ParameterException("(ParameterManager) setParameter, invalid parameter '"+str(stringPath)+"', an instance of Parameter was expected, got "+str(type(param)))
 
         #check safety and existing
         advancedResult = self._getAdvanceResult("setParameter",stringPath, False, False, True)
@@ -127,7 +124,7 @@ class ParameterManager(object):
             (global_var, local_var, ) = advancedResult.getValue()
             
             if localParam:
-                key            = self.getCurrentId()
+                key            = self.parentContainer.getCurrentId()
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
 
                 if key in local_var:
@@ -139,23 +136,28 @@ class ParameterManager(object):
 
                     self.threadLocalVar[key].add( '.'.join(str(x) for x in advancedResult.getFoundCompletePath()) )
 
+                #TODO update origin
                 local_var[key] = param
-
             else:
-                if global_var is not None and (global_var.isReadOnly() or not global_var.isRemovable()): #TODO removable souldn't block updating
-                    raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
+                if global_var is not None:
+                    if (global_var.isReadOnly() or not global_var.isRemovable()): #TODO removable souldn't block updating
+                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
 
+                    #TODO merge loader list
+
+                #TODO update origin
                 self.mltries.update( stringPath.split("."), (param, local_var, ) )
         else:
             local_var = {}
             if localParam:
                 global_var     = None
-                key            = self.getCurrentId()
+                key            = self.parentContainer.getCurrentId()
                 local_var[key] = param
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
             else:
                 global_var = param
-                
+            
+            #TODO update origin
             self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
             
         return param
@@ -169,7 +171,7 @@ class ParameterManager(object):
 
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without ordering
                 if localParam:
-                    key = self.getCurrentId()
+                    key = self.parentContainer.getCurrentId()
                     if key in local_var:
                         return local_var[key]
 
@@ -195,7 +197,7 @@ class ParameterManager(object):
 
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
                 if localParam:
-                    key = self.getCurrentId()
+                    key = self.parentContainer.getCurrentId()
 
                     if key in local_var:
                         return True
@@ -221,7 +223,7 @@ class ParameterManager(object):
             (global_var, local_var, ) = advancedResult.getValue()
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
                 if localParam:
-                    key = self.getCurrentId()  
+                    key = self.parentContainer.getCurrentId()  
 
                     if key not in local_var:
                         if not exploreOtherLevel:
@@ -263,7 +265,7 @@ class ParameterManager(object):
                         
     @synchronous()    
     def flushVariableLevelForThisThread(self):
-        key = self.getCurrentId()
+        key = self.parentContainer.getCurrentId()
 
         #clean level
         if key in self.threadLocalVar: #do we have recorded some variables for this thread at this level ?
@@ -294,7 +296,7 @@ class ParameterManager(object):
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
                 if localParam_tmp:
                     if key is None:
-                        key = self.getCurrentId()
+                        key = self.parentContainer.getCurrentId()
                         
                     if key in local_var:
                         to_ret[var_key] = local_var[key]

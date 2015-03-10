@@ -225,6 +225,7 @@
                         Default Value => Process
                         
                         create a hidden method getOriginParameter that will be used by parameterManager
+                            this method also need to be called in parameter during setValue or setProperties or related function
                
 
 #################### UTILS ###################################################################################################
