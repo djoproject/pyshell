@@ -26,5 +26,42 @@ class ExceptionTest(unittest.TestCase):
     def test_(self):
         pass #TODO
         
+    def test_ParameterContainer1(self):#pushVariableLevelForThisThread with empty stack + getCurrentProcedure
+        pass #TODO
+        
+    def test_ParameterContainer2(self):#pushVariableLevelForThisThread with not empty stack + getCurrentProcedure
+        pass #TODO
+        
+    def test_ParameterContainer3(self):#popVariableLevelForThisThread with empty stack
+        pass #TODO
+        
+    def test_ParameterContainer4(self):#popVariableLevelForThisThread with one level on stack
+        pass #TODO
+        
+    def test_ParameterContainer5(self):#popVariableLevelForThisThread with several level on stack
+        pass #TODO
+        
+    def test_ParameterContainer6(self):#getCurrentId with empty stack
+        pass #TODO
+        
+    def test_ParameterContainer7(self):#getCurrentId with one level on stack
+        pass #TODO
+        
+    def test_ParameterContainer8(self):#getCurrentId with several level on stack
+        pass #TODO
+        
+    def test_ParameterContainer9(self):#isMainThread with the current thread
+        pass #TODO
+        
+    def test_ParameterContainer10(self):#isMainThread with another thread
+        pass #TODO
+        
+    def test_ParameterContainer11(self):#getCurrentProcedure with empty stack
+        pass #TODO
+        
+    def test_ParameterContainer12(self):#getCurrentProcedure with not empty stack
+        pass #TODO
+        
+        
 if __name__ == '__main__':
     unittest.main()

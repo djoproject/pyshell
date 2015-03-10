@@ -131,7 +131,7 @@ class ParameterManager(object):
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
 
                 if key in local_var:
-                    if local_var[key].isReadOnly() or not local_var[key].isRemovable():
+                    if local_var[key].isReadOnly() or not local_var[key].isRemovable(): #TODO removable souldn't block updating
                         raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
                 else:
                     if key not in self.threadLocalVar:
@@ -142,7 +142,7 @@ class ParameterManager(object):
                 local_var[key] = param
 
             else:
-                if global_var is not None and (global_var.isReadOnly() or not global_var.isRemovable()):
+                if global_var is not None and (global_var.isReadOnly() or not global_var.isRemovable()): #TODO removable souldn't block updating
                     raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
 
                 self.mltries.update( stringPath.split("."), (param, local_var, ) )

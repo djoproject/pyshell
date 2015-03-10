@@ -130,8 +130,7 @@
     #####################
     ### parameter     ###
     #####################
-        TODO a parameter also becomes elligible to be saved if a properties is updated !!!
-            
+                        
         About history (after brainstorming, it is not really an history, it is value origin)
             WHY?
                 PBLM 1 how to know if is it necessary to recreate stored config or not ? SOLVED
@@ -145,7 +144,7 @@
                             count the number of parameter loaded from file, if there is less or more at the saving time, recreate the parameter file
                                 if the number is equal from the loading, don't save
 
-                        add a single couple of data to parameter about current value origin, here are the possible values: (NEW FIELD: origin)
+                        add a single couple of data to parameter about current value origin OR properties origin, here are the possible values: (NEW FIELD: origin)
                             System         + None 
                             File           + filePath
                             Loader         + addonName
@@ -156,7 +155,7 @@
                             Origin=File AND path is different of the destination file
                         
                         CANDIDATE FOR SAVING BUT DO NOT TRIGGER IT IN FOLLOWING CASES:
-                            Origin=File AND path is the same of the destination file
+                            Origin=File AND path is the same of the destination file And exactly the same count of parameter loaded
                             
                         DON'T SAVE IN FOLLOWING CASES:
                             Origin=System
@@ -185,15 +184,47 @@
                                 need to find a way to say to the loader that this is the startup procedure
                                 ideally forbide to execute startup a second time
 
-                PRBLM 1B: if we just overwritte the full parameter, not only set a new value
+                PRBLM 3: if we just overwritte the full parameter, not only set a new value
                          setParameter from container in place of setValue from parameter
                     
                     it will overwrite the information stored into the parameter
+                        the information about loader, a simple list
 
-                    TODO choose a solution.
-
-                    SOLUTION 1: if parameter already exists, manage it into the container and merge information from old one with the new one
+                    SOLUTION 1: if parameter already exists, manage it into the container and merge information from old one with the new one XXX
                     SOLUTION 2: store these information outside of the parameter, so you will never lose them
+                    
+                    the SOLUTION 1 is better and simpler, because just need to store a list
+                        So when a parameter want to overwrite an existing one, just merge loader list
+                    
+                PRBLM 4: how to know where the update come from ?
+                    for "System" and "Loader", it is easy because the parameter setting occurs in a well defined place.
+                    for "Procedure", it has to be the default origin, so no need to create specific mechanism
+                    for "File", it is the real problem, because the process loading occured into a process that occur into a file procedure
+                        we have no information to give to the parameterManager about the file origin
+                        
+                    SOLUTION 1: add an argument on command "set parameter" about origin
+                        +++ simple do install
+                        --- show an internal mechanism to the user
+                        --- a user could update origin in parameter file and break the logics of this stuff
+                        
+                    SOLUTION 2: create a local var to indicate the origin of the next parameter
+                    SOLUTION 2b: create an hidden command to indicate to the parameter manager that every following parameter will come from file
+                        And create another hidden command to indicate the loading is finished
+                        
+                        Yeah but what does occur if a crash happend during parameter loading ? there is a risk to never reset parameter origin
+                            not really, a file loading run with a granularity of None, so the call will never stop to execute until the end of the file
+                            
+                        these command call could be added by the parameter process that create the alias object at the begging and end of this alias
+                        
+                    SOLUTION 3: create a method in parameterManager to setOriginOfParameter XXX
+                        this information will be used to set the origin of every parameter for the current thread only
+                            so at the end of the thread life, this information disappear
+                            
+                        set it in the process to load the file
+                        use it everywhere, for Loader, System, Process, File
+                        Default Value => Process
+                        
+                        create a hidden method getOriginParameter that will be used by parameterManager
                
 
 #################### UTILS ###################################################################################################

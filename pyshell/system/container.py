@@ -61,6 +61,7 @@ class ParameterContainer(object):
         self.environment.flushVariableLevelForThisThread()
         self.context.flushVariableLevelForThisThread()
         self.variable.flushVariableLevelForThisThread()
+        self.key.flushVariableLevelForThisThread()
         
         #update level map
         level -= 1
@@ -81,6 +82,6 @@ class ParameterContainer(object):
     def isMainThread(self):
         return self.mainThread == current_thread().ident
 
-    def getCurrentProcedure(self):
+    def getCurrentProcedure(self): #TODO what about empty stack...
         tid = current_thread().ident
         return self.threadLevel[tid][1]

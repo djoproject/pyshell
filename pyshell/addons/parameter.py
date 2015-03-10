@@ -186,6 +186,12 @@ def loadParameter(filePath, parameters):
     if os.path.exists(filePath.getValue()):
         afile = ProcedureFromFile(filePath.getValue())
         afile.setErrorGranularity(None) #never stop to execute
+            #TODO yeaah, never stop execution BUT there is a problem
+                #if a parameter creation trigger an exception, the "set properties" will still be executed
+                    #think about that
+                
+                #need to jump over these setProperties if any exception occurs, create a method "jumpOverNextXlineIfPreviousCommandWasOnError"
+        
         afile.execute(parameters=parameters)
     else:
         saveParameter(filePath, parameters)

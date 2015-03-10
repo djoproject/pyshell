@@ -162,7 +162,7 @@ class Procedure(UniCommand):
             param.setValue( () )
 
             #manage exception
-            if not isinstance(lastException, PyshellException):
+            if not isinstance(lastException, PyshellException): #TODO should be considered like an excption with a granularity of type ERROR (=0), and don't stop the execution
                 raise engineInterruptionException("internal command has been interrupted because of an enexpected exception", abnormal=True)
             
             if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
