@@ -50,6 +50,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         
         self.defaultIndex = 0
         self.index = 0
+        self.transientIndex = False
         
         EnvironmentParameter.__init__(self, value, typ, transient, False, removable)
         self.tryToSetDefaultIndex(defaultIndex)
@@ -80,11 +81,15 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
             
         self.index = index
+        if not self.transientIndex:
+            self.updateOrigin()
         
     def tryToSetIndex(self, index):
         try:
             self.value[index]
             self.index = index
+            if not self.transientIndex:
+                self.updateOrigin()
             return
         except IndexError:
             pass
@@ -93,12 +98,17 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         
         self.tryToSetDefaultIndex(self.defaultIndex) #default index is still valid ?
         self.index = self.defaultIndex 
+        if not self.transientIndex:
+            self.updateOrigin()
 
     def setIndexValue(self,value):
         try:
             self.index = self.value.index(self.typ.checker.getValue(value))
         except ValueError:
             raise ParameterException("(ContextParameter) setIndexValue, unexisting value '"+str(value)+"', the value must exist in the context")
+            
+        if not self.transientIndex:
+            self.updateOrigin()
             
     def getIndex(self):
         return self.index
@@ -113,6 +123,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             raise ParameterException("(ContextParameter) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.transientIndex = state
+        self.updateOrigin()
         
     def isTransientIndex(self):
         return self.transientIndex
@@ -128,6 +139,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(defaultIndex))
             
         self.defaultIndex = defaultIndex
+        self.updateOrigin()
         
     def tryToSetDefaultIndex(self,defaultIndex):
         self._raiseIfReadOnly("tryToSetDefaultIndex")
@@ -135,6 +147,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         try:
             self.value[defaultIndex]
             self.defaultIndex = defaultIndex
+            self.updateOrigin()
             return
         except IndexError:
             pass
@@ -142,12 +155,16 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             pass
             
         self.defaultIndex = 0
+        self.updateOrigin()
         
     def getDefaultIndex(self):
         return self.defaultIndex
         
     def reset(self):
         self.index = self.defaultIndex
+        
+        if not self.transientIndex:
+            self.updateOrigin()
 
     def addValues(self, values):
         EnvironmentParameter.addValues(self,values)

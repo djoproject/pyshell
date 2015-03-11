@@ -169,7 +169,7 @@ def _parameterGetTitle(titleFormatingFun):
              key       = stringArgChecker())
 def listParameter(parameters, key=None):
     toPrint = []
-    for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
+    for subcontainername in parameters.parameterManagerList:
         if not hasattr(parameters, subcontainername):
             raise Exception("Unknow parameter type '"+str(attributeType)+"'")
             
@@ -212,7 +212,7 @@ def saveParameter(filePath, parameters):
     createParentDirectory(filePath)
     
     with open(filePath, 'wb') as configfile:
-        for subcontainername in ParameterContainer.SUBCONTAINER_LIST:
+        for subcontainername in parameters.parameterManagerList:
             container = getattr(parameters, subcontainername)
             dico = container.buildDictionnary("", localParam = False, exploreOtherLevel=False)
 

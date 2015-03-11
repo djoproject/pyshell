@@ -25,20 +25,22 @@ from tries import multiLevelTries
 from tries.exception import triesException, pathNotExistsTriesException
 
 #local library
-from pyshell.arg.argchecker   import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
-from pyshell.addons           import addon
-from pyshell.utils.constants  import *
-from pyshell.utils.exception  import ListOfException
-from pyshell.utils.executing  import execute
-from pyshell.utils.misc       import getTerminalSize
-from pyshell.utils.parsing    import Parser
-from pyshell.utils.printing   import Printer, warning, error, printException
-from pyshell.utils.valuable   import SimpleValuable
-from pyshell.system.procedure import ProcedureFromList, ProcedureFromFile
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.context import ContextParameter
-from pyshell.system.variable import VarParameter
-from pyshell.system.container import ParameterContainer
+from pyshell.arg.argchecker     import defaultInstanceArgChecker, listArgChecker, filePathArgChecker, IntegerArgChecker
+from pyshell.addons             import addon
+from pyshell.utils.constants    import *
+from pyshell.utils.exception    import ListOfException
+from pyshell.utils.executing    import execute
+from pyshell.utils.misc         import getTerminalSize
+from pyshell.utils.parsing      import Parser
+from pyshell.utils.printing     import Printer, warning, error, printException
+from pyshell.utils.valuable     import SimpleValuable
+from pyshell.system.procedure   import ProcedureFromList, ProcedureFromFile
+from pyshell.system.environment import EnvironmentParameter,EnvironmentParameterManager
+from pyshell.system.context     import ContextParameter, ContextParameterManager
+from pyshell.system.variable    import VarParameter,VariableParameterManager
+from pyshell.system.container   import ParameterContainer
+from pyshell.system.key         import CryptographicKeyParameterManager
+
 
 #TODO
     #there is no NoneCheck after .getParameter, could be interesting to manage these case
@@ -71,6 +73,11 @@ class CommandExecuter():
     def _initParams(self, paramFile, outsideArgs):
         #create param manager
         self.params = ParameterContainer()
+        self.params.registerParameterManager("environment", EnvironmentParameterManager(self.params))
+        self.params.registerParameterManager("context", ContextParameterManager(self.params))
+        self.params.registerParameterManager("variable", VariableParameterManager(self.params))
+        self.params.registerParameterManager("key", CryptographicKeyParameterManager(self.params))
+        
         self.params.pushVariableLevelForThisThread() #init local level #TODO remove me as soon as shell has its own procedure
         self.promptWaitingValuable = SimpleValuable(False)
 

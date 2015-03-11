@@ -20,9 +20,10 @@ import unittest, threading
 from tries import multiLevelTries
 from pyshell.utils.executing    import execute, _generateSuffix, _execute
 from pyshell.utils.exception    import ListOfException
+from pyshell.system.variable    import VariableParameterManager
 from pyshell.system.container   import ParameterContainer
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.context     import ContextParameter
+from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager
+from pyshell.system.context     import ContextParameter, ContextParameterManager
 from pyshell.utils.constants    import ENVIRONMENT_TAB_SIZE_KEY, CONTEXT_COLORATION_KEY, DEBUG_ENVIRONMENT_NAME, ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON, CONTEXT_EXECUTION_KEY, CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE
 from pyshell.command.command    import UniCommand, Command, MultiCommand
 from pyshell.arg.decorator      import shellMethod
@@ -32,6 +33,7 @@ from pyshell.arg.exception      import *
 from pyshell.command.exception  import *
 from pyshell.command.engine     import engineV3
 from pyshell.utils.test.printingTest import NewOutput
+from pyshell.utils.printing import Printer
 from time import sleep
 
 RESULT     = None
@@ -94,6 +96,9 @@ class ExecutingTest(unittest.TestCase):
         global RESULT, RESULT_BIS
         
         self.params = ParameterContainer()
+        self.params.registerParameterManager("environment", EnvironmentParameterManager(self.params))
+        self.params.registerParameterManager("context", ContextParameterManager(self.params))
+        self.params.registerParameterManager("variable", VariableParameterManager(self.params))
 
         self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0,index=0, removable=False, readonly=True)
         self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME, self.debugContext, localParam = False)
@@ -118,6 +123,10 @@ class ExecutingTest(unittest.TestCase):
         
         self.m = MultiCommand("plap")
         self.mltries.insert( ("plap",) ,self.m)
+        
+        printer = Printer.getInstance()
+        #TODO sould always return false #printer.setPromptShowedContext(self.promptWaitingValuable)
+        printer.setParameters(self.params)
                 
     ### execute test ###
     def test_execute1(self):#with processArg iterable

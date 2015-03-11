@@ -122,6 +122,7 @@ class EnvironmentParameter(Parameter):
     
         #append values
         self.value.extend(values)
+        self.updateOrigin()
     
     def removeValues(self, values):
         #must be "not readonly"
@@ -140,6 +141,8 @@ class EnvironmentParameter(Parameter):
         for v in values:
             if v in self.value:
                 self.value.remove(v)
+                
+        self.updateOrigin()
 
     def getValue(self):
         return self.value
@@ -147,6 +150,7 @@ class EnvironmentParameter(Parameter):
     def setValue(self, value):
         self._raiseIfReadOnly("setValue")
         self.value = self.typ.getValue(value)
+        self.updateOrigin()
 
     def isReadOnly(self):
         return self.readonly
@@ -159,6 +163,7 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("(EnvironmentParameter) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.readonly = state
+        self.updateOrigin()
 
     def setRemovable(self, state):
         self._raiseIfReadOnly("setRemovable")
@@ -167,6 +172,7 @@ class EnvironmentParameter(Parameter):
             raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.removable = state
+        self.updateOrigin()
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

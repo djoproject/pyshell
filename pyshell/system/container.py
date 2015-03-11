@@ -16,10 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.context     import ContextParameterManager
-from pyshell.system.environment import EnvironmentParameterManager
-from pyshell.system.key         import CryptographicKeyParameterManager
-from pyshell.system.variable    import VariableParameterManager
+#from pyshell.system.context     import ContextParameterManager
+#from pyshell.system.environment import EnvironmentParameterManager
+#from pyshell.system.key         import CryptographicKeyParameterManager
+#from pyshell.system.variable    import VariableParameterManager
 from pyshell.utils.constants    import ORIGIN_PROCESS, AVAILABLE_ORIGIN
 from pyshell.utils.exception    import DefaultPyshellException
 
@@ -30,6 +30,7 @@ class _ThreadInfo(object):
         self.level          = -1
         self.procedureStack = []
         self.origin         = ORIGIN_PROCESS
+        self.originArg      = None
 
     def canBeDeleted(self):
         return self.level == 1 and self.origin == ORIGIN_PROCESS
@@ -44,32 +45,23 @@ class AbstractParameterContainer(object):
     def setOrigin(self, origin):
         pass #TO OVERRIDE
 
-class DummyParameterContainer(AbstractParameterContainer):
-    def __init__(self):
-        self.origin = ORIGIN_PROCESS
-
-    def getCurrentId(self):
-        return current_thread().ident
-
-    def getOrigin(self):
-        return self.origin
-
-    def setOrigin(self, origin):
-        if origin not in AVAILABLE_ORIGIN:
-            raise DefaultPyshellException("(DummyParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
-
-        self.origin = origin
-
 class ParameterContainer(AbstractParameterContainer):
-    SUBCONTAINER_LIST = ["environment", "context", "variable", "key"]
+    #SUBCONTAINER_LIST = ["environment", "context", "variable", "key"] #TODO update addon/parameters
 
     def __init__(self):
         self.threadInfo = {} #hold the level of the current thread
-        self.environment = EnvironmentParameterManager(self)
-        self.context     = ContextParameterManager(self)
-        self.variable    = VariableParameterManager(self)
-        self.key         = CryptographicKeyParameterManager(self)
+        #self.environment = EnvironmentParameterManager(self)
+        #self.context     = ContextParameterManager(self)
+        #self.variable    = VariableParameterManager(self)
+        #self.key         = CryptographicKeyParameterManager(self)
         self.mainThread  = current_thread().ident
+        self.parameterManagerList = []
+
+    def registerParameterManager(self, name, obj):
+        #TODO should check the object, only need to be flushable (create an interface in utils)
+    
+        setattr(self, name, obj)
+        self.parameterManagerList.append(name)
 
     def getThreadInfo(self):
         tid = current_thread().ident
@@ -99,10 +91,14 @@ class ParameterContainer(AbstractParameterContainer):
             return
 
         #flush parameter manager
-        self.environment.flushVariableLevelForThisThread()
-        self.context.flushVariableLevelForThisThread()
-        self.variable.flushVariableLevelForThisThread()
-        self.key.flushVariableLevelForThisThread()
+        for name in self.parameterManagerList:
+            pm = getattr(self, name)
+            pm.flushVariableLevelForThisThread() #TODO rename this call to flush()
+        
+        #self.environment.flushVariableLevelForThisThread()
+        #self.context.flushVariableLevelForThisThread()
+        #self.variable.flushVariableLevelForThisThread()
+        #self.key.flushVariableLevelForThisThread()
         
         #update level map
         info.level -= 1
@@ -137,22 +133,26 @@ class ParameterContainer(AbstractParameterContainer):
 
     def getOrigin(self):
         if not self.isThreadRegistered():
-            return ORIGIN_PROCESS
+            return ORIGIN_PROCESS, None
 
         info = self.getThreadInfo()
-        return info.origin
+        return info.origin, info.originArg
 
-    def setOrigin(self, origin):
+    def setOrigin(self, origin, originArg=None):
+        if origin not in ORIGIN_PROCESS:
+            raise DefaultPyshellException("(ParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
+
         if origin == ORIGIN_PROCESS:
             if self.isThreadRegistered():
                 info = self.getThreadInfo()
                 info.origin = ORIGIN_PROCESS
+                info.originArg = originArg
 
                 if info.canBeDeleted():
                     del self.threadInfo[current_thread().ident]
-
-        if origin not in ORIGIN_PROCESS:
-            raise DefaultPyshellException("(ParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
-
-        info = self.getThreadInfo()
-        info.origin = origin
+        else:
+            info = self.getThreadInfo()
+            info.origin = origin
+            info.originArg = originArg
+            
+            

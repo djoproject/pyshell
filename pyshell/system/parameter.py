@@ -19,7 +19,8 @@
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
 #TODO from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER, AbstractParameterContainer
-from threading import Lock
+from pyshell.utils.constants import ORIGIN_PROCESS
+from threading import Lock, current_thread
 from functools import wraps
 from tries import multiLevelTries
 from shlex import shlex
@@ -50,6 +51,24 @@ def isAValidStringPath(stringPath):
         finalPath.append(path[index])
 
     return True, tuple(finalPath)
+
+class DummyParameterContainer(object): #TODO
+    def __init__(self):
+        self.origin = ORIGIN_PROCESS
+
+    def getCurrentId(self):
+        return current_thread().ident
+
+    def getOrigin(self):
+        return self.origin, None
+
+    def setOrigin(self, origin):
+        if origin not in AVAILABLE_ORIGIN:
+            raise DefaultPyshellException("(DummyParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
+
+        self.origin = origin
+        
+DEFAULT_DUMMY_PARAMETER_CONTAINER = DummyParameterContainer()
 
 class ParameterManager(object):                    
     def __init__(self, parent = None):
@@ -108,7 +127,7 @@ class ParameterManager(object):
     def extractParameter(self, value):
         if self.isAnAllowedType(value):
             return value
-
+                
         if isinstance(value, Parameter):
             raise ParameterException("(ParameterManager) extractParameter, can not use an object of type '"+str(type(value))+"' in this manager")
             
@@ -128,24 +147,26 @@ class ParameterManager(object):
                 param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
 
                 if key in local_var:
-                    if local_var[key].isReadOnly() or not local_var[key].isRemovable(): #TODO removable souldn't block updating
-                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
+                    if local_var[key].isReadOnly():
+                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
                 else:
                     if key not in self.threadLocalVar:
                         self.threadLocalVar[key] = set()
 
                     self.threadLocalVar[key].add( '.'.join(str(x) for x in advancedResult.getFoundCompletePath()) )
 
-                #TODO update origin
+                param.setOriginProvider(self.parentContainer)
+                param.updateOrigin()
                 local_var[key] = param
             else:
                 if global_var is not None:
-                    if (global_var.isReadOnly() or not global_var.isRemovable()): #TODO removable souldn't block updating
-                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable or removable")
+                    if global_var.isReadOnly():
+                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
 
                     #TODO merge loader list
 
-                #TODO update origin
+                param.setOriginProvider(self.parentContainer)
+                param.updateOrigin()
                 self.mltries.update( stringPath.split("."), (param, local_var, ) )
         else:
             local_var = {}
@@ -157,7 +178,8 @@ class ParameterManager(object):
             else:
                 global_var = param
             
-            #TODO update origin
+            param.setOriginProvider(self.parentContainer)
+            param.updateOrigin()
             self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
             
         return param
@@ -319,6 +341,10 @@ class ParameterManager(object):
 class Parameter(Valuable): #abstract
     def __init__(self, transient = False):
         self.transient = transient
+        self.originProvider = None
+        self.origin = ORIGIN_PROCESS
+        self.originArg = None
+        #TODO loader List
 
     def getValue(self):
         pass #TO OVERRIDE
@@ -346,6 +372,19 @@ class Parameter(Valuable): #abstract
 
     def getProperties(self):
         return ()
+        
+    def setOriginProvider(self, provider):
+        if provider is None or not hasattr(provider, "getOrigin") or not hasattr(provider.getOrigin, "__call__"): #TODO should be isInstance
+            raise ParameterException("(Parameter) setOriginProvider, invalid origin provider, need an object with a method getOrigin") 
+        
+        self.originProvider = provider
+        
+    def updateOrigin(self):
+        if self.originProvider == None:
+            self.origin = ORIGIN_PROCESS
+            self.originArg = None
+        else:
+            self.origin, self.originArg = self.originProvider.getOrigin()
 
         
 

@@ -23,14 +23,16 @@ from pyshell.utils.postProcess import listResultHandler, listFlatResultHandler, 
 from pyshell.utils.printing  import Printer
 from pyshell.utils.valuable  import SimpleValuable
 from pyshell.system.container   import ParameterContainer
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.context     import ContextParameter
+from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager
+from pyshell.system.context     import ContextParameter, ContextParameterManager
 from pyshell.arg.argchecker   import defaultInstanceArgChecker, IntegerArgChecker
 
 class PostProcessTest(unittest.TestCase):
     def setUp(self):
         p = Printer.getInstance()
         self.params = ParameterContainer()
+        self.params.registerParameterManager("environment", EnvironmentParameterManager(self.params))
+        self.params.registerParameterManager("context", ContextParameterManager(self.params))
         
         self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0,index=0, removable=False, readonly=True)
         self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME, self.debugContext, localParam = False)
