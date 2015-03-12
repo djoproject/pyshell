@@ -33,7 +33,6 @@ from pyshell.arg.exception      import *
 from pyshell.command.exception  import *
 from pyshell.command.engine     import engineV3
 from pyshell.utils.test.printingTest import NewOutput
-from pyshell.utils.printing import Printer
 from time import sleep
 
 RESULT     = None
@@ -123,11 +122,7 @@ class ExecutingTest(unittest.TestCase):
         
         self.m = MultiCommand("plap")
         self.mltries.insert( ("plap",) ,self.m)
-        
-        printer = Printer.getInstance()
-        #TODO sould always return false #printer.setPromptShowedContext(self.promptWaitingValuable)
-        printer.setParameters(self.params)
-                
+                        
     ### execute test ###
     def test_execute1(self):#with processArg iterable
         self.assertEqual(RESULT, None)

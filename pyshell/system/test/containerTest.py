@@ -16,6 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO test
+    #setOrigin, getOrigin, ...
+
 import unittest
 from pyshell.system.container import ParameterContainer
 
@@ -35,10 +38,10 @@ class ExceptionTest(unittest.TestCase):
     def test_ParameterContainer3(self):#popVariableLevelForThisThread with empty stack
         pass #TODO
         
-    def test_ParameterContainer4(self):#popVariableLevelForThisThread with one level on stack
+    def test_ParameterContainer4(self):#popVariableLevelForThisThread with one level on stack + flush test
         pass #TODO
         
-    def test_ParameterContainer5(self):#popVariableLevelForThisThread with several level on stack
+    def test_ParameterContainer5(self):#popVariableLevelForThisThread with several level on stack + flush test
         pass #TODO
         
     def test_ParameterContainer6(self):#getCurrentId with empty stack

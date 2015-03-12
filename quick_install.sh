@@ -24,5 +24,5 @@ rm -rf ./*
 git clone https://github.com/djo938/supershell.git || quit "Failed to retrieve supershell source code from github"
 rm -rf ../pyshell
 mv ./supershell/* ../
-rm ../BRAINSTORMING ../BUG ../clean.sh ../STRUCT ../TODO ../test.sh
+rm ../BRAINSTORMING ../BUG ../STRUCT ../TODO ../makefile
 quit "Success to install/update, use exec.sh to start the shell"

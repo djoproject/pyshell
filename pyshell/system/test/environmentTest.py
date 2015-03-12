@@ -16,6 +16,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO test
+    #some of the method internally execute updateOrigin
+        #check the method that use it
+        #and check the method that does not use it
+
 import unittest
 from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager, _lockSorter, ParametersLocker
 from pyshell.utils.exception import ParameterException

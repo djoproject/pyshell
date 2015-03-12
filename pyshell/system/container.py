@@ -16,12 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#from pyshell.system.context     import ContextParameterManager
-#from pyshell.system.environment import EnvironmentParameterManager
-#from pyshell.system.key         import CryptographicKeyParameterManager
-#from pyshell.system.variable    import VariableParameterManager
-from pyshell.utils.constants    import ORIGIN_PROCESS, AVAILABLE_ORIGIN
-from pyshell.utils.exception    import DefaultPyshellException
+from pyshell.utils.constants import ORIGIN_PROCESS, AVAILABLE_ORIGIN
+from pyshell.utils.exception import DefaultPyshellException
+from pyshell.utils.flushable import Flushable
 
 from threading import current_thread
 
@@ -45,20 +42,33 @@ class AbstractParameterContainer(object):
     def setOrigin(self, origin):
         pass #TO OVERRIDE
 
-class ParameterContainer(AbstractParameterContainer):
-    #SUBCONTAINER_LIST = ["environment", "context", "variable", "key"] #TODO update addon/parameters
+class DummyParameterContainer(AbstractParameterContainer):
+    def __init__(self):
+        self.origin = ORIGIN_PROCESS
 
+    def getCurrentId(self):
+        return current_thread().ident
+
+    def getOrigin(self):
+        return self.origin, None
+
+    def setOrigin(self, origin):
+        if origin not in AVAILABLE_ORIGIN:
+            raise DefaultPyshellException("(DummyParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
+
+        self.origin = origin
+        
+DEFAULT_DUMMY_PARAMETER_CONTAINER = DummyParameterContainer()
+
+class ParameterContainer(AbstractParameterContainer):
     def __init__(self):
         self.threadInfo = {} #hold the level of the current thread
-        #self.environment = EnvironmentParameterManager(self)
-        #self.context     = ContextParameterManager(self)
-        #self.variable    = VariableParameterManager(self)
-        #self.key         = CryptographicKeyParameterManager(self)
         self.mainThread  = current_thread().ident
         self.parameterManagerList = []
 
     def registerParameterManager(self, name, obj):
-        #TODO should check the object, only need to be flushable (create an interface in utils)
+        if not isinstance(obj,Flushable):
+            raise DefaultPyshellException("(ParameterContainer) registerParameterManager, an instance of Flushable object was expected, got '"+str(type(obj))+"'")
     
         setattr(self, name, obj)
         self.parameterManagerList.append(name)
@@ -93,12 +103,7 @@ class ParameterContainer(AbstractParameterContainer):
         #flush parameter manager
         for name in self.parameterManagerList:
             pm = getattr(self, name)
-            pm.flushVariableLevelForThisThread() #TODO rename this call to flush()
-        
-        #self.environment.flushVariableLevelForThisThread()
-        #self.context.flushVariableLevelForThisThread()
-        #self.variable.flushVariableLevelForThisThread()
-        #self.key.flushVariableLevelForThisThread()
+            pm.flush()
         
         #update level map
         info.level -= 1

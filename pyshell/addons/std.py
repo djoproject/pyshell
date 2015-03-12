@@ -16,6 +16,25 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #implements these commands
+        #shift args
+            #info in param.var
+        #set args
+            #info in param.var
+        #goto (procedure line)
+            #get procedure from parameterContainer
+        #soft kill (thread id) (level or None)
+            #get procedure from parameterContainer
+        #hard kill
+            #HOWTO ? is it reallistic to implement ?
+                #just manage to kill the thread immediatelly
+                    #what about lock in this case ?
+        #list process
+            #get procedure list from parameterContainer
+        #command to startreadline then execute
+            #HOWTO ?
+
 from tries.exception           import triesException
 from pyshell.arg.argchecker    import defaultInstanceArgChecker,listArgChecker, IntegerArgChecker, booleanValueArgChecker, environmentParameterChecker
 from pyshell.arg.decorator     import shellMethod
@@ -286,16 +305,6 @@ def historySave(useHistory, historyFile):
             to = )
 def filter(data, from = 0, to=None):
     pass #TODO"""
-
-#TODO 
-    #shift and set
-        #should be in parameter
-        #two main case, arg are not stored at the same place:
-            #arg from call outside the python application
-                #store in params (? need to brainstorm, see TODO file)
-            #arg in an procedure
-                #where to store them (? need to brainstorm, see TODO file)
-                    #currently in procedure 
         
 ### REGISTER SECTION ###
 

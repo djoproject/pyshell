@@ -46,6 +46,12 @@ from pyshell.system.key         import CryptographicKeyParameterManager
     #there is no NoneCheck after .getParameter, could be interesting to manage these case
     
     #use constant EVENT_TO_CREATE_ON_STARTUP to create the list of procedure for these event at startup
+    
+    #create an endless "shell" procedure
+        #use object ProcedureFromList
+            #need some new command before to do that
+                #GOTO or LOOP
+                #command to readline and execute
 
 class CommandExecuter():
     def __init__(self, paramFile = None, outsideArgs = None):

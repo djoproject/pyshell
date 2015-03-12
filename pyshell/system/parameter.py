@@ -18,8 +18,9 @@
 
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
-#TODO from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER, AbstractParameterContainer
+from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER, AbstractParameterContainer
 from pyshell.utils.constants import ORIGIN_PROCESS
+from pyshell.utils.flushable import Flushable
 from threading import Lock, current_thread
 from functools import wraps
 from tries import multiLevelTries
@@ -52,25 +53,7 @@ def isAValidStringPath(stringPath):
 
     return True, tuple(finalPath)
 
-class DummyParameterContainer(object): #TODO
-    def __init__(self):
-        self.origin = ORIGIN_PROCESS
-
-    def getCurrentId(self):
-        return current_thread().ident
-
-    def getOrigin(self):
-        return self.origin, None
-
-    def setOrigin(self, origin):
-        if origin not in AVAILABLE_ORIGIN:
-            raise DefaultPyshellException("(DummyParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
-
-        self.origin = origin
-        
-DEFAULT_DUMMY_PARAMETER_CONTAINER = DummyParameterContainer()
-
-class ParameterManager(object):                    
+class ParameterManager(Flushable):                    
     def __init__(self, parent = None):
         self._internalLock  = Lock()
         self.mltries        = multiLevelTries() 
@@ -79,9 +62,8 @@ class ParameterManager(object):
         if parent is None:
             self.parentContainer = DEFAULT_DUMMY_PARAMETER_CONTAINER
         else:
-            #TODO cyclic redonduncy, solve it
-            #if not isinstance(parent, AbstractParameterContainer):
-            #    raise ParameterException("(ParameterManager) __init__, expect an instance of AbstractParameterContainer, got '"+str(type(parent))+"'")
+            if not isinstance(parent, AbstractParameterContainer):
+                raise ParameterException("(ParameterManager) __init__, expect an instance of AbstractParameterContainer, got '"+str(type(parent))+"'")
 
             self.parentContainer = parent
     
@@ -163,8 +145,7 @@ class ParameterManager(object):
                     if global_var.isReadOnly():
                         raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
 
-                    #TODO merge loader list
-
+                param.mergeLoaderSet(global_var)
                 param.setOriginProvider(self.parentContainer)
                 param.updateOrigin()
                 self.mltries.update( stringPath.split("."), (param, local_var, ) )
@@ -286,7 +267,7 @@ class ParameterManager(object):
                     return
                         
     @synchronous()    
-    def flushVariableLevelForThisThread(self):
+    def flush(self): #flush the Variable at this Level For This Thread
         key = self.parentContainer.getCurrentId()
 
         #clean level
@@ -344,7 +325,7 @@ class Parameter(Valuable): #abstract
         self.originProvider = None
         self.origin = ORIGIN_PROCESS
         self.originArg = None
-        #TODO loader List
+        self.loaderSet = None
 
     def getValue(self):
         pass #TO OVERRIDE
@@ -374,8 +355,8 @@ class Parameter(Valuable): #abstract
         return ()
         
     def setOriginProvider(self, provider):
-        if provider is None or not hasattr(provider, "getOrigin") or not hasattr(provider.getOrigin, "__call__"): #TODO should be isInstance
-            raise ParameterException("(Parameter) setOriginProvider, invalid origin provider, need an object with a method getOrigin") 
+        if provider is not None and not isinstance(provider, AbstractParameterContainer):
+            raise ParameterException("(Parameter) setOriginProvider, an AbstractParameterContainer object was expected, got '"+str(type(provider))+"'") 
         
         self.originProvider = provider
         
@@ -386,5 +367,19 @@ class Parameter(Valuable): #abstract
         else:
             self.origin, self.originArg = self.originProvider.getOrigin()
 
+    def addLoader(self, loaderSignature):
+        if self.loaderSet is None:
+            self.loaderSet = set()
+            
+        self.loaderSet.add(loaderSignature)
         
-
+    def mergeLoaderSet(self, parameter):
+        if not isinstance(parameter, Parameter):
+            raise ParameterException("(Parameter) mergeLoaderSet, an Parameter object was expected, got '"+str(type(parameter))+"'") 
+            
+        if self.loaderSet is None:
+            if parameter.loaderSet is not None:
+                self.loaderSet = set(parameter.loaderSet)
+        elif parameter.loaderSet is not None:
+            self.loaderSet = self.loaderSet.union(parameter.loaderSet)
+            

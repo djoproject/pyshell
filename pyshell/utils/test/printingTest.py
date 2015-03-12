@@ -319,7 +319,7 @@ class PrintingTest(unittest.TestCase):
         
         stackTrace = LIGHTORANGE + "toto" + ENDC + LIGHTORANGE + "\n\n" \
                    + "Traceback (most recent call last):\n" \
-                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 326, in test_formatException7\n" \
+                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 328, in test_formatException7\n" \
                    + "    raise DefaultPyshellException(\"toto\", WARNING)\n" \
                    + "DefaultPyshellException: toto\n" \
                    + ""+ENDC
@@ -339,7 +339,7 @@ class PrintingTest(unittest.TestCase):
         
         stackTrace = LIGHTRED+"plop"+ENDC +"\n"+ LIGHTORANGE+"plip"+ENDC +"\n"+ LIGHTGREEN+"toto"+ENDC + LIGHTRED + "\n\n" \
                    + "Traceback (most recent call last):\n" \
-                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 346, in test_formatException8\n" \
+                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 348, in test_formatException8\n" \
                    + "    raise l\n" \
                    + "ListOfException: 3 exception(s) in list\n" \
                    + ""+ENDC
@@ -359,7 +359,7 @@ class PrintingTest(unittest.TestCase):
         
         stackTrace = LIGHTRED+"plap"+ENDC+"\n" + "     "+LIGHTRED+"plop"+ENDC +"\n"+ "     "+LIGHTORANGE+"plip"+ENDC +"\n"+ "     "+LIGHTGREEN+"toto"+ENDC + LIGHTRED + "\n\n" \
                    + "Traceback (most recent call last):\n" \
-                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 366, in test_formatException9\n" \
+                   + "  File \""+os.getcwd() + os.sep + "printingTest.py\", line 368, in test_formatException9\n" \
                    + "    raise l\n" \
                    + "ListOfException: 3 exception(s) in list\n" \
                    + ""+ENDC

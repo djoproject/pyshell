@@ -16,34 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO in addon std
-    #shift args
-        #info in param.var
-    #set args
-        #info in param.var
-    #goto (procedure line)
-        #get procedure from parameterContainer
-    #soft kill (thread id) (level or None)
-        #get procedure from parameterContainer
-    #hard kill
-        #HOWTO ? is it reallistic to implement ?
-            #just manage to kill the thread immediatelly
-                #what about lock in this case ?
-    #list process
-        #get procedure list from parameterContainer
-    #command to startreadline then execute
-        #HOWTO ?
-
-#TODO in executer
-    #create an endless "shell" procedure
-    #use object ProcedureFromList
-        #need some new command before to do that
-            #GOTO or LOOP
-            #command to readline and execute
-
-#TODO here
-    #hard kill ? need brainstorming
-    
+#TODO
     #special case, what append in procedure level 0
         #exception should never interrupt a procedure at level 0, because it could stop the application
             #default granularity = None, print a warning message if a procedure with lower granularity is executed at level 0

@@ -12,3 +12,4 @@ python -m pyshell.utils.test.miscTest || exit
 python -m pyshell.utils.test.valuableTest || exit
 python -m pyshell.utils.test.exceptionTest || exit
 python -m pyshell.utils.test.keyTest || exit
+python -m pyshell.utils.test.flushableTest || exit

@@ -60,12 +60,7 @@ class MiscTest(unittest.TestCase):
         self.assertEqual(k.getKeyType(), CryptographicKey.KEYTYPE_HEXA)
         self.assertEqual(k.getKeySize(), 7)
         self.assertEqual(k.getTypeString(), "byte")
-    
-    #TODO test getKey
-        #make every test for
-            #bit
-            #binary
-    
+        
     def test_getKeyBinary1(self):#end is lower than start
         k = CryptographicKey("0b10101011")
         r = k.getKey(5,3)
