@@ -1025,7 +1025,7 @@ class engineV3(object):
             lock = FAKELOCK
 
         #execute Xprocess (X for pre/pro/post)
-        with lock:
+        with lock: #TODO if an exception raise in command, lock is released ? (stupid question but I prefer to be sure)
             self._isInProcess = True
             try:
                 r = subcmd(**data)

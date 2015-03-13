@@ -16,26 +16,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #special case, what append in procedure level 0
-        #exception should never interrupt a procedure at level 0, because it could stop the application
-            #default granularity = None, print a warning message if a procedure with lower granularity is executed at level 0
-    
-    #manage stack of process call
-        #if an exception occur in a command of level X, the procedure of level X will raise an interrupting exception to the upper level
-            #each procedure will raise an interrupting exception until the level 0 or until a procedure allowing the granularity
-            #so if there is 5 level (and no granularity stop), 5 error message (and stacktrace if debug) will be printed
-                #really ugly, only the first message and first stacktrace are relevant.
-            
-        #IDEA: raise exception from procedure to procedure with printing disabled
-            #until we reach level 0 or a procedure that accept this level of granularity
-            #then when we reach the last procedure, print a stacktrace of the procedure call
-            #use the same exception
-                #at procedure business code, catch exception, add information about current process, then re raise the exception
-            #at the final level (0 or granularity stop), print procedure stack trace (even if debug disabled)
-
 import threading, sys
-from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException
+from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
 from pyshell.utils.executing   import execute
 from pyshell.command.command   import UniCommand
 from pyshell.command.exception import engineInterruptionException
@@ -43,6 +25,7 @@ from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
 from pyshell.utils.parsing     import Parser
 from pyshell.system.variable   import VarParameter
+from pyshell.utils.printing    import warning
 import thread
                 
 ### UTILS COMMAND ###
@@ -63,7 +46,7 @@ class Procedure(UniCommand):
     def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
         
-        self.errorGranularity = sys.maxint
+        self.setStopProcedureOnFirstError()
         self.executeOnPre     = True
         
         #global lock system
@@ -87,17 +70,12 @@ class Procedure(UniCommand):
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
     def _pre(self, args, parameters):
-        "this command is a procedure"
+        "this command is a stored procedure"
         
         if not self.executeOnPre:
             return args
         
-        parameters.pushVariableLevelForThisThread(self)
-        self._setArgs(parameters, args)
-        try:
-            return self.execute(parameters)
-        finally:
-            parameters.popVariableLevelForThisThread()
+        return self._internalPrePost(args, parameters)
 
     @shellMethod(args       = listArgChecker(ArgChecker()),
                  parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
@@ -106,7 +84,16 @@ class Procedure(UniCommand):
         if self.executeOnPre:
             return args
         
+        return self._internalPrePost(args, parameters)
+            
+    def _internalPrePost(self, args, parameters):
         parameters.pushVariableLevelForThisThread(self)
+        
+        threadID, level = parameters.getCurrentId()
+        
+        if level == 0 and self.errorGranularity is not None:
+            warning("WARN: execution of the procedure "+str(self.name)+" at level 0 with an error granularity equal to '"+str(self.errorGranularity)+"'.  Any error with a granularity equal or lower will interrupt the application.")
+        
         self._setArgs(parameters, args)
         try:
             return self.execute(parameters)
@@ -121,7 +108,7 @@ class Procedure(UniCommand):
         pass #XXX TO OVERRIDE and use _innerExecute
         
     def _innerExecute(self, cmd, name, parameters):
-        if self.interrupt:
+        if self.interrupt: #TODO shouldn't be in a stackable exception ?
             if self.interruptReason is None:
                 raise engineInterruptionException("this process has been interrupted", abnormal=True)
             else:
@@ -133,13 +120,28 @@ class Procedure(UniCommand):
         if lastException is not None: 
             #set empty the variable "?"
             param.setValue( () )
-
-            #manage exception
-            if not isinstance(lastException, PyshellException): #TODO should be considered like an excption with a granularity of type ERROR (=0), and don't stop the execution
-                raise engineInterruptionException("internal command has been interrupted because of an enexpected exception", abnormal=True)
             
-            if self.errorGranularity is not None and lastException.severity <= self.errorGranularity:
-                raise engineInterruptionException("internal command has been interrupted because an internal exception has a granularity bigger than allowed", abnormal=False)               
+            #manage exception
+            if isinstance(lastException, PyshellException):
+                severity = lastException.severity
+            else:
+                severity = ERROR
+            
+            if self.errorGranularity is not None and severity <= self.errorGranularity:
+                if isinstance(lastException, ProcedureStackableException):
+                    lastException.append( (cmd, name,) )
+                    raise lastException
+                
+                exception = ProcedureStackableException(severity, lastException)
+                lastException.append( (cmd, name,) )
+                
+                #TODO if level 0, print stack
+                
+                raise exception
+            
+            if isinstance(lastException, ProcedureStackableException):
+                pass #TODO print stack
+            
         else:
             if engine is not None and engine.getLastResult() is not None and len(engine.getLastResult()) > 0:
                 param.setValue( engine.getLastResult() )
@@ -171,12 +173,22 @@ class Procedure(UniCommand):
             
         self.transient = value  
     
-    #TODO not obvious, maximum level allowed ? or minimum level allowed ? bound included or not ?
-        #update method name
-    def setErrorGranularity(self, value):
+    def setStopProcedureOnFirstError(self):
+        self.setMinimumAllowedErrorGranularity(sys.maxint)
+        
+    def setNeverStopProcedureIfErrorOccured(self):
+        self.setMinimumAllowedErrorGranularity(None)
+            
+    def setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(self, value): 
+        #TODO only use this meth to set an integer value [0, sys.maxint[, for the other case use the two previous meth
+        #TODO and also replace the name of this one (setMinimumAllowedErrorGranularity) by the new one
+        """
+        Every error granularity bellow this limit will stop the execution of the current procedure.  A None value is equal to no limit.  
+        """
+        
         if value is not None and (type(value) != int or value < 0):
-            raise ParameterException("(Procedure) setErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
-    
+            raise ParameterException("(Procedure) setMinimumAllowedErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
+
         self.errorGranularity = value
         
     def setExecuteOnPre (self, value):

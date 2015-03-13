@@ -20,7 +20,7 @@ from pyshell.arg.exception     import *
 from pyshell.command.engine    import engineV3, FAKELOCK
 from pyshell.command.exception import *
 from pyshell.utils.constants   import ENVIRONMENT_LEVEL_TRIES_KEY, CONTEXT_EXECUTION_KEY, CONTEXT_EXECUTION_SHELL, DEBUG_ENVIRONMENT_NAME
-from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR, CORE_WARNING,CORE_ERROR
+from pyshell.utils.exception   import DefaultPyshellException, ListOfException, USER_WARNING, PARSE_ERROR, CORE_WARNING,CORE_ERROR, ProcedureStackableException
 from pyshell.utils.parsing     import Parser
 from pyshell.utils.printing    import printException
 from pyshell.utils.solving     import Solver
@@ -137,6 +137,8 @@ def _execute(parser,parameterContainer, processName=None):
         printException(ex, prefix="Error while parsing argument: ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
     except ListOfException as ex:
         printException(ex, prefix="List of exception(s): ", suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
+    except ProcedureStackableException as ex:
+        pass #nothing to do here, the exception will be managed in the parent procedure
     except Exception as ex:
         printException(ex,suffix=_generateSuffix(parameterContainer, commandNameList=commandNameList, engine=engine,processName=processName))
 

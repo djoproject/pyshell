@@ -105,3 +105,18 @@ class KeyStoreLoadingException(DefaultPyshellException):
     def __str__(self):
         return str(self.value)
         
+class ProcedureStackableException(PyshellException):
+    def __init__(self, severity, exception):
+        PyshellException.__init__(self, severity)
+        self.exception = exception
+        self.procedureStack = []
+        
+    def getProcedureStack(self):
+        return self.procedureStack
+        
+    def isAbnormalInterruption(self):
+        return isinstance(self.exception, PyshellException)
+        
+    def __str__(self):
+        pass #TODO
+        

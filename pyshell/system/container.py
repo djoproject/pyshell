@@ -47,7 +47,7 @@ class DummyParameterContainer(AbstractParameterContainer):
         self.origin = ORIGIN_PROCESS
 
     def getCurrentId(self):
-        return current_thread().ident
+        return current_thread().ident, None
 
     def getOrigin(self):
         return self.origin, None
