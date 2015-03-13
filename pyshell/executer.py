@@ -130,7 +130,7 @@ class CommandExecuter():
         ## prepare atStartUp ##
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
         _atstartup = ProcedureFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
-        _atstartup.setMinimumAllowedErrorGranularity(None) #never stop, don't care about error
+        _atstartup.setNeverStopProcedureIfErrorOccured()
         
         _atstartup.addCommand( "addon load pyshell.addons.parameter" )
         _atstartup.addCommand( "parameter load" )
@@ -143,7 +143,7 @@ class CommandExecuter():
         #TODO _atstartup should be hidden in tries
         
         atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
-        atstartup.setMinimumAllowedErrorGranularity(None) #never stop, don't care about error
+        atstartup.setNeverStopProcedureIfErrorOccured()
         atstartup.addCommand( "history load" )
         #atstartup.addCommand( "key load" )
         mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
@@ -153,7 +153,7 @@ class CommandExecuter():
     
         ## prepare atExit ##
         atExit = ProcedureFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
-        atExit.setMinimumAllowedErrorGranularity(None) #never stop, don't care about error
+        atExit.setNeverStopProcedureIfErrorOccured()
         
         atExit.addCommand( "parameter save" ) #TODO need to have parameters addons parameter loaded before to save
             #TODO load parameter addon but do not print any error if already loaded, add a parameter to addon load
@@ -316,7 +316,7 @@ class CommandExecuter():
     def executeFile(self,filename, granularity = None):            
         self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         afile = ProcedureFromFile(filename)
-        afile.setMinimumAllowedErrorGranularity(granularity)
+        afile.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(granularity)
         
         with self.ExceptionManager("An error occured during the script execution: "):
             afile.execute(args = (), parameters=self.params)

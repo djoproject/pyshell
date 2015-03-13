@@ -105,7 +105,7 @@ class KeyStoreLoadingException(DefaultPyshellException):
     def __str__(self):
         return str(self.value)
         
-class ProcedureStackableException(PyshellException):
+class ProcedureStackableException(PyshellException): #TODO test
     def __init__(self, severity, exception):
         PyshellException.__init__(self, severity)
         self.exception = exception

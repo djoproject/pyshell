@@ -296,7 +296,19 @@ def debug(level, *args, **kwargs):
 
 def printException(exception, prefix = None, suffix=None):
     printShell(formatException(exception=exception, prefix=prefix, suffix=suffix))
+
+def getPrinterFromExceptionSeverity(severity): #TODO test it
+    #TODO severity have to be an integer
+
+    printer = Printer.getInstance()
+    if severity >= NOTICE:
+        return printer.formatGreen
     
+    if severity >= WARNING:
+        return printer.formatOrange
+    
+    return printer.formatRed
+
 def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = True, suffix=None):
     if exception is None:
         return _EMPTYSTRING
@@ -332,14 +344,8 @@ def formatException(exception, prefix = None, printStackTraceInCaseOfDebug = Tru
         else: 
             if prefix is None:
                 prefix = _EMPTYSTRING
-        
-            if exception.severity >= NOTICE:
-                printFun = printer.formatGreen
-            elif exception.severity >= WARNING:
-                printFun = printer.formatOrange
-            else:
-                printFun = printer.formatRed
-                
+            
+            printFun = getPrinterFromExceptionSeverity(exception.severity)                
             toprint = ""
     
             if prefix is not None:

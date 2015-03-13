@@ -25,7 +25,7 @@ from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
 from pyshell.utils.parsing     import Parser
 from pyshell.system.variable   import VarParameter
-from pyshell.utils.printing    import warning
+from pyshell.utils.printing    import warning,getPrinterFromExceptionSeverity,printShell
 import thread
                 
 ### UTILS COMMAND ###
@@ -108,7 +108,7 @@ class Procedure(UniCommand):
         pass #XXX TO OVERRIDE and use _innerExecute
         
     def _innerExecute(self, cmd, name, parameters):
-        if self.interrupt: #TODO shouldn't be in a stackable exception ?
+        if self.interrupt:
             if self.interruptReason is None:
                 raise engineInterruptionException("this process has been interrupted", abnormal=True)
             else:
@@ -133,14 +133,18 @@ class Procedure(UniCommand):
                     raise lastException
                 
                 exception = ProcedureStackableException(severity, lastException)
-                lastException.append( (cmd, name,) )
+                exception.procedureStack.append( (cmd, name,) )
                 
-                #TODO if level 0, print stack
+                threadID, level = param.getCurrentId()
+                if level == 0:
+                    self._printProcedureStack(exception, threadID, 0)
                 
                 raise exception
             
             if isinstance(lastException, ProcedureStackableException):
-                pass #TODO print stack
+                threadID, level = param.getCurrentId()
+                lastException.procedureStack.append( (cmd, name,) )
+                self._printProcedureStack(lastException, threadID, level)
             
         else:
             if engine is not None and engine.getLastResult() is not None and len(engine.getLastResult()) > 0:
@@ -149,7 +153,20 @@ class Procedure(UniCommand):
                 param.setValue( () )
 
         return lastException, engine
+    
+    def _printProcedureStack(self, stackException, threadID, currentLevel):
+        if len(stackException.procedureStack) == 0:
+            return
+    
+        toPrint = ""
+        for i in range(0,len(stackException.procedureStack)):
+            cmd, name = stackException.procedureStack[ len(stackException.procedureStack) - i - 1 ]
+            toPrint += (i * " ") + str(name) + " : " + str(cmd) + "(level="+str(currentLevel+i)+")\n"
         
+        toPrint = toPrint[:-1]
+        colorFun = getPrinterFromExceptionSeverity(stackException.severity)
+        printShell(colorFun(toPrint))
+    
     ###### get/set method
     
     def setNextCommandIndex(self, index):
@@ -174,20 +191,18 @@ class Procedure(UniCommand):
         self.transient = value  
     
     def setStopProcedureOnFirstError(self):
-        self.setMinimumAllowedErrorGranularity(sys.maxint)
+        self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(sys.maxint)
         
     def setNeverStopProcedureIfErrorOccured(self):
-        self.setMinimumAllowedErrorGranularity(None)
+        self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(None)
             
     def setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(self, value): 
-        #TODO only use this meth to set an integer value [0, sys.maxint[, for the other case use the two previous meth
-        #TODO and also replace the name of this one (setMinimumAllowedErrorGranularity) by the new one
         """
         Every error granularity bellow this limit will stop the execution of the current procedure.  A None value is equal to no limit.  
         """
         
         if value is not None and (type(value) != int or value < 0):
-            raise ParameterException("(Procedure) setMinimumAllowedErrorGranularity, expected a integer value bigger than 0, got '"+str(type(value))+"'")
+            raise ParameterException("(Procedure) setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo, expected a integer value bigger than 0, got '"+str(type(value))+"'")
 
         self.errorGranularity = value
         

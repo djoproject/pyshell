@@ -230,10 +230,10 @@ def load(mltries, filePath):
                 validInt, intValue = isInt(value)
 
                 if not validInt:
-                    procedure.setMinimumAllowedErrorGranularity(None)
+                    procedure.setNeverStopProcedureIfErrorOccured()
                 else:
                     try:
-                        procedure.setMinimumAllowedErrorGranularity(intValue)
+                        procedure.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(intValue)
                     except Exception as ex:
                         errorList.addException(ex)
                         onError = True
