@@ -16,13 +16,29 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.parameter import ParameterManager
+from pyshell.system.parameter import ParameterManager, LocalParameterSettings
 from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
 from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
 
 class VariableParameterManager(ParameterManager):
     def getAllowedType(self):
         return VarParameter
+
+    def generateNewGlobalSettings(self):
+        return VariableGlobalParameterSettings()
+
+    def generateNewLocalSettings(self):
+        return VariableGlobalParameterSettings()
+
+class VariableGlobalParameterSettings(LocalParameterSettings):
+    def isTransient(self):
+        return False
+
+    def isReadOnly(self):
+        return True
+
+    def isRemovable(self):
+        return True
 
 class VarParameter(EnvironmentParameter):
     def __init__(self,value): #value can be a list or not, it will be processed
@@ -49,7 +65,7 @@ class VarParameter(EnvironmentParameter):
                 else:
                     value_to_parse.append(str(v))
 
-        EnvironmentParameter.__init__(self,parsed_value, typ=DEFAULT_CHECKER, transient = False, readonly = False, removable = True)    
+        EnvironmentParameter.__init__(self,parsed_value, typ=DEFAULT_CHECKER)    
     
     def __str__(self):
         to_ret = ""

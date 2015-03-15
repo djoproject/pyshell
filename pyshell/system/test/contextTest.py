@@ -19,7 +19,20 @@
 #TODO test
     #some of the method internally execute updateOrigin
         #check the method that use it
+            #setIndex (if not transient index AND success)
+            #tryToSetIndex (if not transient index AND success or not)
+            #setIndexValue (if not transient index AND success)
+            #setTransientIndex (if success)
+            #setDefaultIndex (if success)
+            #tryToSetDefaultIndex (always)
+            #reset (if not transient index)
+            #removeValue/addValue/setValue (if success) (will be tested in env test)
         #and check the method that does not use it
+            #setIndex (if transient index)
+            #tryToSetIndex (if transient index)
+            #setIndexValue (if transient index)
+            #setTransientIndex (if invalid bool)
+            #reset (if transient index)
         
 import unittest
 from pyshell.system.context import ContextParameter, ContextParameterManager, _convertToSetList

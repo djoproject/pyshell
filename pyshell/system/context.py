@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.parameter import ParameterManager
+from pyshell.system.parameter import ParameterManager, LocalParameterSettings, GlobalParameterSettings
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.valuable  import SelectableValuable
 from pyshell.utils.exception import ParameterException
@@ -29,13 +29,56 @@ class ContextParameterManager(ParameterManager):
     def getAllowedType(self):
         return ContextParameter
 
+    def generateNewGlobalSettings(self):
+        return GlobalContextParameterSettings()
+
+    def generateNewLocalSettings(self):
+        return LocalContextParameterSettings()
+
+    def isDefaultSettings(self,value):
+        return value is DEFAULT_LOCAL_CONTEXT_PARAMETER_SETTINGS
+
 def _convertToSetList(orig):
     seen = set()
     seen_add = seen.add
     return [ x for x in orig if not (x in seen or seen_add(x))]
 
+
+class LocalContextParameterSettings(LocalParameterSettings):
+    def __init__(self):
+        LocalParameterSettings.__init__(self)
+
+    def setTransientIndex(self,state):
+        pass
+        
+    def isTransientIndex(self):
+        return True
+
+DEFAULT_LOCAL_CONTEXT_PARAMETER_SETTINGS = LocalContextParameterSettings() #TODO should be immutable
+
+class GlobalContextParameterSettings(GlobalParameterSettings):
+    def __init__(self):
+        GlobalParameterSettings.__init__(self)
+        self.transientIndex = False
+
+    def setTransientIndex(self,state):
+        self._raiseIfReadOnly("setTransientIndex")
+    
+        if type(state) != bool:
+            raise ParameterException("(GlobalContextParameterSettings) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
+            
+        self.transientIndex = state
+        self.updateOrigin()
+        
+    def isTransientIndex(self):
+        return self.transientIndex
+
 class ContextParameter(EnvironmentParameter, SelectableValuable):
-    def __init__(self, value, typ=None, transient = False, transientIndex = False, index=0, defaultIndex = 0, readonly = False, removable = True):
+    @staticmethod
+    def getInitSettings():
+        return DEFAULT_LOCAL_CONTEXT_PARAMETER_SETTINGS
+
+    def __init__(self, value, typ=None, transientIndex = False, index=0, defaultIndex = 0, settings=None):
 
         if typ is None:
             typ = CONTEXT_DEFAULT_CHECKER
@@ -50,18 +93,23 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         
         self.defaultIndex = 0
         self.index = 0
-        self.transientIndex = False
         
-        EnvironmentParameter.__init__(self, value, typ, transient, False, removable)
+        EnvironmentParameter.__init__(self, value, typ)
         self.tryToSetDefaultIndex(defaultIndex)
         self.tryToSetIndex(index)
-        self.setTransientIndex(transientIndex)
-        self.setReadOnly(readonly)
+
+        #set and check settings
+        if settings is not None:
+            if not isinstance(settings, ContextParameterSettings):
+                raise ParameterException("(ContextParameter) __init__, invalid settings instance, must be an ContextParameterSettings instance") #TODO get what ?
+
+            self.settings = settings
     
     def getProperties(self):
-        prop = [ ("defaultIndex", self.defaultIndex,), ("removable", self.removable, ), ("readonly", self.readonly, ) ]
+        prop = list(self.settings.getProperties())
+        prop.append( ("defaultIndex", self.defaultIndex,) )
 
-        if not self.transientIndex:
+        if not self.settings.isTransientIndex():
             prop.append( ("index", self.index,) )
 
         return tuple(prop)
@@ -81,25 +129,27 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             raise ParameterException("(ContextParameter) setIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(index))
             
         self.index = index
-        if not self.transientIndex:
-            self.updateOrigin()
+        if not self.settings.isTransientIndex():
+            self.settings.updateOrigin()
         
     def tryToSetIndex(self, index):
         try:
             self.value[index]
             self.index = index
-            if not self.transientIndex:
-                self.updateOrigin()
+            if not self.settings.isTransientIndex():
+                self.settings.updateOrigin()
             return
         except IndexError:
             pass
         except TypeError:
             pass
+
+        #TODO should try to restore old index before to try default one
         
         self.tryToSetDefaultIndex(self.defaultIndex) #default index is still valid ?
         self.index = self.defaultIndex 
-        if not self.transientIndex:
-            self.updateOrigin()
+        if not self.settings.isTransientIndex():
+            self.settings.updateOrigin()
 
     def setIndexValue(self,value):
         try:
@@ -107,29 +157,17 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         except ValueError:
             raise ParameterException("(ContextParameter) setIndexValue, unexisting value '"+str(value)+"', the value must exist in the context")
             
-        if not self.transientIndex:
-            self.updateOrigin()
+        if not self.settings.isTransientIndex():
+            self.settings.updateOrigin()
             
     def getIndex(self):
         return self.index
 
     def getSelectedValue(self):
         return self.value[self.index]
-        
-    def setTransientIndex(self,state):
-        self._raiseIfReadOnly("setTransientIndex")
-    
-        if type(state) != bool:
-            raise ParameterException("(ContextParameter) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
-            
-        self.transientIndex = state
-        self.updateOrigin()
-        
-    def isTransientIndex(self):
-        return self.transientIndex
-        
+                
     def setDefaultIndex(self,defaultIndex):
-        self._raiseIfReadOnly("setDefaultIndex")
+        self.settings._raiseIfReadOnly("setDefaultIndex")
     
         try:
             self.value[defaultIndex]
@@ -139,23 +177,25 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             raise ParameterException("(ContextParameter) setDefaultIndex, invalid index value, a value between 0 and "+str(len(self.value))+" was expected, got "+str(defaultIndex))
             
         self.defaultIndex = defaultIndex
-        self.updateOrigin()
+        self.settings.updateOrigin()
         
     def tryToSetDefaultIndex(self,defaultIndex):
-        self._raiseIfReadOnly("tryToSetDefaultIndex")
+        self.settings._raiseIfReadOnly("tryToSetDefaultIndex")
             
         try:
             self.value[defaultIndex]
             self.defaultIndex = defaultIndex
-            self.updateOrigin()
+            self.settings.updateOrigin()
             return
         except IndexError:
             pass
         except TypeError:
             pass
-            
+        
+        #TODO should try to restore old default index before to set 0
+
         self.defaultIndex = 0
-        self.updateOrigin()
+        self.settings.updateOrigin()
         
     def getDefaultIndex(self):
         return self.defaultIndex
@@ -163,15 +203,15 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
     def reset(self):
         self.index = self.defaultIndex
         
-        if not self.transientIndex:
-            self.updateOrigin()
+        if not self.settings.isTransientIndex():
+            self.settings.updateOrigin()
 
     def addValues(self, values):
         EnvironmentParameter.addValues(self,values)
         self.value = _convertToSetList(self.value)
                 
     def removeValues(self, values):
-        self._raiseIfReadOnly("removeValues")
+        self.settings._raiseIfReadOnly("removeValues")
         
         values = _convertToSetList(values)
         

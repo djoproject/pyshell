@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.parameter import Parameter,ParameterManager
+from pyshell.system.parameter import Parameter,ParameterManager, DEFAULT_LOCAL_PARAMETER_SETTINGS
 from pyshell.arg.argchecker   import ArgChecker, listArgChecker, defaultInstanceArgChecker
 from pyshell.utils.exception  import ParameterException
 
@@ -49,15 +49,18 @@ class EnvironmentParameter(Parameter):
     _internalLock = Lock()
     _internalLockCounter = 0
 
-    def __init__(self, value, typ=None, transient = False, readonly = False, removable = True):
-        Parameter.__init__(self, transient)
-        self.readonly = False #need to be false at the beginning to define the different class fields
-        self.setRemovable(removable)
-        
+    @staticmethod
+    def getInitSettings():
+        return DEFAULT_LOCAL_PARAMETER_SETTINGS
+
+    def __init__(self, value, typ=None, settings=None):
+        self.settings = self.getInitSettings()
+
+        Parameter.__init__(self)
         if typ is None:
             typ = DEFAULT_CHECKER
         elif not isinstance(typ,ArgChecker):#typ must be argChecker
-            raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance")
+            raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance") #TODO get what ?
 
         self.isListType = isinstance(typ, listArgChecker)
         self.typ = typ
@@ -66,19 +69,12 @@ class EnvironmentParameter(Parameter):
         self.lock     = None
         self.lockID   = -1
         self.lockable = True
-        self.setReadOnly(readonly)
-        
-    def getProperties(self):
-        return ( ("removable", self.removable, ), ("readonly", self.readonly, ), ) 
 
-    def _raiseIfReadOnly(self, methName = None):
-        if self.readonly:
-            if methName is not None:
-                methName = " "+methName+", "
-            else:
-                methName = ""
-                
-            raise ParameterException("("+self.__class__.__name__+") "+methName+"read only parameter")
+        if settings is not None:
+            if not isinstance(settings, ParameterSettings):
+                raise ParameterException("(EnvironmentParameter) __init__, invalid settings instance, must be an ParameterSettings instance") #TODO get what ?
+
+            self.settings = settings
 
     def _initLock(self):
         if not self.lockable:
@@ -107,7 +103,7 @@ class EnvironmentParameter(Parameter):
     
     def addValues(self, values):
         #must be "not readonly"
-        self._raiseIfReadOnly("addValues")
+        self.settings._raiseIfReadOnly("addValues")
     
         #typ must be list
         if not self.isAListType():
@@ -122,11 +118,11 @@ class EnvironmentParameter(Parameter):
     
         #append values
         self.value.extend(values)
-        self.updateOrigin()
+        self.settings.updateOrigin()
     
     def removeValues(self, values):
         #must be "not readonly"
-        self._raiseIfReadOnly("removeValues")
+        self.settings._raiseIfReadOnly("removeValues")
     
         #typ must be list
         if not self.isAListType():
@@ -142,37 +138,18 @@ class EnvironmentParameter(Parameter):
             if v in self.value:
                 self.value.remove(v)
                 
-        self.updateOrigin()
+        self.settings.updateOrigin()
 
     def getValue(self):
         return self.value
 
     def setValue(self, value):
-        self._raiseIfReadOnly("setValue")
+        self.settings._raiseIfReadOnly("setValue")
         self.value = self.typ.getValue(value)
-        self.updateOrigin()
+        self.settings.updateOrigin()
 
-    def isReadOnly(self):
-        return self.readonly
-
-    def isRemovable(self):
-        return self.removable
-
-    def setReadOnly(self, state):
-        if type(state) != bool:
-            raise ParameterException("(EnvironmentParameter) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'")
-            
-        self.readonly = state
-        self.updateOrigin()
-
-    def setRemovable(self, state):
-        self._raiseIfReadOnly("setRemovable")
-    
-        if type(state) != bool:
-            raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
-            
-        self.removable = state
-        self.updateOrigin()
+    def getProperties(self):
+        return self.settings.getProperties()
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

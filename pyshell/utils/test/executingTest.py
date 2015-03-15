@@ -99,24 +99,43 @@ class ExecutingTest(unittest.TestCase):
         self.params.registerParameterManager("context", ContextParameterManager(self.params))
         self.params.registerParameterManager("variable", VariableParameterManager(self.params))
 
-        self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0,index=0, removable=False, readonly=True)
+        self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), defaultIndex = 0, index=0)
         self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME, self.debugContext, localParam = False)
+        self.debugContext.settings.setTransient(False)
+        self.debugContext.settings.setTransientIndex(False)
+        self.debugContext.settings.setRemovable(False)
+        self.debugContext.settings.setReadOnly(True)
         
-        self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = True, transientIndex = True, defaultIndex = 0, removable=False, readonly=True)
+        self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0)
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY, self.shellContext, localParam = False)
+        self.shellContext.settings.setTransient(True)
+        self.shellContext.settings.setTransientIndex(True)
+        self.shellContext.settings.setRemovable(False)
+        self.shellContext.settings.setReadOnly(True)
         
-        self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), transient = False, transientIndex = False, defaultIndex = 0, removable=False, readonly=True)
+        self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0)
         self.params.context.setParameter(CONTEXT_COLORATION_KEY, self.backgroundContext, localParam = False)
+        self.backgroundContext.settings.setTransient(False)
+        self.backgroundContext.settings.setTransientIndex(False)
+        self.backgroundContext.settings.setRemovable(False)
+        self.backgroundContext.settings.setReadOnly(True)
         
-        self.spacingContext = EnvironmentParameter(value=5, typ=IntegerArgChecker(0),transient=False,readonly=False, removable=False)
+        self.spacingContext = EnvironmentParameter(value=5, typ=IntegerArgChecker(0))
         self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY, self.spacingContext, localParam = False)
+        self.spacingContext.settings.setTransient(False)
+        self.spacingContext.settings.setRemovable(False)
+        self.spacingContext.settings.setReadOnly(False)
         
         self.mltries = multiLevelTries()
         
         m = UniCommand("plop", plop_meth)
         self.mltries.insert( ("plop",) ,m)
         
-        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance(),transient=True,readonly=True, removable=False), localParam = False)
+        param = self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance()), localParam = False)
+        param.settings.setTransient(True)
+        param.settings.setRemovable(False)
+        param.settings.setReadOnly(True)
+
         RESULT = None
         RESULT_BIS = None
         

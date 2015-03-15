@@ -19,7 +19,13 @@
 #TODO test
     #some of the method internally execute updateOrigin
         #check the method that use it
+            #addValues (if not readonly and success)
+            #removeValues (if not readonly and success)
+            #setValue (if not readonly and success)
+            #setReadOnly (if success)
+            #setRemovable (if not readonly and success)
         #and check the method that does not use it
+            #others methods
 
 import unittest
 from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager, _lockSorter, ParametersLocker
