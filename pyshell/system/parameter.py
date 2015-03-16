@@ -22,6 +22,11 @@
 
     #get/set readonly/transient/removable/...  update call in software
     #update env/con constructor everywhere
+    
+    #what about globalSettings if we try to add in local
+        #forbidde that, because it will enable a Lock for this local parameter
+        
+    #TODO extract settings out of parameter file
 
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable  import Valuable, SelectableValuable
@@ -113,15 +118,6 @@ class ParameterManager(Flushable):
     def isAnAllowedType(self,value): #XXX to override if needed
         return isinstance(value,self.getAllowedType()) and value.__class__.__name__ == self.getAllowedType().__name__ #second condition is to forbidde child class
     
-    def generateNewGlobalSettings(self):
-        return GlobalParameterSettings()
-
-    def generateNewLocalSettings(self):
-        return LocalParameterSettings()
-
-    def isDefaultSettings(self,value):
-        return value is DEFAULT_LOCAL_PARAMETER_SETTINGS
-
     def extractParameter(self, value):
         if self.isAnAllowedType(value):
             return value
@@ -135,14 +131,6 @@ class ParameterManager(Flushable):
     def setParameter(self,stringPath, param, localParam = True):
         param = self.extractParameter(param)
 
-        if not self.isDefaultSettings(param.settings):
-            if localParam:
-                if not isinstance(param.settings,LocalParameterSettings) or isinstance(param.settings,GlobalParameterSettings):
-                    raise ParameterException("(ParameterManager) setParameter, expect a parameter with LocalParameterSettings settings, got '"+str(type(param.settings))+"'")
-            else:
-                if not isinstance(param.settings,GlobalParameterSettings):
-                    raise ParameterException("(ParameterManager) setParameter, expect a parameter with GlobalParameterSettings settings, got '"+str(type(param.settings))+"'")
-
         #check safety and existing
         advancedResult = self._getAdvanceResult("setParameter",stringPath, False, False, True)
         if advancedResult.isValueFound():
@@ -150,7 +138,6 @@ class ParameterManager(Flushable):
             
             if localParam:
                 key            = self.parentContainer.getCurrentId()
-                param.lockable = False #this parameter will be only used in a single thread, no more need to lock it
 
                 if key in local_var:
                     if local_var[key].isReadOnly():
@@ -160,9 +147,6 @@ class ParameterManager(Flushable):
                         self.threadLocalVar[key] = set()
 
                     self.threadLocalVar[key].add( '.'.join(str(x) for x in advancedResult.getFoundCompletePath()) )
-
-                if self.isDefaultSettings(param.settings):
-                    param.settings = self.generateNewLocalSettings()
 
                 local_var[key] = param
             else:
@@ -174,9 +158,7 @@ class ParameterManager(Flushable):
                 else:
                     previous_setting = None
 
-                if self.isDefaultSettings(param.settings):
-                    param.settings = self.generateNewGlobalSettings()
-
+                param.enableGlobal()
                 param.settings.mergeLoaderSet(previous_setting)
                 param.settings.setOriginProvider(self.parentContainer)
                 param.settings.updateOrigin()
@@ -188,17 +170,9 @@ class ParameterManager(Flushable):
                 global_var     = None
                 key            = self.parentContainer.getCurrentId()
                 local_var[key] = param
-                param.lockable = False #this parameter will be only used in a single thread, no more need to lock it #TODO should disappear
-
-                if self.isDefaultSettings(param.settings):
-                    param.settings = self.generateNewLocalSettings()
-
             else:
                 global_var = param
-
-                if self.isDefaultSettings(param.settings):
-                    param.settings = self.generateNewGlobalSettings()
-
+                param.enableGlobal()
                 param.settings.setOriginProvider(self.parentContainer)
                 param.settings.updateOrigin()
 
@@ -381,13 +355,21 @@ class Parameter(Valuable): #abstract
     def __repr__(self):
         return str(self.getValue())
 
+    def enableGlobal(self):
+        pass
+
     def getProperties(self):
         return ()
-        
+
+###########################
+
+EMPTY_STRING = ""
+
 class LocalParameterSettings(object):
-    def __init__(self):
-        self.readOnly  = False
-        self.removable = True
+    def __init__(self, readOnly = False, removable = True):
+        self.readOnly = False
+        self.setRemovable(removable)
+        self.setReadOnly(readOnly)
 
     def setTransient(self,state):
         pass
@@ -397,7 +379,7 @@ class LocalParameterSettings(object):
 
     def setReadOnly(self, state):
         if type(state) != bool:
-            raise ParameterException("(EnvironmentParameter) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'") #TODO
+            raise ParameterException("(LocalParameterSettings) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.readOnly = state
         self.updateOrigin()
@@ -405,20 +387,25 @@ class LocalParameterSettings(object):
     def isReadOnly(self):
         return self.readOnly
 
-    def _raiseIfReadOnly(self, methName = None):
+    def _raiseIfReadOnly(self, className = None, methName = None):
         if self.isReadOnly():
             if methName is not None:
-                methName = " "+methName+", "
+                methName = methName+", "
             else:
-                methName = ""
+                methName = EMPTY_STRING
                 
-            raise ParameterException("("+self.__class__.__name__+") "+methName+"read only parameter") #TODO no more current class but parent class
+            if className is not None:
+                className = "("+className+") "
+            else:
+                className = EMPTY_STRING
+                
+            raise ParameterException(className+methName+"read only parameter")
 
     def setRemovable(self, state):
-        self._raiseIfReadOnly("setRemovable")
+        self._raiseIfReadOnly(self.__class__.__name__,"setRemovable")
     
         if type(state) != bool:
-            raise ParameterException("(EnvironmentParameter) setRemovable, expected a bool type as state, got '"+str(type(state))+"'") #TODO
+            raise ParameterException("(LocalParameterSettings) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.removable = state
         self.updateOrigin()
@@ -441,16 +428,18 @@ class LocalParameterSettings(object):
     def getProperties(self):
         return ( ("removable", self.isRemovable(), ), ("readonly", self.isReadOnly(), ), ) 
 
-DEFAULT_LOCAL_PARAMETER_SETTINGS = LocalParameterSettings() #TODO should be immutable
-
 class GlobalParameterSettings(LocalParameterSettings):
-    def __init__(self):
-        LocalParameterSettings.__init__(self)
-        self.transient = True
-        self.originProvider = None
+    def __init__(self, readOnly = False, removable = True, transient = False, originProvider = None):
+        self.setOriginProvider(originProvider)
+        
+        LocalParameterSettings.__init__(self, False, removable)
+        
+        self.setTransient(transient)
         self.origin = ORIGIN_PROCESS
         self.originArg = None
         self.loaderSet = None
+        
+        self.setReadOnly(readOnly)
 
     def setTransient(self,state):
         if type(state) != bool:
@@ -468,7 +457,7 @@ class GlobalParameterSettings(LocalParameterSettings):
         
         self.originProvider = provider
         
-    def updateOrigin(self):
+    def updateOrigin(self):    
         if self.originProvider == None:
             self.origin = ORIGIN_PROCESS
             self.originArg = None

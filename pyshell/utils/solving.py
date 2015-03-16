@@ -34,16 +34,16 @@ from tries                    import multiLevelTries
 class Solver(object):            
     def solve(self, parser, mltries, variablesContainer):
         if not isinstance(parser, Parser):
-            raise DefaultPyshellException("Fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
+            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
             
         if not parser.isParsed():
-            raise DefaultPyshellException("Fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
+            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
             
         if not isinstance(variablesContainer,ParameterManager):
-            raise DefaultPyshellException("Fail to init solver, a ParameterManager object was expected, got '"+str(type(variablesContainer))+"'",SYSTEM_ERROR)
+            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, a ParameterManager object was expected, got '"+str(type(variablesContainer))+"'",SYSTEM_ERROR)
             
         if not isinstance(mltries, multiLevelTries):
-            raise DefaultPyshellException("Fail to init solver, a multiLevelTries object was expected, got '"+str(type(mltries))+"'",SYSTEM_ERROR)
+            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, a multiLevelTries object was expected, got '"+str(type(mltries))+"'",SYSTEM_ERROR)
             
         self.parser             = parser
         self.mltries            = mltries
@@ -119,7 +119,7 @@ class Solver(object):
         try:
             searchResult = self.mltries.advancedSearch(tokenList, False)
         except triesException as te:
-            raise DefaultPyshellException("failed to find the command '"+str(tokenList)+"', reason: "+str(te), USER_WARNING)
+            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, failed to find the command '"+str(tokenList)+"', reason: "+str(te), USER_WARNING)
         
         #ambiguity on the last token used
         if searchResult.isAmbiguous():                    
@@ -127,17 +127,17 @@ class Solver(object):
             tries = searchResult.existingPath[tokenIndex][1].localTries
             keylist = tries.getKeyList(tokenList[tokenIndex])
             
-            raise DefaultPyshellException("ambiguity on command '"+" ".join(tokenList)+"', token '"+str(tokenList[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
+            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, ambiguity on command '"+" ".join(tokenList)+"', token '"+str(tokenList[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
         
         #no value on the last token found OR no token found
         elif not searchResult.isAvalueOnTheLastTokenFound():
             if searchResult.getTokenFoundCount() == len(tokenList):
-                raise DefaultPyshellException("uncomplete command '"+" ".join(tokenList)+"', type 'help "+" ".join(tokenList)+"' to get the next available parts of this command", USER_WARNING)
+                raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, uncomplete command '"+" ".join(tokenList)+"', type 'help "+" ".join(tokenList)+"' to get the next available parts of this command", USER_WARNING)
                 
             if len(tokenList) == 1:
-                raise DefaultPyshellException("unknown command '"+" ".join(tokenList)+"', type 'help' to get the list of commands", USER_WARNING)
+                raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', type 'help' to get the list of commands", USER_WARNING)
                 
-            raise DefaultPyshellException("unknown command '"+" ".join(tokenList)+"', token '"+str(tokenList[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING)
+            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', token '"+str(tokenList[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING)
 
         #return the command found and the not found token
         return searchResult.getLastTokenFoundValue(), list(searchResult.getNotFoundTokenList())

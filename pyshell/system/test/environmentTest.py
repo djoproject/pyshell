@@ -146,14 +146,14 @@ class EnvironmentTest(unittest.TestCase):
         
     def test_environmentMethod5(self): #getLock with lock disabled
         e = EnvironmentParameter("plop")
-        e.lockable = False
+        e.enableGlobal()
         self.assertEqual(e.getLock(),None)
         self.assertEqual(e.getLockID(),-1)
         self.assertFalse(e.isLockEnable())
         
     def test_environmentMethod6(self): #getLock without lock disabled
         e = EnvironmentParameter("plop")
-        e.lockable = True
+        e.enableGlobal()
         self.assertEqual(type(e.getLock()),LockType)
         self.assertEqual(e.getLockID(),0)
         self.assertTrue(e.isLockEnable())

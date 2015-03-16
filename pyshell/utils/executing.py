@@ -72,6 +72,8 @@ def execute(string, parameterContainer, processName=None, processArg=None):
 
 def _generateSuffix(parameterContainer, commandNameList=None, engine=None, processName=None):
 
+    #TODO processName then commandNameList should appear first if not None
+
     #print if in debug ? 
     param = parameterContainer.context.getParameter(DEBUG_ENVIRONMENT_NAME, perfectMatch = True)
     showAdvancedResult= (param is not None and param.getSelectedValue() > 0)

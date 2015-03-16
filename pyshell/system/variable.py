@@ -16,6 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #should be able to set transient on global var, so create globalSettings...
+
 from pyshell.system.parameter import ParameterManager, LocalParameterSettings
 from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
 from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
@@ -24,23 +27,24 @@ class VariableParameterManager(ParameterManager):
     def getAllowedType(self):
         return VarParameter
 
-    def generateNewGlobalSettings(self):
-        return VariableGlobalParameterSettings()
-
-    def generateNewLocalSettings(self):
-        return VariableGlobalParameterSettings()
-
 class VariableGlobalParameterSettings(LocalParameterSettings):
+    def __init__(self):
+        pass
+
     def isTransient(self):
         return False
 
     def isReadOnly(self):
-        return True
+        return False
 
     def isRemovable(self):
         return True
 
 class VarParameter(EnvironmentParameter):
+    @staticmethod
+    def getInitSettings():
+        return VariableGlobalParameterSettings()
+
     def __init__(self,value): #value can be a list or not, it will be processed
         tmp_value_parsed = [value]
         parsed_value = []
@@ -80,3 +84,6 @@ class VarParameter(EnvironmentParameter):
         
     def getProperties(self):
         return ()
+        
+    def enableGlobal(self):
+        pass

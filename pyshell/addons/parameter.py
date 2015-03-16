@@ -82,10 +82,10 @@ def setProperties(key, propertyInfo, propertyValue, parameters, attributeType, s
     propertyName, propertyChecker = propertyInfo
     param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
     
-    meth = getattr(param, propertyName)
+    meth = getattr(param.settings, propertyName) #TODO does not work for index and defaultIndex
     
     if meth is None:
-        raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient")
+        raise Exception("Unknown property '"+str(propertyName)+"', one of these was expected: readonly/removable/transient/index_transient") #TODO the list is not complete for context
     
     meth(propertyChecker.getValue(propertyValue,"value",0))
         

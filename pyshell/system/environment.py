@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.parameter import Parameter,ParameterManager, DEFAULT_LOCAL_PARAMETER_SETTINGS
+from pyshell.system.parameter import Parameter,ParameterManager, GlobalParameterSettings, LocalParameterSettings
 from pyshell.arg.argchecker   import ArgChecker, listArgChecker, defaultInstanceArgChecker
 from pyshell.utils.exception  import ParameterException
 
@@ -51,7 +51,7 @@ class EnvironmentParameter(Parameter):
 
     @staticmethod
     def getInitSettings():
-        return DEFAULT_LOCAL_PARAMETER_SETTINGS
+        return LocalParameterSettings()
 
     def __init__(self, value, typ=None, settings=None):
         self.settings = self.getInitSettings()
@@ -60,7 +60,7 @@ class EnvironmentParameter(Parameter):
         if typ is None:
             typ = DEFAULT_CHECKER
         elif not isinstance(typ,ArgChecker):#typ must be argChecker
-            raise ParameterException("(EnvironmentParameter) __init__, invalid type instance, must be an ArgChecker instance") #TODO get what ?
+            raise ParameterException("(EnvironmentParameter) __init__, an ArgChecker instance was expected for argument typ, got '"+str(type(typ))+"'")
 
         self.isListType = isinstance(typ, listArgChecker)
         self.typ = typ
@@ -68,16 +68,15 @@ class EnvironmentParameter(Parameter):
         
         self.lock     = None
         self.lockID   = -1
-        self.lockable = True
 
         if settings is not None:
-            if not isinstance(settings, ParameterSettings):
-                raise ParameterException("(EnvironmentParameter) __init__, invalid settings instance, must be an ParameterSettings instance") #TODO get what ?
+            if not isinstance(settings, LocalParameterSettings):
+                raise ParameterException("(EnvironmentParameter) __init__, a LocalParameterSettings was expected for settings, got '"+str(type(settings))+"'")
 
             self.settings = settings
 
     def _initLock(self):
-        if not self.lockable:
+        if not self.isLockEnable():
             return
 
         if self.lock is None:
@@ -96,14 +95,14 @@ class EnvironmentParameter(Parameter):
         return self.lockID
         
     def isLockEnable(self):
-        return self.lockable
+        return isinstance(self.settings, GlobalParameterSettings)
     
     def isAListType(self):
         return self.isListType
     
     def addValues(self, values):
         #must be "not readonly"
-        self.settings._raiseIfReadOnly("addValues")
+        self.settings._raiseIfReadOnly(self.__class__.__name__,"addValues")
     
         #typ must be list
         if not self.isAListType():
@@ -122,7 +121,7 @@ class EnvironmentParameter(Parameter):
     
     def removeValues(self, values):
         #must be "not readonly"
-        self.settings._raiseIfReadOnly("removeValues")
+        self.settings._raiseIfReadOnly(self.__class__.__name__,"removeValues")
     
         #typ must be list
         if not self.isAListType():
@@ -144,12 +143,23 @@ class EnvironmentParameter(Parameter):
         return self.value
 
     def setValue(self, value):
-        self.settings._raiseIfReadOnly("setValue")
+        self.settings._raiseIfReadOnly(self.__class__.__name__,"setValue")
         self.value = self.typ.getValue(value)
         self.settings.updateOrigin()
 
     def getProperties(self):
         return self.settings.getProperties()
+
+    def enableGlobal(self):
+        if isinstance(self.settings, GlobalParameterSettings):
+            return
+        
+        readOnly = self.settings.isReadOnly()
+        removable = self.settings.isRemovable()
+        self.settings.__class__ = GlobalParameterSettings
+        GlobalParameterSettings.__init__(self.settings)
+        self.settings.setRemovable(removable)
+        self.settings.setReadOnly(readOnly)
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

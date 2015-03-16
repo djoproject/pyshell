@@ -29,15 +29,6 @@ class ContextParameterManager(ParameterManager):
     def getAllowedType(self):
         return ContextParameter
 
-    def generateNewGlobalSettings(self):
-        return GlobalContextParameterSettings()
-
-    def generateNewLocalSettings(self):
-        return LocalContextParameterSettings()
-
-    def isDefaultSettings(self,value):
-        return value is DEFAULT_LOCAL_CONTEXT_PARAMETER_SETTINGS
-
 def _convertToSetList(orig):
     seen = set()
     seen_add = seen.add
@@ -45,8 +36,8 @@ def _convertToSetList(orig):
 
 
 class LocalContextParameterSettings(LocalParameterSettings):
-    def __init__(self):
-        LocalParameterSettings.__init__(self)
+    def __init__(self, readOnly = False, removable = True):
+        LocalParameterSettings.__init__(self,readOnly,removable)
 
     def setTransientIndex(self,state):
         pass
@@ -54,15 +45,14 @@ class LocalContextParameterSettings(LocalParameterSettings):
     def isTransientIndex(self):
         return True
 
-DEFAULT_LOCAL_CONTEXT_PARAMETER_SETTINGS = LocalContextParameterSettings() #TODO should be immutable
-
-class GlobalContextParameterSettings(GlobalParameterSettings):
-    def __init__(self):
-        GlobalParameterSettings.__init__(self)
-        self.transientIndex = False
+class GlobalContextParameterSettings(GlobalParameterSettings, LocalContextParameterSettings): #inheritance in this order will ignore setTransientIndex and isTransientIndex from LocalContextParameterSettings and use those from GlobalParameterSettings
+    def __init__(self, readOnly = False, removable = True, transient = False, originProvider = None, transientIndex = False):
+        GlobalParameterSettings.__init__(self,False,removable,transient,originProvider)
+        self.setTransientIndex(transientIndex)
+        self.setReadOnly(readOnly)
 
     def setTransientIndex(self,state):
-        self._raiseIfReadOnly("setTransientIndex")
+        self._raiseIfReadOnly(self.__class__.__name__,"setTransientIndex")
     
         if type(state) != bool:
             raise ParameterException("(GlobalContextParameterSettings) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
@@ -76,7 +66,7 @@ class GlobalContextParameterSettings(GlobalParameterSettings):
 class ContextParameter(EnvironmentParameter, SelectableValuable):
     @staticmethod
     def getInitSettings():
-        return DEFAULT_LOCAL_CONTEXT_PARAMETER_SETTINGS
+        return LocalContextParameterSettings()
 
     def __init__(self, value, typ=None, transientIndex = False, index=0, defaultIndex = 0, settings=None):
 
@@ -100,8 +90,8 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
 
         #set and check settings
         if settings is not None:
-            if not isinstance(settings, ContextParameterSettings):
-                raise ParameterException("(ContextParameter) __init__, invalid settings instance, must be an ContextParameterSettings instance") #TODO get what ?
+            if not isinstance(settings, LocalContextParameterSettings):
+                raise ParameterException("(ContextParameter) __init__, a LocalContextParameterSettings was expected for settings, got '"+str(type(settings))+"'")
 
             self.settings = settings
     
@@ -133,6 +123,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             self.settings.updateOrigin()
         
     def tryToSetIndex(self, index):
+        #try new index
         try:
             self.value[index]
             self.index = index
@@ -144,8 +135,14 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         except TypeError:
             pass
 
-        #TODO should try to restore old index before to try default one
+        #try old index, is it still valid?
+        try:
+            self.value[self.index]
+            return #no update on the object
+        except IndexError:
+            pass
         
+        #old index is no more valid, try defaultIndex
         self.tryToSetDefaultIndex(self.defaultIndex) #default index is still valid ?
         self.index = self.defaultIndex 
         if not self.settings.isTransientIndex():
@@ -167,7 +164,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         return self.value[self.index]
                 
     def setDefaultIndex(self,defaultIndex):
-        self.settings._raiseIfReadOnly("setDefaultIndex")
+        self.settings._raiseIfReadOnly(self.__class__.__name__,"setDefaultIndex")
     
         try:
             self.value[defaultIndex]
@@ -180,8 +177,9 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.settings.updateOrigin()
         
     def tryToSetDefaultIndex(self,defaultIndex):
-        self.settings._raiseIfReadOnly("tryToSetDefaultIndex")
-            
+        self.settings._raiseIfReadOnly(self.__class__.__name__,"tryToSetDefaultIndex")
+        
+        #try new default index
         try:
             self.value[defaultIndex]
             self.defaultIndex = defaultIndex
@@ -192,8 +190,14 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         except TypeError:
             pass
         
-        #TODO should try to restore old default index before to set 0
-
+        #try old default index, is it still valid ?
+        try:
+            self.value[self.defaultIndex]
+            return #no update on the object
+        except IndexError:
+            pass
+        
+        #if old default index is invalid, set default as 0, there is always at least one element in context, index 0 will always be valid
         self.defaultIndex = 0
         self.settings.updateOrigin()
         
@@ -211,7 +215,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         self.value = _convertToSetList(self.value)
                 
     def removeValues(self, values):
-        self.settings._raiseIfReadOnly("removeValues")
+        self.settings._raiseIfReadOnly(self.__class__.__name__,"removeValues")
         
         values = _convertToSetList(values)
         
@@ -239,3 +243,14 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
     
     def __str__(self):
         return str(self.value[self.index])
+        
+    def enableGlobal(self):
+        if isinstance(self.settings, GlobalContextParameterSettings):
+            return
+        
+        readOnly = self.settings.isReadOnly()
+        removable = self.settings.isRemovable()
+        self.settings.__class__ = GlobalContextParameterSettings
+        GlobalContextParameterSettings.__init__(self.settings, readOnly=readOnly, removable=removable)
+        self.settings.setRemovable(removable)
+        self.settings.setReadOnly(readOnly)

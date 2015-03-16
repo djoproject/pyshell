@@ -50,7 +50,7 @@ class Printer(object):
 
     def __init__(self):
         if Printer._instance is not None:
-            raise Exception("(Printer) __init__, Try to create a new instance of printer, only one is allowed for a whole instance of this application, use getInstance method")
+            raise Exception("("+self.__class__.__name__+") __init__, Try to create a new instance of printer, only one is allowed for a whole instance of this application, use getInstance method")
     
         self.replWriteFunction   = None
         self.promptShowedContext = DefaultValuable(False)
@@ -66,19 +66,19 @@ class Printer(object):
     
     def setREPLFunction(self, fun):
         if not hasattr(fun, "__call__"):
-            raise Exception("(Printer) setREPLFunction, invalid repl function, must be a callable object")
+            raise Exception("("+self.__class__.__name__+") setREPLFunction, invalid repl function, must be a callable object")
             
         self.replWriteFunction = fun
     
     def setParameters(self, params):
         if not isinstance(params, ParameterContainer):
-            raise Exception("(Printer) setParameters, invalid params, a ParameterContainer was expected, got '"+type(params)+"'")
+            raise Exception("("+self.__class__.__name__+") setParameters, invalid params, a ParameterContainer was expected, got '"+type(params)+"'")
     
         self.params = params
         
     def setPromptShowedContext(self, context):    
         if not isinstance(context, Valuable):
-            raise Exception("(Printer) setPromptShowedContext, invalid running context, must be an instance of Valuable")
+            raise Exception("("+self.__class__.__name__+") setPromptShowedContext, invalid running context, must be an instance of Valuable")
     
         self.promptShowedContext = context
 

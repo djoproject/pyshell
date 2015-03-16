@@ -70,7 +70,7 @@ class ListOfException(DefaultPyshellException):
         elif isinstance(exception, Exception):
             self.exceptions.append(exception)
         else:
-            raise Exception("(ListOfException) addException, can only store exception of type Exception or ListOfException, got '"+str(type(exception))+"'")
+            raise Exception("("+self.__class__.__name__+") addException, can only store exception of type Exception or ListOfException, got '"+str(type(exception))+"'")
         
     def isThrowable(self):
         return len(self.exceptions) > 0

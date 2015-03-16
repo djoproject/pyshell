@@ -25,7 +25,7 @@ class CryptographicKey(object):
     def __init__(self, keyString):
         #is it a string ?
         if type(keyString) != str and type(keyString) != unicode:
-            raise KeyStoreException("(Key) __init__, invalid key string, expected a string, got '"+str(type(keyString))+"'")
+            raise KeyStoreException("("+self.__class__.__name__+") __init__, invalid key string, expected a string, got '"+str(type(keyString))+"'")
         
         keyString = keyString.lower()
     
@@ -34,7 +34,7 @@ class CryptographicKey(object):
             try:
                 int(keyString, 16)
             except ValueError as ve:
-                raise KeyStoreException("(Key) __init__, invalid hexa string, start with 0x but is not valid: "+str(ve))
+                raise KeyStoreException("("+self.__class__.__name__+") __init__, invalid hexa string, start with 0x but is not valid: "+str(ve))
         
             self.keyType = CryptographicKey.KEYTYPE_HEXA
             self.key     = keyString[2:]
@@ -51,13 +51,13 @@ class CryptographicKey(object):
             try:
                 int(keyString, 2)
             except ValueError as ve:
-                raise KeyStoreException("(Key) __init__, invalid binary string, start with 0b but is not valid: "+str(ve))
+                raise KeyStoreException("("+self.__class__.__name__+") __init__, invalid binary string, start with 0b but is not valid: "+str(ve))
     
             self.keyType = CryptographicKey.KEYTYPE_BIT
             self.key     = keyString[2:]
             self.keySize = len(self.key)
         else:
-            raise KeyStoreException("(Key) __init__, invalid key string, must start with 0x or 0b, got '"+keyString+"'")
+            raise KeyStoreException("("+self.__class__.__name__+") __init__, invalid key string, must start with 0x or 0b, got '"+keyString+"'")
     
     def __str__(self):
         if self.keyType == CryptographicKey.KEYTYPE_HEXA:
