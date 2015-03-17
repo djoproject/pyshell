@@ -18,7 +18,6 @@
 
 #TODO use system settings like in parameters
 
-import threading, sys
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
 from pyshell.utils.executing   import execute
 from pyshell.command.command   import UniCommand
@@ -28,7 +27,7 @@ from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstance
 from pyshell.utils.parsing     import Parser
 from pyshell.system.variable   import VarParameter
 from pyshell.utils.printing    import warning,getPrinterFromExceptionSeverity,printShell
-import thread
+import thread, threading, sys
                 
 ### UTILS COMMAND ###
     

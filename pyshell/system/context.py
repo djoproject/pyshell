@@ -16,11 +16,13 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.parameter import ParameterManager, LocalParameterSettings, GlobalParameterSettings
+
+from pyshell.arg.argchecker     import defaultInstanceArgChecker, listArgChecker
+from pyshell.utils.exception    import ParameterException
+from pyshell.utils.valuable     import SelectableValuable
 from pyshell.system.environment import EnvironmentParameter
-from pyshell.utils.valuable  import SelectableValuable
-from pyshell.utils.exception import ParameterException
-from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
+from pyshell.system.parameter   import ParameterManager
+from pyshell.system.settings    import GlobalSettings, LocalSettings
 
 CONTEXT_DEFAULT_CHECKER = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance())
 CONTEXT_DEFAULT_CHECKER.setSize(1,None)
@@ -35,9 +37,9 @@ def _convertToSetList(orig):
     return [ x for x in orig if not (x in seen or seen_add(x))]
 
 
-class LocalContextParameterSettings(LocalParameterSettings):
+class LocalContextSettings(LocalSettings):
     def __init__(self, readOnly = False, removable = True):
-        LocalParameterSettings.__init__(self,readOnly,removable)
+        LocalSettings.__init__(self,readOnly,removable)
 
     def setTransientIndex(self,state):
         pass
@@ -45,9 +47,9 @@ class LocalContextParameterSettings(LocalParameterSettings):
     def isTransientIndex(self):
         return True
 
-class GlobalContextParameterSettings(GlobalParameterSettings, LocalContextParameterSettings): #inheritance in this order will ignore setTransientIndex and isTransientIndex from LocalContextParameterSettings and use those from GlobalParameterSettings
+class GlobalContextSettings(GlobalSettings, LocalContextSettings): #inheritance in this order will ignore setTransientIndex and isTransientIndex from LocalContextParameterSettings and use those from GlobalParameterSettings
     def __init__(self, readOnly = False, removable = True, transient = False, originProvider = None, transientIndex = False):
-        GlobalParameterSettings.__init__(self,False,removable,transient,originProvider)
+        GlobalSettings.__init__(self,False,removable,transient,originProvider)
         self.setTransientIndex(transientIndex)
         self.setReadOnly(readOnly)
 
@@ -55,7 +57,7 @@ class GlobalContextParameterSettings(GlobalParameterSettings, LocalContextParame
         self._raiseIfReadOnly(self.__class__.__name__,"setTransientIndex")
     
         if type(state) != bool:
-            raise ParameterException("(GlobalContextParameterSettings) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
+            raise ParameterException("(GlobalContextSettings) setTransientIndex, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.transientIndex = state
         self.updateOrigin()
@@ -66,7 +68,7 @@ class GlobalContextParameterSettings(GlobalParameterSettings, LocalContextParame
 class ContextParameter(EnvironmentParameter, SelectableValuable):
     @staticmethod
     def getInitSettings():
-        return LocalContextParameterSettings()
+        return LocalContextSettings()
 
     def __init__(self, value, typ=None, transientIndex = False, index=0, defaultIndex = 0, settings=None):
 
@@ -90,8 +92,8 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
 
         #set and check settings
         if settings is not None:
-            if not isinstance(settings, LocalContextParameterSettings):
-                raise ParameterException("(ContextParameter) __init__, a LocalContextParameterSettings was expected for settings, got '"+str(type(settings))+"'")
+            if not isinstance(settings, LocalContextSettings):
+                raise ParameterException("(ContextParameter) __init__, a LocalContextSettings was expected for settings, got '"+str(type(settings))+"'")
 
             self.settings = settings
     
@@ -245,12 +247,12 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         return str(self.value[self.index])
         
     def enableGlobal(self):
-        if isinstance(self.settings, GlobalContextParameterSettings):
+        if isinstance(self.settings, GlobalContextSettings):
             return
         
         readOnly = self.settings.isReadOnly()
         removable = self.settings.isRemovable()
-        self.settings.__class__ = GlobalContextParameterSettings
-        GlobalContextParameterSettings.__init__(self.settings, readOnly=readOnly, removable=removable)
+        self.settings.__class__ = GlobalContextSettings
+        GlobalContextSettings.__init__(self.settings, readOnly=readOnly, removable=removable)
         self.settings.setRemovable(removable)
         self.settings.setReadOnly(readOnly)

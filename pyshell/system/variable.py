@@ -16,18 +16,16 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #should be able to set transient on global var, so create globalSettings...
-
-from pyshell.system.parameter import ParameterManager, LocalParameterSettings
+from pyshell.arg.argchecker     import listArgChecker, defaultInstanceArgChecker
 from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
-from pyshell.arg.argchecker  import listArgChecker, defaultInstanceArgChecker
+from pyshell.system.parameter   import ParameterManager
+from pyshell.system.settings    import LocalSettings, GlobalSettings
 
 class VariableParameterManager(ParameterManager):
     def getAllowedType(self):
         return VarParameter
 
-class VariableGlobalParameterSettings(LocalParameterSettings):
+class VariableLocalSettings(LocalSettings):
     def __init__(self):
         pass
 
@@ -39,11 +37,34 @@ class VariableGlobalParameterSettings(LocalParameterSettings):
 
     def isRemovable(self):
         return True
+        
+class VariableGlobalSettings(GlobalSettings, VariableLocalSettings):
+    def __init__(self, transient = False):
+        VariableLocalSettings.__init__(self)
+        GlobalSettings__init__(self,readOnly = False, removable = True, transient = transient, originProvider = None)
+        
+    def setOriginProvider(self, provider):
+        pass
+        
+    def updateOrigin(self):    
+        pass
+
+    def addLoader(self, loaderSignature):
+        pass
+                
+    def mergeLoaderSet(self, settings):
+        pass
+
+    def isReadOnly(self):
+        return False
+
+    def isRemovable(self):
+        return True
 
 class VarParameter(EnvironmentParameter):
     @staticmethod
     def getInitSettings():
-        return VariableGlobalParameterSettings()
+        return VariableLocalSettings()
 
     def __init__(self,value): #value can be a list or not, it will be processed
         tmp_value_parsed = [value]
@@ -86,4 +107,8 @@ class VarParameter(EnvironmentParameter):
         return ()
         
     def enableGlobal(self):
-        pass
+        if isinstance(self.settings, VariableGlobalSettings):
+            return
+    
+        self.settings.__class__ = VariableGlobalSettings
+        VariableGlobalSettings.__init__(self.settings)

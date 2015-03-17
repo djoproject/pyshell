@@ -24,6 +24,7 @@ MAIN_CATEGORY            = "main"
 SHELL_CATEGORY           = "shell"
 PARAMETER_NAME           = "parameter"
 DEFAULT_SUBADDON_NAME    = "default"
+EMPTY_STRING             = ""
 
 ### EVENT ###
 EVENT__ON_STARTUP     = "_onstartup" #at application launch

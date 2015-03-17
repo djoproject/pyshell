@@ -16,10 +16,13 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.parameter import Parameter,ParameterManager, GlobalParameterSettings, LocalParameterSettings
-from pyshell.arg.argchecker   import ArgChecker, listArgChecker, defaultInstanceArgChecker
+## internal modules ##
+from pyshell.arg.argchecker   import ArgChecker, defaultInstanceArgChecker, listArgChecker
 from pyshell.utils.exception  import ParameterException
+from pyshell.system.parameter import Parameter,ParameterManager
+from pyshell.system.settings  import GlobalSettings, LocalSettings
 
+## external modules ##
 from threading import Lock
 
 DEFAULT_CHECKER = listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance())
@@ -51,7 +54,7 @@ class EnvironmentParameter(Parameter):
 
     @staticmethod
     def getInitSettings():
-        return LocalParameterSettings()
+        return LocalSettings()
 
     def __init__(self, value, typ=None, settings=None):
         self.settings = self.getInitSettings()
@@ -70,8 +73,8 @@ class EnvironmentParameter(Parameter):
         self.lockID   = -1
 
         if settings is not None:
-            if not isinstance(settings, LocalParameterSettings):
-                raise ParameterException("(EnvironmentParameter) __init__, a LocalParameterSettings was expected for settings, got '"+str(type(settings))+"'")
+            if not isinstance(settings, LocalSettings):
+                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
 
             self.settings = settings
 
@@ -95,7 +98,7 @@ class EnvironmentParameter(Parameter):
         return self.lockID
         
     def isLockEnable(self):
-        return isinstance(self.settings, GlobalParameterSettings)
+        return isinstance(self.settings, GlobalSettings)
     
     def isAListType(self):
         return self.isListType
@@ -151,13 +154,13 @@ class EnvironmentParameter(Parameter):
         return self.settings.getProperties()
 
     def enableGlobal(self):
-        if isinstance(self.settings, GlobalParameterSettings):
+        if isinstance(self.settings, GlobalSettings):
             return
         
         readOnly = self.settings.isReadOnly()
         removable = self.settings.isRemovable()
-        self.settings.__class__ = GlobalParameterSettings
-        GlobalParameterSettings.__init__(self.settings)
+        self.settings.__class__ = GlobalSettings
+        GlobalSettings.__init__(self.settings)
         self.settings.setRemovable(removable)
         self.settings.setReadOnly(readOnly)
 

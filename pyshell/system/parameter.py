@@ -17,26 +17,19 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #don't save property that still have default value
-        #do it in addon/parameter
-
-    #get/set readonly/transient/removable/...  update call in software
-    #update env/con constructor everywhere
-    
     #what about globalSettings if we try to add in local
         #forbidde that, because it will enable a Lock for this local parameter
-        
-    #TODO extract settings out of parameter file
 
-from pyshell.utils.exception import ParameterException
-from pyshell.utils.valuable  import Valuable, SelectableValuable
-from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER, AbstractParameterContainer
-from pyshell.utils.constants import ORIGIN_PROCESS
-from pyshell.utils.flushable import Flushable
-from threading import Lock, current_thread
+## internal modules ##
+from pyshell.utils.exception  import ParameterException
+from pyshell.utils.flushable  import Flushable
+from pyshell.utils.valuable   import Valuable
+from pyshell.system.container import AbstractParameterContainer, DEFAULT_DUMMY_PARAMETER_CONTAINER
+
+## external modules ##
 from functools import wraps
-from tries import multiLevelTries
-from shlex import shlex
+from threading import Lock
+from tries     import multiLevelTries
 
 def synchronous():
     def _synched(func):
@@ -278,7 +271,8 @@ class ParameterManager(Flushable):
                         if not global_var.isRemovable():
                             raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
                     
-                        if hasattr(global_var.settings, "loaderSet") and global_var.settings.loaderSet is not None and len(global_var.settings.loaderSet) > 0:
+                        loaderSet = global_var.settings.getLoaderSet()
+                        if loaderSet is not None and len(loaderSet) > 0:
                             raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' can be removed, at least on loader is registered on this parameter")
 
                     if len(local_var) == 0:
@@ -360,123 +354,4 @@ class Parameter(Valuable): #abstract
 
     def getProperties(self):
         return ()
-
-###########################
-
-EMPTY_STRING = ""
-
-class LocalParameterSettings(object):
-    def __init__(self, readOnly = False, removable = True):
-        self.readOnly = False
-        self.setRemovable(removable)
-        self.setReadOnly(readOnly)
-
-    def setTransient(self,state):
-        pass
-
-    def isTransient(self):
-        return True
-
-    def setReadOnly(self, state):
-        if type(state) != bool:
-            raise ParameterException("(LocalParameterSettings) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'")
-            
-        self.readOnly = state
-        self.updateOrigin()
-
-    def isReadOnly(self):
-        return self.readOnly
-
-    def _raiseIfReadOnly(self, className = None, methName = None):
-        if self.isReadOnly():
-            if methName is not None:
-                methName = methName+", "
-            else:
-                methName = EMPTY_STRING
-                
-            if className is not None:
-                className = "("+className+") "
-            else:
-                className = EMPTY_STRING
-                
-            raise ParameterException(className+methName+"read only parameter")
-
-    def setRemovable(self, state):
-        self._raiseIfReadOnly(self.__class__.__name__,"setRemovable")
-    
-        if type(state) != bool:
-            raise ParameterException("(LocalParameterSettings) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
-            
-        self.removable = state
-        self.updateOrigin()
-
-    def isRemovable(self):
-        return self.removable
-
-    def setOriginProvider(self, provider):
-        pass
-
-    def updateOrigin(self):
-        pass
-
-    def addLoader(self, loaderSignature):
-        pass
-
-    def mergeLoaderSet(self, parameter):
-        pass
-
-    def getProperties(self):
-        return ( ("removable", self.isRemovable(), ), ("readonly", self.isReadOnly(), ), ) 
-
-class GlobalParameterSettings(LocalParameterSettings):
-    def __init__(self, readOnly = False, removable = True, transient = False, originProvider = None):
-        self.setOriginProvider(originProvider)
-        
-        LocalParameterSettings.__init__(self, False, removable)
-        
-        self.setTransient(transient)
-        self.origin = ORIGIN_PROCESS
-        self.originArg = None
-        self.loaderSet = None
-        
-        self.setReadOnly(readOnly)
-
-    def setTransient(self,state):
-        if type(state) != bool:
-            raise ParameterException("(GlobalParameterSettings) setTransient, expected a bool type as state, got '"+str(type(state))+"'")
-            
-        self.transient = state
-        self.updateOrigin()
-
-    def isTransient(self):
-        return self.transient
-
-    def setOriginProvider(self, provider):
-        if provider is not None and not isinstance(provider, AbstractParameterContainer):
-            raise ParameterException("(GlobalParameterSettings) setOriginProvider, an AbstractParameterContainer object was expected, got '"+str(type(provider))+"'") 
-        
-        self.originProvider = provider
-        
-    def updateOrigin(self):    
-        if self.originProvider == None:
-            self.origin = ORIGIN_PROCESS
-            self.originArg = None
-        else:
-            self.origin, self.originArg = self.originProvider.getOrigin()
-
-    def addLoader(self, loaderSignature):
-        if self.loaderSet is None:
-            self.loaderSet = set()
-            
-        self.loaderSet.add(loaderSignature)
-        
-    def mergeLoaderSet(self, parameterSettings):
-        if not isinstance(parameterSettings, ParameterSettings):
-            raise ParameterException("(GlobalParameterSettings) mergeLoaderSet, an ParameterSettings object was expected, got '"+str(type(parameterSettings))+"'") 
-            
-        if self.loaderSet is None:
-            if parameterSettings.loaderSet is not None:
-                self.loaderSet = set(parameterSettings.loaderSet)
-        elif parameterSettings.loaderSet is not None:
-            self.loaderSet = self.loaderSet.union(parameterSettings.loaderSet)
             
