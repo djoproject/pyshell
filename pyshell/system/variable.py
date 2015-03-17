@@ -41,7 +41,7 @@ class VariableLocalSettings(LocalSettings):
 class VariableGlobalSettings(GlobalSettings, VariableLocalSettings):
     def __init__(self, transient = False):
         VariableLocalSettings.__init__(self)
-        GlobalSettings__init__(self,readOnly = False, removable = True, transient = transient, originProvider = None)
+        GlobalSettings.__init__(self,readOnly = False, removable = True, transient = transient, originProvider = None)
         
     def setOriginProvider(self, provider):
         pass

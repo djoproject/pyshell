@@ -19,6 +19,8 @@
 #TODO
     #what about globalSettings if we try to add in local
         #forbidde that, because it will enable a Lock for this local parameter
+        
+        #not possible to create a method like enableLocal ?
 
 ## internal modules ##
 from pyshell.utils.exception  import ParameterException

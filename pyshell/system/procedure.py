@@ -16,7 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO use system settings like in parameters
+#TODO brainstorming about settings usage
+    #is it interresting to use updateOrigin ?
+        #not sure, because if the last to add something is a loader BUT there are custom command in alias
+        #the alias won't be saved
+        
+        #must be an origin on each command in alias...
 
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
 from pyshell.utils.executing   import execute
@@ -26,6 +31,7 @@ from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
 from pyshell.utils.parsing     import Parser
 from pyshell.system.variable   import VarParameter
+from pyshell.system.settings   import GlobalSettings
 from pyshell.utils.printing    import warning,getPrinterFromExceptionSeverity,printShell
 import thread, threading, sys
                 
@@ -44,19 +50,21 @@ def getAbsoluteIndex(index, listSize):
     return index
 
 class Procedure(UniCommand):
-    def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
+    def __init__(self, name, showInHelp = True, settings = None):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
         
-        self.setStopProcedureOnFirstError()
+        self.setStopProcedureOnFirstError() #default error policy
         self.executeOnPre     = True
-        
-        #global lock system
-        self.setReadOnly(readonly)
-        self.setRemovable(removable)
-        self.setTransient(transient)
-
         self.interrupt       = False
         self.interruptReason = None
+        
+        if settings is not None:
+            if not isinstance(settings, GlobalSettings):
+                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
+
+            self.settings = settings
+        else:
+            self.settings = GlobalSettings()
         
     ### PRE/POST process ###
     
@@ -172,25 +180,7 @@ class Procedure(UniCommand):
     
     def setNextCommandIndex(self, index):
         raise DefaultPyshellException("(Procedure) setNextCommandIndex, not possible to set next command index on this king of procedure")
-
-    def setReadOnly(self, value):
-        if type(value) != bool:
-            raise ParameterException("(Procedure) setReadOnly, expected a bool type as state, got '"+str(type(value))+"'")
-            
-        self.readonly = value
-        
-    def setRemovable(self, value):
-        if type(value) != bool:
-            raise ParameterException("(Procedure) setRemovable, expected a bool type as state, got '"+str(type(value))+"'")
-            
-        self.removable = value
-        
-    def setTransient(self, value):
-        if type(value) != bool:
-            raise ParameterException("(Procedure) setTransient, expected a bool type as state, got '"+str(type(value))+"'")
-            
-        self.transient = value  
-    
+                    
     def setStopProcedureOnFirstError(self):
         self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(sys.maxint)
         
@@ -218,16 +208,7 @@ class Procedure(UniCommand):
         
     def isExecuteOnPre(self):
         return self.executeOnPre
-        
-    def isReadOnly(self):
-        return self.readonly
-        
-    def isRemovable(self):
-        return self.removable
-        
-    def isTransient(self):
-        return self.transient
-        
+                
     def clone(self, From=None):
         if From is None:
             From = Procedure(self.name)
@@ -356,7 +337,7 @@ class ProcedureFromList(Procedure):
         self.stringCmdList.insert(toIndex, self.stringCmdList.pop(fromIndex))
     
     def _checkAccess(self,methName, indexToCheck = (), raiseIfOutOfBound = True):
-        if self.isReadOnly():
+        if self.settings.isReadOnly():
             raise ParameterException("(Procedure) "+methName+", this procedure is readonly, can not do any update on its content")
             
         for index in indexToCheck:

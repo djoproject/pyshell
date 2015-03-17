@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.system.variable import VarParameter,VariableParameterManager
+from pyshell.system.variable import VarParameter,VariableParameterManager, VariableLocalSettings, VariableGlobalSettings
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.exception import ParameterException
 
@@ -31,7 +31,69 @@ class Anything(object):
 class VariableTest(unittest.TestCase):
     def setUp(self):
         pass
+    
+    ## settings ##
+    
+    def test_localSettings1(self):
+        vls = VariableLocalSettings()
+        
+        self.assertFalse(vls.isTransient())
+        vls.setTransient(True)
+        self.assertFalse(vls.isTransient())
+        
+    def test_localSettings2(self):
+        vls = VariableLocalSettings()
+        
+        self.assertFalse(vls.isReadOnly())
+        vls.setReadOnly(True)
+        self.assertFalse(vls.isReadOnly())
+        
+    def test_localSettings3(self):
+        vls = VariableLocalSettings()
+        
+        self.assertTrue(vls.isRemovable())
+        vls.setRemovable(False)
+        self.assertTrue(vls.isRemovable())
 
+    ##
+
+    def test_globalSettings1(self):
+        vls = VariableGlobalSettings()
+        
+        self.assertFalse(vls.isTransient())
+        vls.setTransient(True)
+        self.assertTrue(vls.isTransient())
+        
+    def test_globalSettings1b(self):
+        vls = VariableGlobalSettings(transient = True)
+        
+        self.assertTrue(vls.isTransient())
+        vls.setTransient(False)
+        self.assertFalse(vls.isTransient())
+        
+    def test_globalSettings2(self):
+        vls = VariableGlobalSettings()
+        
+        self.assertFalse(vls.isReadOnly())
+        vls.setReadOnly(True)
+        self.assertFalse(vls.isReadOnly())
+
+    def test_globalSettings3(self):
+        vls = VariableGlobalSettings()
+        
+        self.assertTrue(vls.isRemovable())
+        vls.setRemovable(False)
+        self.assertTrue(vls.isRemovable())
+        
+    def test_globalSettings4(self):
+        vls = VariableGlobalSettings()
+        vls.addLoader("plop")
+        self.assertEqual(vls.getLoaderSet(), None)
+        
+    #TODO mergeLoaderSet, updateOrigin, setOriginProvider
+    
+    ## manager ##
+    
     def test_manager(self):
         self.assertNotEqual(VariableParameterManager(), None)
 
@@ -48,9 +110,13 @@ class VariableTest(unittest.TestCase):
         manager = VariableParameterManager()
         self.assertRaises(ParameterException,manager.setParameter, "test.var", EnvironmentParameter("0x1122ff"))
 
+    ## properties ##
+
     def test_noProperties(self):
         v = VarParameter("plop")
         self.assertEqual(len(v.getProperties()),0)
+
+    ## parsing ##
 
     def test_varParsing1(self):#string sans espace
         v = VarParameter("plop")
@@ -87,6 +153,10 @@ class VariableTest(unittest.TestCase):
     def test_varParsing9(self):#list de list de anything
         v = VarParameter( [ [Anything("pl op"),Anything("p li pi")],[Anything("pla pa")]])
         self.assertEqual(v.getValue(),["pl","op", "p", "li", "pi","pla","pa"])
+        
+    ##TODO __str__ __repr__ ##
+    
+    ##TODO enableGlobal ##
         
 if __name__ == '__main__':
     unittest.main()

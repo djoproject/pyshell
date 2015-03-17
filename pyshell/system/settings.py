@@ -109,10 +109,8 @@ class GlobalSettings(LocalSettings):
         LocalSettings.__init__(self, False, removable)
         
         self.setTransient(transient)
-        self.origin = ORIGIN_PROCESS
-        self.originArg = None
         self.loaderSet = None
-        
+        self.updateOrigin()
         self.setReadOnly(readOnly)
 
     def setTransient(self,state):
