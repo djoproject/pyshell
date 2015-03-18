@@ -129,6 +129,43 @@
     #####################
     ### parameter     ###
     #####################
+        SUMMARY
+            On file loading (TODO in parameter addon)(step 3)
+                if file is empty, do nothing
+                save file name, file hash and count the number of parameter loaded from file, then load
+                if an other file was previously loaded, remove the informations of previous file and leave them empty
+                    if already empty, do nothing, just load
+                
+            In parameter (TODO in parameter system)(step 1)
+                store origin (loader + name OR File + name OR Procedure + None)
+                store parameter hash at its creation
+                NEVER update origin OR hash (except in loader)
+                
+            On loader loading (TODO in parameter loader)(step 2)
+                if parameter does not exist, create it and register the loader in dependancies list
+                if parameter exists AND recreation disabled, just add the loader in the list dependancies
+                if parameter exists AND recreation enabled, create a new parameter with a new origin and hash BUT keep the dependancies list
+            
+            On loader unloading (TODO in parameter loader)(step 2)
+                if parameter does not exist, do nothing
+                if parameter still exist and not empty dependancies list, just remove the current loader from list
+                if parameter still exist and empty dependancies list (only store the current loader), if parameter origin is loader and hash is equal, remove it
+                if parameter still exist and empty dependancies list (only store the current loader), if parameter origin is loader and hash is NOT equal, only remove current loader from list dependancies and do nothing else
+                
+            On file saving (TODO in parameter system)(step 3)   
+                retrieve non transient Global parameter
+                remove parameter from loader with equal hash as origin
+                count parameter from file with equal hash as origin
+                count from procedure or with not equal hash as origin
+                              
+                case to save
+                    if information about origin file are empty
+                    if new destination file OR destination file does not exist OR file hash is not equal
+                    if at least one parameter with not equal hash or from procedure
+                    
+                case to not save
+                    still same output file, with same hash, with same amount of parameter from file with equal hash
+    
                         
         About history (after brainstorming, it is not really an history, it is value origin)
             WHY?
@@ -272,9 +309,8 @@
                         PRBLM 1: if the object is updated BUT because of the loading of an addon
                             the parameter does not need to be saved but the hash will be different
 
-                            TODO
-
-
+                            SOLUTION 1 : if a loader recreate a parameter, overwrite the origin and the hash in parameter
+                            
 #################### SYSTEM ##################################################################################################
 
     #####################
@@ -283,6 +319,8 @@
     
        find a way to hard kill a thread
             be carefull, ressource have to be released
+            
+        PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters
                
 
 #################### UTILS ###################################################################################################
