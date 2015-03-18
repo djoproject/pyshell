@@ -47,7 +47,7 @@ class LocalContextSettings(LocalSettings):
     def isTransientIndex(self):
         return True
 
-class GlobalContextSettings(GlobalSettings, LocalContextSettings): #inheritance in this order will ignore setTransientIndex and isTransientIndex from LocalContextParameterSettings and use those from GlobalParameterSettings
+class GlobalContextSettings(GlobalSettings):
     def __init__(self, readOnly = False, removable = True, transient = False, originProvider = None, transientIndex = False):
         GlobalSettings.__init__(self,False,removable,transient,originProvider)
         self.setTransientIndex(transientIndex)
@@ -249,10 +249,11 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
     def enableGlobal(self):
         if isinstance(self.settings, GlobalContextSettings):
             return
-        
-        readOnly = self.settings.isReadOnly()
-        removable = self.settings.isRemovable()
-        self.settings.__class__ = GlobalContextSettings
-        GlobalContextSettings.__init__(self.settings, readOnly=readOnly, removable=removable)
-        self.settings.setRemovable(removable)
-        self.settings.setReadOnly(readOnly)
+
+        self.settings = GlobalContextSettings(readOnly=self.settings.isReadOnly(), removable=self.settings.isRemovable())
+
+    def enableLocal(self):
+        if isinstance(self.settings, LocalContextSettings):
+            return
+
+        self.settings = LocalContextSettings(readOnly=self.settings.isReadOnly(), removable=self.settings.isRemovable())

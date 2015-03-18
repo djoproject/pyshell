@@ -38,9 +38,8 @@ class VariableLocalSettings(LocalSettings):
     def isRemovable(self):
         return True
         
-class VariableGlobalSettings(GlobalSettings, VariableLocalSettings):
+class VariableGlobalSettings(GlobalSettings):
     def __init__(self, transient = False):
-        VariableLocalSettings.__init__(self)
         GlobalSettings.__init__(self,readOnly = False, removable = True, transient = transient, originProvider = None)
         
     def setOriginProvider(self, provider):
@@ -110,5 +109,10 @@ class VarParameter(EnvironmentParameter):
         if isinstance(self.settings, VariableGlobalSettings):
             return
     
-        self.settings.__class__ = VariableGlobalSettings
-        VariableGlobalSettings.__init__(self.settings)
+        self.settings = VariableGlobalSettings()
+
+    def enableLocal(self):
+        if isinstance(self.settings, VariableLocalSettings):
+            return
+    
+        self.settings = VariableLocalSettings()

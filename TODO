@@ -226,6 +226,55 @@
                         create a hidden method getOriginParameter that will be used by parameterManager
                             this method also need to be called in parameter during setValue or setProperties or related function
 
+                PRBLM 5: if a loader just update a properties, the object origin will be flagged "from loader"
+                    But maybe the value or another properties of this object was set from a procedure and has to be saved on file...
+
+                    SOLUTION 1: each properties/value has an origin, not only the full object
+                        --- aouch, increase memory usage, should be possible to find a smarter solution
+
+                    SOLUTION 2: 
+                         reduce origin seed: system/loader are the same kind, keep file and procedure
+                         if a parameter is flagged system/loader, just store the flag
+                         if a parameter is flagged procedure/file, keep a list of flagged properties name
+                            until at least one item is flaggeg procedure/file, the whole parameters is flagged like that
+
+                        procedure > file > loader
+
+                            even if everything is flagged file except one thing that is flagged procedure
+                            the parameter remains flagged procedure
+
+                        if every properties are flagged procedure or file, keep an empty list of properties name
+
+                        What about two files origin ?
+
+                        --- could still use a lot of memory even if it is in a smarter way
+
+                    SOLUTION 3: keep a variable with the origin of the creator of the param
+                        at exit, the creator of the parameter will check if the parameter created has changed, if yes, the parameter is flagged as "TO SAVE"
+
+                        have to unload parameter in the opposite order as the loading
+
+                        PRBLM 1: if the loader responsible for a parameter is already unloaded before the unloading process ?
+                        PRBLM 2: what about files? the original copy of the parameter is stored on disk, maybe a change occured on the file
+                                 between loading and unloading
+
+                    SOLUTION 4: keep the creator origin and the hash of the parameter at its creation XXX
+                        if system/loader origin and no diff of the hash, don't save
+                        if file origin and no diff of the hash, candidate to be saved
+                        if process and no diff of the hash, to absolutely save
+
+                        if diff on the hash, absolutely save
+
+                        +++ no extra data in memory
+                        +++ simple process at exit, just recompute the hash and compare
+                        +++ easy to implement
+
+                        PRBLM 1: if the object is updated BUT because of the loading of an addon
+                            the parameter does not need to be saved but the hash will be different
+
+                            TODO
+
+
 #################### SYSTEM ##################################################################################################
 
     #####################

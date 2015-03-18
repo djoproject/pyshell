@@ -157,12 +157,13 @@ class EnvironmentParameter(Parameter):
         if isinstance(self.settings, GlobalSettings):
             return
         
-        readOnly = self.settings.isReadOnly()
-        removable = self.settings.isRemovable()
-        self.settings.__class__ = GlobalSettings
-        GlobalSettings.__init__(self.settings)
-        self.settings.setRemovable(removable)
-        self.settings.setReadOnly(readOnly)
+        self.settings = GlobalSettings(readonly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
+
+    def enableLocal(self):
+        if isinstance(self.settings, LocalSettings):
+            return
+
+        self.settings = LocalSettings(readonly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

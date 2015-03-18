@@ -16,12 +16,6 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #what about globalSettings if we try to add in local
-        #forbidde that, because it will enable a Lock for this local parameter
-        
-        #not possible to create a method like enableLocal ?
-
 ## internal modules ##
 from pyshell.utils.exception  import ParameterException
 from pyshell.utils.flushable  import Flushable
@@ -143,6 +137,7 @@ class ParameterManager(Flushable):
 
                     self.threadLocalVar[key].add( '.'.join(str(x) for x in advancedResult.getFoundCompletePath()) )
 
+                param.enableLocal()
                 local_var[key] = param
             else:
                 if global_var is not None:
@@ -165,6 +160,7 @@ class ParameterManager(Flushable):
                 global_var     = None
                 key            = self.parentContainer.getCurrentId()
                 local_var[key] = param
+                param.enableLocal()
             else:
                 global_var = param
                 param.enableGlobal()
@@ -352,6 +348,9 @@ class Parameter(Valuable): #abstract
         return str(self.getValue())
 
     def enableGlobal(self):
+        pass
+
+    def enableLocal(self):
         pass
 
     def getProperties(self):
