@@ -46,7 +46,7 @@ AVAILABLE_TYPE = {"any"     :defaultInstanceArgChecker.getArgCheckerInstance,
                   "float"   :defaultInstanceArgChecker.getFloatTokenArgCheckerInstance,
                   "filePath":defaultInstanceArgChecker.getFileChecker}
                   
-ENVIRONMENT_SET_PROPERTIES = {"readonly":("setReadOnly",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
+ENVIRONMENT_SET_PROPERTIES = {"readOnly":("setReadOnly",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
                               "removable":("setRemovable",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
                               "transient":("setTransient",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),)}
                           
@@ -55,7 +55,7 @@ CONTEXT_SET_PROPERTIES = {"index_transient":("setTransientIndex",defaultInstance
                           "index":("setIndex",defaultInstanceArgChecker.getIntegerArgCheckerInstance(),)}
 CONTEXT_SET_PROPERTIES.update(ENVIRONMENT_SET_PROPERTIES)
 
-ENVIRONMENT_GET_PROPERTIES = {"readonly":"isReadOnly",
+ENVIRONMENT_GET_PROPERTIES = {"readOnly":"isReadOnly",
                               "removable":"isRemovable",
                               "transient":"isTransient"}
                           
@@ -220,7 +220,7 @@ def saveParameter(filePath, parameters):
             dico = container.buildDictionnary("", localParam = False, exploreOtherLevel=False)
 
             for key, parameter in dico.items():
-                if parameter.isTransient():
+                if parameter.settings.isTransient():
                     continue
 
                 if parameter.isAListType():

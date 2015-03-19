@@ -57,7 +57,15 @@ class EnvironmentParameter(Parameter):
         return LocalSettings()
 
     def __init__(self, value, typ=None, settings=None):
-        self.settings = self.getInitSettings()
+        if settings is not None:
+            if not isinstance(settings, LocalSettings):
+                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
+
+            self.settings = settings
+            readOnly = self.settings.isReadOnly()
+        else:
+            self.settings = self.getInitSettings()
+            readOnly = False
 
         Parameter.__init__(self)
         if typ is None:
@@ -71,12 +79,7 @@ class EnvironmentParameter(Parameter):
         
         self.lock     = None
         self.lockID   = -1
-
-        if settings is not None:
-            if not isinstance(settings, LocalSettings):
-                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
-
-            self.settings = settings
+        self.settings.setReadOnly(readOnly)
 
     def _initLock(self):
         if not self.isLockEnable():
@@ -120,7 +123,6 @@ class EnvironmentParameter(Parameter):
     
         #append values
         self.value.extend(values)
-        self.settings.updateOrigin()
     
     def removeValues(self, values):
         #must be "not readonly"
@@ -140,7 +142,6 @@ class EnvironmentParameter(Parameter):
             if v in self.value:
                 self.value.remove(v)
                 
-        self.settings.updateOrigin()
 
     def getValue(self):
         return self.value
@@ -148,7 +149,6 @@ class EnvironmentParameter(Parameter):
     def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__,"setValue")
         self.value = self.typ.getValue(value)
-        self.settings.updateOrigin()
 
     def getProperties(self):
         return self.settings.getProperties()
@@ -170,3 +170,6 @@ class EnvironmentParameter(Parameter):
 
     def __str__(self):
         return str(self.value)
+        
+    def __hash__(self):
+        return hash( str(Parameter.__hash__(self)) + str(hash(self.settings)))

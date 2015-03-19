@@ -42,23 +42,20 @@ class Settings(object):
     def isRemovable(self):
         return True
 
-    def setOriginProvider(self, provider):
-        pass
-
-    def updateOrigin(self):
-        pass
-
     def addLoader(self, loaderSignature):
         pass
 
-    def mergeLoaderSet(self, parameter):
+    def mergeFromPreviousSettings(self, parameter):
         pass
         
     def getLoaderSet(self):
         return None
 
     def getProperties(self):
-        return ( ("removable", self.isRemovable(), ), ("readonly", self.isReadOnly(), ), ) 
+        return ( ("removable", self.isRemovable(), ), ("readOnly", self.isReadOnly(), ), ("transient", self.isTransient(), ) ) 
+        
+    def __hash__(self):
+        return hash(self.getProperties())
 
 class LocalSettings(Settings):
     def __init__(self, readOnly = False, removable = True):
@@ -71,7 +68,6 @@ class LocalSettings(Settings):
             raise ParameterException("(LocalSettings) setReadOnly, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.readOnly = state
-        self.updateOrigin()
 
     def isReadOnly(self):
         return self.readOnly
@@ -97,20 +93,19 @@ class LocalSettings(Settings):
             raise ParameterException("(LocalSettings) setRemovable, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.removable = state
-        self.updateOrigin()
 
     def isRemovable(self):
         return self.removable
 
 class GlobalSettings(LocalSettings):
-    def __init__(self, readOnly = False, removable = True, transient = False, originProvider = None):
-        self.setOriginProvider(originProvider)
-        
+    def __init__(self, readOnly = False, removable = True, transient = False):
         LocalSettings.__init__(self, False, removable)
         
         self.setTransient(transient)
-        self.loaderSet = None
-        self.updateOrigin()
+        self.loaderSet    = None
+        self.origin       = None
+        self.originArg    = None
+        self.startingHash = None
         self.setReadOnly(readOnly)
 
     def setTransient(self,state):
@@ -118,23 +113,13 @@ class GlobalSettings(LocalSettings):
             raise ParameterException("(GlobalSettings) setTransient, expected a bool type as state, got '"+str(type(state))+"'")
             
         self.transient = state
-        self.updateOrigin()
 
     def isTransient(self):
         return self.transient
-
-    def setOriginProvider(self, provider):
-        if provider is not None and not isinstance(provider, AbstractParameterContainer):
-            raise ParameterException("(GlobalSettings) setOriginProvider, an AbstractParameterContainer object was expected, got '"+str(type(provider))+"'") 
-        
-        self.originProvider = provider
-        
-    def updateOrigin(self):    
-        if self.originProvider == None:
-            self.origin = ORIGIN_PROCESS
-            self.originArg = None
-        else:
-            self.origin, self.originArg = self.originProvider.getOrigin()
+                    
+    def _setOrigin(self, origin, originArg = None):
+        self.origin    = origin
+        self.originArg = originArg
 
     def addLoader(self, loaderSignature):
         if self.loaderSet is None:
@@ -144,14 +129,31 @@ class GlobalSettings(LocalSettings):
         
     def getLoaderSet(self):
         return self.loaderSet
-        
-    def mergeLoaderSet(self, settings):
+    
+    def mergeFromPreviousSettings(self, GlobalSettings):
         if not isinstance(settings, Settings):
-            raise ParameterException("(GlobalSettings) mergeLoaderSet, a Settings object was expected, got '"+str(type(settings))+"'") 
+            raise ParameterException("(GlobalSettings) mergeFromPreviousSettings, a GlobalSettings object was expected, got '"+str(type(settings))+"'") 
         
+        #manage loader
         otherLoaders = settings.getLoaderSet()
         if self.loaderSet is None:
             if otherLoaders is not None:
                 self.loaderSet = set(otherLoaders)
         elif otherLoaders is not None:
             self.loaderSet = self.loaderSet.union(otherLoaders)
+    
+        #manage origin
+        self.origin       = settings.origin
+        self.originArg    = settings.originArg
+        self.startingHash = settings.startingHash
+        
+    def setStartingPoint(self, hashi):
+        if self.startingHash is not None:
+            raise ParameterException("(GlobalSettings) setStartingPoint, a starting point was already defined for this parameter") 
+            
+        self.startingHash = hashi
+        
+    def isEqualToStartingHash(self, hashi):
+        return hashi == self.startingHash
+        
+                

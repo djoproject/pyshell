@@ -19,46 +19,44 @@
 from pyshell.arg.argchecker     import listArgChecker, defaultInstanceArgChecker
 from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
 from pyshell.system.parameter   import ParameterManager
-from pyshell.system.settings    import LocalSettings, GlobalSettings
+from pyshell.system.settings    import LocalSettings, GlobalSettings, Settings
 
 class VariableParameterManager(ParameterManager):
     def getAllowedType(self):
         return VarParameter
 
-class VariableLocalSettings(LocalSettings):
+class VariableSettings(Settings):
+    def isReadOnly(self):
+        return False
+
+    def isRemovable(self):
+        return True
+
+class VariableLocalSettings(LocalSettings, VariableSettings):
+    isReadOnly = VariableSettings.isReadOnly
+    isRemovable = VariableSettings.isRemovable
+
     def __init__(self):
         pass
 
     def isTransient(self):
         return False
-
-    def isReadOnly(self):
-        return False
-
-    def isRemovable(self):
-        return True
         
-class VariableGlobalSettings(GlobalSettings):
+    def getProperties(self):
+        return ()
+        
+class VariableGlobalSettings(GlobalSettings, VariableSettings):
+    isReadOnly = VariableSettings.isReadOnly
+    isRemovable = VariableSettings.isRemovable
+
     def __init__(self, transient = False):
-        GlobalSettings.__init__(self,readOnly = False, removable = True, transient = transient, originProvider = None)
+        GlobalSettings.__init__(self,readOnly = False, removable = True, transient = transient)
         
-    def setOriginProvider(self, provider):
-        pass
-        
-    def updateOrigin(self):    
-        pass
-
     def addLoader(self, loaderSignature):
         pass
                 
-    def mergeLoaderSet(self, settings):
-        pass
-
-    def isReadOnly(self):
-        return False
-
-    def isRemovable(self):
-        return True
+    def getProperties(self):
+        return ()
 
 class VarParameter(EnvironmentParameter):
     @staticmethod

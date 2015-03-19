@@ -99,21 +99,21 @@ class ExecutingTest(unittest.TestCase):
         self.params.registerParameterManager("context", ContextParameterManager(self.params))
         self.params.registerParameterManager("variable", VariableParameterManager(self.params))
 
-        self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), defaultIndex = 0, index=0)
+        self.debugContext = ContextParameter(value=tuple(range(0,91)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance())
         self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME, self.debugContext, localParam = False)
         self.debugContext.settings.setTransient(False)
         self.debugContext.settings.setTransientIndex(False)
         self.debugContext.settings.setRemovable(False)
         self.debugContext.settings.setReadOnly(True)
         
-        self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0)
+        self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance())
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY, self.shellContext, localParam = False)
         self.shellContext.settings.setTransient(True)
         self.shellContext.settings.setTransientIndex(True)
         self.shellContext.settings.setRemovable(False)
         self.shellContext.settings.setReadOnly(True)
         
-        self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0)
+        self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance())
         self.params.context.setParameter(CONTEXT_COLORATION_KEY, self.backgroundContext, localParam = False)
         self.backgroundContext.settings.setTransient(False)
         self.backgroundContext.settings.setTransientIndex(False)
@@ -358,39 +358,39 @@ class ExecutingTest(unittest.TestCase):
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
 
     def test_generateSuffix1(self):#test with debug
-        self.debugContext.setIndexValue(1)
+        self.debugContext.settings.setIndexValue(1)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
-        self.debugContext.setIndexValue(0)
+        self.debugContext.settings.setIndexValue(0)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
         
     def test_generateSuffix2(self):#test outside shell context
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix3(self):#test with processName provided or not
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,None)," (threadId="+str(threading.current_thread().ident)+", level=0)")
         
     def test_generateSuffix5(self):#test without commandNameList
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"] )
         self.assertEqual(_generateSuffix(self.params,None,e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix6(self):#test with None engine
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix7(self):#test with empty engine
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
         del e.stack[:]
         self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
         
     def test_generateSuffix8(self):#test with valid engine and commandNameList
-        self.shellContext.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
         self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__', command='plop')")
 

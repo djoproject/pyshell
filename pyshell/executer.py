@@ -35,9 +35,9 @@ from pyshell.utils.parsing      import Parser
 from pyshell.utils.printing     import Printer, warning, error, printException
 from pyshell.utils.valuable     import SimpleValuable
 from pyshell.system.procedure   import ProcedureFromList, ProcedureFromFile
-from pyshell.system.parameter   import GlobalParameterSettings
+from pyshell.system.settings    import GlobalSettings
 from pyshell.system.environment import EnvironmentParameter,EnvironmentParameterManager
-from pyshell.system.context     import ContextParameter, ContextParameterManager, GlobalContextParameterSettings
+from pyshell.system.context     import ContextParameter, ContextParameterManager, GlobalContextSettings
 from pyshell.system.variable    import VarParameter,VariableParameterManager
 from pyshell.system.container   import ParameterContainer
 from pyshell.system.key         import CryptographicKeyParameterManager
@@ -89,19 +89,19 @@ class CommandExecuter():
         self.promptWaitingValuable = SimpleValuable(False)
 
         ## init original params ##
-        self.params.environment.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,    EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True), settings=GlobalParameterSettings(transient=True,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_PROMPT_KEY,            EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT, typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), settings=GlobalParameterSettings(transient=False,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,          EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),  settings=GlobalParameterSettings(transient=False,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=multiLevelTries(), typ=defaultInstanceArgChecker.getArgCheckerInstance(), settings=GlobalParameterSettings(transient=True,readOnly=True, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,         EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), settings=GlobalParameterSettings(transient=False,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY, EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True), settings=GlobalParameterSettings(transient=False,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_USE_HISTORY_KEY,       EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), settings=GlobalParameterSettings(transient=False,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,     EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT, typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()), settings=GlobalParameterSettings(transient=False,readOnly=False, removable=False)), localParam = False)
-        self.params.environment.setParameter(ADDONLIST_KEY,                     EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(),  settings=GlobalParameterSettings(transient = True, readOnly = True, removable = False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,    EnvironmentParameter(value=paramFile, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True), settings=GlobalSettings(transient=True,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_PROMPT_KEY,            EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT, typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), settings=GlobalSettings(transient=False,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,          EnvironmentParameter(value=TAB_SIZE, typ=IntegerArgChecker(0),  settings=GlobalSettings(transient=False,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=multiLevelTries(), typ=defaultInstanceArgChecker.getArgCheckerInstance(), settings=GlobalSettings(transient=True,readOnly=True, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,         EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), settings=GlobalSettings(transient=False,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY, EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE, typ=filePathArgChecker(exist=None, readable=True, writtable=None, isFile=True), settings=GlobalSettings(transient=False,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_USE_HISTORY_KEY,       EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE, typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(), settings=GlobalSettings(transient=False,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,     EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT, typ=listArgChecker(defaultInstanceArgChecker.getStringArgCheckerInstance()), settings=GlobalSettings(transient=False,readOnly=False, removable=False)), localParam = False)
+        self.params.environment.setParameter(ADDONLIST_KEY,                     EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance(),  settings=GlobalSettings(transient = True, readOnly = True, removable = False)), localParam = False)
         
-        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), defaultIndex = 0,index=1, settings=GlobalContextParameterSettings(removable=False, readOnly=True, transient = False, transientIndex = False)), localParam = False)
-        self.params.context.setParameter(CONTEXT_EXECUTION_KEY, ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0, settings=GlobalContextParameterSettings(removable=False, readOnly=True, transient = True, transientIndex = True)), localParam = False)
-        self.params.context.setParameter(CONTEXT_COLORATION_KEY,ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0, settings=GlobalContextParameterSettings(removable=False, readOnly=True, transient = False, transientIndex = False)), localParam = False)
+        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,ContextParameter(value=tuple(range(0,5)), typ=defaultInstanceArgChecker.getIntegerArgCheckerInstance(), defaultIndex = 0,index=1, settings=GlobalContextSettings(removable=False, readOnly=True, transient = False, transientIndex = False)), localParam = False)
+        self.params.context.setParameter(CONTEXT_EXECUTION_KEY, ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0, settings=GlobalContextSettings(removable=False, readOnly=True, transient = True, transientIndex = True)), localParam = False)
+        self.params.context.setParameter(CONTEXT_COLORATION_KEY,ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance(), defaultIndex = 0, settings=GlobalContextSettings(removable=False, readOnly=True, transient = False, transientIndex = False)), localParam = False)
     
         #mapped outside argument
         if outsideArgs is not None:
@@ -130,7 +130,7 @@ class CommandExecuter():
     def _initStartUpEvent(self):
         ## prepare atStartUp ##
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
-        _atstartup = ProcedureFromList(EVENT__ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        _atstartup = ProcedureFromList(EVENT__ON_STARTUP, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         _atstartup.setNeverStopProcedureIfErrorOccured()
         
         _atstartup.addCommand( "addon load pyshell.addons.parameter" )
@@ -139,21 +139,22 @@ class CommandExecuter():
         _atstartup.addCommand( "addon onstartup load" )                  #TODO don't load parameter if already loaded
         _atstartup.addCommand(EVENT_ON_STARTUP)
         
-        _atstartup.setReadOnly(True)
+        _atstartup.settings.setReadOnly(True)
         mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )
         #TODO _atstartup should be hidden in tries
         
-        atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, readonly = False, removable = False, transient = True)
+        atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         atstartup.setNeverStopProcedureIfErrorOccured()
         atstartup.addCommand( "history load" )
         #atstartup.addCommand( "key load" )
         mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
+        #TODO atstartup should be hidden in tries
 
     def _initExitEvent(self):
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
     
         ## prepare atExit ##
-        atExit = ProcedureFromList(EVENT_AT_EXIT, showInHelp = False, readonly = False, removable = False, transient = True)
+        atExit = ProcedureFromList(EVENT_AT_EXIT, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         atExit.setNeverStopProcedureIfErrorOccured()
         
         atExit.addCommand( "parameter save" ) #TODO need to have parameters addons parameter loaded before to save
@@ -161,9 +162,10 @@ class CommandExecuter():
         atExit.addCommand( "history save" )
         #atExit.addCommand( "key save" )
         
-        atExit.setReadOnly(True)
+        atExit.settings.setReadOnly(True)
         mltries.insert( (EVENT_AT_EXIT, ), atExit )
         atexit.register(self.AtExit)
+        #TODO atexit should be hidden in tries
         
     def AtExit(self):
         execute(EVENT_AT_EXIT,self.params, "__atexit__") #TODO provide args from outside

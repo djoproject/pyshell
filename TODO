@@ -320,8 +320,21 @@
        find a way to hard kill a thread
             be carefull, ressource have to be released
             
-        PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters
-               
+        PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters, en tout cas les ProcedureFromList
+            BRAINSTORMING: 
+                lors de la creation d'une procedure, faire le hash une fois que la creation de la procedure est terminée (l'ajout de toutes les commandes)
+                
+                idéalement les commandes ajoutées par les loaders ne devrait pas être prise en compte pour le hash 
+                et retirée au moment du calcul de hash de la sauvegarde (puisque ces commandes seront à nouveau ajoutée par le loader au prochain loading)
+                    SOL1: les flagger avec un booleen
+                    SOL2: garder une liste d'index les concernant
+                    SOL3: découper les procedures en deux parties USER/LOADER
+                        Et ne sauvegarder que la partie User s'il y en a une
+                        fixe le problème des saves, pas besoin d'unloader les loaders a la fermeture du programme
+                        
+                        PRBLM 1: si loop ou exception ou exit dans le user space
+                        PRBLM 2: implique encore d'ajouter une couche de gestion en +, l'ideal serait de gérer ça dans les class existante
+                        
 
 #################### UTILS ###################################################################################################
 

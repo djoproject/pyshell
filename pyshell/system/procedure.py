@@ -16,12 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO brainstorming about settings usage
-    #is it interresting to use updateOrigin ?
-        #not sure, because if the last to add something is a loader BUT there are custom command in alias
-        #the alias won't be saved
-        
-        #must be an origin on each command in alias...
+#TODO brainstorming about origin usage, see TODO file
 
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
 from pyshell.utils.executing   import execute
@@ -215,15 +210,12 @@ class Procedure(UniCommand):
         
         From.errorGranularity = self.errorGranularity
         From.executeOnPre     = self.executeOnPre
-        From.readonly         = self.readonly
-        From.removable        = self.removable
-        From.transient        = self.transient
         
         return UniCommand.clone(self,From)
             
 class ProcedureFromList(Procedure):
-    def __init__(self, name, showInHelp = True, readonly = False, removable = True, transient = False):
-        Procedure.__init__(self, name, showInHelp, readonly, removable, transient)
+    def __init__(self, name, showInHelp = True, settings = None):
+        Procedure.__init__(self, name, showInHelp, settings)
         
         #specific command system
         self.stringCmdList    = [] 
@@ -387,9 +379,11 @@ class ProcedureFromList(Procedure):
         return Procedure.clone(self,From)       
         
 class ProcedureFromFile(Procedure):
-    def __init__(self, filePath, showInHelp = True, readonly = False, removable = True, transient = False):
-        Procedure.__init__(self, "execute "+str(filePath), showInHelp, readonly, removable, transient )
+    def __init__(self, filePath, showInHelp = True, settings = None):
+        Procedure.__init__(self, "execute "+str(filePath), showInHelp, settings)
         self.filePath = filePath
+        
+        #TODO global settings not applyable here, this one is transient, readOnly and removable
     
     def execute(self, parameters):
         #make a copy of the current procedure

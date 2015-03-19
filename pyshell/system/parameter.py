@@ -129,7 +129,7 @@ class ParameterManager(Flushable):
                 key            = self.parentContainer.getCurrentId()
 
                 if key in local_var:
-                    if local_var[key].isReadOnly():
+                    if local_var[key].settings.isReadOnly():
                         raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
                 else:
                     if key not in self.threadLocalVar:
@@ -141,7 +141,7 @@ class ParameterManager(Flushable):
                 local_var[key] = param
             else:
                 if global_var is not None:
-                    if global_var.isReadOnly():
+                    if global_var.settings.isReadOnly():
                         raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
 
                     previous_setting = global_var.settings
@@ -149,10 +149,7 @@ class ParameterManager(Flushable):
                     previous_setting = None
 
                 param.enableGlobal()
-                param.settings.mergeLoaderSet(previous_setting)
-                param.settings.setOriginProvider(self.parentContainer)
-                param.settings.updateOrigin()
-
+                param.settings.mergeFromPreviousSettings(previous_setting)
                 self.mltries.update( stringPath.split("."), (param, local_var, ) )
         else:
             local_var = {}
@@ -164,8 +161,8 @@ class ParameterManager(Flushable):
             else:
                 global_var = param
                 param.enableGlobal()
-                param.settings.setOriginProvider(self.parentContainer)
-                param.settings.updateOrigin()
+                param.settings._setOrigin(*self.parentContainer.getOrigin())
+                param.settings.setStartingPoint( hash(param) )
 
             self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
         
@@ -242,7 +239,7 @@ class ParameterManager(Flushable):
                         continue
                     
                     if not force:
-                        if not local_var[key].isRemovable():
+                        if not local_var[key].settings.isRemovable():
                             raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
                     
                     if len(local_var) == 1 and global_var is None:
@@ -266,7 +263,7 @@ class ParameterManager(Flushable):
                         continue
 
                     if not force:
-                        if not global_var.isRemovable():
+                        if not global_var.settings.isRemovable():
                             raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
                     
                         loaderSet = global_var.settings.getLoaderSet()
@@ -355,4 +352,12 @@ class Parameter(Valuable): #abstract
 
     def getProperties(self):
         return ()
+        
+    def __hash__(self):
+        value = self.getValue()
+        if hasattr(value,"__iter__"):
+            return hash(tuple(value))
+        else:
+            return hash(value)
+    
             
