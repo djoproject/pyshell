@@ -16,6 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #deploy setOrigin
+    #remove origin system
+
 from pyshell.utils.constants import ORIGIN_PROCESS, AVAILABLE_ORIGIN
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.flushable import Flushable

@@ -20,7 +20,7 @@ import unittest
 from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager, _lockSorter, ParametersLocker
 from pyshell.utils.exception import ParameterException
 from pyshell.system.context  import ContextParameter
-from pyshell.system.settings import LocalSettings
+from pyshell.system.settings import LocalSettings, GlobalSettings
 from pyshell.arg.argchecker  import listArgChecker, ArgChecker, IntegerArgChecker
 from pyshell.arg.exception   import argException
 from threading import Lock
@@ -253,8 +253,96 @@ class EnvironmentTest(unittest.TestCase):
     def test_environmentMethod28(self): #str
         e = EnvironmentParameter("plop")
         self.assertEqual(str(e),"['plop']")
+
+    def test_environmentMethod29(self):#test enableGlobal
+        e = EnvironmentParameter("plop")
+
+        self.assertIsInstance(e.settings, LocalSettings)
+        e.enableGlobal()
+        self.assertIsInstance(e.settings, GlobalSettings)
+        s = e.settings
+        e.enableGlobal()
+        self.assertIs(e.settings, s)
+
+    def test_environmentMethod30(self):#test enableLocal
+        e = EnvironmentParameter("plop")
+
+        self.assertIsInstance(e.settings, LocalSettings)
+        s = e.settings
+        e.enableGlobal()
+        self.assertIsInstance(e.settings, GlobalSettings)
+        e.enableLocal()
+        self.assertIsInstance(e.settings, LocalSettings)
+        self.assertIsNot(e.settings, s)
+        s = e.settings
+        e.enableLocal()
+        self.assertIs(e.settings, s)
+
+    def test_environmentMethod31(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True, removable = True))
+        e.enableGlobal()
+        self.assertIsInstance(e.settings, GlobalSettings)
+        self.assertTrue(e.settings.isReadOnly())
+        self.assertTrue(e.settings.isRemovable())
+
+    def test_environmentMethod32(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        e.enableGlobal()
+        self.assertIsInstance(e.settings, GlobalSettings)
+        self.assertFalse(e.settings.isReadOnly())
+        self.assertFalse(e.settings.isRemovable())
+
+    def test_environmentMethod33(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True, removable = True))
+        e.enableGlobal()
+        self.assertIsInstance(e.settings, GlobalSettings)
+        e.enableLocal()
+        self.assertIsInstance(e.settings, LocalSettings)
         
-    #TODO test hash, enableGlobal, enableLocal
+        self.assertTrue(e.settings.isReadOnly())
+        self.assertTrue(e.settings.isRemovable())
+
+    def test_environmentMethod34(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        e.enableGlobal()
+        self.assertIsInstance(e.settings, GlobalSettings)
+        e.enableLocal()
+        self.assertIsInstance(e.settings, LocalSettings)
+
+        self.assertFalse(e.settings.isReadOnly())
+        self.assertFalse(e.settings.isRemovable())  
+    
+    def test_environmentMethod35(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        h1 = hash(e)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        h2 = hash(e)
+
+        self.assertEqual(h1,h2)
+
+    def test_environmentMethod36(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        h1 = hash(e)
+        e = EnvironmentParameter("plip", settings=LocalSettings(readOnly = False, removable = False))
+        h2 = hash(e)
+
+        self.assertNotEqual(h1,h2)
+
+    def test_environmentMethod37(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        h1 = hash(e)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True, removable = False))
+        h2 = hash(e)
+
+        self.assertNotEqual(h1,h2)
+
+    def test_environmentMethod38(self):
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = False))
+        h1 = hash(e)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False, removable = True))
+        h2 = hash(e)
+
+        self.assertNotEqual(h1,h2)
         
 if __name__ == '__main__':
     unittest.main()

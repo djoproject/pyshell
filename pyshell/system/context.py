@@ -253,23 +253,31 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         if isinstance(self.settings, GlobalContextSettings):
             return
         
-        index = self.settings.getDefaultIndex()
-        defaultIndex = self.settings.getIndex()
-        self.settings = GlobalContextSettings(readOnly=self.settings.isReadOnly(), removable=self.settings.isRemovable())
+        defaultIndex = self.settings.getDefaultIndex()
+        index = self.settings.getIndex()
+        readOnly = self.settings.isReadOnly()
+        self.settings = GlobalContextSettings(readOnly=False, removable=self.settings.isRemovable())
         self.settings.context = self
         self.settings.tryToSetDefaultIndex(defaultIndex)
         self.settings.tryToSetIndex(index)
+
+        if readOnly:
+            self.settings.setReadOnly(True)
 
     def enableLocal(self):
         if isinstance(self.settings, LocalContextSettings):
             return
 
-        index = self.settings.getDefaultIndex()
-        defaultIndex = self.settings.getIndex()
-        self.settings = LocalContextSettings(readOnly=self.settings.isReadOnly(), removable=self.settings.isRemovable())
+        defaultIndex = self.settings.getDefaultIndex()
+        index = self.settings.getIndex()
+        readOnly = self.settings.isReadOnly()
+        self.settings = LocalContextSettings(readOnly=False, removable=self.settings.isRemovable())
         self.settings.context = self
         self.settings.tryToSetDefaultIndex(defaultIndex)
         self.settings.tryToSetIndex(index)
+
+        if readOnly:
+            self.settings.setReadOnly(True)
         
                 
     
