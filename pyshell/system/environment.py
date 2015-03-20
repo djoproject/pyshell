@@ -62,10 +62,11 @@ class EnvironmentParameter(Parameter):
                 raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
 
             self.settings = settings
-            readOnly = self.settings.isReadOnly()
         else:
             self.settings = self.getInitSettings()
-            readOnly = False
+            
+        readOnly = self.settings.isReadOnly()
+        self.settings.setReadOnly(False)
 
         Parameter.__init__(self)
         if typ is None:
@@ -141,7 +142,6 @@ class EnvironmentParameter(Parameter):
         for v in values:
             if v in self.value:
                 self.value.remove(v)
-                
 
     def getValue(self):
         return self.value
@@ -149,9 +149,6 @@ class EnvironmentParameter(Parameter):
     def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__,"setValue")
         self.value = self.typ.getValue(value)
-
-    def getProperties(self):
-        return self.settings.getProperties()
 
     def enableGlobal(self):
         if isinstance(self.settings, GlobalSettings):

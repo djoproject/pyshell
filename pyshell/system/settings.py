@@ -120,6 +120,9 @@ class GlobalSettings(LocalSettings):
     def _setOrigin(self, origin, originArg = None):
         self.origin    = origin
         self.originArg = originArg
+        
+    def _getOrigin(self):
+        return self.origin, self.originArg
 
     def addLoader(self, loaderSignature):
         if self.loaderSet is None:
@@ -130,8 +133,8 @@ class GlobalSettings(LocalSettings):
     def getLoaderSet(self):
         return self.loaderSet
     
-    def mergeFromPreviousSettings(self, GlobalSettings):
-        if not isinstance(settings, Settings):
+    def mergeFromPreviousSettings(self, settings):
+        if not isinstance(settings, GlobalSettings):
             raise ParameterException("(GlobalSettings) mergeFromPreviousSettings, a GlobalSettings object was expected, got '"+str(type(settings))+"'") 
         
         #manage loader

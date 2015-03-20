@@ -349,9 +349,6 @@ class Parameter(Valuable): #abstract
 
     def enableLocal(self):
         pass
-
-    def getProperties(self):
-        return ()
         
     def __hash__(self):
         value = self.getValue()

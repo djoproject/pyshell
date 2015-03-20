@@ -16,22 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO test
-    #some of the method internally execute updateOrigin
-        #check the method that use it
-            #addValues (if not readonly and success)
-            #removeValues (if not readonly and success)
-            #setValue (if not readonly and success)
-            #setReadOnly (if success)
-            #setRemovable (if not readonly and success)
-        #and check the method that does not use it
-            #others methods
-
 import unittest
 from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager, _lockSorter, ParametersLocker
 from pyshell.utils.exception import ParameterException
-from pyshell.system.context import ContextParameter
-from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker
+from pyshell.system.context  import ContextParameter
+from pyshell.system.settings import LocalSettings
+from pyshell.arg.argchecker  import listArgChecker, ArgChecker, IntegerArgChecker
 from pyshell.arg.exception   import argException
 from threading import Lock
 from thread import LockType
@@ -87,22 +77,22 @@ class EnvironmentTest(unittest.TestCase):
     ## parameter constructor ##
     
     def test_environmentConstructor1(self): #test removable boolean
-        e = EnvironmentParameter("plop", removable = True)
-        self.assertTrue(e.isRemovable())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+        e = EnvironmentParameter("plop", settings=LocalSettings(removable = True))
+        self.assertTrue(e.settings.isRemovable())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",False), ('transient', True)) )
         
-        e = EnvironmentParameter("plop", removable = False)
-        self.assertFalse(e.isRemovable())
-        self.assertEqual(e.getProperties(), (("removable", False),("readonly",False),) )
+        e = EnvironmentParameter("plop", settings=LocalSettings(removable = False))
+        self.assertFalse(e.settings.isRemovable())
+        self.assertEqual(e.settings.getProperties(), (("removable", False),("readOnly",False), ('transient', True)) )
         
     def test_environmentConstructor2(self): #test readonly boolean
-        e = EnvironmentParameter("plop", readonly = True)
-        self.assertTrue(e.isReadOnly())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",True),) )
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True))
+        self.assertTrue(e.settings.isReadOnly())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",True), ('transient', True)) )
         
-        e = EnvironmentParameter("plop", readonly = False)
-        self.assertFalse(e.isReadOnly())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False))
+        self.assertFalse(e.settings.isReadOnly())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",False), ('transient', True)) )
         
     def test_environmentConstructor3(self): #test typ None
         e = EnvironmentParameter("plop")
@@ -133,20 +123,20 @@ class EnvironmentTest(unittest.TestCase):
     ## parameter method ##
             
     def test_environmentMethod2(self): #_raiseIfReadOnly with not readonly
-        e = EnvironmentParameter("plop", readonly = False)
-        self.assertEqual(e._raiseIfReadOnly(),None)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = False))
+        self.assertEqual(e.settings._raiseIfReadOnly(),None)
         
     def test_environmentMethod3(self): #_raiseIfReadOnly with readonly and method name
-        e = EnvironmentParameter("plop", readonly = True)
-        self.assertRaises(ParameterException,e._raiseIfReadOnly,"meth")
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True))
+        self.assertRaises(ParameterException,e.settings._raiseIfReadOnly,"meth")
         
     def test_environmentMethod4(self): #_raiseIfReadOnly with readonly and no method name
-        e = EnvironmentParameter("plop", readonly = True)
-        self.assertRaises(ParameterException,e._raiseIfReadOnly)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True))
+        self.assertRaises(ParameterException,e.settings._raiseIfReadOnly)
         
     def test_environmentMethod5(self): #getLock with lock disabled
         e = EnvironmentParameter("plop")
-        e.enableGlobal()
+        e.enableLocal()
         self.assertEqual(e.getLock(),None)
         self.assertEqual(e.getLockID(),-1)
         self.assertFalse(e.isLockEnable())
@@ -159,7 +149,7 @@ class EnvironmentTest(unittest.TestCase):
         self.assertTrue(e.isLockEnable())
         
     def test_environmentMethod10(self): #addValues readonly
-        e = EnvironmentParameter("plop", readonly=True)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly=True))
         self.assertRaises(ParameterException, e.addValues, ("aa", "bb", "cc",))
         
     def test_environmentMethod11(self): #addValues with non list typ
@@ -181,7 +171,7 @@ class EnvironmentTest(unittest.TestCase):
         self.assertEqual(e.getValue(), ["plop", "aa", "bb", "cc"])
         
     def test_environmentMethod14(self): #removeValues readonly
-        e = EnvironmentParameter("plop", readonly=True)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly=True))
         self.assertRaises(ParameterException, e.removeValues,"plop" )
         
     def test_environmentMethod15(self): #removeValues with non list typ
@@ -220,41 +210,41 @@ class EnvironmentTest(unittest.TestCase):
                 
     def test_environmentMethod22(self): #setReadOnly with not valid bool
         e = EnvironmentParameter("plop")
-        self.assertRaises(ParameterException, e.setReadOnly, object())
+        self.assertRaises(ParameterException, e.settings.setReadOnly, object())
         
     def test_environmentMethod23(self): #setReadOnly with valid bool + getProp
         e = EnvironmentParameter("plop")
-        self.assertFalse(e.isReadOnly())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+        self.assertFalse(e.settings.isReadOnly())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",False), ('transient', True)) )
 
-        e.setReadOnly(True)
-        self.assertTrue(e.isReadOnly())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",True),) )
+        e.settings.setReadOnly(True)
+        self.assertTrue(e.settings.isReadOnly())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",True), ('transient', True)) )
 
-        e.setReadOnly(False)
-        self.assertFalse(e.isReadOnly())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+        e.settings.setReadOnly(False)
+        self.assertFalse(e.settings.isReadOnly())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",False), ('transient', True)) )
         
     def test_environmentMethod24(self): #setRemovable readonly
-        e = EnvironmentParameter("plop", readonly = True)
-        self.assertRaises(ParameterException, e.setRemovable, True)
+        e = EnvironmentParameter("plop", settings=LocalSettings(readOnly = True))
+        self.assertRaises(ParameterException, e.settings.setRemovable, True)
         
     def test_environmentMethod25(self): #setRemovable with not valid bool
         e = EnvironmentParameter("plop")
-        self.assertRaises(ParameterException, e.setRemovable, object())
+        self.assertRaises(ParameterException, e.settings.setRemovable, object())
         
     def test_environmentMethod26(self): #setRemovable with valid bool + getProp
         e = EnvironmentParameter("plop")
-        self.assertTrue(e.isRemovable())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+        self.assertTrue(e.settings.isRemovable())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",False), ('transient', True)) )
 
-        e.setRemovable(False)
-        self.assertFalse(e.isRemovable())
-        self.assertEqual(e.getProperties(), (("removable", False),("readonly",False),) )
+        e.settings.setRemovable(False)
+        self.assertFalse(e.settings.isRemovable())
+        self.assertEqual(e.settings.getProperties(), (("removable", False),("readOnly",False), ('transient', True)) )
 
-        e.setRemovable(True)
-        self.assertTrue(e.isRemovable())
-        self.assertEqual(e.getProperties(), (("removable", True),("readonly",False),) )
+        e.settings.setRemovable(True)
+        self.assertTrue(e.settings.isRemovable())
+        self.assertEqual(e.settings.getProperties(), (("removable", True),("readOnly",False), ('transient', True)) )
         
     def test_environmentMethod27(self): #repr
         e = EnvironmentParameter("plop")
@@ -263,6 +253,8 @@ class EnvironmentTest(unittest.TestCase):
     def test_environmentMethod28(self): #str
         e = EnvironmentParameter("plop")
         self.assertEqual(str(e),"['plop']")
+        
+    #TODO test hash, enableGlobal, enableLocal
         
 if __name__ == '__main__':
     unittest.main()

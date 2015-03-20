@@ -50,7 +50,7 @@ ENVIRONMENT_SET_PROPERTIES = {"readOnly":("setReadOnly",defaultInstanceArgChecke
                               "removable":("setRemovable",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
                               "transient":("setTransient",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),)}
                           
-CONTEXT_SET_PROPERTIES = {"index_transient":("setTransientIndex",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
+CONTEXT_SET_PROPERTIES = {"transientIndex":("setTransientIndex",defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),),
                           "defaultIndex":("setDefaultIndex",defaultInstanceArgChecker.getIntegerArgCheckerInstance(),),
                           "index":("setIndex",defaultInstanceArgChecker.getIntegerArgCheckerInstance(),)}
 CONTEXT_SET_PROPERTIES.update(ENVIRONMENT_SET_PROPERTIES)
@@ -59,7 +59,7 @@ ENVIRONMENT_GET_PROPERTIES = {"readOnly":"isReadOnly",
                               "removable":"isRemovable",
                               "transient":"isTransient"}
                           
-CONTEXT_GET_PROPERTIES = {"index_transient":"isTransientIndex",
+CONTEXT_GET_PROPERTIES = {"transientIndex":"isTransientIndex",
                           "defaultIndex":"getDefaultIndex",
                           "index":"getIndex"}
 CONTEXT_GET_PROPERTIES.update(ENVIRONMENT_GET_PROPERTIES)
@@ -104,7 +104,7 @@ def getProperties(key, propertyName, parameters, attributeType, startWithLocal =
         
 def listProperties(key, parameters, attributeType, startWithLocal = True, exploreOtherLevel=True, perfectMatch = False):
     param = getParameter(key, parameters, attributeType, startWithLocal, exploreOtherLevel, perfectMatch)
-    prop  = list(param.getProperties())
+    prop  = list(param.settings.getProperties())
     prop.insert(0, (formatBolt("Key"), formatBolt("Value")) )
     return prop
     
@@ -228,11 +228,11 @@ def saveParameter(filePath, parameters):
                 else:
                     configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+escapeString(str(parameter.getValue()))+" -isList false -noCreationIfExist true -localVar false\n" )
                 
-                properties = parameter.getProperties()
+                properties = parameter.settings.getProperties()
                 
                 if len(properties) > 0:
                     #disable readOnly 
-                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly false\n" )
+                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readOnly false\n" )
 
                     #set value
                     if parameter.isAListType():
@@ -241,13 +241,15 @@ def saveParameter(filePath, parameters):
                         configfile.write( subcontainername+" set "+".".join(key)+" "+str(parameter.getValue())+"\n" )
 
                     readOnlyValue = False
-                    for propName,propValue in parameter.getProperties():
+                    for propName,propValue in parameter.settings.getProperties():
+                        #TODO skip transient properties, no need to be saved...
+                    
                         if propName.lower() == "readonly":#readonly should always be written on last
                             readOnlyValue = propValue
                             continue
                     
                         configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
-                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readonly "+str(readOnlyValue)+"\n" )
+                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readOnly "+str(readOnlyValue)+"\n" ) #TODO don't disable again if already disabled
                 configfile.write("\n")
         
 def _createValuesFun(valueType, key, values, classDef, attributeType, noCreationIfExist, parameters, listEnabled, localParam = True): 
@@ -442,7 +444,7 @@ def addContextValuesFun(key, values, parameters, startWithLocal = True, exploreO
              exploreOtherLevel = booleanValueArgChecker())
 def selectValue(key, value, parameter, startWithLocal = True, exploreOtherLevel=True):
     "select the value for the current context"
-    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).setIndexValue(value)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).settings.setIndexValue(value)
     
 @shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              index             = defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
@@ -451,7 +453,7 @@ def selectValue(key, value, parameter, startWithLocal = True, exploreOtherLevel=
              exploreOtherLevel = booleanValueArgChecker())
 def selectValueIndex(key, index, parameter, startWithLocal = True, exploreOtherLevel=True):
     "select the value index for the current context"
-    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).setIndex(index)
+    getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).settings.setIndex(index)
 
 @shellMethod(key               = defaultInstanceArgChecker.getStringArgCheckerInstance(),
              parameter         = defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
@@ -467,10 +469,10 @@ def getSelectedContextValue(key, parameter, startWithLocal = True, exploreOtherL
              exploreOtherLevel = booleanValueArgChecker())
 def getSelectedContextIndex(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     "get the selected value index for the current context"
-    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).getIndex()
+    return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).settings.getIndex()
 
 def _conRowFormating(key, conItem, valueFormatingFun):
-    return (".".join(key), str(conItem.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
+    return (".".join(key), str(conItem.settings.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
 
 def _conGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("Index"), titleFormatingFun("Value"), titleFormatingFun("Values"), )

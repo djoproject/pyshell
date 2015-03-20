@@ -16,9 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO test
-    #create tests for updateOrigin
-    #create tests for loader list
+#TODO update
+    # method setParameter has been updated, need to adapt test
+    # class Parameter has been updated, need to adapt test
 
 import unittest
 from pyshell.system.parameter import Parameter

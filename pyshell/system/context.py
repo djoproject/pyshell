@@ -132,9 +132,10 @@ class ContextSettings(Settings):
     def getProperties(self):
         prop = list(Settings.getProperties(self))
         prop.append( ("transientIndex", self.isTransientIndex()) )
+        prop.append( ("defaultIndex", self.getDefaultIndex()) )
         
         if not self.isTransientIndex():
-            prop.append( ("index", self.isTransientIndex()) )
+            prop.append( ("index", self.getIndex()) )
             
         return tuple(prop)
 
@@ -152,7 +153,9 @@ class GlobalContextSettings(GlobalSettings, ContextSettings):
         ContextSettings.__init__(self)
         GlobalSettings.__init__(self,False,removable,transient)
         self.setTransientIndex(transientIndex)
-        self.setReadOnly(readOnly)
+        
+        if readOnly:
+            self.setReadOnly(True)
 
     def setTransientIndex(self,state):
         self._raiseIfReadOnly(self.__class__.__name__,"setTransientIndex")

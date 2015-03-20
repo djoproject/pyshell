@@ -37,9 +37,9 @@ class VariableTest(unittest.TestCase):
     def test_localSettings1(self):
         vls = VariableLocalSettings()
         
-        self.assertFalse(vls.isTransient())
+        self.assertTrue(vls.isTransient())
         vls.setTransient(True)
-        self.assertFalse(vls.isTransient())
+        self.assertTrue(vls.isTransient())
         
     def test_localSettings2(self):
         vls = VariableLocalSettings()
@@ -54,6 +54,10 @@ class VariableTest(unittest.TestCase):
         self.assertTrue(vls.isRemovable())
         vls.setRemovable(False)
         self.assertTrue(vls.isRemovable())
+        
+    def test_localSettings4(self):
+        vls = VariableLocalSettings()
+        self.assertEqual(len(vls.getProperties()), 0)
 
     ##
 
@@ -64,33 +68,75 @@ class VariableTest(unittest.TestCase):
         vls.setTransient(True)
         self.assertTrue(vls.isTransient())
         
-    def test_globalSettings1b(self):
+    def test_globalSettings2(self):
         vls = VariableGlobalSettings(transient = True)
         
         self.assertTrue(vls.isTransient())
         vls.setTransient(False)
         self.assertFalse(vls.isTransient())
         
-    def test_globalSettings2(self):
+    def test_globalSettings3(self):
+        vls = VariableGlobalSettings(transient = False)
+        
+        self.assertFalse(vls.isTransient())
+        vls.setTransient(True)
+        self.assertTrue(vls.isTransient())
+        
+    def test_globalSettings4(self):
         vls = VariableGlobalSettings()
         
         self.assertFalse(vls.isReadOnly())
         vls.setReadOnly(True)
         self.assertFalse(vls.isReadOnly())
 
-    def test_globalSettings3(self):
+    def test_globalSettings5(self):
         vls = VariableGlobalSettings()
         
         self.assertTrue(vls.isRemovable())
         vls.setRemovable(False)
         self.assertTrue(vls.isRemovable())
         
-    def test_globalSettings4(self):
+    def test_globalSettings6(self):
         vls = VariableGlobalSettings()
         vls.addLoader("plop")
         self.assertEqual(vls.getLoaderSet(), None)
         
-    #TODO mergeLoaderSet, updateOrigin, setOriginProvider
+    def test_globalSettings7(self):
+        vls = VariableGlobalSettings()
+        self.assertEqual(len(vls.getProperties()), 0)
+    
+    def test_globalSettings8(self):
+        vls = VariableGlobalSettings()
+        self.assertEqual(vls._getOrigin(), (None, None,) )
+        vls._setOrigin("titi","toto")
+        self.assertEqual(vls._getOrigin(), ("titi","toto",) )
+    
+    def test_globalSettings9(self): 
+        vls = VariableGlobalSettings()
+        self.assertEqual(vls.getLoaderSet(), None)
+        vls.addLoader("plop")
+        self.assertEqual(vls.getLoaderSet(), None)
+        
+    def test_globalSettings10(self):
+        vls = VariableGlobalSettings()
+        vls.addLoader("ahah")
+        vls._setOrigin("titi","toto")
+        
+        vls2 = VariableGlobalSettings()
+        vls2.mergeFromPreviousSettings(vls)
+        
+        self.assertEqual(vls2.getLoaderSet(), None)
+        self.assertEqual(vls2._getOrigin(), ("titi","toto",) )
+    
+    def test_globalSettings11(self):
+        vls = VariableGlobalSettings()
+        vls.setStartingPoint(hash(self))
+        self.assertTrue(vls.isEqualToStartingHash(hash(self)))
+        
+    def test_globalSettings12(self):
+        vls = VariableGlobalSettings()
+        vls.setStartingPoint(hash(self))
+        self.assertRaises(ParameterException, vls.setStartingPoint, hash(self))
     
     ## manager ##
     
@@ -114,7 +160,7 @@ class VariableTest(unittest.TestCase):
 
     def test_noProperties(self):
         v = VarParameter("plop")
-        self.assertEqual(len(v.getProperties()),0)
+        self.assertEqual(len(v.settings.getProperties()),0)
 
     ## parsing ##
 
@@ -154,9 +200,48 @@ class VariableTest(unittest.TestCase):
         v = VarParameter( [ [Anything("pl op"),Anything("p li pi")],[Anything("pla pa")]])
         self.assertEqual(v.getValue(),["pl","op", "p", "li", "pi","pla","pa"])
         
-    ##TODO __str__ __repr__ ##
+    ## __str__ __repr__ ##
     
-    ##TODO enableGlobal ##
+    def test_varStr1(self): 
+        v = VarParameter("plop plip plap")
+        self.assertEqual(str(v), "plop plip plap")
+        
+    def test_varStr2(self): 
+        v = VarParameter("")
+        self.assertEqual(str(v), "")
+        
+    def test_varRepr1(self): 
+        v = VarParameter("plop plip plap")
+        self.assertEqual(repr(v), "Variable, value: ['plop', 'plip', 'plap']")
+        
+    def test_varRepr2(self): 
+        v = VarParameter("")
+        self.assertEqual(repr(v), "Variable (empty)")
+    
+    ## enableGlobal, enableLocal ##
+    
+    def test_enableGlobal(self):
+        v = VarParameter("plop plip plap")
+        self.assertIsInstance(v.settings, VariableLocalSettings)
+        v.enableGlobal()
+        self.assertIsInstance(v.settings, VariableGlobalSettings)
+        s = v.settings
+        v.enableGlobal()
+        self.assertIs(v.settings, s)
+        
+    def test_enableLocal(self):
+        v = VarParameter("plop plip plap")
+        self.assertIsInstance(v.settings, VariableLocalSettings)
+        s = v.settings
+        v.enableGlobal()
+        self.assertIsInstance(v.settings, VariableGlobalSettings)
+        v.enableLocal()
+        self.assertIsInstance(v.settings, VariableLocalSettings)
+        self.assertIsNot(v.settings, s)
+        s = v.settings
+        v.enableLocal()
+        self.assertIs(v.settings, s)
+        
         
 if __name__ == '__main__':
     unittest.main()

@@ -20,43 +20,34 @@ from pyshell.arg.argchecker     import listArgChecker, defaultInstanceArgChecker
 from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
 from pyshell.system.parameter   import ParameterManager
 from pyshell.system.settings    import LocalSettings, GlobalSettings, Settings
+from pyshell.utils.constants    import EMPTY_STRING
 
 class VariableParameterManager(ParameterManager):
     def getAllowedType(self):
         return VarParameter
 
 class VariableSettings(Settings):
-    def isReadOnly(self):
-        return False
-
-    def isRemovable(self):
-        return True
+    def getProperties(self):
+        return ()
 
 class VariableLocalSettings(LocalSettings, VariableSettings):
-    isReadOnly = VariableSettings.isReadOnly
-    isRemovable = VariableSettings.isRemovable
+    isReadOnly = Settings.isReadOnly
+    isRemovable = Settings.isRemovable
+    getProperties = VariableSettings.getProperties
 
     def __init__(self):
         pass
-
-    def isTransient(self):
-        return False
-        
-    def getProperties(self):
-        return ()
         
 class VariableGlobalSettings(GlobalSettings, VariableSettings):
-    isReadOnly = VariableSettings.isReadOnly
-    isRemovable = VariableSettings.isRemovable
+    isReadOnly = Settings.isReadOnly
+    isRemovable = Settings.isRemovable
+    getProperties = VariableSettings.getProperties
 
     def __init__(self, transient = False):
         GlobalSettings.__init__(self,readOnly = False, removable = True, transient = transient)
         
     def addLoader(self, loaderSignature):
         pass
-                
-    def getProperties(self):
-        return ()
 
 class VarParameter(EnvironmentParameter):
     @staticmethod
@@ -90,19 +81,24 @@ class VarParameter(EnvironmentParameter):
         EnvironmentParameter.__init__(self,parsed_value, typ=DEFAULT_CHECKER)    
     
     def __str__(self):
+        if len(self.value) == 0:
+            return EMPTY_STRING
+    
         to_ret = ""
         
         for v in self.value:
             to_ret += str(v)+" "
             
+        to_ret = to_ret[:-1]
+            
         return to_ret
     
     def __repr__(self):
-        return "Variable, value:"+str(self.value)
-        
-    def getProperties(self):
-        return ()
-        
+        if len(self.value) == 0:
+            return "Variable (empty)"
+    
+        return "Variable, value: "+str(self.value)
+                
     def enableGlobal(self):
         if isinstance(self.settings, VariableGlobalSettings):
             return

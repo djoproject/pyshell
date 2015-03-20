@@ -390,7 +390,7 @@ class ProcedureFromFile(Procedure):
         engine = None
         
         #for cmd in self.stringCmdList:
-        index = 0
+        index = 1
         with open(self.filePath) as f:
             for line in f:
                 lastException, engine = self._innerExecute(line, self.name + " (line: "+str(index)+")", parameters) 

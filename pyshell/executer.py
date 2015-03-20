@@ -180,7 +180,7 @@ class CommandExecuter():
 
         readline.set_completer(self.complete)
         
-        self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
         
         #mainloop
         while True:
@@ -317,7 +317,7 @@ class CommandExecuter():
             printException(pex, msg_prefix)
 
     def executeFile(self,filename, granularity = None):            
-        self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.params.context.getParameter(CONTEXT_EXECUTION_KEY, perfectMatch=True).settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         afile = ProcedureFromFile(filename)
         afile.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(granularity)
         

@@ -27,6 +27,6 @@ class CryptographicKeyParameterManager(ParameterManager):
         return CryptographicKeyParameter
 
 class CryptographicKeyParameter(EnvironmentParameter):
-    def __init__(self, value, transient = False, readonly = False, removable = True):
-        EnvironmentParameter.__init__(self,value,defaultInstanceArgChecker.getKeyChecker(),transient, readonly, removable)
+    def __init__(self, value, settings=None):
+        EnvironmentParameter.__init__(self,value,defaultInstanceArgChecker.getKeyChecker(),settings=settings)
 

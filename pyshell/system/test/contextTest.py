@@ -15,27 +15,9 @@
 
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#TODO test
-    #some of the method internally execute updateOrigin
-        #check the method that use it
-            #setIndex (if not transient index AND success)
-            #tryToSetIndex (if not transient index AND success or not)
-            #setIndexValue (if not transient index AND success)
-            #setTransientIndex (if success)
-            #setDefaultIndex (if success)
-            #tryToSetDefaultIndex (always)
-            #reset (if not transient index)
-            #removeValue/addValue/setValue (if success) (will be tested in env test)
-        #and check the method that does not use it
-            #setIndex (if transient index)
-            #tryToSetIndex (if transient index)
-            #setIndexValue (if transient index)
-            #setTransientIndex (if invalid bool)
-            #reset (if transient index)
         
 import unittest
-from pyshell.system.context import ContextParameter, ContextParameterManager, _convertToSetList
+from pyshell.system.context import ContextParameter, ContextParameterManager, _convertToSetList, LocalContextSettings, GlobalContextSettings
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.arg.argchecker import listArgChecker, ArgChecker, IntegerArgChecker,environmentParameterChecker, stringArgChecker
 from pyshell.utils.exception import ParameterException
@@ -70,6 +52,160 @@ class ContextTest(unittest.TestCase):
         manager = ContextParameterManager()
         self.assertRaises(ParameterException,manager.setParameter, "test.var", EnvironmentParameter("0x1122ff"))
 
+    ## ContextSettings and LocalContextSettings ##
+    
+    #TODO LocalContextSettings.__init__ 
+        #test each properties, True or False
+    
+    def test_localSettings2(self):#setIndex with correct value
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,index=1  )
+        self.assertEqual(c.getSelectedValue(),1)
+        c.settings.setIndex(2)
+        self.assertEqual(c.getSelectedValue(),2)
+
+    def test_localSettings3(self):#setIndex with incorrect value
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,index=1  )
+        self.assertEqual(c.getSelectedValue(),1)
+        self.assertRaises(ParameterException,c.settings.setIndex,23)
+
+    def test_localSettings4(self):#setIndex with invalid value
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,index=1  )
+        self.assertEqual(c.getSelectedValue(),1)
+        self.assertRaises(ParameterException,c.settings.setIndex,"plop")
+
+    def test_localSettings5(self):#setIndex with valid value and readonly
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(), settings=LocalContextSettings(readOnly=True))
+        self.assertRaises(ParameterException, )
+
+    def test_localSettings6(self):#tryToSetIndex with correct value
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2 )
+        self.assertEqual(c.getSelectedValue(),0)
+        c.settings.tryToSetIndex(3)
+        self.assertEqual(c.getSelectedValue(),3)
+
+    def test_localSettings7(self):#tryToSetIndex with incorrect value
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2 )
+        self.assertEqual(c.getSelectedValue(),0)
+        c.settings.tryToSetIndex(23)
+        self.assertEqual(c.getSelectedValue(),0)
+
+    def test_localSettings8(self):#tryToSetIndex with invalid value
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2 )
+        self.assertEqual(c.getSelectedValue(),0)
+        c.settings.tryToSetIndex("plop")
+        self.assertEqual(c.getSelectedValue(),0)
+
+    def test_localSettings9(self):#tryToSetIndex with incorrect value and default value recomputing
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2, index=1 )
+        self.assertEqual(c.getSelectedValue(),1)
+        c.defaultIndex = 45
+        c.settings.tryToSetIndex(80)
+        self.assertEqual(c.getSelectedValue(),1)
+
+    def test_localSettings10(self):#tryToSetIndex with valid value and readonly
+        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2, settings=LocalContextSettings(readOnly=True ))
+        self.assertEqual(c.getSelectedValue(),0)
+        c.settings.tryToSetIndex(3)
+        self.assertEqual(c.getSelectedValue(),3)
+        
+    #TODO tryToSetIndex, create a test to set defaultIndex
+
+    def test_localSettings11(self):#setIndexValue with a valid value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
+        self.assertEqual(c.getSelectedValue(),"aa")
+        c.settings.setIndexValue("cc")
+        self.assertEqual(c.getSelectedValue(),"cc")
+
+    def test_localSettings12(self):#setIndexValue with a valid value but inexisting
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
+        self.assertEqual(c.getSelectedValue(),"aa")
+        self.assertRaises(ParameterException,c.settings.setIndexValue, "ee")
+
+    def test_localSettings13(self):#setIndexValue with an invalid value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
+        self.assertEqual(c.getSelectedValue(),"aa")
+        self.assertRaises(ParameterException,c.settings.setIndexValue, object())
+
+    def test_localSettings14(self):#setIndexValue with valid value and readonly
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), settings=LocalContextSettings(readOnly=True ))
+        self.assertEqual(c.getSelectedValue(),"aa")
+        c.settings.setIndexValue("cc")
+        self.assertEqual(c.getSelectedValue(),"cc")
+
+    def test_localSettings15(self):#setDefaultIndex with correct value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        c.settings.setDefaultIndex(1)
+        self.assertEqual(c.settings.getDefaultIndex(), 1)
+
+    def test_localSettings16(self):#setDefaultIndex with incorrect value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
+        self.assertRaises(ParameterException,c.settings.setDefaultIndex, 23)
+
+    def test_localSettings17(self):#setDefaultIndex with invalid value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
+        self.assertRaises(ParameterException,c.settings.setDefaultIndex, "plop")
+
+    def test_localSettings18(self):#setDefaultIndex with valid value and readonly
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, settings=LocalContextSettings(readOnly=True))
+        self.assertRaises(ParameterException,c.settings.setDefaultIndex, 1)
+
+    def test_localSettings19(self):#tryToSetDefaultIndex with correct value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        c.settings.tryToSetDefaultIndex(1)
+        self.assertEqual(c.settings.getDefaultIndex(), 1)
+
+    def test_localSettings20(self):#tryToSetDefaultIndex with incorrect value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        c.settings.tryToSetDefaultIndex(100)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+
+    def test_localSettings21(self):#tryToSetDefaultIndex with invalid value
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        c.settings.tryToSetDefaultIndex("toto")
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+
+    def test_localSettings22(self):#tryToSetDefaultIndex with valid value and readonly
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, settings=LocalContextSettings(readOnly=True))
+        self.assertRaises(ParameterException,c.settings.tryToSetDefaultIndex, 1)
+        
+    #TODO tryToSetDefaultIndex, create a test to set defaultIndex to zero
+
+    def test_localSettings23(self):#test reset
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, index=1)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        self.assertEqual(c.settings.getIndex(), 1)
+        c.settings.reset()
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        self.assertEqual(c.settings.getIndex(), 2)
+        
+    def test_localSettings1(self):#test getProperties
+        c = ContextParameter( (0,1,2,3,) ,index=2, defaultIndex=3, settings=LocalContextSettings( removable=False, readOnly=True))
+        self.assertEqual(c.settings.getProperties(), (('removable', False), ('readOnly', True), ('transient', True), ('transientIndex', True), ('defaultIndex', 3)))
+    
+    ##TODO GlobalContextSettings ##
+        #__init__
+            #test each properties, False or True
+        #getProperties
+            #transient or not
+        
+    def test_globalSettings1(self):#test setTransientIndex in readonly mode
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), settings=GlobalContextSettings(readOnly=True ))
+        self.assertRaises(ParameterException,c.settings.setTransientIndex, True)
+
+    def test_globalSettings2(self):#test setTransientIndex with invalid bool
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() , settings=GlobalContextSettings())
+        self.assertRaises(ParameterException,c.settings.setTransientIndex, "plop")
+
+    def test_globalSettings3(self):#test setTransientIndex with valid bool
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), settings=GlobalContextSettings())
+        self.assertFalse(c.settings.isTransientIndex())
+        c.settings.setTransientIndex(True)
+        self.assertTrue(c.settings.isTransientIndex())
+
     ## parameter ##
 
     #on constructor
@@ -103,230 +239,94 @@ class ContextTest(unittest.TestCase):
 
     def test_contextConstructor5(self):#test valid index
         c = ContextParameter( (0,1,2,3,), index=1)
-        self.assertEqual(c.getIndex(),1)
+        self.assertEqual(c.settings.getIndex(),1)
 
     def test_contextConstructor6(self):#test invalid index
         c = ContextParameter( (0,1,2,3,), index=23)
-        self.assertEqual(c.getIndex(),0)
+        self.assertEqual(c.settings.getIndex(),0)
 
     def test_contextConstructor7(self):#test valid default index
         c = ContextParameter( (0,1,2,3,), defaultIndex=1)
-        self.assertEqual(c.getDefaultIndex(),1)
+        self.assertEqual(c.settings.getDefaultIndex(),1)
 
     def test_contextConstructor8(self):#test invalid default index
         c = ContextParameter( (0,1,2,3,), defaultIndex=42)
-        self.assertEqual(c.getDefaultIndex(),0)
+        self.assertEqual(c.settings.getDefaultIndex(),0)
 
     def test_contextConstructor9(self):#test both invalid index AND invalid default index
         c = ContextParameter( (0,1,2,3,), index=23, defaultIndex=42)
-        self.assertEqual(c.getDefaultIndex(),0)
-        self.assertEqual(c.getIndex(),0)
+        self.assertEqual(c.settings.getDefaultIndex(),0)
+        self.assertEqual(c.settings.getIndex(),0)
 
     def test_contextConstructor10(self):#test transientIndex
-        c = ContextParameter( (0,1,2,3,) ,index=2, transientIndex=False)
-        self.assertFalse(c.isTransientIndex())
-        self.assertEqual(c.getProperties(), (('defaultIndex', 0), ('removable', True), ('readonly', False), ('index', 2),))
+        c = ContextParameter( (0,1,2,3,) ,index=2, settings=GlobalContextSettings(transientIndex=False))
+        self.assertFalse(c.settings.isTransientIndex())
+        self.assertEqual(c.settings.getProperties(),(('removable', True), ('readOnly', False), ('transient', False), ('transientIndex', False), ('defaultIndex', 0), ('index', 2)))
         
-        c = ContextParameter( (0,1,2,3,) ,index=2, transientIndex=True)
-        self.assertTrue(c.isTransientIndex())
-        self.assertEqual(c.getProperties(), (('defaultIndex', 0), ('removable', True), ('readonly', False),))
+        c = ContextParameter( (0,1,2,3,) ,index=2, settings=GlobalContextSettings(transientIndex=True))
+        self.assertTrue(c.settings.isTransientIndex())
+        self.assertEqual(c.settings.getProperties(), (('removable', True), ('readOnly', False), ('transient', False), ('transientIndex', True), ('defaultIndex', 0)))
 
     #test method
-    def test_context1(self):#test getProperties
-        c = ContextParameter( (0,1,2,3,) ,index=2, defaultIndex=3, removable=False, readonly=True)
-        self.assertEqual(c.getProperties(), (('defaultIndex', 3), ('removable', False), ('readonly', True), ('index', 2),))
 
-    def test_context2(self):#setValue with valid value
+    def test_context1(self):#setValue with valid value
         c = ContextParameter( (0,), typ=IntegerArgChecker() )
         c.setValue((1,2,3,"4",))
         self.assertEqual(c.getValue(), [1,2,3,4,])
 
-    def test_context3(self):#setValue with invalid value
+    def test_context2(self):#setValue with invalid value
         c = ContextParameter( (0,), typ=IntegerArgChecker() )
         self.assertRaises(argException,c.setValue, (1,2,3,"plop",) )
 
-    def test_context4(self):#setIndex with correct value
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,index=1  )
-        self.assertEqual(c.getSelectedValue(),1)
-        c.setIndex(2)
-        self.assertEqual(c.getSelectedValue(),2)
-
-    def test_context5(self):#setIndex with incorrect value
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,index=1  )
-        self.assertEqual(c.getSelectedValue(),1)
-        self.assertRaises(ParameterException,c.setIndex,23)
-
-    def test_context6(self):#setIndex with invalid value
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,index=1  )
-        self.assertEqual(c.getSelectedValue(),1)
-        self.assertRaises(ParameterException,c.setIndex,"plop")
-
-    def test_context7(self):#setIndex with valid value and readonly
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),readonly=True  )
-        self.assertRaises(ParameterException, )
-
-    def test_context8(self):#tryToSetIndex with correct value
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2 )
-        self.assertEqual(c.getSelectedValue(),0)
-        c.tryToSetIndex(3)
-        self.assertEqual(c.getSelectedValue(),3)
-
-    def test_context9(self):#tryToSetIndex with incorrect value
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2 )
-        self.assertEqual(c.getSelectedValue(),0)
-        c.tryToSetIndex(23)
-        self.assertEqual(c.getSelectedValue(),2)
-
-    def test_context10(self):#tryToSetIndex with invalid value
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2 )
-        self.assertEqual(c.getSelectedValue(),0)
-        c.tryToSetIndex("plop")
-        self.assertEqual(c.getSelectedValue(),2)
-
-    def test_context11(self):#tryToSetIndex with incorrect value and default value recomputing
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2, index=1 )
-        self.assertEqual(c.getSelectedValue(),1)
-        c.defaultIndex = 45
-        c.tryToSetIndex(80)
-        self.assertEqual(c.getSelectedValue(),0)
-
-    def test_context12(self):#tryToSetIndex with valid value and readonly
-        c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker(),defaultIndex=2,readonly=True )
-        self.assertEqual(c.getSelectedValue(),0)
-        c.tryToSetIndex(3)
-        self.assertEqual(c.getSelectedValue(),3)
-
-    def test_context13(self):#setIndexValue with a valid value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
-        self.assertEqual(c.getSelectedValue(),"aa")
-        c.setIndexValue("cc")
-        self.assertEqual(c.getSelectedValue(),"cc")
-
-    def test_context14(self):#setIndexValue with a valid value but inexisting
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
-        self.assertEqual(c.getSelectedValue(),"aa")
-        self.assertRaises(ParameterException,c.setIndexValue, "ee")
-
-    def test_context15(self):#setIndexValue with an invalid value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
-        self.assertEqual(c.getSelectedValue(),"aa")
-        self.assertRaises(ParameterException,c.setIndexValue, object())
-
-    def test_context16(self):#setIndexValue with valid value and readonly
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(),readonly=True )
-        self.assertEqual(c.getSelectedValue(),"aa")
-        c.setIndexValue("cc")
-        self.assertEqual(c.getSelectedValue(),"cc")
-
-    def test_context17(self):#test setTransientIndex in readonly mode
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(),readonly=True )
-        self.assertRaises(ParameterException,c.setTransientIndex, True)
-
-    def test_context18(self):#test setTransientIndex with invalid bool
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker() )
-        self.assertRaises(ParameterException,c.setTransientIndex, "plop")
-
-    def test_context19(self):#test setTransientIndex with valid bool
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker())
-        self.assertFalse(c.isTransientIndex())
-        c.setTransientIndex(True)
-        self.assertTrue(c.isTransientIndex())
-
-    def test_context21(self):#setDefaultIndex with correct value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
-        self.assertEqual(c.getDefaultIndex(), 2)
-        c.setDefaultIndex(1)
-        self.assertEqual(c.getDefaultIndex(), 1)
-
-    def test_context22(self):#setDefaultIndex with incorrect value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
-        self.assertRaises(ParameterException,c.setDefaultIndex, 23)
-
-    def test_context23(self):#setDefaultIndex with invalid value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
-        self.assertRaises(ParameterException,c.setDefaultIndex, "plop")
-
-    def test_context24(self):#setDefaultIndex with valid value and readonly
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2,readonly=True)
-        self.assertRaises(ParameterException,c.setDefaultIndex, 1)
-
-    def test_context25(self):#tryToSetDefaultIndex with correct value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
-        self.assertEqual(c.getDefaultIndex(), 2)
-        c.tryToSetDefaultIndex(1)
-        self.assertEqual(c.getDefaultIndex(), 1)
-
-    def test_context26(self):#tryToSetDefaultIndex with incorrect value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
-        self.assertEqual(c.getDefaultIndex(), 2)
-        c.tryToSetDefaultIndex(100)
-        self.assertEqual(c.getDefaultIndex(), 0)
-
-    def test_context27(self):#tryToSetDefaultIndex with invalid value
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2)
-        self.assertEqual(c.getDefaultIndex(), 2)
-        c.tryToSetDefaultIndex("toto")
-        self.assertEqual(c.getDefaultIndex(), 0)
-
-    def test_context28(self):#tryToSetDefaultIndex with valid value and readonly
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2,readonly=True)
-        self.assertRaises(ParameterException,c.tryToSetDefaultIndex, 1)
-
-    def test_context29(self):#test reset
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, index=1)
-        self.assertEqual(c.getDefaultIndex(), 2)
-        self.assertEqual(c.getIndex(), 1)
-        c.reset()
-        self.assertEqual(c.getDefaultIndex(), 2)
-        self.assertEqual(c.getIndex(), 2)
-
-    def test_context30(self):#test addValues to add valid 
+    def test_context3(self):#test addValues to add valid 
         c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker())
         c.addValues( (4,5,6,) )
         self.assertEqual(c.getValue(), [0,1,2,3,4,5,6])
 
-    def test_context31(self):#test addValues to add invalid value
+    def test_context4(self):#test addValues to add invalid value
         c = ContextParameter( (0,1,2,3,), typ=IntegerArgChecker())
         self.assertRaises(argException, c.addValues, (4,5,"plop",) )
 
-    def test_context32(self):#removeValues, remove all value
+    def test_context5(self):#removeValues, remove all value
         c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker())
         self.assertRaises(ParameterException, c.removeValues, ("aa","bb","cc","dd",) )
 
-    def test_context33(self):#removeValues, remove unexisting value
+    def test_context6(self):#removeValues, remove unexisting value
         c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker())
         self.assertEqual(c.getValue(), ["aa","bb","cc","dd"])
         c.removeValues( ("aa","aa","ee","ff",) )
         self.assertEqual(c.getValue(), ["bb","cc","dd"])
     
-    def test_context34(self):#removeValues, try to remove with read only
-        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(),readonly=True)
+    def test_context7(self):#removeValues, try to remove with read only
+        c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), settings=LocalContextSettings(readOnly=True))
         self.assertEqual(c.getValue(), ["aa","bb","cc","dd"])
         self.assertRaises(ParameterException, c.removeValues, ("aa","aa","ee","ff",) )
         
-    def test_context35(self):#removeValues, success remove
+    def test_context8(self):#removeValues, success remove
         c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker())
         self.assertEqual(c.getValue(), ["aa","bb","cc","dd"])
         c.removeValues( ("aa",) )
         self.assertEqual(c.getValue(), ["bb","cc","dd"])
         
-    def test_context36(self):#removeValues, success remove with index computation
+    def test_context9(self):#removeValues, success remove with index computation
         c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, index=3)
         self.assertEqual(c.getValue(), ["aa","bb","cc","dd"])
-        self.assertEqual(c.getDefaultIndex(), 2)
-        self.assertEqual(c.getIndex(), 3)
+        self.assertEqual(c.settings.getDefaultIndex(), 2)
+        self.assertEqual(c.settings.getIndex(), 3)
         c.removeValues( ("cc","dd",) )
         self.assertEqual(c.getValue(), ["aa","bb"])
-        self.assertEqual(c.getDefaultIndex(), 0)
-        self.assertEqual(c.getIndex(), 0)
+        self.assertEqual(c.settings.getDefaultIndex(), 0)
+        self.assertEqual(c.settings.getIndex(), 0)
 
-    def test_context37(self):#test repr
+    def test_context10(self):#test repr
         c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, index=1)
         self.assertEqual(repr(c), "Context, available values: ['aa', 'bb', 'cc', 'dd'], selected index: 1, selected value: bb")
 
-    def test_context38(self):#test str
+    def test_context11(self):#test str
         c = ContextParameter( ("aa","bb","cc","dd",), typ=stringArgChecker(), defaultIndex=2, index=1)
         self.assertEqual(str(c), "bb")
+        
+    #TODO create test for enableGlobal and enableLocal
         
 if __name__ == '__main__':
     unittest.main()
