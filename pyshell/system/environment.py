@@ -20,7 +20,7 @@
 from pyshell.arg.argchecker   import ArgChecker, defaultInstanceArgChecker, listArgChecker
 from pyshell.utils.exception  import ParameterException
 from pyshell.system.parameter import Parameter,ParameterManager
-from pyshell.system.settings  import GlobalSettings, LocalSettings
+from pyshell.system.settings  import GlobalSettings
 
 ## external modules ##
 from threading import Lock
@@ -52,35 +52,18 @@ class EnvironmentParameter(Parameter):
     _internalLock = Lock()
     _internalLockCounter = 0
 
-    @staticmethod
-    def getInitSettings():
-        return LocalSettings()
-
     def __init__(self, value, typ=None, settings=None):
-        if settings is not None:
-            if not isinstance(settings, LocalSettings):
-                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
-
-            self.settings = settings
-        else:
-            self.settings = self.getInitSettings()
-            
-        readOnly = self.settings.isReadOnly()
-        self.settings.setReadOnly(False)
-
-        Parameter.__init__(self)
         if typ is None:
             typ = DEFAULT_CHECKER
         elif not isinstance(typ,ArgChecker):#typ must be argChecker
             raise ParameterException("(EnvironmentParameter) __init__, an ArgChecker instance was expected for argument typ, got '"+str(type(typ))+"'")
+        
+        self.typ = typ
+        Parameter.__init__(self, value, settings)
 
         self.isListType = isinstance(typ, listArgChecker)
-        self.typ = typ
-        self.setValue(value)
-        
         self.lock     = None
-        self.lockID   = -1
-        self.settings.setReadOnly(readOnly)
+        self.lockID   = -1        
 
     def _initLock(self):
         if not self.isLockEnable():
@@ -149,18 +132,6 @@ class EnvironmentParameter(Parameter):
     def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__,"setValue")
         self.value = self.typ.getValue(value)
-
-    def enableGlobal(self):
-        if isinstance(self.settings, GlobalSettings):
-            return
-        
-        self.settings = GlobalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
-
-    def enableLocal(self):
-        if isinstance(self.settings, LocalSettings):
-            return
-
-        self.settings = LocalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

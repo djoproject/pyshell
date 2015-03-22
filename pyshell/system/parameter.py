@@ -21,6 +21,7 @@ from pyshell.utils.exception  import ParameterException
 from pyshell.utils.flushable  import Flushable
 from pyshell.utils.valuable   import Valuable
 from pyshell.system.container import AbstractParameterContainer, DEFAULT_DUMMY_PARAMETER_CONTAINER
+from pyshell.system.settings  import LocalSettings, GlobalSettings
 
 ## external modules ##
 from functools import wraps
@@ -54,6 +55,11 @@ def isAValidStringPath(stringPath):
 
     return True, tuple(finalPath)
 
+def _buildExistingPathFromError(wrongPath, advancedResult):
+    pathToReturn = list(advancedResult.getFoundCompletePath())
+    pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount():])
+    return pathToReturn
+
 class ParameterManager(Flushable):                    
     def __init__(self, parent = None):
         self._internalLock  = Lock()
@@ -68,11 +74,6 @@ class ParameterManager(Flushable):
 
             self.parentContainer = parent
     
-    def _buildExistingPathFromError(self, wrongPath, advancedResult):
-        pathToReturn = list(advancedResult.getFoundCompletePath())
-        pathToReturn.extend(wrongPath[advancedResult.getTokenFoundCount():])
-        return pathToReturn
-
     def _getAdvanceResult(self, methName, stringPath, raiseIfNotFound = True, raiseIfAmbiguous = True, perfectMatch = False):
 
         #prepare and check path
@@ -91,13 +92,13 @@ class ParameterManager(Flushable):
             possiblePath = self.mltries.buildDictionnary(path[:indexOfAmbiguousKey], ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
             possibleValue = []
             for k,v in possiblePath.items():
-                possibleKey.append(k[indexOfPossibleValue])
+                possibleValue.append(k[indexOfAmbiguousKey])
             
-            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexOfAmbiguousKey])+"' is ambiguous for path '"+".".join(self._buildExistingPathFromError(path, advancedResult))+"', possible value are: '"+",".join(possibleValue)+"'")
+            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexOfAmbiguousKey])+"' is ambiguous for path '"+".".join(_buildExistingPathFromError(path, advancedResult))+"', possible value are: '"+",".join(possibleValue)+"'")
         
         if raiseIfNotFound and not advancedResult.isValueFound():
             indexNotFound = advancedResult.getTokenFoundCount()
-            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexNotFound])+"' is unknown for path '"+".".join(self._buildExistingPathFromError(path, advancedResult))+"'")
+            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexNotFound])+"' is unknown for path '"+".".join(_buildExistingPathFromError(path, advancedResult))+"'")
                         
         return advancedResult
     
@@ -329,14 +330,32 @@ class ParameterManager(Flushable):
         return to_ret
 
 class Parameter(Valuable): #abstract
-    def __init__(self, transient = False):
-        pass
+    @staticmethod
+    def getInitSettings():
+        return LocalSettings()
+
+    def __init__(self, value, settings=None):
+        if settings is not None:
+            if not isinstance(settings, LocalSettings):
+                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
+
+            self.settings = settings
+        else:
+            self.settings = self.getInitSettings()
+
+        readOnly = self.settings.isReadOnly()
+        self.settings.setReadOnly(False)
+
+        self.setValue(value)
+
+        if readOnly:
+            self.settings.setReadOnly(True)
 
     def getValue(self):
-        pass #TO OVERRIDE
+        return self.value
 
     def setValue(self,value):
-        pass #TO OVERRIDE
+        self.value = value
 
     def __str__(self):
         return str(self.getValue())
@@ -345,10 +364,16 @@ class Parameter(Valuable): #abstract
         return str(self.getValue())
 
     def enableGlobal(self):
-        pass
+        if isinstance(self.settings, GlobalSettings):
+            return
+        
+        self.settings = GlobalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
 
     def enableLocal(self):
-        pass
+        if isinstance(self.settings, LocalSettings):
+            return
+
+        self.settings = LocalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
         
     def __hash__(self):
         value = self.getValue()

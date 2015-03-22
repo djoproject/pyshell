@@ -134,6 +134,9 @@ class GlobalSettings(LocalSettings):
         return self.loaderSet
     
     def mergeFromPreviousSettings(self, settings):
+        if settings is None:
+            return
+
         if not isinstance(settings, GlobalSettings):
             raise ParameterException("(GlobalSettings) mergeFromPreviousSettings, a GlobalSettings object was expected, got '"+str(type(settings))+"'") 
         
