@@ -111,6 +111,7 @@ class ParameterTest(unittest.TestCase):
         advancedResult =  mltries.advancedSearch(path)
         self.assertEqual(_buildExistingPathFromError(path, advancedResult), ['plop', 'plip', 'plap'])
     
+    ##
     
     def test_ParameterManager4(self):#_getAdvanceResult, search a invalid path
         self.assertRaises(ParameterException, self.params._getAdvanceResult, "test",object())
@@ -148,6 +149,7 @@ class ParameterTest(unittest.TestCase):
         self.assertTrue(result.isValueFound())
         self.assertFalse(result.isAmbiguous())
     
+    ##
     
     def test_ParameterManager12(self):#test getAllowedType
         self.assertIs(self.params.getAllowedType(), Parameter)
@@ -166,18 +168,23 @@ class ParameterTest(unittest.TestCase):
     def test_ParameterManager16(self):#test extractParameter, with something else (to try to instanciate an allowed type)
         self.assertRaises(ParameterException, self.params.extractParameter, EnvironmentParameter("plop"))
     
+    ##
+    
     def test_ParameterManager17(self):#setParameter, local exists + local + existing is readonly
         param = self.params.setParameter("plop", Parameter("toto"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param.settings,LocalSettings)
         param.settings.setReadOnly(True)
         self.assertRaises(ParameterException, self.params.setParameter, "plop", Parameter("titi"), localParam=True)
 
     def test_ParameterManager18(self):#setParameter, local exists + local + existing is removable
         param1 = self.params.setParameter("plop", Parameter("toto"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param1.settings,LocalSettings)
         param1.settings.setRemovable(True)
 
         param2 = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param2.settings,LocalSettings)
         self.assertIsNot(param1, param2)
     
@@ -187,6 +194,7 @@ class ParameterTest(unittest.TestCase):
         param1.settings.setReadOnly(True)
 
         param2 = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param2.settings,LocalSettings)
         self.assertIsNot(param1, param2)
     
@@ -196,17 +204,20 @@ class ParameterTest(unittest.TestCase):
         param1.settings.setRemovable(True)
 
         param2 = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param2.settings,LocalSettings)
         self.assertIsNot(param1, param2)
     
     def test_ParameterManager21(self):#setParameter, nothing exists + local
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param.settings,LocalSettings)
         self.assertIs(self.params.getParameter("plop"), param)
     
     
     def test_ParameterManager22(self):#setParameter, local exists + global + existing is readonly
         param1 = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param1.settings,LocalSettings)
         param1.settings.setReadOnly(True)
 
@@ -217,6 +228,7 @@ class ParameterTest(unittest.TestCase):
     
     def test_ParameterManager23(self):#setParameter, local exists + global + existing is removable
         param1 = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        self.assertIn("plop",self.params.threadLocalVar[self.params.parentContainer.getCurrentId()])
         self.assertIsInstance(param1.settings,LocalSettings)
         param1.settings.setRemovable(True)
 
@@ -250,6 +262,7 @@ class ParameterTest(unittest.TestCase):
         self.assertIsInstance(param.settings,GlobalSettings)
         self.assertIs(self.params.getParameter("plop"), param)
     
+    ##
     
     def test_ParameterManager27(self):#getParameter, local exists + localParam=True + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
@@ -307,6 +320,7 @@ class ParameterTest(unittest.TestCase):
         pget  = self.params.getParameter("plop", localParam = False, exploreOtherLevel=False)
         self.assertIs(pget, None)
     
+    ##
     
     def test_ParameterManager39(self):#hasParameter, local exists + localParam=True + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
@@ -352,6 +366,7 @@ class ParameterTest(unittest.TestCase):
     def test_ParameterManager50(self):#hasParameter, nothing exists + localParam=False + exploreOtherLevel=False
         self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
     
+    ##
     
     #TODO unset
         #try to remove an existing global one, not removable with loader dependancies
@@ -363,55 +378,99 @@ class ParameterTest(unittest.TestCase):
 
     def test_ParameterManager51(self):#unsetParameter, local exists + localParam=True + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.params.unsetParameter("plop", localParam=True, exploreOtherLevel=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager52(self):#unsetParameter, local exists + localParam=True + exploreOtherLevel=False
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.params.unsetParameter("plop", localParam=True, exploreOtherLevel=False)
+        self.assertFalse(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager53(self):#unsetParameter, global exists + localParam=True + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.params.unsetParameter("plop", localParam=True, exploreOtherLevel=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
     
     def test_ParameterManager54(self):#unsetParameter, global exists + localParam=True + exploreOtherLevel=False
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=True, exploreOtherLevel=False)
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
     
     def test_ParameterManager55(self):#unsetParameter, local exists + localParam=False + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager56(self):#unsetParameter, local exists + localParam=False + exploreOtherLevel=False
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.assertRaises(ParameterException,self.params.unsetParameter, "plop", localParam=False, exploreOtherLevel=False)
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager57(self):#unsetParameter, global exists + localParam=False + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
     
     def test_ParameterManager58(self):#unsetParameter, global exists + localParam=False + exploreOtherLevel=False
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=False)
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
     
     def test_ParameterManager59(self):#unsetParameter, local + global exists + localParam=False + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=True)
+        
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager60(self):#unsetParameter, local + global exists + localParam=False + exploreOtherLevel=False
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=False)
+        
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager61(self):#unsetParameter, global + local exists + localParam=True + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        
+        self.params.unsetParameter("plop", localParam=True, exploreOtherLevel=True)
+        
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertFalse(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager62(self):#unsetParameter, global + local exists + localParam=True + exploreOtherLevel=False
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
-        pass #TODO
+        
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        
+        self.params.unsetParameter("plop", localParam=True, exploreOtherLevel=True)
+        
+        self.assertTrue(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+        self.assertFalse(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
     
     def test_ParameterManager63(self):#unsetParameter, nothing exists + localParam=True + exploreOtherLevel=True
         self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=True, exploreOtherLevel=True)
@@ -425,19 +484,75 @@ class ParameterTest(unittest.TestCase):
     def test_ParameterManager66(self):#unsetParameter, nothing exists + localParam=False + exploreOtherLevel=False
         self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=False, exploreOtherLevel=False)
     
+    ##
     
     def test_ParameterManager67(self):#flushVariableLevelForThisThread, nothing for the current thread
-        pass #TODO
+        params = ParameterManager()
+        params.setParameter("plop", Parameter("titi"), localParam=False)
+        self.assertNotIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
+        params.flush()
+        self.assertNotIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
     
     def test_ParameterManager68(self):#flushVariableLevelForThisThread, flush parameter that only exists for the current thread
-        pass #TODO
+        params = ParameterManager()
+        params.setParameter("plop", Parameter("titi"), localParam=True)
+        
+        self.assertTrue(params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.assertIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
+        
+        params.flush()
+        
+        self.assertFalse(params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.assertNotIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
     
     def test_ParameterManager69(self):#flushVariableLevelForThisThread, flush parameter that exist for the current thread and at global level
-        pass #TODO
+        params = ParameterManager()
+        params.setParameter("plap", Parameter("tata"), localParam=False)
+        params.setParameter("plop", Parameter("titi"), localParam=True)
+        
+        self.assertTrue(params.hasParameter("plap", localParam=False, exploreOtherLevel=False))
+        self.assertTrue(params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.assertIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
+        
+        params.flush()
+        
+        self.assertTrue(params.hasParameter("plap", localParam=False, exploreOtherLevel=False))
+        self.assertFalse(params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+        self.assertNotIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
     
     def test_ParameterManager70(self):#flushVariableLevelForThisThread, flush parameter that exist for the current thread and for others thread
-        pass #TODO
+        params = ParameterManager()
+        
+        #construct fake other var
+        params.setParameter("plop", Parameter("titi"), localParam=True)
+        (tid, empty,) = params.parentContainer.getCurrentId()
+        name_set = params.threadLocalVar[(tid, empty,)]
+        del params.threadLocalVar[(tid, empty,)]
+        params.threadLocalVar[(tid+1, empty,)] = name_set
+        
+        result = params.mltries.advancedSearch( ("plop",), True)
+        g,l = result.getValue()
+        param = l[(tid, empty,)]
+        del l[(tid, empty,)]
+        l[(tid+1, empty,)] = param
+        
+        params.setParameter("plip", Parameter("tutu"), localParam=True)
+        
+        self.assertTrue(params.hasParameter("plip", localParam=True, exploreOtherLevel=True))
+        self.assertFalse(params.hasParameter("plop", localParam=True, exploreOtherLevel=True))
+        self.assertIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
     
+        params.flush()
+        
+        self.assertFalse(params.hasParameter("plip", localParam=True, exploreOtherLevel=True))
+        self.assertFalse(params.hasParameter("plop", localParam=True, exploreOtherLevel=True))
+        self.assertNotIn(params.parentContainer.getCurrentId(), params.threadLocalVar)
+        
+        result = params.mltries.advancedSearch( ("plop",), True)
+        g,l = result.getValue()
+        self.assertIn( (tid+1, empty,), l)
+        
+    ##
     
     def test_ParameterManager71(self):#buildDictionnary, search with invalid string
         pass #TODO
@@ -478,43 +593,119 @@ class ParameterTest(unittest.TestCase):
     def test_ParameterManager83(self):#buildDictionnary, nothing exists + localParam=False + exploreOtherLevel=False
         pass #TODO
     
-    def test_ParameterManager84(self):#unsetParameter, local + global exists + localParam=False + exploreOtherLevel=True  (mixe several cases)
+    def test_ParameterManager84(self):#buildDictionnary, local + global exists + localParam=False + exploreOtherLevel=True  (mixe several cases)
         pass #TODO
     
-    def test_ParameterManager85(self):#unsetParameter, local + global exists + localParam=False + exploreOtherLevel=False (mixe several cases)
+    def test_ParameterManager85(self):#buildDictionnary, local + global exists + localParam=False + exploreOtherLevel=False (mixe several cases)
         pass #TODO
     
-    def test_ParameterManager86(self):#unsetParameter, global + local exists + localParam=True + exploreOtherLevel=True   (mixe several cases)
+    def test_ParameterManager86(self):#buildDictionnary, global + local exists + localParam=True + exploreOtherLevel=True   (mixe several cases)
         pass #TODO
     
-    def test_ParameterManager87(self):#unsetParameter, global + local exists + localParam=True + exploreOtherLevel=False  (mixe several cases)
+    def test_ParameterManager87(self):#buildDictionnary, global + local exists + localParam=True + exploreOtherLevel=False  (mixe several cases)
         pass #TODO
     
         
     ## parameters test ##
-    #TODO test constructor
 
-    def test_Parameter1(self):#test value/getvalue on constructor
-        pass #TODO
-    
-    def test_Parameter2(self):#test setValue/getValue
-        pass #TODO
+    def test_ParameterConstructor1(self):#test value/getvalue on constructor
+        self.assertRaises(ParameterException, Parameter, None, object())
         
-    def test_Parameter3(self):#test enableLocal (do nothing)
-        pass #TODO
+    def test_ParameterConstructor2(self):
+        p = Parameter(None)
+        self.assertIsInstance(p.settings, LocalSettings)
+        
+    def test_ParameterConstructor3(self):
+        ls = LocalSettings()
+        p = Parameter(None, settings=ls)
+        self.assertIs(p.settings, ls)
+        
+    def test_ParameterConstructor3(self):
+        ls = LocalSettings()
+        ls.setReadOnly(True)
+        o = object()
+        p = Parameter(o, settings=ls)
+        self.assertIs(p.getValue(), o)
+        self.assertRaises(ParameterException, p.setValue, "plop")
+    
+    def test_Parameter1(self):#test setValue/getValue
+        p = Parameter(None)
+        self.assertIs(p.getValue(), None)
+        p.setValue(42)
+        self.assertEqual(p.getValue(), 42)
+        
+    def test_Parameter2(self):#test enableLocal
+        p = Parameter(None)
+        sett = p.settings
+        self.assertIsInstance(sett, LocalSettings)
+        p.enableLocal()
+        self.assertIs(sett, p.settings)
 
-    def test_Parameter4(self):#test enableGlobal (do nothing)
-        pass #TODO
+    def test_Parameter3(self):#test enableGlobal
+        p = Parameter(None)
+        p.enableGlobal()
+        sett = p.settings
+        self.assertIsInstance(sett, GlobalSettings)
+        p.enableGlobal()
+        self.assertIs(sett, p.settings)
+        
+    def test_Parameter4(self):#test from local to global
+        p = Parameter(None)
+        p.settings.setRemovable(True)
+        p.settings.setReadOnly(True)
+        p.enableGlobal()
+        self.assertIsInstance(p.settings, GlobalSettings)
+        self.assertTrue(p.settings.isReadOnly())
+        self.assertTrue(p.settings.isRemovable())
+        
+    def test_Parameter5(self):#test from local to global
+        p = Parameter(None)
+        p.settings.setRemovable(False)
+        p.settings.setReadOnly(False)
+        p.enableGlobal()
+        self.assertIsInstance(p.settings, GlobalSettings)
+        self.assertFalse(p.settings.isReadOnly())
+        self.assertFalse(p.settings.isRemovable())
+        
+    def test_Parameter6(self):#test from global to local
+        p = Parameter(None)
+        p.enableGlobal()
+        self.assertIsInstance(p.settings, GlobalSettings)
+        p.settings.setRemovable(False)
+        p.settings.setReadOnly(False)
+        p.enableLocal()
+        self.assertIsInstance(p.settings, LocalSettings)
+        self.assertFalse(p.settings.isReadOnly())
+        self.assertFalse(p.settings.isRemovable())
+        
+    def test_Parameter7(self):#test from global to local
+        p = Parameter(None)
+        p.enableGlobal()
+        self.assertIsInstance(p.settings, GlobalSettings)
+        p.settings.setRemovable(True)
+        p.settings.setReadOnly(True)
+        p.enableLocal()
+        self.assertIsInstance(p.settings, LocalSettings)
+        self.assertTrue(p.settings.isReadOnly())
+        self.assertTrue(p.settings.isRemovable())
 
-    def test_Parameter5(self):#test str
-        pass #TODO
+    def test_Parameter8(self):#test str
+        p = Parameter(42)
+        self.assertEqual(str(p), "42")
     
-    def test_Parameter6(self):#test repr
-        pass #TODO
+    def test_Parameter9(self):#test repr
+        p = Parameter(42)
+        self.assertEqual(repr(p), "Parameter: 42")
     
-    def test_Parameter7(self):#test hash
-        pass #TODO
-    
+    def test_Parameter10(self):#test hash
+        p1 = Parameter(42)
+        p2 = Parameter(42)
+        self.assertEqual(hash(p1), hash(p2))
+        p3 = Parameter(43)
+        self.assertNotEqual(hash(p1), hash(p3))
+        p4 = Parameter(42)
+        p4.settings.setReadOnly(True)
+        self.assertNotEqual(hash(p1), hash(p4))
         
 if __name__ == '__main__':
     unittest.main()

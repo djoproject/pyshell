@@ -159,6 +159,12 @@ class ParameterManager(Flushable):
                 key            = self.parentContainer.getCurrentId()
                 local_var[key] = param
                 param.enableLocal()
+                
+                if key not in self.threadLocalVar:
+                    self.threadLocalVar[key] = set()
+
+                self.threadLocalVar[key].add( stringPath )
+                
             else:
                 global_var = param
                 param.enableGlobal()
@@ -225,7 +231,7 @@ class ParameterManager(Flushable):
     @synchronous()
     def unsetParameter(self, stringPath, localParam = True, exploreOtherLevel=True, force=False):
         advancedResult = self._getAdvanceResult("unsetParameter", stringPath, perfectMatch=True) #this call will raise if value not found or ambiguous
-        
+
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()
             for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
@@ -242,17 +248,18 @@ class ParameterManager(Flushable):
                     if not force:
                         if not local_var[key].settings.isRemovable():
                             raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
-                    
-                    if len(local_var) == 1 and global_var is None:
-                        self.mltries.remove( advancedResult.getFoundCompletePath() )
-                    else:
-                        del local_var[key]
 
                     #remove from thread local list
                     self.threadLocalVar[key].remove('.'.join(str(x) for x in advancedResult.getFoundCompletePath()))
                     if len(self.threadLocalVar[key]) == 0:
                         del self.threadLocalVar[key]
-                        
+                    
+                    #remove from mltries
+                    if len(local_var) == 1 and global_var is None:
+                        self.mltries.remove( advancedResult.getFoundCompletePath() )
+                    else:
+                        del local_var[key]
+
                     return
 
                 else:
@@ -273,6 +280,8 @@ class ParameterManager(Flushable):
 
                     if len(local_var) == 0:
                         self.mltries.remove( advancedResult.getFoundCompletePath() )
+                    else:
+                        self.mltries.update( advancedResult.getFoundCompletePath(), (None, local_var, ) )
                         
                     return
                         
@@ -288,7 +297,7 @@ class ParameterManager(Flushable):
                 del local_var_dic[key]
                     
                 if global_var_value is None and len(local_var_dic) == 0:
-                    mltries.remove( path ) #can not raise, because every path exist
+                    self.mltries.remove( path.split(".") ) #can not raise, because every path exist
 
             del self.threadLocalVar[key]
     
@@ -355,13 +364,14 @@ class Parameter(Valuable): #abstract
         return self.value
 
     def setValue(self,value):
+        self.settings._raiseIfReadOnly(self.__class__.__name__, "setValue")
         self.value = value
 
     def __str__(self):
         return str(self.getValue())
 
     def __repr__(self):
-        return str(self.getValue())
+        return "Parameter: "+str(self.getValue())
 
     def enableGlobal(self):
         if isinstance(self.settings, GlobalSettings):
@@ -375,11 +385,15 @@ class Parameter(Valuable): #abstract
 
         self.settings = LocalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
         
+        
+            
     def __hash__(self):
         value = self.getValue()
         if hasattr(value,"__iter__"):
-            return hash(tuple(value))
+            return hash( str(hash(tuple(value))) + str(hash(self.settings)))
         else:
-            return hash(value)
+            return hash( str(hash(value)) + str(hash(self.settings)))
+    
+        
     
             

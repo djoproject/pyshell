@@ -138,6 +138,4 @@ class EnvironmentParameter(Parameter):
 
     def __str__(self):
         return str(self.value)
-        
-    def __hash__(self):
-        return hash( str(Parameter.__hash__(self)) + str(hash(self.settings)))
+
