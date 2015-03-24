@@ -237,9 +237,6 @@ class ParameterTest(unittest.TestCase):
 
         self.assertIsNot(param1, param2)
 
-    #TODO on global overwritte ONLY, setting has to be transfered/merged from old to new
-        #create test if needed
-
     def test_ParameterManager24(self):#setParameter, global exists (not local) + global + existing is readonly
         param1 = self.params.setParameter("plop", Parameter("titi"), localParam=False)
         self.assertIsInstance(param1.settings,GlobalSettings)
@@ -261,6 +258,28 @@ class ParameterTest(unittest.TestCase):
         param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
         self.assertIsInstance(param.settings,GlobalSettings)
         self.assertIs(self.params.getParameter("plop"), param)
+    
+    def test_ParameterManagerSetParameter1(self):#setParameter, on global overwritte ONLY, setting has to be transfered/merged from old to new
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
+        param.settings.addLoader("uhuh")
+        param.settings.addLoader("ahah")
+        param.settings.addLoader("uhuh")
+        
+        self.assertTrue(hasattr(param.settings, "origin"))
+        self.assertTrue(hasattr(param.settings, "originArg"))
+        self.assertTrue(hasattr(param.settings, "startingHash"))
+        
+        param.settings.origin = "aaa"
+        param.settings.originArg = "bbb"
+        has = param.settings.startingHash
+        
+        param = self.params.setParameter("plop", Parameter("tata"), localParam=False)
+        
+        self.assertEqual(param.settings.origin, "aaa")
+        self.assertEqual(param.settings.originArg, "bbb")
+        self.assertEqual(param.settings.startingHash, has)
+        
+        self.assertEqual(param.settings.getLoaderSet(), set( ("uhuh", "ahah",)) )
     
     ##
     
@@ -368,14 +387,6 @@ class ParameterTest(unittest.TestCase):
     
     ##
     
-    #TODO unset
-        #try to remove an existing global one, not removable with loader dependancies
-        #try to remove an existing global one, with loader dependancies and force
-        #try to remove an existing global one, not removable and force
-        #try to remove an existing local one, not removable and force
-        #try to remove an existing global one, not removable
-        #try to remove an existing local one, not removable
-
     def test_ParameterManager51(self):#unsetParameter, local exists + localParam=True + exploreOtherLevel=True
         param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
         self.assertTrue(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
@@ -484,6 +495,40 @@ class ParameterTest(unittest.TestCase):
     def test_ParameterManager66(self):#unsetParameter, nothing exists + localParam=False + exploreOtherLevel=False
         self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=False, exploreOtherLevel=False)
     
+    def test_ParameterManagerUnsetParameter1(self):#unsetParameter, try to remove an existing global one, not removable with loader dependancies
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
+        param.settings.addLoader("load1")
+        param.settings.setRemovable(False)
+        self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=False, exploreOtherLevel=False)
+    
+    def test_ParameterManagerUnsetParameter2(self):#unsetParameter, try to remove an existing global one, with loader dependancies and force
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
+        param.settings.addLoader("load1")
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=False, force=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+    
+    def test_ParameterManagerUnsetParameter3(self):#unsetParameter, try to remove an existing global one, not removable and force
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
+        param.settings.setRemovable(False)
+        self.params.unsetParameter("plop", localParam=False, exploreOtherLevel=False, force=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=False, exploreOtherLevel=False))
+    
+    def test_ParameterManagerUnsetParameter4(self):#unsetParameter, try to remove an existing local one, not removable and force
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        param.settings.setRemovable(False)
+        self.params.unsetParameter("plop", localParam=True, exploreOtherLevel=False, force=True)
+        self.assertFalse(self.params.hasParameter("plop", localParam=True, exploreOtherLevel=False))
+    
+    def test_ParameterManagerUnsetParameter5(self):#unsetParameter, try to remove an existing global one, not removable
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=False)
+        param.settings.setRemovable(False)
+        self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=False, exploreOtherLevel=False)
+    
+    def test_ParameterManagerUnsetParameter6(self):#unsetParameter, try to remove an existing local one, not removable
+        param = self.params.setParameter("plop", Parameter("titi"), localParam=True)
+        param.settings.setRemovable(False)
+        self.assertRaises(ParameterException, self.params.unsetParameter,"plop", localParam=True, exploreOtherLevel=False)
+    
     ##
     
     def test_ParameterManager67(self):#flushVariableLevelForThisThread, nothing for the current thread
@@ -555,55 +600,160 @@ class ParameterTest(unittest.TestCase):
     ##
     
     def test_ParameterManager71(self):#buildDictionnary, search with invalid string
-        pass #TODO
+        params = ParameterManager()
+        self.assertRaises(ParameterException, params.buildDictionnary, object())
     
     def test_ParameterManager72(self):#buildDictionnary, local exists + localParam=True + exploreOtherLevel=True
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=True)
+        
+        self.assertEqual(result, { "aa.bb.cc":p1, "ab.ac.cd":p2, "aa.plop":p3})
     
     def test_ParameterManager73(self):#buildDictionnary, local exists + localParam=True + exploreOtherLevel=False
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=False)
+        
+        self.assertEqual(result, { "aa.bb.cc":p1, "ab.ac.cd":p2, "aa.plop":p3})
     
     def test_ParameterManager74(self):#buildDictionnary, global exists + localParam=True + exploreOtherLevel=True
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("uu.vv.ww", Parameter("plap"), localParam=False)
+        p2 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p3 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=True)
+        
+        self.assertEqual(result, { "uu.vv.ww":p1, "uv.vw.wx":p2, "uu.titi":p3})
     
     def test_ParameterManager75(self):#buildDictionnary, global exists + localParam=True + exploreOtherLevel=False
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("uu.vv.ww", Parameter("plap"), localParam=False)
+        p2 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p3 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=False)
+        
+        self.assertEqual(result, {})
     
     def test_ParameterManager76(self):#buildDictionnary, local exists + localParam=False + exploreOtherLevel=True
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=True)
+        
+        self.assertEqual(result, { "aa.bb.cc":p1, "ab.ac.cd":p2, "aa.plop":p3})
     
     def test_ParameterManager77(self):#buildDictionnary, local exists + localParam=False + exploreOtherLevel=False
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=False)
+        
+        self.assertEqual(result, {})
     
     def test_ParameterManager78(self):#buildDictionnary, global exists + localParam=False + exploreOtherLevel=True
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("uu.vv.ww", Parameter("plap"), localParam=False)
+        p2 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p3 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=True)
+        
+        self.assertEqual(result, { "uu.vv.ww":p1, "uv.vw.wx":p2, "uu.titi":p3})
     
     def test_ParameterManager79(self):#buildDictionnary, global exists + localParam=False + exploreOtherLevel=False
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("uu.vv.ww", Parameter("plap"), localParam=False)
+        p2 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p3 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=False)
+        
+        self.assertEqual(result, { "uu.vv.ww":p1, "uv.vw.wx":p2, "uu.titi":p3})
     
     def test_ParameterManager80(self):#buildDictionnary, nothing exists + localParam=True + exploreOtherLevel=True
-        pass #TODO
+        params = ParameterManager()
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=True)
+        self.assertEqual(result, {})
     
     def test_ParameterManager81(self):#buildDictionnary, nothing exists + localParam=True + exploreOtherLevel=False
-        pass #TODO
+        params = ParameterManager()
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=False)
+        self.assertEqual(result, {})
     
     def test_ParameterManager82(self):#buildDictionnary, nothing exists + localParam=False + exploreOtherLevel=True
-        pass #TODO
+        params = ParameterManager()
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=True)
+        self.assertEqual(result, {})
     
     def test_ParameterManager83(self):#buildDictionnary, nothing exists + localParam=False + exploreOtherLevel=False
-        pass #TODO
+        params = ParameterManager()
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=False)
+        self.assertEqual(result, {})
     
     def test_ParameterManager84(self):#buildDictionnary, local + global exists + localParam=False + exploreOtherLevel=True  (mixe several cases)
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        p4 = params.setParameter("aa.bb.cc", Parameter("plap"), localParam=False)
+        p5 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p6 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=True)
+        
+        self.assertEqual(result, { "aa.bb.cc":p4, "ab.ac.cd":p2, "aa.plop":p3, "uv.vw.wx":p5, "uu.titi":p6})
     
     def test_ParameterManager85(self):#buildDictionnary, local + global exists + localParam=False + exploreOtherLevel=False (mixe several cases)
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        p4 = params.setParameter("aa.bb.cc", Parameter("plap"), localParam=False)
+        p5 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p6 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = False, exploreOtherLevel=False)
+        
+        self.assertEqual(result, { "aa.bb.cc":p4, "uv.vw.wx":p5, "uu.titi":p6})
     
     def test_ParameterManager86(self):#buildDictionnary, global + local exists + localParam=True + exploreOtherLevel=True   (mixe several cases)
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        p4 = params.setParameter("aa.bb.cc", Parameter("plap"), localParam=False)
+        p5 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p6 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=True)
+        
+        self.assertEqual(result, { "aa.bb.cc":p1, "ab.ac.cd":p2, "aa.plop":p3, "uv.vw.wx":p5, "uu.titi":p6})
     
     def test_ParameterManager87(self):#buildDictionnary, global + local exists + localParam=True + exploreOtherLevel=False  (mixe several cases)
-        pass #TODO
+        params = ParameterManager()
+        p1 = params.setParameter("aa.bb.cc", Parameter("titi"), localParam=True)
+        p2 = params.setParameter("ab.ac.cd", Parameter("tata"), localParam=True)
+        p3 = params.setParameter("aa.plop", Parameter("toto"), localParam=True)
+        p4 = params.setParameter("aa.bb.cc", Parameter("plap"), localParam=False)
+        p5 = params.setParameter("uv.vw.wx", Parameter("plop"), localParam=False)
+        p6 = params.setParameter("uu.titi", Parameter("plup"), localParam=False)
+        
+        result = params.buildDictionnary("", localParam = True, exploreOtherLevel=False)
+        
+        self.assertEqual(result, { "aa.bb.cc":p1, "ab.ac.cd":p2, "aa.plop":p3})
     
         
     ## parameters test ##

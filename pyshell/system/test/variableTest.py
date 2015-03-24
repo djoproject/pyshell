@@ -107,9 +107,9 @@ class VariableTest(unittest.TestCase):
     
     def test_globalSettings8(self):
         vls = VariableGlobalSettings()
-        self.assertEqual(vls._getOrigin(), (None, None,) )
-        vls._setOrigin("titi","toto")
-        self.assertEqual(vls._getOrigin(), ("titi","toto",) )
+        self.assertEqual(vls.getOrigin(), (None, None,) )
+        vls.setStartingPoint(hash(vls),"titi","toto")
+        self.assertEqual(vls.getOrigin(), ("titi","toto",) )
     
     def test_globalSettings9(self): 
         vls = VariableGlobalSettings()
@@ -120,23 +120,23 @@ class VariableTest(unittest.TestCase):
     def test_globalSettings10(self):
         vls = VariableGlobalSettings()
         vls.addLoader("ahah")
-        vls._setOrigin("titi","toto")
+        vls.setStartingPoint(hash(vls),"titi","toto")
         
         vls2 = VariableGlobalSettings()
         vls2.mergeFromPreviousSettings(vls)
         
         self.assertEqual(vls2.getLoaderSet(), None)
-        self.assertEqual(vls2._getOrigin(), ("titi","toto",) )
-    
+        self.assertEqual(vls2.getOrigin(), ("titi","toto",) )
+   
     def test_globalSettings11(self):
         vls = VariableGlobalSettings()
-        vls.setStartingPoint(hash(self))
+        vls.setStartingPoint(hash(self),"titi","toto")
         self.assertTrue(vls.isEqualToStartingHash(hash(self)))
         
     def test_globalSettings12(self):
         vls = VariableGlobalSettings()
-        vls.setStartingPoint(hash(self))
-        self.assertRaises(ParameterException, vls.setStartingPoint, hash(self))
+        vls.setStartingPoint(hash(self),"titi","toto")
+        self.assertRaises(ParameterException, vls.setStartingPoint, hash(self),"titi","toto")
     
     ## manager ##
     

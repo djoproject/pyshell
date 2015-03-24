@@ -75,12 +75,12 @@ class LocalSettings(Settings):
     def _raiseIfReadOnly(self, className = None, methName = None):
         if self.isReadOnly():
             if methName is not None:
-                methName = methName+", "
+                methName = str(methName)+", "
             else:
                 methName = EMPTY_STRING
                 
             if className is not None:
-                className = "("+className+") "
+                className = "("+str(className)+") "
             else:
                 className = EMPTY_STRING
                 
@@ -109,6 +109,8 @@ class GlobalSettings(LocalSettings):
         self.setReadOnly(readOnly)
 
     def setTransient(self,state):
+        self._raiseIfReadOnly(self.__class__.__name__,"setTransient")
+        
         if type(state) != bool:
             raise ParameterException("(GlobalSettings) setTransient, expected a bool type as state, got '"+str(type(state))+"'")
             
@@ -116,13 +118,6 @@ class GlobalSettings(LocalSettings):
 
     def isTransient(self):
         return self.transient
-                    
-    def _setOrigin(self, origin, originArg = None):
-        self.origin    = origin
-        self.originArg = originArg
-        
-    def _getOrigin(self):
-        return self.origin, self.originArg
 
     def addLoader(self, loaderSignature):
         if self.loaderSet is None:
@@ -153,13 +148,18 @@ class GlobalSettings(LocalSettings):
         self.originArg    = settings.originArg
         self.startingHash = settings.startingHash
         
-    def setStartingPoint(self, hashi):
+    def setStartingPoint(self, hashi, origin, originArg = None):
         if self.startingHash is not None:
             raise ParameterException("(GlobalSettings) setStartingPoint, a starting point was already defined for this parameter") 
             
         self.startingHash = hashi
+        self.origin       = origin
+        self.originArg    = originArg
         
     def isEqualToStartingHash(self, hashi):
         return hashi == self.startingHash
+        
+    def getOrigin(self):
+        return self.origin, self.originArg
         
                 

@@ -168,8 +168,7 @@ class ParameterManager(Flushable):
             else:
                 global_var = param
                 param.enableGlobal()
-                param.settings._setOrigin(*self.parentContainer.getOrigin())
-                param.settings.setStartingPoint( hash(param) )
+                param.settings.setStartingPoint( hash(param), *self.parentContainer.getOrigin())
 
             self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
         
@@ -321,14 +320,14 @@ class ParameterManager(Flushable):
                         key = self.parentContainer.getCurrentId()
                         
                     if key in local_var:
-                        to_ret[var_key] = local_var[key]
+                        to_ret[".".join(var_key)] = local_var[key]
                         break
                         
                     if not exploreOtherLevel:
                         break
                 else:
                     if global_var is not None:
-                        to_ret[var_key] = global_var
+                        to_ret[".".join(var_key)] = global_var
                         break
                         
                     if not exploreOtherLevel:
