@@ -44,7 +44,7 @@ def getAbsoluteIndex(index, listSize):
     
     return index
 
-class Procedure(UniCommand):
+class Procedure(UniCommand):#TODO should implement hash system, like parameter
     def __init__(self, name, showInHelp = True, settings = None):
         UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
         
@@ -219,7 +219,7 @@ class ProcedureFromList(Procedure):
         
         #specific command system
         self.stringCmdList    = [] 
-        self.lockedTo         = -1
+        self.lockedTo         = -1 #TODO should be a properties of settings
         self.nextCommandIndex = None
     
     def setLockedTo(self, value):
@@ -381,9 +381,9 @@ class ProcedureFromList(Procedure):
 class ProcedureFromFile(Procedure):
     def __init__(self, filePath, showInHelp = True, settings = None):
         Procedure.__init__(self, "execute "+str(filePath), showInHelp, settings)
-        self.filePath = filePath
-        
-        #TODO global settings not applyable here, this one is transient, readOnly and removable
+        self.filePath = filePath #TODO should be used in hashing
+    
+    #TODO could be possible to update file path if not readOnly
     
     def execute(self, parameters):
         #make a copy of the current procedure

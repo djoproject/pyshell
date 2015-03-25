@@ -26,6 +26,7 @@
     #################
             
         stored file is just ugly... (still the case ?)
+        save the two type of command
 
     #################
     ### parameter ###
@@ -126,7 +127,20 @@
         integrate default value in usage
 
 #################### COMMAND #################################################################################################
+
+    fixer/updater les tests unitaires
+
 #################### LOADER ##################################################################################################
+
+    #####################
+    ### utils         ###
+    #####################
+    
+        create a method to test the content of the loader
+            this method will be called in the __main__ method of a module using the loader to check if everything is okay
+        
+            if __name__ == "__main__":
+                loaders_checks()
 
     #####################
     ### parameter     ###
@@ -325,17 +339,26 @@
         PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters, en tout cas les ProcedureFromList
             BRAINSTORMING: 
                 lors de la creation d'une procedure, faire le hash une fois que la creation de la procedure est terminée (l'ajout de toutes les commandes)
+                    setStartingHash, comme pour les parameters
                 
                 idéalement les commandes ajoutées par les loaders ne devrait pas être prise en compte pour le hash 
-                et retirée au moment du calcul de hash de la sauvegarde (puisque ces commandes seront à nouveau ajoutée par le loader au prochain loading)
+                ET retirée au moment du calcul de hash de la sauvegarde (puisque ces commandes seront à nouveau ajoutée par le loader au prochain loading)
+                ET non sauvergardée
+                ET aussi retirée lors de l'unload de l'addon
+                
                     SOL1: les flagger avec un booleen
                     SOL2: garder une liste d'index les concernant
+                        PRBML 1: les index peuvent bouger
+                    
                     SOL3: découper les procedures en deux parties USER/LOADER
                         Et ne sauvegarder que la partie User s'il y en a une
                         fixe le problème des saves, pas besoin d'unloader les loaders a la fermeture du programme
                         
                         PRBLM 1: si loop ou exception ou exit dans le user space
                         PRBLM 2: implique encore d'ajouter une couche de gestion en +, l'ideal serait de gérer ça dans les class existante
+                        
+                    SOL4: les unloader lors de l'unload des loaders, les données chargées par les loaders sont supposées dynamiques
+                    
                         
 
 #################### UTILS ###################################################################################################
@@ -357,12 +380,21 @@
             #faire une commande de flush
             #flush and close at exit
             #si on fait un close, il faut retirer l'event at_exit
+            
+    #####################
+    ### solving       ###
+    #####################
+    
+        faire en sorte de pouvoir utiliser les prefix avec les dash_parameters (wait for refactoring of argFeeder)
 
 #################### MISC ####################################################################################################
 
     #############################
     ### MISC                  ###
     #############################
+
+        #not a real logic in exception usage, sometime DefaultPyshellException is used, and sometimes is is custom exception that inherit from DefaultPyshellException
+            #define a usage way and always use it everywhere
 
         #a lot of place in the code just raise default exception "raise Exception"
             #replace with pyshell exception raising
