@@ -162,7 +162,7 @@ def _parameterRowFormating(key, paramItem, valueFormatingFun):
     else:
         value = str(paramItem.getValue())
 
-    return ("  "+".".join(key), valueFormatingFun(value), )
+    return ("  "+key, valueFormatingFun(value), )
 
 def _parameterGetTitle(titleFormatingFun):
     return (" "+titleFormatingFun("Name"), titleFormatingFun("Value"), )
@@ -224,21 +224,21 @@ def saveParameter(filePath, parameters):
                     continue
 
                 if parameter.isAListType():
-                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+".".join(key)+" "+" ".join( escapeString(str(x)) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.checker.getTypeName()+" "+key+" "+" ".join( escapeString(str(x)) for x in parameter.getValue())+" -noCreationIfExist true -localVar false\n" )
                 else:
-                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+".".join(key)+" "+escapeString(str(parameter.getValue()))+" -isList false -noCreationIfExist true -localVar false\n" )
+                    configfile.write( subcontainername+" create "+parameter.typ.getTypeName()+" "+key+" "+escapeString(str(parameter.getValue()))+" -isList false -noCreationIfExist true -localVar false\n" )
                 
                 properties = parameter.settings.getProperties()
                 
                 if len(properties) > 0:
                     #disable readOnly 
-                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readOnly false\n" )
+                    configfile.write( subcontainername + " properties set " + key + " readOnly false\n" )
 
                     #set value
                     if parameter.isAListType():
-                        configfile.write( subcontainername+" set "+".".join(key)+" "+" ".join(str(x) for x in parameter.getValue())+"\n" )
+                        configfile.write( subcontainername+" set "+key+" "+" ".join(str(x) for x in parameter.getValue())+"\n" )
                     else:
-                        configfile.write( subcontainername+" set "+".".join(key)+" "+str(parameter.getValue())+"\n" )
+                        configfile.write( subcontainername+" set "+key+" "+str(parameter.getValue())+"\n" )
 
                     readOnlyValue = False
                     for propName,propValue in parameter.settings.getProperties():
@@ -248,8 +248,8 @@ def saveParameter(filePath, parameters):
                             readOnlyValue = propValue
                             continue
                     
-                        configfile.write( subcontainername + " properties set " + ".".join(key) + " " +propName+ " " + str(propValue) + "\n" )
-                    configfile.write( subcontainername + " properties set " + ".".join(key) + " readOnly "+str(readOnlyValue)+"\n" ) #TODO don't disable again if already disabled
+                        configfile.write( subcontainername + " properties set " + key + " " +propName+ " " + str(propValue) + "\n" )
+                    configfile.write( subcontainername + " properties set " + key + " readOnly "+str(readOnlyValue)+"\n" ) #TODO don't disable again if already disabled
                 configfile.write("\n")
         
 def _createValuesFun(valueType, key, values, classDef, attributeType, noCreationIfExist, parameters, listEnabled, localParam = True): 
@@ -338,9 +338,9 @@ def addEnvironmentValuesFun(key, values, parameters, startWithLocal = True, expl
 
 def _envRowFormating(key, envItem, valueFormatingFun):
     if envItem.isAListType():
-        return (".".join(key), "true", valueFormatingFun(', '.join(str(x) for x in envItem.getValue())), ) 
+        return (key, "true", valueFormatingFun(', '.join(str(x) for x in envItem.getValue())), ) 
     else:
-        return (".".join(key), "false", valueFormatingFun(str(envItem.getValue())), ) 
+        return (key, "false", valueFormatingFun(str(envItem.getValue())), ) 
 
 def _envGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("IsList"), titleFormatingFun("Value(s)"), )
@@ -472,7 +472,7 @@ def getSelectedContextIndex(key, parameter, startWithLocal = True, exploreOtherL
     return getParameter(key,parameter,CONTEXT_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel).settings.getIndex()
 
 def _conRowFormating(key, conItem, valueFormatingFun):
-    return (".".join(key), str(conItem.settings.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
+    return (key, str(conItem.settings.getIndex()), valueFormatingFun(str(conItem.getSelectedValue())), ', '.join(str(x) for x in conItem.getValue()), )
 
 def _conGetTitle(titleFormatingFun):
     return (titleFormatingFun("Name"), titleFormatingFun("Index"), titleFormatingFun("Value"), titleFormatingFun("Values"), )
@@ -612,7 +612,7 @@ def unsetVar(key, parameter, startWithLocal = True, exploreOtherLevel=True):
     removeParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME, startWithLocal, exploreOtherLevel)
 
 def _varRowFormating(key, varItem, valueFormatingFun):
-    return (".".join(key), valueFormatingFun(', '.join(str(x) for x in varItem.getValue())), )
+    return (key, valueFormatingFun(', '.join(str(x) for x in varItem.getValue())), )
 
 def _varGetTitle(titleFormatingFun):
     return ( titleFormatingFun("Name"),titleFormatingFun("Values"), )

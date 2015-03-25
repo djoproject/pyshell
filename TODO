@@ -31,6 +31,8 @@
     ### parameter ###
     #################
         
+        for loading, set origin parameter from file
+        
         prévoir un "reset" pour remettre les paramètre à ceux de démarrage
         
         be able to cypher the parameter file
@@ -136,7 +138,7 @@
                 if an other file was previously loaded, remove the informations of previous file and leave them empty
                     if already empty, do nothing, just load
                 
-            In parameter (TODO in parameter system)(step 1)
+            In parameter (TODO in parameter system)(step 1) DONE
                 store origin (loader + name OR File + name OR Procedure + None)
                 store parameter hash at its creation
                 NEVER update origin OR hash (except in loader)

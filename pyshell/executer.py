@@ -73,6 +73,7 @@ class CommandExecuter():
         
         self._initStartUpEvent()
         self._initExitEvent()
+        self.params.setOrigin(ORIGIN_PROCESS)
         
         ## execute atStartUp ##
         execute(EVENT__ON_STARTUP,self.params, "__startup__") 
@@ -80,6 +81,7 @@ class CommandExecuter():
     def _initParams(self, paramFile, outsideArgs):
         #create param manager
         self.params = ParameterContainer()
+        self.params.setOrigin(ORIGIN_LOADER, "__system__")
         self.params.registerParameterManager("environment", EnvironmentParameterManager(self.params))
         self.params.registerParameterManager("context", ContextParameterManager(self.params))
         self.params.registerParameterManager("variable", VariableParameterManager(self.params))

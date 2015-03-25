@@ -359,7 +359,7 @@ class ExecutingTest(unittest.TestCase):
 
     def test_generateSuffix1(self):#test with debug
         self.debugContext.settings.setIndexValue(1)
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         self.debugContext.settings.setIndexValue(0)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
         
@@ -367,32 +367,32 @@ class ExecutingTest(unittest.TestCase):
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         
     def test_generateSuffix3(self):#test with processName provided or not
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,None)," (threadId="+str(threading.current_thread().ident)+", level=0)")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,None)," (threadId="+str(threading.current_thread().ident)+", level=-1)")
         
     def test_generateSuffix5(self):#test without commandNameList
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"] )
-        self.assertEqual(_generateSuffix(self.params,None,e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,None,e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         
     def test_generateSuffix6(self):#test with None engine
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         
     def test_generateSuffix7(self):#test with empty engine
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
         del e.stack[:]
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         
     def test_generateSuffix8(self):#test with valid engine and commandNameList
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
-        self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=0, process='__process__', command='plop')")
+        self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__', command='plop')")
 
         
 if __name__ == '__main__':
