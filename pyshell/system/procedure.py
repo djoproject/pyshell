@@ -20,7 +20,7 @@
 
 from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
 from pyshell.utils.executing   import execute
-from pyshell.command.command   import UniCommand
+from pyshell.command.command   import UniCommand, MultiCommand
 from pyshell.command.exception import engineInterruptionException
 from pyshell.arg.decorator     import shellMethod
 from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
@@ -33,12 +33,15 @@ import thread, threading, sys
 ### UTILS COMMAND ###
     
 def getAbsoluteIndex(index, listSize):
-    if index > 0:
+    "convert any positive or negative index into an absolute positive one"
+
+    if index >= 0:
         return index
     
     index = listSize + index
     
-    #python work like that (?)
+    #because python list.insert works like that, a value can be inserted with a negativ value out of boud
+    #but some other function like update does not manage negativ out of bound value, and that's why it is set to 0
     if index < 0:
         return 0
     
@@ -46,12 +49,11 @@ def getAbsoluteIndex(index, listSize):
 
 class Procedure(UniCommand):#TODO should implement hash system, like parameter
     def __init__(self, name, showInHelp = True, settings = None):
-        UniCommand.__init__(self, name, self._pre, None, self._post, showInHelp)
+        UniCommand.__init__(self, name, self._internalPrePost, None, None, showInHelp) #by default, enable on pre process #TODO this information should be stored
         
-        self.setStopProcedureOnFirstError() #default error policy
-        self.executeOnPre     = True
-        self.interrupt       = False
-        self.interruptReason = None
+        self.setStopProcedureOnFirstError() #default error policy  #TODO should be in settings
+        self.interrupt        = False
+        self.interruptReason  = None
         
         if settings is not None:
             if not isinstance(settings, GlobalSettings):
@@ -71,25 +73,20 @@ class Procedure(UniCommand):#TODO should implement hash system, like parameter
         parameters.variable.setParameter("!", VarParameter( ()), localParam = True)                               #last pid started in background        
         parameters.variable.setParameter("$", VarParameter(parameters.getCurrentId()), localParam = True) #current process id 
 
-    @shellMethod(args       = listArgChecker(ArgChecker()),
-                 parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-    def _pre(self, args, parameters):
-        "this command is a stored procedure"
+    def enableOnPreProcess(self):
+        del self[:]
+        MultiCommand.addProcess(self,self._internalPrePost,None,None)
         
-        if not self.executeOnPre:
-            return args
+    def enableOnProcess(self):
+        del self[:]
+        MultiCommand.addProcess(self,None,self._internalPrePost,None)
         
-        return self._internalPrePost(args, parameters)
+    def enableOnPostProcess(self):
+        del self[:]
+        MultiCommand.addProcess(self,None,None,self._internalPrePost)
 
     @shellMethod(args       = listArgChecker(ArgChecker()),
-                 parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-    def _post(self, args, parameters):
-        
-        if self.executeOnPre:
-            return args
-        
-        return self._internalPrePost(args, parameters)
-            
+                 parameters = defaultInstanceArgChecker.getCompleteEnvironmentChecker())            
     def _internalPrePost(self, args, parameters):
         parameters.pushVariableLevelForThisThread(self)
         
@@ -105,11 +102,11 @@ class Procedure(UniCommand):#TODO should implement hash system, like parameter
             parameters.popVariableLevelForThisThread()
     
     def interrupt(self, reason=None):
-        self.interrupt       = True
         self.interruptReason = reason
+        self.interrupt       = True #ALWAYS keep interrupt at last, because it will interrupt another thread, and the other thread could be interrupt before the end of this method if interrupt is not set at the end
 
     def execute(self, parameters):
-        pass #XXX TO OVERRIDE and use _innerExecute
+        pass #XXX TO OVERRIDE AND USE _innerExecute
         
     def _innerExecute(self, cmd, name, parameters):
         if self.interrupt:
@@ -191,27 +188,19 @@ class Procedure(UniCommand):#TODO should implement hash system, like parameter
             raise ParameterException("(Procedure) setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo, expected a integer value bigger than 0, got '"+str(type(value))+"'")
 
         self.errorGranularity = value
-        
-    def setExecuteOnPre (self, value):
-        if type(value) != bool:
-            raise ParameterException("(Procedure) setExecuteOnPre, expected a boolean value as parameter, got '"+str(type(value))+"'")
-    
-        self.executeOnPre = value
     
     def getErrorGranularity(self):
         return self.errorGranularity
-        
-    def isExecuteOnPre(self):
-        return self.executeOnPre
                 
     def clone(self, From=None):
         if From is None:
             From = Procedure(self.name)
         
         From.errorGranularity = self.errorGranularity
-        From.executeOnPre     = self.executeOnPre
-        
         return UniCommand.clone(self,From)
+        
+    def __hash__(self):
+        return hash(self.settings)
             
 class ProcedureFromList(Procedure):
     def __init__(self, name, showInHelp = True, settings = None):
@@ -381,9 +370,14 @@ class ProcedureFromList(Procedure):
 class ProcedureFromFile(Procedure):
     def __init__(self, filePath, showInHelp = True, settings = None):
         Procedure.__init__(self, "execute "+str(filePath), showInHelp, settings)
-        self.filePath = filePath #TODO should be used in hashing
+        self.setFilePath(filePath)
     
-    #TODO could be possible to update file path if not readOnly
+    def getFilePath(self):
+        return self.filePath
+        
+    def setFilePath(self, filePath):
+        #TODO readOnly, path validity, ...
+        self.filePath = filePath
     
     def execute(self, parameters):
         #make a copy of the current procedure
@@ -407,4 +401,7 @@ class ProcedureFromFile(Procedure):
             From = ProcedureFile(self.filePath)
             
         return Procedure.clone(self,From)
+        
+    def __hash__(self):
+        return hash(str(hash(Procedure.__hash__(self))) + str(hash(self.filePath)))
     

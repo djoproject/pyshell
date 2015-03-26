@@ -68,7 +68,7 @@ class ArgFeeder(ArgsChecker):
     # @argsList, une liste de n'importe quoi
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     # 
-    def checkArgs(self,argsList, mappedArgs, engine=None):
+    def checkArgs(self,argsList, mappedArgs={}, engine=None):
         if not hasattr(argsList,"__iter__"):#if not isinstance(argsList,list):
             # argsList must be a string
             #if type(argsList) != str and type(argsList) != unicode:

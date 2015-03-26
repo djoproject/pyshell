@@ -17,13 +17,28 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.system.procedure import Procedure, ProcedureFromList, ProcedureFromFile
+from pyshell.system.procedure import getAbsoluteIndex, Procedure, ProcedureFromList, ProcedureFromFile
 
 class ProcedureTest(unittest.TestCase):
     def setUp(self):
         pass
 
-    ## TODO Misc ##
+    ## Misc ##
+    
+    def test_getAbsoluteIndex1(self):#getAbsoluteIndex, positiv value in the range
+        self.assertEqual(getAbsoluteIndex(4,5),4)
+        
+    def test_getAbsoluteIndex2(self):#getAbsoluteIndex, positiv value out of range
+        self.assertEqual(getAbsoluteIndex(23,5),23)
+        
+    def test_getAbsoluteIndex3(self):#getAbsoluteIndex, zero value
+        self.assertEqual(getAbsoluteIndex(0,5),0)
+        
+    def test_getAbsoluteIndex4(self):#getAbsoluteIndex, negativ value in the range
+        self.assertEqual(getAbsoluteIndex(-3,5),2)
+        
+    def test_getAbsoluteIndex5(self):#getAbsoluteIndex, negativ value out of range
+        self.assertEqual(getAbsoluteIndex(-23,5),0)
     
     ## TODO Procedure ##
     

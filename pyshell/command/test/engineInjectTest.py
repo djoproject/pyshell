@@ -25,7 +25,7 @@ class injectTest(unittest.TestCase):
         self.mc2.addProcess(noneFun,noneFun,noneFun)
         self.mc2.addProcess(noneFun,noneFun,noneFun)
 
-        self.e = engineV3([self.mc,self.mc2,self.mc2,self.mc2], [[],[],[],[]])
+        self.e = engineV3([self.mc,self.mc2,self.mc2,self.mc2], [[],[],[],[]], [[{},{},{}],[{},{},{}],[{},{},{}],[{},{},{}] ])
 
     def resetStack(self):
         del self.e.stack[:]

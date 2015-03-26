@@ -23,7 +23,7 @@ class splitAndMergeTest(unittest.TestCase):
         self.mc2 = MultiCommand("Multiple test2", "help me2")
         self.mc2.addProcess(noneFun,noneFun,noneFun)
         
-        self.e = engineV3([self.mc,self.mc2,self.mc2],[[],[],[]])
+        self.e = engineV3([self.mc,self.mc2,self.mc2],[[],[],[]], [[{},{},{}],[{},{},{}],[{},{},{}]])
 
     #_willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
     def test_willThisCmdBeCompletlyDisabled(self):
@@ -31,7 +31,7 @@ class splitAndMergeTest(unittest.TestCase):
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
-        self.e = engineV3([mc],[[]])
+        self.e = engineV3([mc],[[]], [[{},{},{}]])
 
         #must return False
             #empty before range, at least on item true in the after range
@@ -104,7 +104,7 @@ class splitAndMergeTest(unittest.TestCase):
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
-        self.e = engineV3([mc],[[]])
+        self.e = engineV3([mc],[[]], [[{},{},{}]])
 
         #must return False
             #empty before range, at least on item true in the after range
@@ -176,7 +176,7 @@ class splitAndMergeTest(unittest.TestCase):
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
-        self.e = engineV3([mc],[[]])
+        self.e = engineV3([mc],[[]], [[{},{},{}]])
         self.e.stack.setEnableMapOnIndex(0,[True]*6)
         emap = self.e.stack.enablingMap(0)
 
@@ -252,7 +252,7 @@ class splitAndMergeTest(unittest.TestCase):
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
-        self.e = engineV3([mc],[[]])
+        self.e = engineV3([mc],[[]], [[{},{},{}]])
 
         #map none
         self.assertTrue(self.e._willThisDataBunchBeCompletlyEnabled(0, 1, 3))
@@ -843,7 +843,7 @@ class splitAndMergeTest(unittest.TestCase):
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
 
-        engine = engineV3([mc,mc,mc],[[],[],[]])
+        engine = engineV3([mc,mc,mc],[[],[],[]], [[{},{},{}],[{},{},{}],[{},{},{}]])
 
         self.assertTrue(engine.isCurrentRootCommand())
 

@@ -708,7 +708,6 @@ class listArgChecker(ArgChecker):
         #check the minimal size
         addAtEnd = []
         if self.minimumSize is not None and len(values) < self.minimumSize: 
-            print len(values), self.minimumSize, values
             #checker has default value ?
             if self.checker.hasDefaultValue(argNameToBind):
                 #build the missing part with the default value

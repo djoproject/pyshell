@@ -383,16 +383,11 @@ class Parameter(Valuable): #abstract
             return
 
         self.settings = LocalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
-        
-        
-            
+
     def __hash__(self):
         value = self.getValue()
         if hasattr(value,"__iter__"):
             return hash( str(hash(tuple(value))) + str(hash(self.settings)))
         else:
             return hash( str(hash(value)) + str(hash(self.settings)))
-    
-        
-    
             

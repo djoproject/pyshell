@@ -102,7 +102,7 @@ class commandTest(unittest.TestCase):
         self.assertTrue(mc.usage() == "plop: no args needed")
         
         mc.addStaticCommand(c)
-        self.assertTrue(mc.usage() == "plop [args:(<any> ... <any>)]")
+        self.assertEqual(mc.usage(),"plop `[args:(<any> ... <any>)]`")
         
     #reset
     def testReset(self):
