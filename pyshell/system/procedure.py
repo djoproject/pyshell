@@ -292,6 +292,8 @@ class ProcedureFromList(Procedure):
         if len(parser) == 0:
             raise ParameterException("(Procedure) addCommand, try to add a command string that does not hold any command")
 
+        #TODO mark the command if loader, origin information should be available through settings
+
         self.stringCmdList.append( parser )
         return len(self.stringCmdList) - 1
             
@@ -365,7 +367,13 @@ class ProcedureFromList(Procedure):
         From.stringCmdList = self.stringCmdList[:]
         From.lockedTo      = self.lockedTo
         
-        return Procedure.clone(self,From)       
+        return Procedure.clone(self,From)
+        
+    def __hash__(self):
+        pass #TODO
+        
+    def getListOfCommandsToSave(self):
+        pass #TODO       
         
 class ProcedureFromFile(Procedure):
     def __init__(self, filePath, showInHelp = True, settings = None):

@@ -133,6 +133,12 @@
 #################### LOADER ##################################################################################################
 
     #####################
+    ### misc          ###
+    #####################
+    
+        when origin loader is selected, not only the loader name is required, but also the profile name
+    
+    #####################
     ### utils         ###
     #####################
     
@@ -337,27 +343,54 @@
             be carefull, ressource have to be released
             
         PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters, en tout cas les ProcedureFromList
-            BRAINSTORMING: 
-                lors de la creation d'une procedure, faire le hash une fois que la creation de la procedure est terminée (l'ajout de toutes les commandes)
-                    setStartingHash, comme pour les parameters
-                
-                idéalement les commandes ajoutées par les loaders ne devrait pas être prise en compte pour le hash 
-                ET retirée au moment du calcul de hash de la sauvegarde (puisque ces commandes seront à nouveau ajoutée par le loader au prochain loading)
-                ET non sauvergardée
-                ET aussi retirée lors de l'unload de l'addon
-                
-                    SOL1: les flagger avec un booleen
-                    SOL2: garder une liste d'index les concernant
-                        PRBML 1: les index peuvent bouger
+            
+            WHAT DO WE WANT ?
+                a loader can add command in a procedure
+                a loader can be unloaded and so remove its command from the procedure
+                    so a loader should be able to identify its commands
+                    OR a command should be identified as part of a loader
                     
-                    SOL3: découper les procedures en deux parties USER/LOADER
-                        Et ne sauvegarder que la partie User s'il y en a une
-                        fixe le problème des saves, pas besoin d'unloader les loaders a la fermeture du programme
-                        
-                        PRBLM 1: si loop ou exception ou exit dans le user space
-                        PRBLM 2: implique encore d'ajouter une couche de gestion en +, l'ideal serait de gérer ça dans les class existante
-                        
-                    SOL4: les unloader lors de l'unload des loaders, les données chargées par les loaders sont supposées dynamiques
+                    a command could disappear before the unloading of the loader (manually removed or removed by another loader or ...)
+                    a command could move in the procedure if command are inserted or removed with a lower index
+                    
+                    How to make the link between a loader and a command ? **PRBLM**
+                    
+                a procedure can be saved on file
+                    need to know if a procedure need to be saved on drive => compute hash after the creation of a command and adding all the commands => setStartingHash
+                    be careful with the procedure only fulled in with loader commands
+                    
+                loader command shouldn't saved on file
+                    do not use the command added by loader in the hash process, so these commands must be tagged **PRBLM**
+
+            PRBLM How to make the link between a command and a loader to remove it on loader unload and avoid them in hashing process ?
+                SOLUTION 1: les flagger avec un booleen
+                    PRBLM: not enough information
+                
+                SOLUTION 2: garder une liste d'index les concernant
+                    PRBML: les index peuvent bouger
+                
+                SOLUTION 3: découper les procedures en deux parties USER/LOADER
+                    Et ne sauvegarder que la partie User s'il y en a une
+                    fixe le problème des saves, pas besoin d'unloader les loaders a la fermeture du programme
+                    
+                    PRBLM 1: si loop ou exception ou exit dans le user space
+                    PRBLM 2: implique encore d'ajouter une couche de gestion en +, l'ideal serait de gérer ça dans les class existante
+                    
+                SOLUTION 4: les unloader lors de l'unload des loaders, les données chargées par les loaders sont supposées dynamiques
+                    PRBLM: need to absolutely register unload at exit
+            
+                SOLUTION 5: add the identity of the loader as a extra attribute of the command object in the procedure  XXX best one for the moment
+                    so, the command without this extra attribute does not come from a loader
+                    and if this attribute exist, it identifies uniquely a loader
+                    
+                    --- adding an hidden attribute is ugly
+                    +++ no extra structure for the command coming from non loader seed
+                    +++ easy to manage
+
+
+                
+                
+
                     
                         
 

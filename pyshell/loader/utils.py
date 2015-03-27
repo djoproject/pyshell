@@ -19,10 +19,10 @@
 import inspect,traceback
 from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException
-from pyshell.utils.constants  import DEFAULT_SUBADDON_NAME
+from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, STATE_REGISTERED, STATE_LOADED, STATE_LOADED_E, STATE_UNLOADED, STATE_UNLOADED_E, STATE_RELOADED, STATE_RELOADED_E
 
 
-def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, subAddonName = None):
+def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, profile = None): #TODO moduleLevel should be the last argument
     frm = inspect.stack()[3]
     mod = inspect.getmodule(frm[0])
 
@@ -39,84 +39,69 @@ def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleL
         loadersDict = GlobalLoader()
         mod._loaders = loadersDict
         
-    return mod._loaders.getLoader(callerLoaderKey, callerLoaderClassDefinition, subAddonName)
+    return mod._loaders.getLoader(callerLoaderKey, callerLoaderClassDefinition, profile)
 
 class AbstractLoader(object):
     def __init__(self):
         self.lastException = None
 
-    def load(self, parameterManager, subAddonName = None):
+    def load(self, parameterManager, profile = None):
         pass #TO OVERRIDE
 
-    def unload(self, parameterManager, subAddonName = None):
+    def unload(self, parameterManager, profile = None):
         pass #TO OVERRIDE
         
-    def reload(self, parameterManager, subAddonName = None):
-        self.unload(parameterManager, subAddonName)
-        self.load(parameterManager, subAddonName)
-        
-        #can be overrided too
-
-class GlobalLoaderLoadingState(object): #TODO should move in constant
-    STATE_REGISTERED = "REGISTERED BUT NOT LOADED" 
-    STATE_LOADED     = "LOADED"
-    STATE_LOADED_E   = "LOADED WITH ERROR"
-    STATE_UNLOADED   = "UNLOADED"
-    STATE_UNLOADED_E = "UNLOADED WITH ERROR"
-    STATE_RELOADED   = "RELOADED" 
-    STATE_RELOADED_E = "RELOADED WITH ERROR" 
-
-    def __init__(self):
-        self.state = GlobalLoaderLoadingState.STATE_REGISTERED
+    def reload(self, parameterManager, profile = None):
+        self.unload(parameterManager, profile)
+        self.load(parameterManager, profile)
+        #CAN BE OVERRIDEN TOO
 
 class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
-        self.subAddons = {}
+        self.profileList = {}
 
-    def getLoader(self, loaderName, classDefinition, subAddonName = None):    
+    def getLoader(self, loaderName, classDefinition, profile = None): #TODO this method is only used here by the command getAndInitCallerModule
         #TODO getAndInitCallerModule AND getLoader should be in the same process
             #maybe just move a little part of getLoader, brainstorm
         
         try:
             if not issubclass(classDefinition, AbstractLoader):
-                raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an unallowed class loader definition, must be a class definition inheriting from AbstractLoader")
+                raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an unallowed class loader definition, must be a class definition inheriting from AbstractLoader") #TODO improve message
         
-        except TypeError: #TODO what could produce this exception ? issubclass?
-            raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader")
+        except TypeError: #raise by issubclass if one of the two argument is not a class definition
+            raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader") #TODO improve message
         
-        #TODO should check if classDefinition is an instanciasable type
+        if profile is None:
+            profile = DEFAULT_PROFILE_NAME
         
-        if subAddonName is None:
-            subAddonName = DEFAULT_SUBADDON_NAME
-        
-        if subAddonName not in self.subAddons:
-            self.subAddons[subAddonName] = ({},GlobalLoaderLoadingState(),) #TODO really need an instance of GlobalLoaderLoadingState? could not be a variable containing the constant
+        if profile not in self.profileList:
+            self.profileList[profile] = ({},STATE_REGISTERED,)
             
-        if loaderName not in self.subAddons[subAddonName][0]:
-            self.subAddons[subAddonName][0][loaderName] = classDefinition() 
+        if loaderName not in self.profileList[profile][0]:
+            self.profileList[profile][0][loaderName] = classDefinition() 
             
-        return self.subAddons[subAddonName][0][loaderName]
+        return self.profileList[profile][0][loaderName]
 
-    def _innerLoad(self,methodName, parameterManager, subAddonName, allowedState, invalidStateMessage, nextState,nextStateIfError):
+    def _innerLoad(self,methodName, parameterManager, profile, allowedState, invalidStateMessage, nextState,nextStateIfError):
         exceptions = ListOfException()
 
-        if subAddonName is None:
-            subAddonName = DEFAULT_SUBADDON_NAME
+        if profile is None:
+            profile = DEFAULT_PROFILE_NAME
 
-        #nothing to do for this subAddons
-        if subAddonName not in self.subAddons: 
+        #no loader available for this profile
+        if profile not in self.profileList: 
             return
 
-        currentState = self.subAddons[subAddonName][1]
-        if currentState.state not in allowedState:
-            raise LoadException("(GlobalLoader) '"+methodName+"', sub loader '"+str(subAddonName)+"' "+invalidStateMessage)
+        loaders, state = self.profileList[profile]
+        if state not in allowedState:
+            raise LoadException("(GlobalLoader) '"+methodName+"', profile '"+str(profile)+"' "+invalidStateMessage) 
 
-        for loaderName, loader in self.subAddons[subAddonName][0].items():
+        for loaderName, loader in loaders.items():
             meth_toCall = getattr(loader, methodName)
 
             try:
-                meth_toCall(parameterManager,subAddonName)
+                meth_toCall(parameterManager,profile)
                 loader.lastException = None
             except Exception as ex:
                 loader.lastException = ex
@@ -124,33 +109,23 @@ class GlobalLoader(AbstractLoader):
                 loader.lastException.stackTrace = traceback.format_exc()
         
         if exceptions.isThrowable():
-            currentState.state = nextStateIfError
+            self.profileList[profile] = (loaders, nextStateIfError, )
             raise exceptions
-        else:
-            currentState.state = nextState
+        
+        self.profileList[profile] = (loaders, nextState, )
 
-    def load(self, parameterManager, subAddonName = None):
-        allowedState = [GlobalLoaderLoadingState.STATE_REGISTERED, 
-                        GlobalLoaderLoadingState.STATE_UNLOADED, 
-                        GlobalLoaderLoadingState.STATE_UNLOADED_E]
+    _loadAllowedState   = (STATE_REGISTERED, STATE_UNLOADED, STATE_UNLOADED_E,)
+    _unloadAllowedState = (STATE_LOADED, STATE_LOADED_E, STATE_RELOADED, STATE_RELOADED_E,)
+    _reloadAllowedState = (STATE_LOADED, STATE_LOADED_E, STATE_RELOADED, STATE_RELOADED_E,)
 
-        self._innerLoad("load", parameterManager, subAddonName, allowedState, "is already loaded",GlobalLoaderLoadingState.STATE_LOADED,GlobalLoaderLoadingState.STATE_LOADED_E)
+    def load(self, parameterManager, profile=None):
+        self._innerLoad("load",   parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._loadAllowedState,   invalidStateMessage="is already loaded",nextState=STATE_LOADED,  nextStateIfError=STATE_LOADED_E)
 
-    def unload(self, parameterManager, subAddonName = None):
-        allowedState = [GlobalLoaderLoadingState.STATE_LOADED, 
-                        GlobalLoaderLoadingState.STATE_LOADED_E, 
-                        GlobalLoaderLoadingState.STATE_RELOADED, 
-                        GlobalLoaderLoadingState.STATE_RELOADED_E]
+    def unload(self, parameterManager, profile=None):
+        self._innerLoad("unload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_UNLOADED,nextStateIfError=STATE_UNLOADED_E)
 
-        self._innerLoad("unload", parameterManager, subAddonName, allowedState, "is not loaded",GlobalLoaderLoadingState.STATE_UNLOADED,GlobalLoaderLoadingState.STATE_UNLOADED_E)
-
-    def reload(self, parameterManager, subAddonName = None):
-        allowedState = [GlobalLoaderLoadingState.STATE_LOADED, 
-                        GlobalLoaderLoadingState.STATE_LOADED_E, 
-                        GlobalLoaderLoadingState.STATE_RELOADED, 
-                        GlobalLoaderLoadingState.STATE_RELOADED_E]
-                        
-        self._innerLoad("reload", parameterManager, subAddonName, allowedState, "is not loaded",GlobalLoaderLoadingState.STATE_RELOADED,GlobalLoaderLoadingState.STATE_RELOADED_E)
+    def reload(self, parameterManager, profile=None):
+        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._reloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_RELOADED,nextStateIfError=STATE_RELOADED_E)
 
 
     

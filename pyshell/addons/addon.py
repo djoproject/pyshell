@@ -18,12 +18,11 @@
 
 #from pyshell.utils.loader import *
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt, registerSetTempPrefix
-from pyshell.loader.utils      import GlobalLoaderLoadingState, DEFAULT_SUBADDON_NAME
 from pyshell.arg.decorator     import shellMethod
 import os, sys
 from pyshell.utils.postProcess import printColumn, listResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
-from pyshell.utils.constants   import ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY
+from pyshell.utils.constants   import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY, STATE_LOADED, STATE_RELOADED,STATE_UNLOADED, STATE_REGISTERED
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
 from pyshell.system.environment import EnvironmentParameter
@@ -60,9 +59,9 @@ def _tryToImportLoaderFromFile(name):
     return mod._loaders
 
 def _formatState(state, printok, printwarning, printerror):
-    if state in (GlobalLoaderLoadingState.STATE_LOADED, GlobalLoaderLoadingState.STATE_RELOADED,):
+    if state in (STATE_LOADED, STATE_RELOADED,):
         return printok(state)
-    elif state in (GlobalLoaderLoadingState.STATE_UNLOADED, GlobalLoaderLoadingState.STATE_REGISTERED,):
+    elif state in (STATE_UNLOADED, STATE_REGISTERED,):
         return printwarning(state)
     else:
         return printerror(state)
@@ -90,7 +89,7 @@ def listAddonFun(addon_dico):
             l.append( (name, subAddonName, _formatState(state.state, formatGreen, formatOrange, formatRed ), ) )
 
     for name in local_addon:
-        l.append( (name,"",formatOrange(GlobalLoaderLoadingState.STATE_UNLOADED), ) )
+        l.append( (name,"",formatOrange(STATE_UNLOADED), ) )
 
     l.sort()
 
@@ -219,7 +218,7 @@ def subLoaderReload(name, subLoaderName, parameters, subAddon = None):
     addon = _tryToGetAddonFromParameters(parameters, name)
 
     if subAddon is None:
-        subAddon = DEFAULT_SUBADDON_NAME
+        subAddon = DEFAULT_PROFILE_NAME
 
     #subaddon exist ?
     if subAddon not in addon.subAddons:
