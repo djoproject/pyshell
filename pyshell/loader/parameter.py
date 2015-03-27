@@ -19,6 +19,8 @@
 #TODO
     #pas convaincu de la maniere dont sont loadé/unloadé les valeurs/parametre
     #faire le point et voir si la solution est vraiment optimale
+    
+    #TODO split and distribute into keystore/context/environement file, then delete
         
 from pyshell.loader.exception import LoadException
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader

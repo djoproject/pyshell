@@ -57,7 +57,7 @@ class AbstractLoader(object):
         
         #can be overrided too
 
-class GlobalLoaderLoadingState(object):
+class GlobalLoaderLoadingState(object): #TODO should move in constant
     STATE_REGISTERED = "REGISTERED BUT NOT LOADED" 
     STATE_LOADED     = "LOADED"
     STATE_LOADED_E   = "LOADED WITH ERROR"
@@ -73,38 +73,30 @@ class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
         self.subAddons = {}
+
+    def getLoader(self, loaderName, classDefinition, subAddonName = None):    
+        #TODO getAndInitCallerModule AND getLoader should be in the same process
+            #maybe just move a little part of getLoader, brainstorm
         
-    def getSubAddonsAvailable(self):
-        return self.subAddons.keys()
-
-    def getLoaderDictionary(self, subAddonName = None):
-        if subAddonName is None:
-            subAddonName = DEFAULT_SUBADDON_NAME
-    
-        if subAddonName not in self.subAddons:
-            raise Exception("(GlobalLoader) getLoaderDictionary, sub addon '"+str(subAddonName)+"' does not exist")
-
-        return self.subAddons[subAddonName]
-
-    def getLoader(self, loaderName, classDefinition, subAddonName = None):        
         try:
             if not issubclass(classDefinition, AbstractLoader):
                 raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an unallowed class loader definition, must be a class definition inheriting from AbstractLoader")
         
-        except TypeError:
-                raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader")
+        except TypeError: #TODO what could produce this exception ? issubclass?
+            raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader")
+        
+        #TODO should check if classDefinition is an instanciasable type
         
         if subAddonName is None:
             subAddonName = DEFAULT_SUBADDON_NAME
         
         if subAddonName not in self.subAddons:
-            self.subAddons[subAddonName] = ({},GlobalLoaderLoadingState(),) 
+            self.subAddons[subAddonName] = ({},GlobalLoaderLoadingState(),) #TODO really need an instance of GlobalLoaderLoadingState? could not be a variable containing the constant
             
         if loaderName not in self.subAddons[subAddonName][0]:
             self.subAddons[subAddonName][0][loaderName] = classDefinition() 
             
         return self.subAddons[subAddonName][0][loaderName]
-    
 
     def _innerLoad(self,methodName, parameterManager, subAddonName, allowedState, invalidStateMessage, nextState,nextStateIfError):
         exceptions = ListOfException()

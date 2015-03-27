@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+#Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject.net>
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -16,15 +16,14 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.utils import getAndInitCallerModule, AbstractLoader
+import unittest
 
-def _local_getAndInitCallerModule(subLoaderName = None)
-    return getAndInitCallerModule(EventLoader.__module__+"."+EventLoader.__name__,EventLoader, 3, subLoaderName)
-
-class EventLoader(AbstractLoader):
-    pass #TODO
-    
-#TODO
-
-def registerAddActionOnEvent(eventType, action, subLoaderName = None):
-    pass #TODO XXX need to have event manager, later
+class CommandTest(unittest.TestCase):
+    def setUp(self):
+        pass
+        
+    def test_(self):
+        pass #TODO
+        
+if __name__ == '__main__':
+    unittest.main()
