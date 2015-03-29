@@ -1,8 +1,8 @@
-
 #TODO make egg, quick install, exec, ...
 
 PYTHON=python
 TEST_TARGET=
+MD5TOOL=md5sum
 
 .PHONY: all test clean exec devtest
 
@@ -30,11 +30,14 @@ test:
 	fi
 	
 devtest:
-	@chsum1=""; \
+	@if [ -z `which md5sum`]; then\
+		MD5TOOL="md5 -r " ; \
+	fi; \
+	chsum1=""; \
 	while true; do \
-		chsum2=`find ./pyshell/ -name "*.py" -exec md5sum {} \;`; \
+		chsum2=`find ./pyshell -name "*.py" -exec $$MD5TOOL {} \;` ; \
 		if [ "$$chsum1" != "$$chsum2" ] ; then \
-		    reset; \
+			reset; \
 			make testall; \
 			chsum1=$$chsum2; \
 			echo ""; \

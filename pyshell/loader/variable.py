@@ -17,15 +17,15 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.loader.parameter import registerAddValues, registerSet, ParameterAbstractLoader
-from pyshell.system.context   import ContextParameter
-from pyshell.utils.constants  import CONTEXT_ATTRIBUTE_NAME
+from pyshell.system.variable  import VarParameter
+from pyshell.utils.constants  import VARIABLE_ATTRIBUTE_NAME
 
-def registerAddValuesToContext(contextKey, value, subLoaderName = None):
-    registerAddValues(envKey, value, ContextLoader, subLoaderName)
+def registerAddValuesToVariable(contextKey, value, subLoaderName = None):
+    registerAddValues(envKey, value, VariableLoader, subLoaderName)
 
-def registerSetContext(contextKey, context, noErrorIfKeyExist = False, override = False, subLoaderName = None):
-	registerSet(key, obj, ContextLoader, ContextParameter, noErrorIfKeyExist, override, subLoaderName)
-
-class ContextLoader(ParameterAbstractLoader):
+def registerSetVariable(contextKey, context, noErrorIfKeyExist = False, override = False, subLoaderName = None):
+	registerSet(key, obj, VariableLoader, VarParameter, noErrorIfKeyExist, override, subLoaderName)
+	
+class VariableLoader(ParameterAbstractLoader):
     def __init__(self):
-        ParameterAbstractLoader.__init__(self, CONTEXT_ATTRIBUTE_NAME)
+        ParameterAbstractLoader.__init__(self, VARIABLE_ATTRIBUTE_NAME)

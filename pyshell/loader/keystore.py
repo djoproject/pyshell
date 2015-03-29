@@ -16,72 +16,13 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
-from pyshell.loader.exception import LoadException
-from pyshell.utils.constants  import KEYSTORE_SECTION_NAME
-from pyshell.utils.exception  import ListOfException
-from pyshell.system.keystore  import Key, KeyStore
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.loader.parameter   import registerAddValues, registerSet, ParameterAbstractLoader
+from pyshell.system.key         import CryptographicKeyParameter
+from pyshell.utils.constants    import KEY_ATTRIBUTE_NAME
 
-LOADING_METHOD_NAME    = "load"
-UNLOADING_METHOD_NAME  = "unload"
+def registerSetKey(key, obj, noErrorIfKeyExist = False, override = False, subLoaderName = None):
+    registerSet(key, obj, KeyLoader, CryptographicKey, noErrorIfKeyExist, override, subLoaderName)
 
-def _local_getAndInitCallerModule(subLoaderName = None):
-    return getAndInitCallerModule(KeyStoreLoader.__module__+"."+KeyStoreLoader.__name__,KeyStoreLoader, 3, subLoaderName)
-
-def _initAndGetKeyStore(parameterManager, methName):
-    
-    param = parameterManager.environment.getParameter(KEYSTORE_SECTION_NAME, perfectMatch = True)
-    if param is None:
-        raise LoadException("(KeyStoreLoader) "+str(methName)+", fail to load keys because parameter has not a keyStore item") 
-            
-    keyStore = param.getValue()
-    
-    if not isinstance(keyStore, KeyStore):
-        raise LoadException("(KeyStoreLoader) "+str(methName)+", the keyStore item retrieved from parameters is not a valid instance of KeyStore, got '"+str(type(keyStore))+"'")
-        
-    return keyStore
-
-class KeyStoreLoader(AbstractLoader):
+class KeyLoader(ParameterAbstractLoader):
     def __init__(self):
-        AbstractLoader.__init__(self)
-        self.keys = {}
-        self.loadedKeys = None
-
-    def load(self, parameterManager, subLoaderName = None):
-        self.loadedKeys = []
-        AbstractLoader.load(self, parameterManager, subLoaderName)
-
-        keyStore = _initAndGetKeyStore(parameterManager, LOADING_METHOD_NAME)
-        exceptions = ListOfException()
-        
-        for keyName, value in self.keys.items():
-            keyInstance, override = value
-            
-            if keyStore.hasKey(keyName) and not override:
-                exceptions.addException( LoadException("fail to register key '"+str(keyName)+"', key alreay exists") )
-                continue
-                
-            keyStore.setKeyInstance(keyName, keyInstance)
-            self.loadedKeys.append(keyName)
-            
-        #raise error list
-        if exceptions.isThrowable():
-            raise exceptions 
-
-    def unload(self, parameterManager, subLoaderName = None):
-        AbstractLoader.unload(self, parameterManager, subLoaderName)
-        
-        keyStore = _initAndGetKeyStore(parameterManager, UNLOADING_METHOD_NAME)
-    
-        for keyName in self.loadedKeys:
-            if keyStore.hasKey(keyName):
-                keyStore.unsetKey(keyName)
-        
-def registerKey(keyName, keyString, override = True, transient=True, subLoaderName = None):
-    keyInstance          = Key(keyString, transient)
-    loader               = _local_getAndInitCallerModule(subLoaderName)
-    loader.keys[keyName] = (keyInstance, override,)
-    
-    
-    
+        ParameterAbstractLoader.__init__(self, KEY_ATTRIBUTE_NAME)

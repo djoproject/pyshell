@@ -22,24 +22,17 @@ from pyshell.utils.exception  import ListOfException
 from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, STATE_REGISTERED, STATE_LOADED, STATE_LOADED_E, STATE_UNLOADED, STATE_UNLOADED_E, STATE_RELOADED, STATE_RELOADED_E
 
 
-def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, moduleLevel = 2, profile = None): #TODO moduleLevel should be the last argument
-    frm = inspect.stack()[3]
+def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, profile = None, moduleLevel = 3):
+    frm = inspect.stack()[moduleLevel]
     mod = inspect.getmodule(frm[0])
 
-    #init loaders dictionnary
-    loadersDict = None
-    if hasattr(mod,"_loaders"):
-        loadersDict = mod._loaders
-        
-        #must be an instance of GlobalLoader
-        if not isinstance(loadersDict,GlobalLoader):
-            raise RegisterException("(loader) getAndInitCallerModule, the stored loader in the module '"+str(mod)+"' is not an instance of GlobalLoader, get '"+str(type(loadersDict))+"'")
-        
+    if hasattr(mod,"_loaders"):        
+        if not isinstance(mod._loaders,GlobalLoader): #must be an instance of GlobalLoader
+            raise RegisterException("(loader) getAndInitCallerModule, the stored loader in the module '"+str(mod)+"' is not an instance of GlobalLoader, get '"+str(type(mod._loaders))+"'")
     else:
-        loadersDict = GlobalLoader()
-        mod._loaders = loadersDict
+        setattr(mod, "_loaders", GlobalLoader()) #init loaders dictionnary
         
-    return mod._loaders.getLoader(callerLoaderKey, callerLoaderClassDefinition, profile)
+    return mod._loaders.getOrCreateLoader(callerLoaderKey, callerLoaderClassDefinition, profile)
 
 class AbstractLoader(object):
     def __init__(self):
@@ -61,28 +54,28 @@ class GlobalLoader(AbstractLoader):
         AbstractLoader.__init__(self)
         self.profileList = {}
 
-    def getLoader(self, loaderName, classDefinition, profile = None): #TODO this method is only used here by the command getAndInitCallerModule
-        #TODO getAndInitCallerModule AND getLoader should be in the same process
-            #maybe just move a little part of getLoader, brainstorm
-        
-        try:
-            if not issubclass(classDefinition, AbstractLoader):
-                raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an unallowed class loader definition, must be a class definition inheriting from AbstractLoader") #TODO improve message
-        
-        except TypeError: #raise by issubclass if one of the two argument is not a class definition
-            raise RegisterException("(GlobalLoader) getLoader, try to create a loader with an invalid class definition, must be a class definition inheriting from AbstractLoader") #TODO improve message
-        
+    def getOrCreateLoader(self, loaderName, classDefinition, profile = None): 
         if profile is None:
             profile = DEFAULT_PROFILE_NAME
+
+        if profile in self.profileList and loaderName in self.profileList[profile][0]:
+            return self.profileList[profile][0][loaderName]
+
+        #the loader does not exist, need to create it
+        try:
+            if not issubclass(classDefinition, AbstractLoader) and classDefinition.__name__ != "AbstractLoader": #need a child class of AbstractLoader
+                raise RegisterException("(GlobalLoader) getOrCreateLoader, try to create a loader with an unallowed class '"+str(classDefinition)+"', must be a class definition inheriting from AbstractLoader")
+        except TypeError: #raise by issubclass if one of the two argument is not a class definition
+            raise RegisterException("(GlobalLoader) getOrCreateLoader, expected a class definition, got '"+str(classDefinition)+"', must be a class definition inheriting from AbstractLoader")
         
         if profile not in self.profileList:
             self.profileList[profile] = ({},STATE_REGISTERED,)
             
-        if loaderName not in self.profileList[profile][0]:
-            self.profileList[profile][0][loaderName] = classDefinition() 
-            
-        return self.profileList[profile][0][loaderName]
+        loader = classDefinition() 
+        self.profileList[profile][0][loaderName] = loader
 
+        return loader
+            
     def _innerLoad(self,methodName, parameterManager, profile, allowedState, invalidStateMessage, nextState,nextStateIfError):
         exceptions = ListOfException()
 
@@ -126,7 +119,3 @@ class GlobalLoader(AbstractLoader):
 
     def reload(self, parameterManager, profile=None):
         self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._reloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_RELOADED,nextStateIfError=STATE_RELOADED_E)
-
-
-    
-        

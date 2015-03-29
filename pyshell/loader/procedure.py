@@ -26,8 +26,8 @@ from pyshell.loader.utils import getAndInitCallerModule, AbstractLoader
     #error if override
     
 
-def _local_getAndInitCallerModule(subLoaderName = None)
-    return getAndInitCallerModule(ProcedureLoader.__module__+"."+ProcedureLoader.__name__,ProcedureLoader, 3, subLoaderName)
+def _local_getAndInitCallerModule(profile = None)
+    return getAndInitCallerModule(ProcedureLoader.__module__+"."+ProcedureLoader.__name__,ProcedureLoader, profile, 3)
 
 class ProcedureLoader(AbstractLoader):
     def __init__(self):

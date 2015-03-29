@@ -82,10 +82,10 @@ class CommandExecuter():
         #create param manager
         self.params = ParameterContainer()
         self.params.setOrigin(ORIGIN_LOADER, "__system__")
-        self.params.registerParameterManager("environment", EnvironmentParameterManager(self.params))
-        self.params.registerParameterManager("context", ContextParameterManager(self.params))
-        self.params.registerParameterManager("variable", VariableParameterManager(self.params))
-        self.params.registerParameterManager("key", CryptographicKeyParameterManager(self.params))
+        self.params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME, EnvironmentParameterManager(self.params))
+        self.params.registerParameterManager(CONTEXT_ATTRIBUTE_NAME,     ContextParameterManager(self.params))
+        self.params.registerParameterManager(VARIABLE_ATTRIBUTE_NAME,    VariableParameterManager(self.params))
+        self.params.registerParameterManager(KEY_ATTRIBUTE_NAME,         CryptographicKeyParameterManager(self.params))
         
         self.params.pushVariableLevelForThisThread() #init local level #TODO remove me as soon as shell has its own procedure
         self.promptWaitingValuable = SimpleValuable(False)

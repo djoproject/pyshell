@@ -24,7 +24,7 @@ class ProcedureTest(unittest.TestCase):
         pass
 
     ## Misc ##
-    
+     
     def test_getAbsoluteIndex1(self):#getAbsoluteIndex, positiv value in the range
         self.assertEqual(getAbsoluteIndex(4,5),4)
         

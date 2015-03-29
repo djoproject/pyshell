@@ -3,6 +3,6 @@
 export PYTHONPATH=$(pwd)/../../../:$PYTHONPATH
 echo $PYTHONPATH
 
-python -m pyshell.arg.test.argcheckerTest || exit
-python -m pyshell.arg.test.argfeederTest || exit
-python -m pyshell.arg.test.decoratorTest || exit
+python -m pyshell.arg.test.argcheckerTest || exit 1
+python -m pyshell.arg.test.argfeederTest || exit 1
+python -m pyshell.arg.test.decoratorTest || exit 1

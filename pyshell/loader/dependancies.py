@@ -20,26 +20,26 @@ from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import RegisterException, LoadException
 from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_SUBADDON_NAME
 
-def _local_getAndInitCallerModule(subLoaderName = None):
-    return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, 3, subLoaderName)
+def _local_getAndInitCallerModule(profile = None):
+    return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, profile)
     
-def registerDependOnAddon(name, subName = None, subLoaderName = None):
-    if type(name) != str and type(name) != unicode:
-        raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon name are allowed")
+def registerDependOnAddon(dependancyName, dependancyProfile = None, profile = None):
+    if type(dependancyName) != str and type(dependancyName) != unicode:
+        raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon name are allowed, got '"+str(type(dependancyName))+"'")
 
-    if subName is not None and (type(subName) != str and type(subName) != unicode):
-        raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon subName are allowed")
+    if dependancyProfile is not None and (type(dependancyProfile) != str and type(dependancyProfile) != unicode):
+        raise RegisterException("(Loader) registerDependOnAddon, only string or unicode addon profile are allowed, got '"+str(type(dependancyProfile))+"'")
 
-    loader = _local_getAndInitCallerModule(subLoaderName)
-    loader.dep.append( (name,subName,) )
+    loader = _local_getAndInitCallerModule(profile)
+    loader.dep.append( (dependancyName,dependancyProfile,) )
     
 class DependanciesLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
         self.dep = []
         
-    def load(self, parameterManager, subLoaderName = None):
-        AbstractLoader.load(self, parameterManager, subLoaderName)
+    def load(self, parameterManager, profile = None):
+        AbstractLoader.load(self, parameterManager, profile)
         
         if len(self.dep) == 0:
             return
@@ -50,17 +50,17 @@ class DependanciesLoader(AbstractLoader):
         
         addon_dico = param.getValue()
         
-        for (name, subname) in self.dep:
-            if name not in addon_dico:
-                raise LoadException("(DependanciesLoader) load, no addon '"+str(name)+"' loaded")
+        for (dependancyName, dependancyProfile) in self.dep:
+            if dependancyName not in addon_dico:
+                raise LoadException("(DependanciesLoader) load, no addon '"+str(dependancyName)+"' loaded")
                 
-            loader = addon_dico[name]
+            loader = addon_dico[dependancyName]
             
-            if subname is None:
-                subname = DEFAULT_SUBADDON_NAME
+            if dependancyProfile is None:
+                dependancyProfile = DEFAULT_SUBADDON_NAME
             
-            if subname not in loader.subAddons:
-                raise LoadException("(DependanciesLoader) load, addon '"+str(name)+"', sub addon '"+str(subname)+"' is not loaded")
+            if dependancyProfile not in loader.profileList:
+                raise LoadException("(DependanciesLoader) load, addon '"+str(dependancyName)+"', sub addon '"+str(dependancyProfile)+"' is not loaded")
         
         
         

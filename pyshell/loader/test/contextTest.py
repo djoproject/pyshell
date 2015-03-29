@@ -17,6 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+from pyshell.loader.context import registerAddValuesToContext, registerSetContext, ContextLoader
 
 class ContextTest(unittest.TestCase):
     def setUp(self):

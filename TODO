@@ -136,7 +136,7 @@
     ### misc          ###
     #####################
     
-        when origin loader is selected, not only the loader name is required, but also the profile name
+        on parameter set, when origin loader is selected, not only the loader name is required, but also the profile name
     
     #####################
     ### utils         ###
@@ -332,6 +332,9 @@
                             the parameter does not need to be saved but the hash will be different
 
                             SOLUTION 1 : if a loader recreate a parameter, overwrite the origin and the hash in parameter
+
+                PRBLM 6: a loader can only want to add value in list parameter TODO not solved
+                    these value should not be saved
                             
 #################### SYSTEM ##################################################################################################
 
@@ -388,11 +391,71 @@
                     +++ easy to manage
 
 
-                
+                    PRBLM: how to access easily to the method to remove in case of loader unloas ?
+                        whitout need to iterate over every remaining command in the list ?
                 
 
-                    
-                        
+                SOLUTION 6: 
+                    a command added by a loader is flagged
+                        so command flagged are not used in hash or in saving process
+
+                    the flagging hold: -ref to the index list of the loader
+                                       -index of the command in the index list
+
+                    a list of index (for each loader)
+                        a list of the index of the command of this loader in the procedure
+
+                    ACTION
+                        on loader load
+                            flag the command
+                            add them in the list of index
+                            set their index in the list of index
+
+                        on loader unload
+                            took the last command, remove it from the procedure
+                            remove list of index
+                            update list of index of the other loaders after the first command of the removed loader
+                                uuuh, could be an issues, because the index of the others loader are maybe invalid now ... TODO
+                                    update the index of the other loader in the same time of removing the command of the unloaded loader
+
+                        on command remove (command from a loader)
+                            remove the command from the index list
+                            update index of every loaders after the index of remove one
+                                update them from the end of each list, except for the current one
+
+                        on command move
+                            update index in command
+                            if the command is twisted with other command of the same loader, need to update order in queue
+                            also need to update index of command of this loader and the others
+
+                        on command add/move/remove (command not from a loader)
+                            need to identify loader command after the command added/removed TODO
+                            and update their index
+
+                    LINKING ?
+                        from first to last
+                            00 one reference to store
+                            00 on loader unload, need to recompute every index of the next command to remove (not really difficul to recompute)
+                            ++ on command remove, easy to access to following command where index need to be updated
+                            -- on command remove, need to link previous command to next one, but no reference to previous one
+
+                        from last to first
+                            00 one reference to store
+                            ++ on loader unload, can remove every command without index recomputation
+                            00 on command remove, need to iterate from the last command until we found the removed command (no more complexity than fToL)
+                            -- on command remove, need to link previous command to next one, but no reference to next one
+
+                        both XXX
+                            -- two references to store
+                            00 more thing to manage on move (no really more things to manage)
+                            ++ easy to remove a command one
+                            ++ easy to move a command
+                            00 on addon unload, same difficulty as other linkings
+
+                        list of index + command know its index in the list on index XXX
+                            memory advantage of simple queue
+                            same algorithm advantage of double queue
+
 
 #################### UTILS ###################################################################################################
 

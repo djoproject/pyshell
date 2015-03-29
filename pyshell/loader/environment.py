@@ -15,3 +15,17 @@
 
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from pyshell.loader.parameter   import registerAddValues, registerSet, ParameterAbstractLoader
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.utils.constants    import ENVIRONMENT_ATTRIBUTE_NAME
+
+def registerAddValuesToEnvironment(envKey, value, subLoaderName = None):
+    registerAddValues(envKey, value, EnvironmentLoader, subLoaderName)
+
+def registerSetEnvironment(envKey, env, noErrorIfKeyExist = False, override = False, subLoaderName = None):
+    registerSet(key, obj, EnvironmentLoader, EnvironmentParameter, noErrorIfKeyExist, override, subLoaderName)
+
+class EnvironmentLoader(ParameterAbstractLoader):
+    def __init__(self):
+        ParameterAbstractLoader.__init__(self, ENVIRONMENT_ATTRIBUTE_NAME)

@@ -29,8 +29,8 @@ from pyshell.loader.exception import LoadException, RegisterException
 from pyshell.utils.constants  import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception  import ListOfException
 
-def _local_getAndInitCallerModule(subLoaderName = None):
-    return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, 3, subLoaderName)
+def _local_getAndInitCallerModule(profile = None):
+    return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, profile,3)
 
 #TODO replace with the version from utils
 def _raiseIfInvalidKeyList(keyList, methName):

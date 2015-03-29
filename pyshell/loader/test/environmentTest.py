@@ -17,6 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+from pyshell.loader.environment import registerAddValuesToEnvironment, registerSetEnvironment, EnvironmentLoader
 
 class EnvironmentTest(unittest.TestCase):
     def setUp(self):

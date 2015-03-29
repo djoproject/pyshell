@@ -85,8 +85,8 @@ def listAddonFun(addon_dico):
         if name in local_addon:
             local_addon.remove(name)
         
-        for subAddonName, (subloader,state, ) in loader.subAddons.items():
-            l.append( (name, subAddonName, _formatState(state.state, formatGreen, formatOrange, formatRed ), ) )
+        for subAddonName, (subloader,state, ) in loader.profileList.items():
+            l.append( (name, subAddonName, _formatState(state, formatGreen, formatOrange, formatRed ), ) )
 
     for name in local_addon:
         l.append( (name,"",formatOrange(STATE_UNLOADED), ) )
@@ -180,9 +180,9 @@ def getAddonInformation(name, addon_dico, tabsize, ):
     lines.append(formatBolt("Addon")+" '"+str(name)+"'")
 
     #each sub addon
-    for subAddonName, (subloaders, status, ) in addon.subAddons.items():
+    for subAddonName, (subloaders, status, ) in addon.profileList.items():
         #current status
-        lines.append(tab+formatBolt("Sub addon")+" '"+str(subAddonName)+"': "+_formatState(status.state, formatGreen, formatOrange, formatRed ) )
+        lines.append(tab+formatBolt("Sub addon")+" '"+str(subAddonName)+"': "+_formatState(status, formatGreen, formatOrange, formatRed ) )
 
         #loader in each subbadon
         for name, loader in subloaders.items():
@@ -221,10 +221,10 @@ def subLoaderReload(name, subLoaderName, parameters, subAddon = None):
         subAddon = DEFAULT_PROFILE_NAME
 
     #subaddon exist ?
-    if subAddon not in addon.subAddons:
+    if subAddon not in addon.profileList:
         raise Exception("Unknown sub addon '"+str(subAddon)+"'")
 
-    loaderDictionnary, status = addon.subAddons[subAddon]
+    loaderDictionnary, status = addon.profileList[subAddon]
 
     #subloader exist ?
     if subLoaderName not in loaderDictionnary:
