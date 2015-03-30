@@ -176,7 +176,7 @@ registerCommand( ("save",) ,                   pro=saveKeyStore)
 registerCommand( ("load",) ,                   pro=loadKeyStore)
 registerCommand( ("clean",) ,                  pro=cleanKeyStore)
 registerCommand( ("transient",) ,              pro=setTransient)
-registerStopHelpTraversalAt( () )
+registerStopHelpTraversalAt()
 registerKey("test", "0x00112233445566778899aabbccddeeff")
 
 

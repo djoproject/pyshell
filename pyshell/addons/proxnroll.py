@@ -154,7 +154,7 @@ def parseDataCardType(datas):
 # MAIN #
 registerDependOnAddon("pyshell.addons.pcsc")
 registerSetGlobalPrefix( ("proxnroll", ) )
-registerStopHelpTraversalAt( () )
+registerStopHelpTraversalAt()
 registerCommand( ( "setlight",),  pre=setLight,                               pro=stopAsMainProcess) 
 registerCommand( ( "setbuzzer",), pre=setBuzzer,                              pro=stopAsMainProcess)
 registerCommand( ( "vendor",),    pre=ProxnrollAPDUBuilder.getDataVendorName, pro=stopAsMainProcess, post=printStringCharResult)
@@ -168,7 +168,7 @@ registerSetTempPrefix( ("calypso",  ) )
 registerCommand( ( "setspeed",),            pre=setSpeed,                                                            pro=stopAsMainProcess)
 registerCommand( ( "enabledigestupdate",),  pre=ProxnrollAPDUBuilder.configureCalypsoSamEnableInternalDigestUpdate,  pro=stopAsMainProcess)
 registerCommand( ( "disabledigestupdate",), pre=ProxnrollAPDUBuilder.configureCalypsoSamDisableInternalDigestUpdate, pro=stopAsMainProcess)
-registerStopHelpTraversalAt( ("calypso",) )
+registerStopHelpTraversalAt()
 
 # PRODUCT #
 registerSetTempPrefix( ("product",  ) )
@@ -177,7 +177,7 @@ registerCommand( ( "serialString",),  pre=ProxnrollAPDUBuilder.getDataProductSer
 registerCommand( ( "usbidentifier",), pre=ProxnrollAPDUBuilder.getDataProductUSBIdentifier, pro=stopAsMainProcess, post=printStringCharResult)
 registerCommand( ( "version",),       pre=ProxnrollAPDUBuilder.getDataProductVersion,       pro=stopAsMainProcess, post=printStringCharResult)
 registerCommand( ( "serial",),        pre=ProxnrollAPDUBuilder.getDataProductSerialNumber,  pro=stopAsMainProcess, post=printStringCharResult)
-registerStopHelpTraversalAt( ("product",) )
+registerStopHelpTraversalAt()
 
 # CARD #
 registerSetTempPrefix( ("card",  ) )
@@ -187,21 +187,20 @@ registerCommand( ( "completeIdentifier",), pre=ProxnrollAPDUBuilder.getDataCardC
 registerCommand( ( "type",),               pre=ProxnrollAPDUBuilder.getDataCardType,               pro=stopAsMainProcess, post=parseDataCardType)
 registerCommand( ( "shortSerial",),        pre=ProxnrollAPDUBuilder.getDataCardShortSerialNumber,  pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "atr",),                pre=ProxnrollAPDUBuilder.getDataCardATR,                pro=stopAsMainProcess, post=printATR)
-registerStopHelpTraversalAt( ("card",) )
+registerStopHelpTraversalAt()
 
 # TRACKING #
 registerSetTempPrefix( ("control","tracking",  ) )
 registerCommand( ( "resume",),  pre=ProxnrollAPDUBuilder.slotControlResumeCardTracking,  pro=stopAsMainProcess)
 registerCommand( ( "suspend",), pre=ProxnrollAPDUBuilder.slotControlSuspendCardTracking, pro=stopAsMainProcess)
-registerStopHelpTraversalAt( ("control",) )
-registerStopHelpTraversalAt( ("control","tracking") )
+registerStopHelpTraversalAt()
 
 # RFFIELD #
 registerSetTempPrefix( ("control","rffield",  ) )
 registerCommand( ( "stop",),  pre=ProxnrollAPDUBuilder.slotControlStopRFField,  pro=stopAsMainProcess)
 registerCommand( ( "start",), pre=ProxnrollAPDUBuilder.slotControlStartRFField, pro=stopAsMainProcess)
 registerCommand( ( "reset",), pre=ProxnrollAPDUBuilder.slotControlResetRFField, pro=stopAsMainProcess)
-registerStopHelpTraversalAt( ("control","rffield") )
+registerStopHelpTraversalAt()
 
 # T=CL #
 registerSetTempPrefix( ("control","t=cl",  ) )
@@ -210,10 +209,11 @@ registerCommand( ( "activation",),   pre=setActivation,                         
 registerCommand( ( "disable",),      pre=setDisable,                                                                pro=stopAsMainProcess)           
 registerCommand( ( "enable",),       pre=ProxnrollAPDUBuilder.slotControlEnableTCLAgain,                            pro=stopAsMainProcess)
 registerCommand( ( "reset",),        pre=ProxnrollAPDUBuilder.slotControlResetAfterNextDisconnectAndDisableNextTCL, pro=stopAsMainProcess)
-registerStopHelpTraversalAt( ("control","t=cl") )
+registerStopHelpTraversalAt()
 
 # STROP CONTROL #
 registerSetTempPrefix( ("control", ) )
+registerStopHelpTraversalAt()
 registerCommand( ( "stop",), pre=ProxnrollAPDUBuilder.slotControlStop)
 
 # ENCAPSULATE # 
@@ -222,7 +222,7 @@ registerSetTempPrefix( ("encapsulate", ) )
 registerCommand( ( "standard",),    pre=encapsulateStandard,    pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "redirection",), pre=encapsulateRedirection, pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "partial",),     pre=encapsulatePartial,     pro=stopAsMainProcess, post=printBytesAsString)
-registerStopHelpTraversalAt( ("encapsulate",) )
+registerStopHelpTraversalAt()
 
 # MIFARE #
 registerSetTempPrefix( ("mifare", ) )
@@ -230,6 +230,6 @@ registerCommand( ( "loadkey",),      pre=mifareLoadKey,      pro=stopAsMainProce
 registerCommand( ( "authenticate",), pre=mifareAuthenticate, pro=stopAsMainProcess)
 registerCommand( ( "read",),         pre=mifareRead,         pro=stopAsMainProcess, post=printBytesAsString)
 registerCommand( ( "update",),       pre=mifareUpdate,       pro=stopAsMainProcess)
-registerStopHelpTraversalAt( ("mifare",) )
+registerStopHelpTraversalAt()
 
 

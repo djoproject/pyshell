@@ -380,7 +380,7 @@ def moveCommandDownInProcedure(idProcedure, indexCommand):
 ### REGISTER SECTION ###
     
 registerSetGlobalPrefix( ("procedure", ) )
-registerStopHelpTraversalAt( () )
+registerStopHelpTraversalAt()
 registerCommand( ("list", ), pro=listProcedure )
 registerCommand( ("load", ), pro=load )
 registerCommand( ("save", ), pro=save )

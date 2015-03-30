@@ -248,7 +248,7 @@ def printByteTable(bytelist, bytePerLine = 4):
         printShell(hexa+ " " * (byteColumnSize - len(hexa)) +"| "+ascii+ " " * (asciiColumnSize - len(subByteList) -1)+"| "+intString+ " " * (decimalColumnSize - len(intString) -1)+"| "+binString)
                 
 registerSetGlobalPrefix( ("printing", ) )
-registerStopHelpTraversalAt( () )
+registerStopHelpTraversalAt()
 registerCommand( ( "bytelist",),  post=printByteTable) 
 registerCommand( ( "compareByte",),  post=compareByteList) 
 

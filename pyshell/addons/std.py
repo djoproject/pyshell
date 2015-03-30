@@ -327,5 +327,5 @@ registerStopHelpTraversalAt( ("?",) )
 registerCommand( ("range",) ,                         pre=generator)
 registerCommand( ("history","load",) ,                pro=historyLoad)
 registerCommand( ("history","save",) ,                pro=historySave)
-
+registerStopHelpTraversalAt( ("history",) )
 

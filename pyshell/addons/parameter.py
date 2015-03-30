@@ -636,7 +636,7 @@ registerCommand( ("unset",) ,                  pro=unsetVar)
 registerCommand( ("list",) ,                   pre=listVars, pro=printColumn)
 registerCommand( ("add",) ,                    pre=pre_addValues, pro=pro_addValues, post=post_addValues)
 registerCommand( ("subtract",) ,               post=subtractValuesVar)
-registerStopHelpTraversalAt( (VARIABLE_ATTRIBUTE_NAME,) )
+registerStopHelpTraversalAt()
 
 #context 
 registerSetTempPrefix( (CONTEXT_ATTRIBUTE_NAME, ) )
@@ -650,13 +650,13 @@ registerCommand( ("value",) ,              pre=getSelectedContextValue, pro=list
 registerCommand( ("index",) ,              pre=getSelectedContextIndex, pro=listFlatResultHandler)
 registerCommand( ("select", "index",) ,    post=selectValueIndex)
 registerCommand( ("select", "value",) ,    post=selectValue)
-registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,"select") )
+registerStopHelpTraversalAt( ("select",) )
 registerCommand( ("properties","list"),    pre=listContextProperties, pro=printColumn) 
 registerCommand( ("list",) ,               pre=listContexts, pro=printColumn)
 registerCommand( ("properties","set") ,    pro=setContextProperties)
 registerCommand( ("properties","get"),     pre=getContextProperties, pro=listFlatResultHandler)
-registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,"properties") )
-registerStopHelpTraversalAt( (CONTEXT_ATTRIBUTE_NAME,) )
+registerStopHelpTraversalAt( ("properties",) )
+registerStopHelpTraversalAt()
 
 #env 
 registerSetTempPrefix( (ENVIRONMENT_ATTRIBUTE_NAME, ) )
@@ -670,13 +670,13 @@ registerCommand( ("subtract",) ,        post=subtractEnvironmentValuesFun)
 registerCommand( ("properties","set"),  pro=setEnvironmentProperties) 
 registerCommand( ("properties","get"),  pre=getEnvironmentProperties, pro=listFlatResultHandler) 
 registerCommand( ("properties","list"), pre=listEnvironmentProperties, pro=printColumn) 
-registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,"properties",) )
-registerStopHelpTraversalAt( (ENVIRONMENT_ATTRIBUTE_NAME,) ) 
+registerStopHelpTraversalAt( ("properties",) )
+registerStopHelpTraversalAt() 
 
 #parameter
 registerSetTempPrefix( (PARAMETER_NAME, ) )
 registerCommand( ("save",) ,           pro=saveParameter)
 registerCommand( ("load",) ,           pro=loadParameter)
 registerCommand( ("list",) ,           pro=listParameter, post=printColumnWithouHeader)
-registerStopHelpTraversalAt( (PARAMETER_NAME,) )
+registerStopHelpTraversalAt()
     

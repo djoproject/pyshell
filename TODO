@@ -333,8 +333,33 @@
 
                             SOLUTION 1 : if a loader recreate a parameter, overwrite the origin and the hash in parameter
 
-                PRBLM 6: a loader can only want to add value in list parameter TODO not solved
-                    these value should not be saved
+                PRBLM 6: add/remove some of the values TODO
+                    it's not a complete "setValue"
+                    
+                    SOLUTION 1: keep a start index, and a end index of value stored by each 
+                        because it is not allowed to add value at a specific index in environmentParameter, you can only add/remove value
+                        So we don't need more information
+                        could be possible to set: -a single value (range length = 1)
+                                                  -a range value (range length > 1)
+                                                  -all value (range length = max)
+                                                  -No value (range length = 0)
+                                                  
+                        even if all the value added by a loader are removed, the loader is still dependant of the parameter
+                        
+                        QUESTION: with such system, we will precisely know at the save which value come from the loader
+                            Is loader origin/hash still needed ? because we will be able to identify precisely every value in the parameter coming from a loader
+                            startingHash is still needed to know if file is different from file, still need to know file name
+                            if does not come from file, set hash to None
+                            origin not really needed anymore for loader or procedure
+                            
+                        PRBLM 1: if a user removed a value added by a loader, it becomes a custom parameter or not ?
+                            because on the next reboot, the removed value will come back
+                            but if we store loader value, then reload them, they will become value from file and not from loader...
+                        
+                        PRBLM 2: And if add it after the removal ? does it come back to the loader origin ? 
+                            definitely not
+                            
+                            
                             
 #################### SYSTEM ##################################################################################################
 

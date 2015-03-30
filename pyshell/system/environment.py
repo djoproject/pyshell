@@ -108,7 +108,7 @@ class EnvironmentParameter(Parameter):
         #append values
         self.value.extend(values)
     
-    def removeValues(self, values):
+    def removeValues(self, values): #TODO because we insert the value at the end, should remove value from the end
         #must be "not readonly"
         self.settings._raiseIfReadOnly(self.__class__.__name__,"removeValues")
     

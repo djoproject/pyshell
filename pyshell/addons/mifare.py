@@ -44,13 +44,11 @@ def mifareUltraLightWrite(sector, data, compatibility = False):
     
     
 registerSetGlobalPrefix( ("mifare",) )
-registerStopHelpTraversalAt( () )
+registerStopHelpTraversalAt()
 
 
 registerSetTempPrefix( ("ultralight",) )
 registerCommand( ("read",) ,  pre=mifareUltraLightRead )
 registerCommand( ("write",) , pre=mifareUltraLightWrite )
-
-
-registerStopHelpTraversalAt( ("ultralight",) )
+registerStopHelpTraversalAt()
 

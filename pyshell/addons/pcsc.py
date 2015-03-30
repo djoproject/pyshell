@@ -505,7 +505,7 @@ registerSetEnvironment(envKey="pcsc_connexionlist", env=EnvironmentParameter([],
 ## register METHOD ##
 
 registerSetGlobalPrefix( ("pcsc", ) )
-registerStopHelpTraversalAt( () )
+registerStopHelpTraversalAt()
 
 registerCommand( ("list",) ,             pro=getConnected,       post=printColumn)
 registerCommand( ("disconnect",) ,       pro=disconnect)
@@ -515,21 +515,21 @@ registerCommand( ("load",) ,             pro=loadPCSC)
 registerSetTempPrefix( ("reader", ) )
 registerCommand( ("list",) ,    pro=getAvailableReader, post=printColumn)
 registerCommand( ("connect",) , pro=connectReader)
-registerStopHelpTraversalAt( ("reader",) )
+registerStopHelpTraversalAt()
 
 registerSetTempPrefix( ("card", ) )
 registerCommand( ("list",) ,      pro=getAvailableCard,   post=printColumn)
 registerCommand( ("connect",) ,   pro=connectCard)
-registerStopHelpTraversalAt( ("card",) )
+registerStopHelpTraversalAt()
 
 registerSetTempPrefix( ("set", ) )
 registerCommand( ("autoload",) ,   pro=setAutoLoad)
 registerCommand( ("autoconnect",) , pro=setAutoConnect)
 registerCommand( ("protocol",) ,    pro=setProtocol)
-registerStopHelpTraversalAt( ("set",) )
+registerStopHelpTraversalAt()
 
 registerSetTempPrefix( ("monitor", ) )
 registerCommand( ("card",) ,   pro=monitorCard)
 registerCommand( ("reader",) , pro=monitorReader)
 registerCommand( ("data",) ,   pro=monitorData)
-registerStopHelpTraversalAt( ("monitor",) )
+registerStopHelpTraversalAt()
