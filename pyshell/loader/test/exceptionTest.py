@@ -17,13 +17,23 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
+from pyshell.loader.exception import LoadException, RegisterException
+
+def raise_LoadException():
+    raise LoadException("plop")
+    
+def raise_RegisterException():
+    raise RegisterException("plip")
 
 class ExceptionTest(unittest.TestCase):
     def setUp(self):
         pass
         
-    def test_(self):
-        pass #TODO
+    def test_RegisterException(self):
+        self.assertRaises(RegisterException, raise_RegisterException)
+        
+    def test_LoadException(self):
+        self.assertRaises(LoadException, raise_LoadException)
         
 if __name__ == '__main__':
     unittest.main()

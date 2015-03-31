@@ -18,7 +18,7 @@
 
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import RegisterException, LoadException
-from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_SUBADDON_NAME
+from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_PROFILE_NAME
 
 def _local_getAndInitCallerModule(profile = None):
     return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, profile)
@@ -57,7 +57,7 @@ class DependanciesLoader(AbstractLoader):
             loader = addon_dico[dependancyName]
             
             if dependancyProfile is None:
-                dependancyProfile = DEFAULT_SUBADDON_NAME
+                dependancyProfile = DEFAULT_PROFILE_NAME
             
             if dependancyProfile not in loader.profileList:
                 raise LoadException("(DependanciesLoader) load, addon '"+str(dependancyName)+"', sub addon '"+str(dependancyProfile)+"' is not loaded")

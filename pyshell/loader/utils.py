@@ -63,7 +63,7 @@ class GlobalLoader(AbstractLoader):
 
         #the loader does not exist, need to create it
         try:
-            if not issubclass(classDefinition, AbstractLoader) and classDefinition.__name__ != "AbstractLoader": #need a child class of AbstractLoader
+            if not issubclass(classDefinition, AbstractLoader) or classDefinition.__name__ == "AbstractLoader": #need a child class of AbstractLoader
                 raise RegisterException("(GlobalLoader) getOrCreateLoader, try to create a loader with an unallowed class '"+str(classDefinition)+"', must be a class definition inheriting from AbstractLoader")
         except TypeError: #raise by issubclass if one of the two argument is not a class definition
             raise RegisterException("(GlobalLoader) getOrCreateLoader, expected a class definition, got '"+str(classDefinition)+"', must be a class definition inheriting from AbstractLoader")
@@ -91,7 +91,7 @@ class GlobalLoader(AbstractLoader):
             raise LoadException("(GlobalLoader) '"+methodName+"', profile '"+str(profile)+"' "+invalidStateMessage) 
 
         for loaderName, loader in loaders.items():
-            meth_toCall = getattr(loader, methodName)
+            meth_toCall = getattr(loader, methodName) #no need to test if attribute exist, it is supposed to call load/unload or reload and loader is suppose to be an AbstractLoader
 
             try:
                 meth_toCall(parameterManager,profile)
@@ -109,7 +109,6 @@ class GlobalLoader(AbstractLoader):
 
     _loadAllowedState   = (STATE_REGISTERED, STATE_UNLOADED, STATE_UNLOADED_E,)
     _unloadAllowedState = (STATE_LOADED, STATE_LOADED_E, STATE_RELOADED, STATE_RELOADED_E,)
-    _reloadAllowedState = (STATE_LOADED, STATE_LOADED_E, STATE_RELOADED, STATE_RELOADED_E,)
 
     def load(self, parameterManager, profile=None):
         self._innerLoad("load",   parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._loadAllowedState,   invalidStateMessage="is already loaded",nextState=STATE_LOADED,  nextStateIfError=STATE_LOADED_E)
@@ -118,4 +117,4 @@ class GlobalLoader(AbstractLoader):
         self._innerLoad("unload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_UNLOADED,nextStateIfError=STATE_UNLOADED_E)
 
     def reload(self, parameterManager, profile=None):
-        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._reloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_RELOADED,nextStateIfError=STATE_RELOADED_E)
+        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_RELOADED,nextStateIfError=STATE_RELOADED_E)

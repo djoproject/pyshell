@@ -516,6 +516,9 @@
 
         #not a real logic in exception usage, sometime DefaultPyshellException is used, and sometimes is is custom exception that inherit from DefaultPyshellException
             #define a usage way and always use it everywhere
+            
+            #IDEA 1 : each package has its exception module, these exception depends from utils/exception/PyshellException
+                      And only these exception can be raised in their package
 
         #a lot of place in the code just raise default exception "raise Exception"
             #replace with pyshell exception raising

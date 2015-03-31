@@ -16,22 +16,12 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import DefaultPyshellException, PyshellException, USER_ERROR, PARSE_WARNING
+from pyshell.utils.exception import DefaultPyshellException, USER_ERROR, PARSE_WARNING
 
-class RegisterException(PyshellException):
+class RegisterException(DefaultPyshellException):
     def __init__(self,value):
-        PyshellException.__init__(self, USER_ERROR)
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
+        DefaultPyshellException.__init__(self, value, USER_ERROR)
 
 class LoadException(DefaultPyshellException):
     def __init__(self,value):
-        DefaultPyshellException.__init__(self,None, PARSE_WARNING)
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
-
-
+        DefaultPyshellException.__init__(self,value, PARSE_WARNING)
