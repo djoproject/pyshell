@@ -16,6 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #if two different profile of the same module are loaded, what append ?
+
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import RegisterException, LoadException
 from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_PROFILE_NAME
