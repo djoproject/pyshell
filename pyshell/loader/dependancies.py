@@ -16,12 +16,9 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #if two different profile of the same module are loaded, what append ?
-
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import RegisterException, LoadException
-from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_PROFILE_NAME
+from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_PROFILE_NAME, STATE_LOADED, STATE_LOADED_E
 
 def _local_getAndInitCallerModule(profile = None):
     return getAndInitCallerModule(DependanciesLoader.__module__+"."+DependanciesLoader.__name__,DependanciesLoader, profile)
@@ -63,8 +60,11 @@ class DependanciesLoader(AbstractLoader):
                 dependancyProfile = DEFAULT_PROFILE_NAME
             
             if dependancyProfile not in loader.profileList:
-                raise LoadException("(DependanciesLoader) load, addon '"+str(dependancyName)+"', sub addon '"+str(dependancyProfile)+"' is not loaded")
+                raise LoadException("(DependanciesLoader) load, addon '"+str(dependancyName)+"' has no profile '"+str(dependancyProfile)+"'")
         
-        
+            loaders, state = loader.profileList[dependancyProfile]
+            
+            if state not in (STATE_LOADED, STATE_LOADED_E,):
+                raise LoadException("(DependanciesLoader) load, addon '"+str(dependancyName)+"', profile '"+str(dependancyProfile)+"' is not loaded")
         
         

@@ -20,7 +20,7 @@ import unittest
 from pyshell.loader.utils import GlobalLoader
 from pyshell.loader.dependancies import _local_getAndInitCallerModule, registerDependOnAddon, DependanciesLoader
 from pyshell.loader.exception import RegisterException,LoadException
-from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, DEFAULT_PROFILE_NAME
+from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, DEFAULT_PROFILE_NAME, STATE_LOADED, STATE_UNLOADED
 from pyshell.system.container import ParameterContainer
 from pyshell.system.environment import EnvironmentParameter, EnvironmentParameterManager
 from pyshell.arg.argchecker import defaultInstanceArgChecker
@@ -164,14 +164,14 @@ class DependanciesTest(unittest.TestCase):
         
     def testDependanciesLoaderLoad2(self):#load with dep and ADDONLIST_KEY not in env
         dl = DependanciesLoader()
-        dl.dep.append( ("plop", None,) )
+        dl.dep.append( ("addons.plop", None,) )
         pc = ParameterContainer()
         pc.registerParameterManager("environment", EnvironmentParameterManager())
         self.assertRaises(LoadException, dl.load, pc)
         
     def testDependanciesLoaderLoad3(self):#load with dep, ADDONLIST_KEY defined in env, with dependancyName not satisfied
         dl = DependanciesLoader()
-        dl.dep.append( ("plop", None,) )
+        dl.dep.append( ("addons.plop", None,) )
         pc = ParameterContainer()
         pc.registerParameterManager("environment", EnvironmentParameterManager())
         pc.environment.setParameter(ADDONLIST_KEY,EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance()), localParam = False)
@@ -179,23 +179,33 @@ class DependanciesTest(unittest.TestCase):
         
     def testDependanciesLoaderLoad4(self):#load with dep, ADDONLIST_KEY defined in env, with dependancyName satisfied, dependancyProfile not satisfied
         dl = DependanciesLoader()
-        dl.dep.append( ("plop", "plap",) )
+        dl.dep.append( ("addons.plop", "profile.plap",) )
         pc = ParameterContainer()
         pc.registerParameterManager("environment", EnvironmentParameterManager())
         param = pc.environment.setParameter(ADDONLIST_KEY,EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance()), localParam = False)
-        param.getValue()["plop"] = GlobalLoader()
-        param.getValue()["plop"].profileList[DEFAULT_PROFILE_NAME] = True
+        param.getValue()["addons.plop"] = GlobalLoader()
+        param.getValue()["addons.plop"].profileList[DEFAULT_PROFILE_NAME] = (None, STATE_LOADED,)
         self.assertRaises(LoadException, dl.load, pc)
         
-    def testDependanciesLoaderLoad5(self):#load with dep, ADDONLIST_KEY defined in env, with dependancyName satisfied, dependancyProfile satisfied
+    def testDependanciesLoaderLoad5(self):#load with dep, ADDONLIST_KEY defined in env, with dependancyName satisfied, dependancyProfile satisfied, loaded
         dl = DependanciesLoader()
-        dl.dep.append( ("plop", "plap",) )
+        dl.dep.append( ("addons.plop", "profile.plap",) )
         pc = ParameterContainer()
         pc.registerParameterManager("environment", EnvironmentParameterManager())
         param = pc.environment.setParameter(ADDONLIST_KEY,EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance()), localParam = False)
-        param.getValue()["plop"] = GlobalLoader()
-        param.getValue()["plop"].profileList["plap"] = True
+        param.getValue()["addons.plop"] = GlobalLoader()
+        param.getValue()["addons.plop"].profileList["profile.plap"] = (None, STATE_LOADED,)
         dl.load( pc)
+        
+    def testDependanciesLoaderLoad6(self):#load with dep, ADDONLIST_KEY defined in env, with dependancyName satisfied, dependancyProfile satisfied, not loaded
+        dl = DependanciesLoader()
+        dl.dep.append( ("addons.plop", "profile.plap",) )
+        pc = ParameterContainer()
+        pc.registerParameterManager("environment", EnvironmentParameterManager())
+        param = pc.environment.setParameter(ADDONLIST_KEY,EnvironmentParameter(value = {}, typ=defaultInstanceArgChecker.getArgCheckerInstance()), localParam = False)
+        param.getValue()["addons.plop"] = GlobalLoader()
+        param.getValue()["addons.plop"].profileList["profile.plap"] = (None, STATE_UNLOADED,)
+        self.assertRaises(LoadException, dl.load, pc)
         
 if __name__ == '__main__':
     unittest.main()

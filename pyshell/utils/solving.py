@@ -137,7 +137,7 @@ class Solver(object):
             if len(tokenList) == 1:
                 raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', type 'help' to get the list of commands", USER_WARNING)
                 
-            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', token '"+str(tokenList[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING)
+            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', token '"+str(tokenList[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING) #TODO put the found tokens with the 'help' command
 
         #return the command found and the not found token
         return searchResult.getLastTokenFoundValue(), list(searchResult.getNotFoundTokenList())

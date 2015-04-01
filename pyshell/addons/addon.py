@@ -16,13 +16,18 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#from pyshell.utils.loader import *
+#TODO
+    #replace 'Sub part' by profile
+    #only one profile by addon can be load, adapt printing if needed
+    #on list print, don't print any profile name if unloaded
+    #profile is not saved with addon to load list, find a way to store it
+
 from pyshell.loader.command    import registerSetGlobalPrefix, registerCommand, registerStopHelpTraversalAt, registerSetTempPrefix
 from pyshell.arg.decorator     import shellMethod
 import os, sys
 from pyshell.utils.postProcess import printColumn, listResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
-from pyshell.utils.constants   import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY, STATE_LOADED, STATE_RELOADED,STATE_UNLOADED, STATE_REGISTERED
+from pyshell.utils.constants   import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY, STATE_LOADED,STATE_UNLOADED, STATE_REGISTERED, ENVIRONMENT_TAB_SIZE_KEY
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
 from pyshell.system.environment import EnvironmentParameter
@@ -59,7 +64,7 @@ def _tryToImportLoaderFromFile(name):
     return mod._loaders
 
 def _formatState(state, printok, printwarning, printerror):
-    if state in (STATE_LOADED, STATE_RELOADED,):
+    if state == STATE_LOADED:
         return printok(state)
     elif state in (STATE_UNLOADED, STATE_REGISTERED,):
         return printwarning(state)
@@ -161,7 +166,7 @@ def hardReload(name, parameters, subAddon = None):
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
              addon_dico=environmentParameterChecker(ADDONLIST_KEY),
-             tabsize=environmentParameterChecker("tabsize"))
+             tabsize=environmentParameterChecker(ENVIRONMENT_TAB_SIZE_KEY))
 def getAddonInformation(name, addon_dico, tabsize, ):
     "print all available information about an addon"
 

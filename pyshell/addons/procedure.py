@@ -159,7 +159,7 @@ def isBool(value):
     return False,None
 
 @shellMethod(mltries = environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY),
-             filePath = environmentParameterChecker("procedure_filepath"))
+             filePath = environmentParameterChecker("procedure_filepath")) #TODO should be in constant
 def load(mltries, filePath):
     #TODO refactor
 
@@ -306,7 +306,7 @@ def _saveTraversal(path, node, config, level):
     return config
 
 @shellMethod(mltries = environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY),
-             filePath = environmentParameterChecker("procedure_filepath"))
+             filePath = environmentParameterChecker("procedure_filepath")) #TODO should be in constant
 def save(mltries, filePath):
     config = ConfigParser.RawConfigParser()
     

@@ -20,7 +20,7 @@ import unittest
 from pyshell.loader.utils import getAndInitCallerModule, AbstractLoader, GlobalLoader
 from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException
-from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, STATE_LOADED, STATE_LOADED_E, STATE_UNLOADED, STATE_UNLOADED_E, STATE_RELOADED, STATE_RELOADED_E
+from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, STATE_LOADED, STATE_LOADED_E, STATE_UNLOADED, STATE_UNLOADED_E
 
 class SubAbstractLoader(AbstractLoader):
     pass
@@ -265,14 +265,14 @@ class UtilsTest(unittest.TestCase):
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
         gl.load(None)
         gl.reload(None)
-        self.assertEqual(gl.profileList[DEFAULT_PROFILE_NAME][1], STATE_RELOADED)
+        self.assertEqual(gl.profileList[DEFAULT_PROFILE_NAME][1], STATE_LOADED)
     
     def test_GlobalLoaderReload8(self):#valid reload with error
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractUnloaderWithError)
         gl.load(None)
         self.assertRaises(ListOfException, gl.reload,None)
-        self.assertEqual(gl.profileList[DEFAULT_PROFILE_NAME][1], STATE_RELOADED_E)
+        self.assertEqual(gl.profileList[DEFAULT_PROFILE_NAME][1], STATE_LOADED_E)
     
     def test_GlobalLoaderReload9(self):#invalid reload
         gl = GlobalLoader()

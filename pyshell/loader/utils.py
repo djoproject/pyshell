@@ -16,10 +16,14 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO should only allowed ONE loaded profile at time per GlobalLoader + test
+    #on load, check if another profile in not loaded
+    #on unload, remove every information about loaded profile (if any information to remove)
+
 import inspect,traceback
 from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException
-from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, STATE_REGISTERED, STATE_LOADED, STATE_LOADED_E, STATE_UNLOADED, STATE_UNLOADED_E, STATE_RELOADED, STATE_RELOADED_E
+from pyshell.utils.constants  import DEFAULT_PROFILE_NAME, STATE_REGISTERED, STATE_LOADED, STATE_LOADED_E, STATE_UNLOADED, STATE_UNLOADED_E
 
 
 def getAndInitCallerModule(callerLoaderKey, callerLoaderClassDefinition, profile = None, moduleLevel = 3):
@@ -97,7 +101,7 @@ class GlobalLoader(AbstractLoader):
                 meth_toCall(parameterManager,profile)
                 loader.lastException = None
             except Exception as ex:
-                loader.lastException = ex
+                loader.lastException = ex #TODO is it used somewhere ? will be overwrite on reload if error on unload and on load
                 exceptions.addException(ex)
                 loader.lastException.stackTrace = traceback.format_exc()
         
@@ -108,7 +112,7 @@ class GlobalLoader(AbstractLoader):
         self.profileList[profile] = (loaders, nextState, )
 
     _loadAllowedState   = (STATE_REGISTERED, STATE_UNLOADED, STATE_UNLOADED_E,)
-    _unloadAllowedState = (STATE_LOADED, STATE_LOADED_E, STATE_RELOADED, STATE_RELOADED_E,)
+    _unloadAllowedState = (STATE_LOADED, STATE_LOADED_E,)
 
     def load(self, parameterManager, profile=None):
         self._innerLoad("load",   parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._loadAllowedState,   invalidStateMessage="is already loaded",nextState=STATE_LOADED,  nextStateIfError=STATE_LOADED_E)
@@ -117,4 +121,4 @@ class GlobalLoader(AbstractLoader):
         self._innerLoad("unload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_UNLOADED,nextStateIfError=STATE_UNLOADED_E)
 
     def reload(self, parameterManager, profile=None):
-        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_RELOADED,nextStateIfError=STATE_RELOADED_E)
+        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_LOADED,nextStateIfError=STATE_LOADED_E)
