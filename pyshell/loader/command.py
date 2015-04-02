@@ -27,13 +27,17 @@ from pyshell.utils.misc       import raiseIfInvalidKeyList
 def _local_getAndInitCallerModule(profile = None):
     return getAndInitCallerModule(CommandLoader.__module__+"."+CommandLoader.__name__,CommandLoader, profile)
 
+def _check_boolean(boolean, booleanName, meth):
+    if type(boolean) != bool:
+        raise RegisterException("(CommandRegister) "+meth+" a boolean value was expected for the argument "+booleanName+", got '"+str(type(boolean))+"'")
+
 def registerSetGlobalPrefix(keyList, profile = None):
-    raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerSetGlobalPrefix")
+    raiseIfInvalidKeyList(keyList, RegisterException,"CommandRegister", "registerSetGlobalPrefix")
     loader = _local_getAndInitCallerModule(profile)
     loader.prefix = keyList
 
 def registerSetTempPrefix(keyList, profile = None):
-    raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerSetTempPrefix")
+    raiseIfInvalidKeyList(keyList, RegisterException,"CommandRegister", "registerSetTempPrefix")
     loader = _local_getAndInitCallerModule(profile)
     loader.TempPrefix = keyList
     
@@ -41,20 +45,26 @@ def registerResetTempPrefix(profile = None):
     loader = _local_getAndInitCallerModule(profile)
     loader.TempPrefix = None
 
-def registerAnInstanciatedCommand(keyList, cmd, profile = None):
+def registerAnInstanciatedCommand(keyList, cmd, raiseIfExist=True, override=False, profile = None):
     #must be a multiCmd
     if not isinstance(cmd, MultiCommand):
-        raise RegisterException("(Loader) addInstanciatedCommand, cmd must be an instance of MultiCommand") #TODO improve error message, expect and get
+        raise RegisterException("(CommandRegister) addInstanciatedCommand, an instance of MultiCommand was expected, got '"+str(type(cmd))+"'")
 
     #check cmd and keylist
-    raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerAnInstanciatedCommand")
+    raiseIfInvalidKeyList(keyList, RegisterException,"CommandRegister", "registerAnInstanciatedCommand")
+    _check_boolean(raiseIfExist, "raiseIfExist", "registerAnInstanciatedCommand")
+    _check_boolean(override, "override", "registerAnInstanciatedCommand")
+
     loader = _local_getAndInitCallerModule(profile)
-    loader.addCmd(keyList, cmd)
+    loader.addCmd(keyList, cmd, raiseIfExist, override)
     return cmd
 
-def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, profile = None):
+def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, raiseIfExist=True, override=False, profile = None):
     #check cmd and keylist
-    raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerCommand")
+    raiseIfInvalidKeyList(keyList, RegisterException,"CommandRegister", "registerCommand")
+    _check_boolean(raiseIfExist, "raiseIfExist", "registerCommand")
+    _check_boolean(override, "override", "registerCommand")
+
     loader = _local_getAndInitCallerModule(profile)
     
     if loader.TempPrefix is not None:
@@ -64,12 +74,15 @@ def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, profi
         
     cmd = UniCommand(name, pre,pro,post, showInHelp)
     
-    loader.addCmd(keyList, cmd)
+    loader.addCmd(keyList, cmd, raiseIfExist, override)
     return cmd
 
-def registerAndCreateEmptyMultiCommand(keyList, showInHelp=True, profile = None):
+def registerAndCreateEmptyMultiCommand(keyList, showInHelp=True, raiseIfExist=True, override=False, profile = None):
     #check cmd and keylist
-    raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerCreateMultiCommand")
+    raiseIfInvalidKeyList(keyList, RegisterException,"CommandRegister", "registerCreateMultiCommand")
+    _check_boolean(raiseIfExist, "raiseIfExist", "registerAndCreateEmptyMultiCommand")
+    _check_boolean(override, "override", "registerAndCreateEmptyMultiCommand")
+
     loader = _local_getAndInitCallerModule(profile)
     
     if loader.TempPrefix is not None:
@@ -78,13 +91,13 @@ def registerAndCreateEmptyMultiCommand(keyList, showInHelp=True, profile = None)
         name = " ".join(keyList)
     
     cmd = MultiCommand(name, showInHelp)
-    loader.addCmd(keyList, cmd)
+    loader.addCmd(keyList, cmd, raiseIfExist, override)
 
     return cmd
 
 def registerStopHelpTraversalAt(keyList=(),profile = None):
     #check cmd and keylist
-    raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerCreateMultiCommand")
+    raiseIfInvalidKeyList(keyList, RegisterException,"CommandRegister", "registerCreateMultiCommand")
     loader = _local_getAndInitCallerModule(profile)
     
     if loader.TempPrefix is not None:
@@ -93,7 +106,7 @@ def registerStopHelpTraversalAt(keyList=(),profile = None):
     else:
         keyListTemp = keyList
     
-    loader.stoplist.append(keyListTemp)
+    loader.stoplist.add(tuple(keyListTemp))
     
 class CommandLoader(AbstractLoader):
     def __init__(self, prefix=()):
@@ -102,7 +115,7 @@ class CommandLoader(AbstractLoader):
         self.prefix     = prefix
         self.cmdDict    = {}
         self.TempPrefix = None
-        self.stoplist   = []
+        self.stoplist   = set()
         
         self.loadedCommand       = None
         self.loadedStopTraversal = None
@@ -121,14 +134,33 @@ class CommandLoader(AbstractLoader):
         exceptions = ListOfException()
     
         #add command
-        for keyList, cmd in self.cmdDict.iteritems():
+        for keyList, (cmd, raiseIfExist, override,) in self.cmdDict.iteritems():
+
+            if len(cmd) == 0:
+                exceptions.addException( LoadException("(CommandLoader) load, fail to insert key '"+str(" ".join(key))+"' in multi tries: empty command"))
+                continue
+
             key = list(self.prefix)
             key.extend(keyList)
+
             try:
-                mltries.insert(key, cmd)
-                self.loadedCommand.append(key)
+                searchResult = mltries.searchNode(key, True)
+                
+                if searchResult is not None and searchResult.isValueFound():
+                    if raiseIfExist:
+                        exceptions.addException( LoadException("(CommandLoader) load, fail to insert key '"+str(" ".join(key))+"' in multi tries: path already exists"))
+                        continue
+
+                    if override:
+                        mltries.update(key, cmd)
+                        self.loadedCommand.append(key)
+
+                else:
+                    mltries.insert(key, cmd)
+                    self.loadedCommand.append(key)
+
             except triesException as te:
-                exceptions.addException( LoadException("fail to insert key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
+                exceptions.addException( LoadException("(CommandLoader) load, fail to insert key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
 
         #stop traversal
         for stop in self.stoplist:
@@ -142,7 +174,7 @@ class CommandLoader(AbstractLoader):
                 mltries.setStopTraversal(key, True)
                 self.loadedStopTraversal.append(key)
             except triesException as te:
-                exceptions.addException( LoadException("fail to disable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)))
+                exceptions.addException( LoadException("(CommandLoader) load, fail to disable traversal for key list '"+str(" ".join(stop))+"' in multi tries: "+str(te)))
                 
         #raise error list
         if exceptions.isThrowable():
@@ -153,16 +185,17 @@ class CommandLoader(AbstractLoader):
         param = parameterManager.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch = True)
         
         if param is None:
-            raise LoadException("(CommandLoader) load, fail to load command because parameter has not a levelTries item")
+            raise LoadException("(CommandLoader) unload, fail to load command because parameter has not a levelTries item")
             
         mltries = param.getValue()
         exceptions = ListOfException()
     
+        #remove commands
         for key in self.loadedCommand:           
             try:
                 mltries.remove(key)
             except triesException as te:
-                exceptions.addException( LoadException( "fail to remove key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
+                exceptions.addException( LoadException( "(CommandLoader) unload,fail to remove key '"+str(" ".join(key))+"' in multi tries: "+str(te)))
         
         #remove stop traversal
         for key in self.loadedStopTraversal:
@@ -175,23 +208,23 @@ class CommandLoader(AbstractLoader):
                     continue
                 
             except triesException as te:
-                exceptions.addException( LoadException("fail to disable traversal for key list '"+str(" ".join(key))+"' in multi tries: "+str(te)))
+                exceptions.addException( LoadException("(CommandLoader) unload,fail to disable traversal for key list '"+str(" ".join(key))+"' in multi tries: "+str(te)))
                 continue
         
             try:
                 mltries.setStopTraversal(key, False)
             except triesException as te:
-                exceptions.addException( LoadException("fail to disable traversal for key list '"+str(" ".join(key))+"' in multi tries: "+str(te)))
+                exceptions.addException( LoadException("(CommandLoader) unload,fail to disable traversal for key list '"+str(" ".join(key))+"' in multi tries: "+str(te)))
         
         #raise error list
         if exceptions.isThrowable():
             raise exceptions 
         
-    def addCmd(self, keyList, cmd):
+    def addCmd(self, keyList, cmd, raiseIfExist=True, override=False):
         if self.TempPrefix is not None:
             prefix = list(self.TempPrefix)
             prefix.extend(keyList)
         else:
             prefix = keyList
     
-        self.cmdDict[tuple(prefix)] = cmd 
+        self.cmdDict[tuple(prefix)] = (cmd, raiseIfExist, override,)

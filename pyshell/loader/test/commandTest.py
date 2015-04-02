@@ -17,11 +17,17 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.loader.command import _local_getAndInitCallerModule, registerSetGlobalPrefix, registerSetTempPrefix, registerResetTempPrefix, registerAnInstanciatedCommand, registerCommand, registerAndCreateEmptyMultiCommand, registerStopHelpTraversalAt, CommandLoader
+from pyshell.loader.command import _local_getAndInitCallerModule, _check_boolean, registerSetGlobalPrefix, registerSetTempPrefix, registerResetTempPrefix, registerAnInstanciatedCommand, registerCommand, registerAndCreateEmptyMultiCommand, registerStopHelpTraversalAt, CommandLoader
 from pyshell.loader.utils import GlobalLoader
+from pyshell.loader.exception import LoadException, RegisterException
+from pyshell.command.command  import MultiCommand, UniCommand
+from pyshell.utils.constants  import DEFAULT_PROFILE_NAME
 
 def loader(profile=None):
     return _local_getAndInitCallerModule(profile)
+
+def plop():
+    pass
 
 class CommandTest(unittest.TestCase):
     def setUp(self):
@@ -57,44 +63,311 @@ class CommandTest(unittest.TestCase):
         self.assertIsInstance(a,CommandLoader)
         self.assertIsInstance(c,CommandLoader)
         
-    ## registering ## TODO test every method with profile set to None and profile not set to None
+    def test_check_boolean(self): #with valid bool
+        _check_boolean(True, "plop", "meth")
+        _check_boolean(False, "plop", "meth")
+
+    def test_check_boolean(self): #with unvalid bool
+        self.assertRaises(RegisterException, _check_boolean, object(), "plop", "meth")
+
+    ## registering ##
     
-        #registerSetGlobalPrefix with invalid keyList
-        #registerSetGlobalPrefix with valid keyList
+    def test_registerSetGlobalPrefix1(self):#registerSetGlobalPrefix with invalid keyList, with profile None
+        self.assertRaises(RegisterException, registerSetGlobalPrefix, object(), None)
+
+    def test_registerSetGlobalPrefix2(self):#registerSetGlobalPrefix with invalid keyList, with profile not None
+        self.assertRaises(RegisterException, registerSetGlobalPrefix, object(), "None")
         
-        #registerSetTempPrefix with invalid keyList
-        #registerSetTempPrefix with valid keyList
+    def test_registerSetGlobalPrefix3(self):#registerSetGlobalPrefix with valid keyList, with profile None
+        global _loaders
+        self.assertFalse("_loaders" in globals())
+        registerSetGlobalPrefix(("plop", "plip",), None)
+        self.assertTrue("_loaders" in globals())
+        self.assertIsInstance(_loaders, GlobalLoader)
+        l = _loaders.profileList[DEFAULT_PROFILE_NAME][0][CommandLoader.__module__+"."+CommandLoader.__name__]
+        self.assertIsInstance(l, CommandLoader)
+        self.assertTrue(hasattr(l, "prefix"))
+        self.assertEqual(l.prefix, ("plop", "plip",))
         
-        #registerResetTempPrefix with temp prefix set
-        #registerResetTempPrefix without temp prefix set
+    def test_registerSetGlobalPrefix4(self):#registerSetGlobalPrefix with valid keyList, with profile not None
+        global _loaders
+        self.assertFalse("_loaders" in globals())
+        registerSetGlobalPrefix(("plop", "plip",), "None")
+        self.assertTrue("_loaders" in globals())
+        self.assertIsInstance(_loaders, GlobalLoader)
+        l = _loaders.profileList["None"][0][CommandLoader.__module__+"."+CommandLoader.__name__]
+        self.assertIsInstance(l, CommandLoader)
+        self.assertTrue(hasattr(l, "prefix"))
+        self.assertEqual(l.prefix, ("plop", "plip",))
         
-        #registerAnInstanciatedCommand with invalid command type
-        #registerAnInstanciatedCommand with invalid keyList
-        #registerAnInstanciatedCommand with valid args
-        #registerAnInstanciatedCommand with valid args and registerSetTempPrefix
-        #registerAnInstanciatedCommand with valid args and registerSetGlobalPrefix
+    
+    def test_registerSetTempPrefix1(self):#registerSetTempPrefix with invalid keyList, with profile None
+        pass #TODO
         
-        #registerCommand with invalid keyList
-        #registerCommand test showInHelp
-        #registerCommand test pre/pro/post
-        #registerCommand test name generation
-        #registerCommand with valid args and registerSetTempPrefix
-        #registerCommand with valid args and registerSetGlobalPrefix
+    def test_registerSetTempPrefix2(self):#registerSetTempPrefix with invalid keyList, with profile not None
+        pass #TODO
         
-        #registerCreateMultiCommand with invalid keyList
-        #registerCreateMultiCommand test showInHelp
-        #registerCreateMultiCommand test name generation
-        #registerCommand with valid args and registerSetTempPrefix
-        #registerCommand with valid args and registerSetGlobalPrefix
+    def test_registerSetTempPrefix3(self):#registerSetTempPrefix with valid keyList, with profile None
+        pass #TODO
         
-        #registerStopHelpTraversalAt with invalid keyList
-        #registerStopHelpTraversalAt with valid args and NO predefined prefix
-        #registerStopHelpTraversalAt with valid args and registerSetTempPrefix
-        #registerStopHelpTraversalAt with valid args and registerSetGlobalPrefix
+    def test_registerSetTempPrefix4(self):#registerSetTempPrefix with valid keyList, with profile not None
+        pass #TODO
+        
+    
+    def test_registerResetTempPrefix1(self):#registerResetTempPrefix with temp prefix set, with profile None
+        pass #TODO
+        
+    def test_registerResetTempPrefix2(self):#registerResetTempPrefix with temp prefix set, with profile not None
+        pass #TODO
+        
+    def test_registerResetTempPrefix3(self):#registerResetTempPrefix without temp prefix set, with profile None
+        pass #TODO
+        
+    def test_registerResetTempPrefix4(self):#registerResetTempPrefix without temp prefix set, with profile not None
+        pass #TODO
+        
+    
+    def test_registerAnInstanciatedCommand1(self):#registerAnInstanciatedCommand with invalid command type, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand2(self):#registerAnInstanciatedCommand with invalid command type, with profile not None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand3(self):#registerAnInstanciatedCommand with invalid keyList, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand4(self):#registerAnInstanciatedCommand with invalid keyList, with profile not None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand5(self):#registerAnInstanciatedCommand with valid args, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand6(self):#registerAnInstanciatedCommand with valid args, with profile not None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand7(self):#registerAnInstanciatedCommand with valid args and registerSetTempPrefix, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand8(self):#registerAnInstanciatedCommand with valid args and registerSetTempPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand9(self):#registerAnInstanciatedCommand with valid args and registerSetGlobalPrefix, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand10(self):#registerAnInstanciatedCommand with valid args and registerSetGlobalPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand11(self):#registerAnInstanciatedCommand test raiseIfExist/override valid, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand12(self):#registerAnInstanciatedCommand test raiseIfExist/override valid, with profile not None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand13(self):#registerAnInstanciatedCommand test raiseIfExist/override not valid, with profile None
+        pass #TODO
+        
+    def test_registerAnInstanciatedCommand14(self):#registerAnInstanciatedCommand test raiseIfExist/override not valid, with profile not None
+        pass #TODO
+        
+
+    def test_registerCommand1(self):#registerCommand with invalid keyList, with profile None
+        pass #TODO
+        
+    def test_registerCommand2(self):#registerCommand with invalid keyList, with profile not None
+        pass #TODO
+        
+    def test_registerCommand3(self):#registerCommand test showInHelp, with profile None
+        pass #TODO
+        
+    def test_registerCommand4(self):#registerCommand test showInHelp, with profile not None
+        pass #TODO
+        
+    def test_registerCommand5(self):#registerCommand test pre/pro/post, with profile None
+        pass #TODO
+        
+    def test_registerCommand6(self):#registerCommand test pre/pro/post, with profile not None
+        pass #TODO
+        
+    def test_registerCommand7(self):#registerCommand test name generation, with profile None
+        pass #TODO
+        
+    def test_registerCommand8(self):#registerCommand test name generation, with profile not None
+        pass #TODO
+        
+    def test_registerCommand9(self):#registerCommand with valid args and registerSetTempPrefix, with profile None
+        pass #TODO
+        
+    def test_registerCommand10(self):#registerCommand with valid args and registerSetTempPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerCommand11(self):#registerCommand with valid args and registerSetGlobalPrefix, with profile None
+        pass #TODO
+        
+    def test_registerCommand12(self):#registerCommand with valid args and registerSetGlobalPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerCommand13(self):#registerCommand test raiseIfExist/override valid, with profile None
+        pass #TODO
+        
+    def test_registerCommand14(self):#registerCommand test raiseIfExist/override valid, with profile not None
+        pass #TODO
+        
+    def test_registerCommand15(self):#registerCommand test raiseIfExist/override not valid, with profile None
+        pass #TODO
+        
+    def test_registerCommand16(self):#registerCommand test raiseIfExist/override not valid, with profile not None
+        pass #TODO
+        
+    
+    def test_registerCreateMultiCommand1(self):#registerCreateMultiCommand with invalid keyList, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand2(self):#registerCreateMultiCommand with invalid keyList, with profile not None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand3(self):#registerCreateMultiCommand test showInHelp, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand4(self):#registerCreateMultiCommand test showInHelp, with profile not None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand5(self):#registerCreateMultiCommand test name generation, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand6(self):#registerCreateMultiCommand test name generation, with profile not None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand7(self):#registerCommand with valid args and registerSetTempPrefix, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand8(self):#registerCommand with valid args and registerSetTempPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand9(self):#registerCommand with valid args and registerSetGlobalPrefix, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand10(self):#registerCommand with valid args and registerSetGlobalPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand11(self):#registerCommand test raiseIfExist/override valid, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand12(self):#registerCommand test raiseIfExist/override valid, with profile not None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand13(self):#registerCommand test raiseIfExist/override not valid, with profile None
+        pass #TODO
+        
+    def test_registerCreateMultiCommand14(self):#registerCommand test raiseIfExist/override not valid, with profile  notNone
+        pass #TODO
+        
+    
+    def test_registerStopHelpTraversalAt1(self):#registerStopHelpTraversalAt with invalid keyList, with profile None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt2(self):#registerStopHelpTraversalAt with invalid keyList, with profile not None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt3(self):#registerStopHelpTraversalAt with valid args and NO predefined prefix, with profile None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt4(self):#registerStopHelpTraversalAt with valid args and NO predefined prefix, with profile not None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt5(self):#registerStopHelpTraversalAt with valid args and registerSetTempPrefix, with profile None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt6(self):#registerStopHelpTraversalAt with valid args and registerSetTempPrefix, with profile not None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt7(self):#registerStopHelpTraversalAt with valid args and registerSetGlobalPrefix, with profile None
+        pass #TODO
+        
+    def test_registerStopHelpTraversalAt8(self):#registerStopHelpTraversalAt with valid args and registerSetGlobalPrefix, with profile not None
+        pass #TODO
         
     ## CommandLoader ##
     
-        #TODO
+    def test_CommandLoader1(self):#__init__, test without args
+        pass #TODO
+        
+    def test_CommandLoader2(self):#__init__, test with args
+        pass #TODO
+        
+
+    def test_CommandLoader_load1(self):#load, ENVIRONMENT_LEVEL_TRIES_KEY does not exist
+        pass #TODO
+        
+    def test_CommandLoader_load2(self):#load, execute without command and without stopTraversal, no global prefix
+        pass #TODO
+        
+    def test_CommandLoader_load3(self):#load, execute without command and without stopTraversal, global prefix defined
+        pass #TODO
+        
+    def test_CommandLoader_load4(self):#load, try to insert an existing command, no global prefix
+        pass #TODO
+        
+    def test_CommandLoader_load5(self):#load, try to insert an existing command, global prefix defined
+        pass #TODO
+        
+    def test_CommandLoader_load6(self):#load, insert a not existing command, no global prefix
+        pass #TODO
+        
+    def test_CommandLoader_load7(self):#load, insert a not existing command, global prefix defined
+        pass #TODO
+        
+    def test_CommandLoader_load8(self):#load, stopTraversal with command that does not exist, no global prefix
+        pass #TODO
+        
+    def test_CommandLoader_load9(self):#load, stopTraversal with command that does not exist, global prefix defined
+        pass #TODO
+        
+    def test_CommandLoader_load10(self):#load, stopTraversal, command exist, no global prefix
+        pass #TODO
+        
+    def test_CommandLoader_load11(self):#load, stopTraversal, command exist, global prefix defined
+        pass #TODO
+        
+    def test_CommandLoader_load12(self):#load, not raise if exist + not override
+        pass #TODO
+        
+    def test_CommandLoader_load13(self):#load, raise if exist + not override
+        pass #TODO
+        
+    def test_CommandLoader_load14(self):#load, not raise if exist + override
+        pass #TODO
+    
+    def test_CommandLoader_load14(self):#load, try to load an empty command
+        pass #TODO
+
+
+    def test_CommandLoader_unload1(self):#unload, ENVIRONMENT_LEVEL_TRIES_KEY does not exist
+        pass #TODO
+        
+    def test_CommandLoader_unload2(self):#unload, command does not exist
+        pass #TODO
+        
+    def test_CommandLoader_unload3(self):#unload, command exists
+        pass #TODO
+        
+    def test_CommandLoader_unload4(self):#unload, stopTraversal, path does not exist
+        pass #TODO
+        
+    def test_CommandLoader_unload5(self):#unload, stopTraversal, path exists
+        pass #TODO
+        
+
+    def test_CommandLoader_addCmd1(self):#addCmd, with temp prefix
+        pass #TODO
+        
+    def test_CommandLoader_addCmd2(self):#addCmd, whithout temp prefix
+        pass #TODO
+        
+    def test_CommandLoader_addCmd3(self):#addCmd, test raiseIfExist/override valid
+        pass #TODO
+        
+    def test_CommandLoader_addCmd4(self):#addCmd, test raiseIfExist/override not valid
+        pass #TODO
         
 if __name__ == '__main__':
     unittest.main()
