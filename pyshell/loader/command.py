@@ -44,7 +44,7 @@ def registerResetTempPrefix(profile = None):
 def registerAnInstanciatedCommand(keyList, cmd, profile = None):
     #must be a multiCmd
     if not isinstance(cmd, MultiCommand):
-        raise RegisterException("(Loader) addInstanciatedCommand, cmd must be an instance of MultiCommand")
+        raise RegisterException("(Loader) addInstanciatedCommand, cmd must be an instance of MultiCommand") #TODO improve error message, expect and get
 
     #check cmd and keylist
     raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerAnInstanciatedCommand")
@@ -67,7 +67,7 @@ def registerCommand(keyList, pre=None,pro=None,post=None, showInHelp=True, profi
     loader.addCmd(keyList, cmd)
     return cmd
 
-def registerCreateMultiCommand(keyList, showInHelp=True, profile = None):
+def registerAndCreateEmptyMultiCommand(keyList, showInHelp=True, profile = None):
     #check cmd and keylist
     raiseIfInvalidKeyList(keyList, RegisterException,"Loader", "registerCreateMultiCommand")
     loader = _local_getAndInitCallerModule(profile)

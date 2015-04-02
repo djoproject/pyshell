@@ -142,15 +142,13 @@ class CommandExecuter():
         _atstartup.addCommand(EVENT_ON_STARTUP)
         
         _atstartup.settings.setReadOnly(True)
-        mltries.insert( (EVENT__ON_STARTUP, ), _atstartup )
-        #TODO _atstartup should be hidden in tries
+        mltries.insert( (EVENT__ON_STARTUP, ), _atstartup ,stopTraversalAtThisNode=True)
         
         atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         atstartup.setNeverStopProcedureIfErrorOccured()
         atstartup.addCommand( "history load" )
         #atstartup.addCommand( "key load" )
-        mltries.insert( (EVENT_ON_STARTUP, ), atstartup )
-        #TODO atstartup should be hidden in tries
+        mltries.insert( (EVENT_ON_STARTUP, ), atstartup ,stopTraversalAtThisNode=True)
 
     def _initExitEvent(self):
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
@@ -165,9 +163,8 @@ class CommandExecuter():
         #atExit.addCommand( "key save" )
         
         atExit.settings.setReadOnly(True)
-        mltries.insert( (EVENT_AT_EXIT, ), atExit )
+        mltries.insert( (EVENT_AT_EXIT, ), atExit ,stopTraversalAtThisNode=True)
         atexit.register(self.AtExit)
-        #TODO atexit should be hidden in tries
         
     def AtExit(self):
         execute(EVENT_AT_EXIT,self.params, "__atexit__") #TODO provide args from outside
