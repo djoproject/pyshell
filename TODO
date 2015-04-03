@@ -148,339 +148,84 @@
             if __name__ == "__main__":
                 loaders_checks()
 
-    #####################
-    ### parameter     ###
-    #####################
-        SUMMARY
-            On file loading (TODO in parameter addon)(step 3)
-                if file is empty, do nothing
-                save file name, file hash and count the number of parameter loaded from file, then load
-                if an other file was previously loaded, remove the informations of previous file and leave them empty
-                    if already empty, do nothing, just load
-                
-            In parameter (TODO in parameter system)(step 1) DONE
-                store origin (loader + name OR File + name OR Procedure + None)
-                store parameter hash at its creation
-                NEVER update origin OR hash (except in loader)
-                
-            On loader loading (TODO in parameter loader)(step 2)
-                if parameter does not exist, create it and register the loader in dependancies list
-                if parameter exists AND recreation disabled, just add the loader in the list dependancies
-                if parameter exists AND recreation enabled, create a new parameter with a new origin and hash BUT keep the dependancies list
-            
-            On loader unloading (TODO in parameter loader)(step 2)
-                if parameter does not exist, do nothing
-                if parameter still exist and not empty dependancies list, just remove the current loader from list
-                if parameter still exist and empty dependancies list (only store the current loader), if parameter origin is loader and hash is equal, remove it
-                if parameter still exist and empty dependancies list (only store the current loader), if parameter origin is loader and hash is NOT equal, only remove current loader from list dependancies and do nothing else
-                
-            On file saving (TODO in parameter system)(step 3)   
-                retrieve non transient Global parameter
-                remove parameter from loader with equal hash as origin
-                count parameter from file with equal hash as origin
-                count from procedure or with not equal hash as origin
-                              
-                case to save
-                    if information about origin file are empty
-                    if new destination file OR destination file does not exist OR file hash is not equal
-                    if at least one parameter with not equal hash or from procedure
-                    
-                case to not save
-                    still same output file, with same hash, with same amount of parameter from file with equal hash
-    
-                        
-        About history (after brainstorming, it is not really an history, it is value origin)
-            WHY?
-                PBLM 1 how to know if is it necessary to recreate stored config or not ? SOLVED
-                    for not transient parameter, we have to know if the final value is different of the original value
-
-                    SOLUTION
-                        generate a hash of the parameter file on loading and compare it with a new hash at the saving process
-                            if hash is equal and no difference in parameter AND there is no new candidate to be saved, don't save at exit
-                            also keep the filePath, if a different parameter file is loaded OR the file destination is different, save at exit
-
-                            count the number of parameter loaded from file, if there is less or more at the saving time, recreate the parameter file
-                                if the number is equal from the loading, don't save
-
-                        add a single couple of data to parameter about current value origin OR properties origin, here are the possible values: (NEW FIELD: origin)
-                            System         + None 
-                            File           + filePath
-                            Loader         + addonName
-                            Procedure      + None
-
-                        ABSOLUTLY SAVE IN FOLLOWING CASES:
-                            Origin=Procedure
-                            Origin=File AND path is different of the destination file
-                        
-                        CANDIDATE FOR SAVING BUT DO NOT TRIGGER IT IN FOLLOWING CASES:
-                            Origin=File AND path is the same of the destination file And exactly the same count of parameter loaded
-                            
-                        DON'T SAVE IN FOLLOWING CASES:
-                            Origin=System
-                            Origin=Loader
-
-                        add a boolean "force" on removeParameter in container
-                            if true, remove the parameter in anyway
-                            if false AND there is at least one loader register, raise
-
-                PBLM 2 loader add/create parameter on loading and should remove then on unloading SOLVED
-                    except if another element update the value (custom update, other addon, ...)
-
-                    not exactly, the problem is if two or several different addons want to create a parameter with the same key
-                        the first loaded addon will create the parameter
-                        the others parameter won't create again the parameter
-                        if the first loaded addon is unloaded, it will remove the parameter, the other addons won't
-
-
-                    SOLUTION
-                        record a list of addon that need this parameter (NEW FIELD)
-                        and only removed the parameter on the last addon unloading (or program exit) AND if the current value origin is Addon
-                            an addon record itself in the list, or remove itself from the list through the loader system
-
-                        on statup ONLY, if a value exist from file, it can't be overwritte by an addon
-                            after the startup, if an addon is loaded, it could overwritte the value
-                                need to find a way to say to the loader that this is the startup procedure
-                                ideally forbide to execute startup a second time
-
-                PRBLM 3: if we just overwritte the full parameter, not only set a new value
-                         setParameter from container in place of setValue from parameter
-                    
-                    it will overwrite the information stored into the parameter
-                        the information about loader, a simple list
-
-                    SOLUTION 1: if parameter already exists, manage it into the container and merge information from old one with the new one XXX
-                    SOLUTION 2: store these information outside of the parameter, so you will never lose them
-                    
-                    the SOLUTION 1 is better and simpler, because just need to store a list
-                        So when a parameter want to overwrite an existing one, just merge loader list
-                    
-                PRBLM 4: how to know where the update come from ?
-                    for "System" and "Loader", it is easy because the parameter setting occurs in a well defined place.
-                    for "Procedure", it has to be the default origin, so no need to create specific mechanism
-                    for "File", it is the real problem, because the process loading occured into a process that occur into a file procedure
-                        we have no information to give to the parameterManager about the file origin
-                        
-                    SOLUTION 1: add an argument on command "set parameter" about origin
-                        +++ simple do install
-                        --- show an internal mechanism to the user
-                        --- a user could update origin in parameter file and break the logics of this stuff
-                        
-                    SOLUTION 2: create a local var to indicate the origin of the next parameter
-                    SOLUTION 2b: create an hidden command to indicate to the parameter manager that every following parameter will come from file
-                        And create another hidden command to indicate the loading is finished
-                        
-                        Yeah but what does occur if a crash happend during parameter loading ? there is a risk to never reset parameter origin
-                            not really, a file loading run with a granularity of None, so the call will never stop to execute until the end of the file
-                            
-                        these command call could be added by the parameter process that create the alias object at the begging and end of this alias
-                        
-                    SOLUTION 3: create a method in parameterManager to setOriginOfParameter XXX
-                        this information will be used to set the origin of every parameter for the current thread only
-                            so at the end of the thread life, this information disappear
-                            
-                        set it in the process to load the file
-                        use it everywhere, for Loader, System, Process, File
-                        Default Value => Process
-                        
-                        create a hidden method getOriginParameter that will be used by parameterManager
-                            this method also need to be called in parameter during setValue or setProperties or related function
-
-                PRBLM 5: if a loader just update a properties, the object origin will be flagged "from loader"
-                    But maybe the value or another properties of this object was set from a procedure and has to be saved on file...
-
-                    SOLUTION 1: each properties/value has an origin, not only the full object
-                        --- aouch, increase memory usage, should be possible to find a smarter solution
-
-                    SOLUTION 2: 
-                         reduce origin seed: system/loader are the same kind, keep file and procedure
-                         if a parameter is flagged system/loader, just store the flag
-                         if a parameter is flagged procedure/file, keep a list of flagged properties name
-                            until at least one item is flaggeg procedure/file, the whole parameters is flagged like that
-
-                        procedure > file > loader
-
-                            even if everything is flagged file except one thing that is flagged procedure
-                            the parameter remains flagged procedure
-
-                        if every properties are flagged procedure or file, keep an empty list of properties name
-
-                        What about two files origin ?
-
-                        --- could still use a lot of memory even if it is in a smarter way
-
-                    SOLUTION 3: keep a variable with the origin of the creator of the param
-                        at exit, the creator of the parameter will check if the parameter created has changed, if yes, the parameter is flagged as "TO SAVE"
-
-                        have to unload parameter in the opposite order as the loading
-
-                        PRBLM 1: if the loader responsible for a parameter is already unloaded before the unloading process ?
-                        PRBLM 2: what about files? the original copy of the parameter is stored on disk, maybe a change occured on the file
-                                 between loading and unloading
-
-                    SOLUTION 4: keep the creator origin and the hash of the parameter at its creation XXX
-                        if system/loader origin and no diff of the hash, don't save
-                        if file origin and no diff of the hash, candidate to be saved
-                        if process and no diff of the hash, to absolutely save
-
-                        if diff on the hash, absolutely save
-
-                        +++ no extra data in memory
-                        +++ simple process at exit, just recompute the hash and compare
-                        +++ easy to implement
-
-                        PRBLM 1: if the object is updated BUT because of the loading of an addon
-                            the parameter does not need to be saved but the hash will be different
-
-                            SOLUTION 1 : if a loader recreate a parameter, overwrite the origin and the hash in parameter
-
-                PRBLM 6: add/remove some of the values TODO
-                    it's not a complete "setValue"
-                    
-                    SOLUTION 1: keep a start index, and a end index of value stored by each 
-                        because it is not allowed to add value at a specific index in environmentParameter, you can only add/remove value
-                        So we don't need more information
-                        could be possible to set: -a single value (range length = 1)
-                                                  -a range value (range length > 1)
-                                                  -all value (range length = max)
-                                                  -No value (range length = 0)
-                                                  
-                        even if all the value added by a loader are removed, the loader is still dependant of the parameter
-                        
-                        QUESTION: with such system, we will precisely know at the save which value come from the loader
-                            Is loader origin/hash still needed ? because we will be able to identify precisely every value in the parameter coming from a loader
-                            startingHash is still needed to know if file is different from file, still need to know file name
-                            if does not come from file, set hash to None
-                            origin not really needed anymore for loader or procedure
-                            
-                        PRBLM 1: if a user removed a value added by a loader, it becomes a custom parameter or not ?
-                            because on the next reboot, the removed value will come back
-                            but if we store loader value, then reload them, they will become value from file and not from loader...
-                        
-                        PRBLM 2: And if add it after the removal ? does it come back to the loader origin ? 
-                            definitely not
-                            
-                            
-                            
+                                 
 #################### SYSTEM ##################################################################################################
 
     #####################
     ### Procedure     ###
     #####################
     
-       find a way to hard kill a thread
+        find a way to hard kill a thread
             be carefull, ressource have to be released
             
-        PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters, en tout cas les ProcedureFromList
+        integrate settings system in procedure, to be able to save a procedure in the same way as a parameter
+            see BRAINSTORMING FILE
+
+    #####################
+    ### parameter     ###
+    #####################
+        summary of BRAINSTORMING file (stuff to to in SYSTEM/LOADER/ADDON)
+            On file loading (TODO in parameter addon)(step 3)
+                if file is empty
+                    store file name, hash of an empty file, and 0 parameter loaded from file
+                if file does not exist
+                    do nothing
+                else
+                    save file name, file hash and count the number of parameter loaded from file, then load
+                    if an other NOT EMPTY EXISTING file was previously loaded, remove the informations of previous file and leave them empty
+                        if already empty (because load of several file), do nothing, just load
+                        empty information is not enough to know if several files were loaded or none at all
+                
+            In parameter (TODO in parameter system)(step 1) ONLY FOR GLOBAL SETTINGS
+                store origin (loader name OR None if come from process)
+                store parameter hash as soon as it been added in parameterManager
+                store filePath hash (or None if does not come from file)
+                NEVER update origin OR hash (except in loader overwrite, see bellow)
+                
+                add a banished list
+                    manage banished list in addValue/removeValue/setValue?/...
+                    method to add value in this list
+                    
+                update loader list to manage index (see range value)
+                    manage it in addValue/removeValue/setValue?/...
+                    
+                hash
+                    banished list has to be used
+                    value from loader should not be used
+                    
+            On loader loading (TODO in parameter loader)(step 2)
+                if parameter does not exist, create it and register the loader in dependancies list
+                    parameter has to be set to transient
+                if parameter exists AND recreation disabled, just add the loader in the list dependancies
+                if parameter exists AND recreation enabled, create a new parameter with a new origin and hash BUT keep the dependancies list
             
-            WHAT DO WE WANT ?
-                a loader can add command in a procedure
-                a loader can be unloaded and so remove its command from the procedure
-                    so a loader should be able to identify its commands
-                    OR a command should be identified as part of a loader
-                    
-                    a command could disappear before the unloading of the loader (manually removed or removed by another loader or ...)
-                    a command could move in the procedure if command are inserted or removed with a lower index
-                    
-                    How to make the link between a loader and a command ? **PRBLM**
-                    
-                a procedure can be saved on file
-                    need to know if a procedure need to be saved on drive => compute hash after the creation of a command and adding all the commands => setStartingHash
-                    be careful with the procedure only fulled in with loader commands
-                    
-                loader command shouldn't saved on file
-                    do not use the command added by loader in the hash process, so these commands must be tagged **PRBLM**
-
-            PRBLM How to make the link between a command and a loader to remove it on loader unload and avoid them in hashing process ?
-                SOLUTION 1: les flagger avec un booleen
-                    PRBLM: not enough information
+            On loader unloading (TODO in parameter loader)(step 2)
+                if parameter does not exist, do nothing
+                if parameter still exist AND not empty dependancies list THEN remove the current loader from list AND unload loader value
+                if parameter still exist AND the current loader is alone in dependancies list AND parameter origin is loader AND hash is equal THEN remove it
+                if parameter still exist AND the current loader is alone in dependancies list AND parameter origin is loader AND hash is NOT equal THEN remove current loader from list dependancies and remove loader value
                 
-                SOLUTION 2: garder une liste d'index les concernant
-                    PRBML: les index peuvent bouger
-                
-                SOLUTION 3: découper les procedures en deux parties USER/LOADER
-                    Et ne sauvegarder que la partie User s'il y en a une
-                    fixe le problème des saves, pas besoin d'unloader les loaders a la fermeture du programme
+            On file saving (TODO in parameter system)(step 3)   
+                retrieve non transient Global parameter
+                loop over these GlobalParameter
+                    1) remove parameter from loader with hash equals to empty one (need to add a method to compute empty hash, for each type)
+                        an empty one is: default settings, no value in list, no value in banished list
+                    2) count parameter from file with equal hash as origin
+                    3) count from procedure or with not equal hash as origin
+                              
+                case to save (if count of step 2) or 3) is bigger than 0)
+                    information about origin file are empty
+                    new destination file 
+                    destination file does not exist
+                    file hash is different in front of the hash computed in the starting of the sofware
+                    at least one parameter with not equal hash
+                    a parameter from procedure that was never stored
                     
-                    PRBLM 1: si loop ou exception ou exit dans le user space
-                    PRBLM 2: implique encore d'ajouter une couche de gestion en +, l'ideal serait de gérer ça dans les class existante
+                case to not save
+                    still same output file, with same hash, with same amount of parameter from file with equal hash  
                     
-                SOLUTION 4: les unloader lors de l'unload des loaders, les données chargées par les loaders sont supposées dynamiques
-                    PRBLM: need to absolutely register unload at exit
-            
-                SOLUTION 5: add the identity of the loader as a extra attribute of the command object in the procedure  XXX best one for the moment
-                    so, the command without this extra attribute does not come from a loader
-                    and if this attribute exist, it identifies uniquely a loader
-                    
-                    --- adding an hidden attribute is ugly
-                    +++ no extra structure for the command coming from non loader seed
-                    +++ easy to manage
-
-
-                    PRBLM: how to access easily to the method to remove in case of loader unloas ?
-                        whitout need to iterate over every remaining command in the list ?
-                
-
-                SOLUTION 6: 
-                    a command added by a loader is flagged
-                        so command flagged are not used in hash or in saving process
-
-                    the flagging hold: -ref to the index list of the loader
-                                       -index of the command in the index list
-
-                    a list of index (for each loader)
-                        a list of the index of the command of this loader in the procedure
-
-                    ACTION
-                        on loader load
-                            flag the command
-                            add them in the list of index
-                            set their index in the list of index
-
-                        on loader unload
-                            took the last command, remove it from the procedure
-                            remove list of index
-                            update list of index of the other loaders after the first command of the removed loader
-                                uuuh, could be an issues, because the index of the others loader are maybe invalid now ... TODO
-                                    update the index of the other loader in the same time of removing the command of the unloaded loader
-
-                        on command remove (command from a loader)
-                            remove the command from the index list
-                            update index of every loaders after the index of remove one
-                                update them from the end of each list, except for the current one
-
-                        on command move
-                            update index in command
-                            if the command is twisted with other command of the same loader, need to update order in queue
-                            also need to update index of command of this loader and the others
-
-                        on command add/move/remove (command not from a loader)
-                            need to identify loader command after the command added/removed TODO
-                            and update their index
-
-                    LINKING ?
-                        from first to last
-                            00 one reference to store
-                            00 on loader unload, need to recompute every index of the next command to remove (not really difficul to recompute)
-                            ++ on command remove, easy to access to following command where index need to be updated
-                            -- on command remove, need to link previous command to next one, but no reference to previous one
-
-                        from last to first
-                            00 one reference to store
-                            ++ on loader unload, can remove every command without index recomputation
-                            00 on command remove, need to iterate from the last command until we found the removed command (no more complexity than fToL)
-                            -- on command remove, need to link previous command to next one, but no reference to next one
-
-                        both XXX
-                            -- two references to store
-                            00 more thing to manage on move (no really more things to manage)
-                            ++ easy to remove a command one
-                            ++ easy to move a command
-                            00 on addon unload, same difficulty as other linkings
-
-                        list of index + command know its index in the list on index XXX
-                            memory advantage of simple queue
-                            same algorithm advantage of double queue
-
+                do not forget to set origin (so create command in addon)
+                do not forget to set banished value (so create command in addon)
 
 #################### UTILS ###################################################################################################
 
