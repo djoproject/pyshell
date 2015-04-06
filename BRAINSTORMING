@@ -190,6 +190,16 @@ About history (after brainstorming, it is not really an history, it is value ori
                               And only at this moment, the loader will be able again to load the value
                               
                         A value retired from the banished list, should not be saved on file
+
+                PRBLM 3: parameter list with no unicity system, so two loader (or the same loader) could add several time the same value
+                    if one occurence of this value is removed and put in the banished list
+                    on next reboot, none of the occurence of this value will be allowed...
+
+                    SOLUTION 1: keep the name of loader associated with the banished value AND a counter
+                        so if a loader add several time the same value, we can count how many time the value should be banished
+                        And if another loader try to add an occurence of this value, it will be allowed
+
+                        need to update banished list
                         
         PRBLM 7: SOLVED
             a parameter is created by one or several loader
@@ -211,6 +221,31 @@ About history (after brainstorming, it is not really an history, it is value ori
                 PRBLM 2: lose of the "file origin" needed to compute the list of candidate to be saved
                     SOLUTION 1: add a field in globalSettings "fileOrigin" and store the filePath hash into
                         If the field is set to None, the parameter does not come from a file
+
+        PRBLM 8: start to become overkill...
+            should find a way to easy manage that. if it is not easy to get it, prblm of design or goals
+
+            what we want:
+                -do not save loader value (system included) if no value/settings modified
+                -do not regenate parameters files if not needed
+                -get the same params state after a reboot
+                -add/remove value in a existing parameter
+
+            idea:
+                -loader set/unset value on loading
+                -loader add/remove parameter on unloading
+                -a user can do the same stuff
+
+            question:
+                -a user can be able to remove a loader value ? 
+                    -if yes, the removing loader value has to be memorized ? 
+                        -or only removed during the execution ?
+                    
+
+                -a user can be able to add a loader value ?
+                    for exemple, to undo loader value removing ?
+
+                    -if no, and value removing allowed, value regenerating on loader reloading ?
 
 ###################################################################################################################
 ####################### PROCEDURE LOADER  #########################################################################

@@ -183,9 +183,22 @@
                 NEVER update origin OR hash (except in loader overwrite, see bellow)
                 
                 add a banished list
+                    need to hold three items per banished value
+                        the banished value
+                        the loader origin
+                        the amount of times the value is banished
                     manage banished list in addValue/removeValue/setValue?/...
+                        if a value is removed and come from a loader, put it in this list
                     method to add value in this list
+                    need to save this list
                     
+                add an unbanished list
+                    manage unbanished list in addValue/removeValue/setValue?/...
+                        if a value is removed from this list, put it in banished list 
+                    manage value that was previously banished and that are not any more
+                    don't save this list
+                    the value of the unbanished list are present in the value list
+
                 update loader list to manage index (see range value)
                     manage it in addValue/removeValue/setValue?/...
                     
