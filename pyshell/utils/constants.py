@@ -25,6 +25,7 @@ SHELL_CATEGORY           = "shell"
 PARAMETER_NAME           = "parameter"
 DEFAULT_PROFILE_NAME     = "default"
 EMPTY_STRING             = ""
+SYSTEM_VIRTUAL_LOADER    = "__system__"
 
 ### EVENT ###
 EVENT__ON_STARTUP     = "_onstartup" #at application launch
@@ -90,10 +91,10 @@ VARIABLE_ATTRIBUTE_NAME = "variable"
 KEY_ATTRIBUTE_NAME = "key"
 
 ### PARAMETER ORIGIN ###
-ORIGIN_FILE      = "origin file"
-ORIGIN_PROCESS   = "origin process"
-ORIGIN_LOADER    = "origin loader"
-AVAILABLE_ORIGIN = [ORIGIN_FILE, ORIGIN_PROCESS, ORIGIN_LOADER]
+#ORIGIN_FILE      = "origin file"
+#ORIGIN_PROCESS   = "origin process"
+#ORIGIN_LOADER    = "origin loader"
+#AVAILABLE_ORIGIN = [ORIGIN_FILE, ORIGIN_PROCESS, ORIGIN_LOADER]
 
 ### LOADER STATE ###
 STATE_REGISTERED = "REGISTERED BUT NOT LOADED" 

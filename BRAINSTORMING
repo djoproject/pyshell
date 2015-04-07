@@ -227,25 +227,97 @@ About history (after brainstorming, it is not really an history, it is value ori
 
             what we want:
                 -do not save loader value (system included) if no value/settings modified
-                -do not regenate parameters files if not needed
-                -get the same params state after a reboot
+                -do not regenerate parameters files if not needed
+                -get the params state as closed as possible as the params state at the end of previous exit
                 -add/remove value in a existing parameter
 
-            idea:
+            goals:
                 -loader set/unset value on loading
                 -loader add/remove parameter on unloading
-                -a user can do the same stuff
+                -a user set/unset at any time
+                -a user add/remove parameter at any time
 
-            question:
-                -a user can be able to remove a loader value ? 
-                    -if yes, the removing loader value has to be memorized ? 
-                        -or only removed during the execution ?
+            choice to do
+                user can update loader parameters ?                                   : yes
+                    the real question is the following one
+                update on loaders parameters are stored like user parameters update ? : yes/no
+                    or restored on every boot
                     
-
-                -a user can be able to add a loader value ?
-                    for exemple, to undo loader value removing ?
-
-                    -if no, and value removing allowed, value regenerating on loader reloading ?
+            idea:
+                each addon has a config file for each updated profile (so if no update in the profile, no existing file)
+                    this file will hold the removing value and the updated settings, so it will be load after addon profile
+                        if no modification, no file (so we work as a "only update are saved" mode)
+                    could be group into a single file once the jump/loop will exist
+                    create a system that avoid to recreate addon config file if not needed
+                    solve the problem of load value/settings for unexistant/unused parameter
+                    the settings of the parameters are stored in every addons files using this parameter
+                        be carefull with that, if settings has changed but not saved in every loaders because some of them weren't loaded
+                    
+                if a user add value in a parameter created by a loader
+                    the value is stored in main parameter file (?)
+                    the settings of the parameters are stored in every addons files using this parameter, including the main config file  
+                
+                system origin is managed like an unremoving loader
+                    could have profile, and so different config file
+                    new parameter is created into this loader, kind of orphanage
+                
+                a parameter has always a starting point loader (in worst case system), value can be added/removed
+                    so if you add a value, it will be stored in the config file of this starting point
+                    
+                but what about removal then adding ? how to make the difference between a new value and a removal undo ????
+                    SOLUTION 1: no value tracking in parameter, unload each parameter at exit, create a default system loader
+                        by loading inorder (from last loaded to first loaded), unload value one after the other
+                            if a value is missing, mark it as removed in the config file
+                            
+                        if remaining value after unloaded every loaders, save the value in the original loaders
+                        
+                        --- need to unload every addons before to exit AND save file there if needed
+                        
+                        remove banish/unbanish list, keep a loader list (to know if the current loader is the last one)
+                        no more need origin field, the first loader in list is the origin
+                        
+                        because every value will be unloaded, no need to hash on the value, only on settings
+                        
+                        need to include parameter/procedure loading/saving into loader mechanism, not in parameter anymore
+                        and register addon unload at exit
+                        parameter command group will disappear
+                        
+                        PRBLM 1: if we want to unload a addon that is the origin of several parameter AND these parameter are dependancies for other loaders (?)
+                            remove value from parameter, if missing value in parameter save them
+                            if loader still exist in the dependancies list, the next loader become the origin
+                            
+                            but extra value loaded from an addon config should stay in the same config file
+                                so value loaded from file should appear in list valueToUnload
+                                
+                        PRBLM 2: what if no more value in list and still dependant loader
+                            if env, no problem, if context prblm always need a value
+                        
+            question:
+                -a user can be able to remove/update a loader parameter ?
+                    -if yes, the removed/updated loader/settings value has to be memorized ? 
+                        if yes, need to:
+                            *memorise the deleted value for each loader
+                                but what to do with these value if the parameter is not created again on next boot ? 
+                                
+                                way to save :
+                                    -everything has to be saved, and if parameter exist, loader does not do anything (except if overriding)
+                                    -only modification (not default settings, new/removed value) are saved and loaders addapt themselves on loading
+                                    -
+                                    
+                            *have a way to undo the remove/update (see next major question)
+                            
+                        if no, a reloading of the loader will restore the value
+                    -if no, these parameter will act as "constant", readonly, transient, global, not removable, origin loader
+                        can be updated in memory but will always be deleted at the loader reloading, not possible to switch transient boolean
+                        only store index for context
+                    
+                -a user can be able to add a loader value ? (for exemple, to undo loader value removing ?)
+                    -if yes, how to make distinction between user value and context value ?
+                        if a user add a removed value, the value go back to the loader
+                        if a user add a inexistant value, the value is marked as "from user"
+                        
+                    -if no, value/settings regenerating on loader reloading
+                        other ways to regenerate values ?
 
 ###################################################################################################################
 ####################### PROCEDURE LOADER  #########################################################################

@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.constants import ORIGIN_PROCESS, AVAILABLE_ORIGIN
+from pyshell.utils.constants import DEFAULT_PROFILE_NAME, SYSTEM_VIRTUAL_LOADER
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.flushable import Flushable
 
@@ -25,11 +25,11 @@ from threading import current_thread
 class _ThreadInfo(object):
     def __init__(self):
         self.procedureStack = []
-        self.origin         = ORIGIN_PROCESS
-        self.originArg      = None
+        self.origin         = SYSTEM_VIRTUAL_LOADER
+        self.originProfile  = DEFAULT_PROFILE_NAME
 
     def canBeDeleted(self):
-        return len(self.procedureStack) == 0 and self.origin == ORIGIN_PROCESS
+        return len(self.procedureStack) == 0 and self.origin == SYSTEM_VIRTUAL_LOADER and self.originProfile == DEFAULT_PROFILE_NAME
 
 class AbstractParameterContainer(object):
     def getCurrentId(self):
@@ -38,24 +38,26 @@ class AbstractParameterContainer(object):
     def getOrigin(self):
         pass #TO OVERRIDE
 
-    def setOrigin(self, origin, originArg=None):
+    def setOrigin(self, origin, originProfile=None):
         pass #TO OVERRIDE
 
 class DummyParameterContainer(AbstractParameterContainer):
     def __init__(self):
-        self.origin = ORIGIN_PROCESS
+        self.origin = SYSTEM_VIRTUAL_LOADER
 
     def getCurrentId(self):
         return current_thread().ident, None
 
     def getOrigin(self):
-        return self.origin, None
+        return self.origin, DEFAULT_PROFILE_NAME
 
-    def setOrigin(self, origin, originArg=None):
-        if origin not in AVAILABLE_ORIGIN:
-            raise DefaultPyshellException("(DummyParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
-
+    def setOrigin(self, origin, originProfile=None):
         self.origin = origin
+        
+        if originProfile is None:
+            self.originProfile = DEFAULT_PROFILE_NAME
+        else:
+            self.originProfile = originProfile
         
 DEFAULT_DUMMY_PARAMETER_CONTAINER = DummyParameterContainer()
 
@@ -130,25 +132,26 @@ class ParameterContainer(AbstractParameterContainer):
 
     def getOrigin(self):
         if current_thread().ident not in self.threadInfo:
-            return ORIGIN_PROCESS, None
+            return SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME
 
         info = self.getThreadInfo() #only get, never create thread info
-        return info.origin, info.originArg
+        return info.origin, info.originProfile
 
-    def setOrigin(self, origin, originArg=None):
-        if origin not in AVAILABLE_ORIGIN:
-            raise DefaultPyshellException("(ParameterContainer) setOrigin, not a valid origin, got '"+str(origin)+"', expect one of these: "+",".join(AVAILABLE_ORIGIN))
+    def setOrigin(self, origin, originProfile=None):
 
-        if origin == ORIGIN_PROCESS:
-            if current_thread().ident in self.threadInfo: #no need to store origin if not registered and new origin is ORIGIN_PROCESS, because for unregistered, the default origin is ORIGIN_PROCESS
+        if originProfile is None:
+            originProfile = DEFAULT_PROFILE_NAME
+
+        if origin == SYSTEM_VIRTUAL_LOADER and originProfile == DEFAULT_PROFILE_NAME:
+            if current_thread().ident in self.threadInfo: #no need to store origin if not registered and new origin is SYSTEM_VIRTUAL_LOADER, because for unregistered, the default origin is ORIGIN_PROCESS
                 info = self.getThreadInfo()
-                info.origin = ORIGIN_PROCESS
-                info.originArg = originArg
+                info.origin = SYSTEM_VIRTUAL_LOADER
+                info.originProfile = DEFAULT_PROFILE_NAME
 
                 if info.canBeDeleted():
                     del self.threadInfo[current_thread().ident]
         else:
             info = self.getThreadInfo()
             info.origin = origin
-            info.originArg = originArg
+            info.originProfile = originProfile
             

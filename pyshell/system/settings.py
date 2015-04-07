@@ -16,7 +16,7 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.constants import EMPTY_STRING, ORIGIN_PROCESS
+from pyshell.utils.constants import EMPTY_STRING
 from pyshell.utils.exception import ParameterException
 from pyshell.system.container import AbstractParameterContainer
 
@@ -103,8 +103,8 @@ class GlobalSettings(LocalSettings):
         
         self.setTransient(transient)
         self.loaderSet    = None
-        self.origin       = None
-        self.originArg    = None
+        #self.origin       = None
+        #self.originArg    = None
         self.startingHash = None
         self.setReadOnly(readOnly)
 
@@ -144,22 +144,21 @@ class GlobalSettings(LocalSettings):
             self.loaderSet = self.loaderSet.union(otherLoaders)
     
         #manage origin
-        self.origin       = settings.origin
-        self.originArg    = settings.originArg
+        
+        #TODO the first tuple (origin,originProfile,) of the current settings has to stay in first position
+        
         self.startingHash = settings.startingHash
         
-    def setStartingPoint(self, hashi, origin, originArg = None):
+    def setStartingPoint(self, hashi, origin, originProfile = None):
         if self.startingHash is not None:
             raise ParameterException("(GlobalSettings) setStartingPoint, a starting point was already defined for this parameter") 
             
         self.startingHash = hashi
-        self.origin       = origin
-        self.originArg    = originArg
+        
+        #TODO 
+            #(origin,originProfile,) become first in loaderSet AND should always stay first
+        
         
     def isEqualToStartingHash(self, hashi):
         return hashi == self.startingHash
-        
-    def getOrigin(self):
-        return self.origin, self.originArg
-        
                 
