@@ -19,7 +19,7 @@
 import unittest
 from pyshell.system.container import _ThreadInfo, AbstractParameterContainer, DummyParameterContainer, ParameterContainer
 from pyshell.system.parameter import ParameterManager
-from pyshell.utils.constants import AVAILABLE_ORIGIN, ORIGIN_FILE, ORIGIN_PROCESS, ORIGIN_LOADER
+from pyshell.utils.constants import SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME#AVAILABLE_ORIGIN, ORIGIN_FILE, ORIGIN_PROCESS, ORIGIN_LOADER
 from pyshell.utils.exception import DefaultPyshellException
 from threading import current_thread
 
@@ -29,11 +29,11 @@ class ExceptionTest(unittest.TestCase):
         
     ## misc ##
     
-    def test_misc(self):
-        self.assertEqual(len(AVAILABLE_ORIGIN), 3)
-        self.assertTrue(ORIGIN_FILE in AVAILABLE_ORIGIN)
-        self.assertTrue(ORIGIN_PROCESS in AVAILABLE_ORIGIN)
-        self.assertTrue(ORIGIN_LOADER in AVAILABLE_ORIGIN)
+    #def test_misc(self):
+    #    self.assertEqual(len(AVAILABLE_ORIGIN), 3)
+    #    self.assertTrue(ORIGIN_FILE in AVAILABLE_ORIGIN)
+    #    self.assertTrue(ORIGIN_PROCESS in AVAILABLE_ORIGIN)
+    #    self.assertTrue(ORIGIN_LOADER in AVAILABLE_ORIGIN)
         
     ## thread info ##
     
@@ -46,12 +46,12 @@ class ExceptionTest(unittest.TestCase):
     def test_threadInfo3(self):
         ti = _ThreadInfo()
         self.assertTrue(hasattr(ti, "origin"))
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
         
     def test_threadInfo4(self):
         ti = _ThreadInfo()
-        self.assertTrue(hasattr(ti, "originArg"))
-        self.assertEqual(ti.originArg, None)
+        self.assertTrue(hasattr(ti, "originProfile"))
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         
     def test_threadInfo5(self):
         ti = _ThreadInfo()
@@ -95,30 +95,30 @@ class ExceptionTest(unittest.TestCase):
     
     def test_DummyParameterContainer1(self):
         dpc = DummyParameterContainer()
-        self.assertEqual(dpc.getOrigin(), (ORIGIN_PROCESS, None,) )
+        self.assertEqual(dpc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME,) )
         self.assertEqual(dpc.getCurrentId(), (current_thread().ident, None) )
 
-    def test_DummyParameterContainer2(self):
-        dpc = DummyParameterContainer()
-        self.assertRaises(DefaultPyshellException, dpc.setOrigin, "plop")
+    #def test_DummyParameterContainer2(self):
+    #    dpc = DummyParameterContainer()
+    #    self.assertRaises(DefaultPyshellException, dpc.setOrigin, "plop")
         
     def test_DummyParameterContainer3(self):
         dpc = DummyParameterContainer()
-        dpc.setOrigin(ORIGIN_FILE, "plip")
-        self.assertEqual(dpc.getOrigin(), (ORIGIN_FILE, None,) )
+        dpc.setOrigin("plop", "plip")
+        self.assertEqual(dpc.getOrigin(), ("plop", "plip",) )
         self.assertEqual(dpc.getCurrentId(), (current_thread().ident, None) )
         
-    def test_DummyParameterContainer4(self):
-        dpc = DummyParameterContainer()
-        dpc.setOrigin(ORIGIN_LOADER, "plip")
-        self.assertEqual(dpc.getOrigin(), (ORIGIN_LOADER, None,) )
-        self.assertEqual(dpc.getCurrentId(), (current_thread().ident, None) )
+    #def test_DummyParameterContainer4(self):
+    #    dpc = DummyParameterContainer()
+    #    dpc.setOrigin(ORIGIN_LOADER, "plip")
+    #    self.assertEqual(dpc.getOrigin(), (ORIGIN_LOADER, None,) )
+    #    self.assertEqual(dpc.getCurrentId(), (current_thread().ident, None) )
         
-    def test_DummyParameterContainer5(self):
-        dpc = DummyParameterContainer()
-        dpc.setOrigin(ORIGIN_PROCESS, "plip")
-        self.assertEqual(dpc.getOrigin(), (ORIGIN_PROCESS, None,) )
-        self.assertEqual(dpc.getCurrentId(), (current_thread().ident, None) )
+    #def test_DummyParameterContainer5(self):
+    #    dpc = DummyParameterContainer()
+    #    dpc.setOrigin(SYSTEM_VIRTUAL_LOADER, "plip")
+    #    self.assertEqual(dpc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, None,) )
+    #    self.assertEqual(dpc.getCurrentId(), (current_thread().ident, None) )
 
     ## ParameterContainer ##
     
@@ -126,7 +126,7 @@ class ExceptionTest(unittest.TestCase):
         pc = ParameterContainer()
         self.assertTrue(pc.isMainThread())
         self.assertIs(pc.getCurrentProcedure(), None)       
-        self.assertEqual(pc.getOrigin(), (ORIGIN_PROCESS, None,) ) 
+        self.assertEqual(pc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME,) ) 
         self.assertEqual(pc.getCurrentId(), (current_thread().ident, -1,) ) 
         self.assertEqual(len(pc.threadInfo),0)
     
@@ -151,8 +151,8 @@ class ExceptionTest(unittest.TestCase):
         pc.plop.setParameter("toto", "plop", localParam = True)
         self.assertTrue(pc.plop.hasParameter("toto", localParam = True, exploreOtherLevel=True))
         self.assertEqual(ti.procedureStack, ["process"])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
         #exiting level 0, so go to -1
@@ -160,8 +160,8 @@ class ExceptionTest(unittest.TestCase):
         ti = pc.getThreadInfo()
         self.assertFalse(pc.plop.hasParameter("toto", localParam = True, exploreOtherLevel=True)) #not the same level, the parameter does not exist
         self.assertEqual(ti.procedureStack, [])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 0)
         
         #entering level 0 again
@@ -169,16 +169,16 @@ class ExceptionTest(unittest.TestCase):
         ti = pc.getThreadInfo()
         self.assertFalse(pc.plop.hasParameter("toto", localParam = True, exploreOtherLevel=True)) #same level, but the parameter has been flushed on pop, so doesn't exist anymore
         self.assertEqual(ti.procedureStack, ["process2"])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
     def test_ParameterContainer5(self): #getThreadInfo, it does not exist
         pc = ParameterContainer()
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, [])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 0)
         
     def test_ParameterContainer6(self): #getThreadInfo, it exists
@@ -189,8 +189,8 @@ class ExceptionTest(unittest.TestCase):
 
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, ["plop"])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
     def test_ParameterContainer7(self): #push
@@ -202,8 +202,8 @@ class ExceptionTest(unittest.TestCase):
         
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, ["lpopProcess"])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
     def test_ParameterContainer8(self): #push
@@ -220,8 +220,8 @@ class ExceptionTest(unittest.TestCase):
         
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, ["lpopProcess","lpopProcess1","lpopProcess2","lpopProcess3","lpopProcess4","lpopProcess5"])
-        self.assertEqual(ti.origin, ORIGIN_PROCESS)
-        self.assertEqual(ti.originArg, None)
+        self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
+        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 6)
         
     def test_ParameterContainer9(self): #pop, empty threadInfo
@@ -304,7 +304,7 @@ class ExceptionTest(unittest.TestCase):
     
     def test_ParameterContainer19(self):#getCurrentProcedure, no level for this thread
         pc = ParameterContainer()
-        pc.setOrigin(ORIGIN_FILE, "tutu")
+        pc.setOrigin("plip", "tutu")
         self.assertEqual(pc.getCurrentProcedure(), None)
     
     def test_ParameterContainer20(self):#getCurrentProcedure, valid procedure stack for this thread
@@ -314,51 +314,51 @@ class ExceptionTest(unittest.TestCase):
         
     def test_ParameterContainer21(self):#getOrigin, no thread info for this thread
         pc = ParameterContainer()
-        self.assertEqual(pc.getOrigin(), (ORIGIN_PROCESS, None,) )
+        self.assertEqual(pc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME,) )
         
     def test_ParameterContainer22(self):#getOrigin, valid procedure stack for this thread
         pc = ParameterContainer()
         pc.pushVariableLevelForThisThread("lpopProcess")
-        self.assertEqual(pc.getOrigin(), (ORIGIN_PROCESS, None,) )
+        self.assertEqual(pc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME,) )
         
-    def test_ParameterContainer23(self):#setOrigin, not a valid origin
-        pc = ParameterContainer()
-        self.assertRaises(DefaultPyshellException,pc.setOrigin,"plop")
+    #def test_ParameterContainer23(self):#setOrigin, not a valid origin
+    #    pc = ParameterContainer()
+    #    self.assertRaises(DefaultPyshellException,pc.setOrigin,"plop")
         
-    def test_ParameterContainer24(self):#setOrigin, origin == ORIGIN_PROCESS AND no thread info for this thread
+    def test_ParameterContainer24(self):#setOrigin, origin == SYSTEM_VIRTUAL_LOADER AND no thread info for this thread
         pc = ParameterContainer()
         self.assertEqual(len(pc.threadInfo),0)
-        pc.setOrigin(ORIGIN_PROCESS, "plop")
+        pc.setOrigin(SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(pc.threadInfo),0)
-        self.assertEqual(pc.getOrigin(), (ORIGIN_PROCESS, None,) )
+        self.assertEqual(pc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME,) )
         
-    def test_ParameterContainer25(self):#setOrigin, origin == ORIGIN_PROCESS AND thread info for this thread
+    def test_ParameterContainer25(self):#setOrigin, origin == SYSTEM_VIRTUAL_LOADER AND thread info for this thread
         pc = ParameterContainer()
         pc.pushVariableLevelForThisThread("lpopProcess")
         self.assertEqual(len(pc.threadInfo),1)
-        pc.setOrigin(ORIGIN_PROCESS, "plop")
-        self.assertEqual(pc.getOrigin(), (ORIGIN_PROCESS, "plop",) )
+        pc.setOrigin(SYSTEM_VIRTUAL_LOADER, "plop")
+        self.assertEqual(pc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, "plop",) )
         
-    def test_ParameterContainer26(self):#setOrigin, origin == ORIGIN_PROCESS AND thread info for this thread AND cause the thread info removal
+    def test_ParameterContainer26(self):#setOrigin, origin == SYSTEM_VIRTUAL_LOADER AND thread info for this thread AND cause the thread info removal
         pc = ParameterContainer()
-        pc.setOrigin(ORIGIN_FILE, "plop")
+        pc.setOrigin("plup", "plop")
         self.assertEqual(len(pc.threadInfo),1)
-        pc.setOrigin(ORIGIN_PROCESS, "plop")
+        pc.setOrigin(SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(pc.threadInfo),0)
-        self.assertEqual(pc.getOrigin(), (ORIGIN_PROCESS, None,) )
+        self.assertEqual(pc.getOrigin(), (SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME,) )
         
-    def test_ParameterContainer27(self):#setOrigin, origin != ORIGIN_PROCESS AND no thread info for this thread
+    def test_ParameterContainer27(self):#setOrigin, origin != SYSTEM_VIRTUAL_LOADER AND no thread info for this thread
         pc = ParameterContainer()
-        pc.setOrigin(ORIGIN_FILE, "plop")
+        pc.setOrigin("plap", "plop")
         self.assertEqual(len(pc.threadInfo),1)
-        self.assertEqual(pc.getOrigin(), (ORIGIN_FILE, "plop",) )
+        self.assertEqual(pc.getOrigin(), ("plap", "plop",) )
         
-    def test_ParameterContainer28(self):#setOrigin, origin != ORIGIN_PROCESS AND thread info for this thread
+    def test_ParameterContainer28(self):#setOrigin, origin != SYSTEM_VIRTUAL_LOADER AND thread info for this thread
         pc = ParameterContainer()
         pc.pushVariableLevelForThisThread("lpopProcess")
-        pc.setOrigin(ORIGIN_FILE, "plop")
+        pc.setOrigin("plup", "plop")
         self.assertEqual(len(pc.threadInfo),1)
-        self.assertEqual(pc.getOrigin(), (ORIGIN_FILE, "plop",) )
+        self.assertEqual(pc.getOrigin(), ("plup", "plop",) )
         
         
 if __name__ == '__main__':

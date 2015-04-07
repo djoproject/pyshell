@@ -161,4 +161,7 @@ class GlobalSettings(LocalSettings):
         
     def isEqualToStartingHash(self, hashi):
         return hashi == self.startingHash
+
+    def getStartingPoint(self):
+        pass #TODO return origin point of this settings, first items in the list
                 

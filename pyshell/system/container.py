@@ -44,12 +44,13 @@ class AbstractParameterContainer(object):
 class DummyParameterContainer(AbstractParameterContainer):
     def __init__(self):
         self.origin = SYSTEM_VIRTUAL_LOADER
+        self.originProfile = DEFAULT_PROFILE_NAME
 
     def getCurrentId(self):
         return current_thread().ident, None
 
     def getOrigin(self):
-        return self.origin, DEFAULT_PROFILE_NAME
+        return self.origin, self.originProfile
 
     def setOrigin(self, origin, originProfile=None):
         self.origin = origin

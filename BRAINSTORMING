@@ -288,6 +288,8 @@ About history (after brainstorming, it is not really an history, it is value ori
                             
                             but extra value loaded from an addon config should stay in the same config file
                                 so value loaded from file should appear in list valueToUnload
+
+                        PRBLM 1b: what if unload a random addon ?
                                 
                         PRBLM 2: what if no more value in list and still dependant loader
                             if env, no problem, if context prblm always need a value
