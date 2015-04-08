@@ -240,7 +240,7 @@ About history (after brainstorming, it is not really an history, it is value ori
             choice to do
                 user can update loader parameters ?                                   : yes
                     the real question is the following one
-                update on loaders parameters are stored like user parameters update ? : yes/no
+                update on loaders parameters are stored like user parameters update ? : yes
                     or restored on every boot
                     
             idea:
@@ -255,13 +255,13 @@ About history (after brainstorming, it is not really an history, it is value ori
                     
                 if a user add value in a parameter created by a loader
                     the value is stored in main parameter file (?)
-                    the settings of the parameters are stored in every addons files using this parameter, including the main config file  
+                    the settings of the parameters are stored in every addons files using this parameter, including the main config file (?)
                 
                 system origin is managed like an unremoving loader
                     could have profile, and so different config file
                     new parameter is created into this loader, kind of orphanage
                 
-                a parameter has always a starting point loader (in worst case system), value can be added/removed
+                a parameter has always a starting point loader (in worst case: system), value can be added/removed
                     so if you add a value, it will be stored in the config file of this starting point
                     
                 but what about removal then adding ? how to make the difference between a new value and a removal undo ????
@@ -290,10 +290,147 @@ About history (after brainstorming, it is not really an history, it is value ori
                                 so value loaded from file should appear in list valueToUnload
 
                         PRBLM 1b: what if unload a random addon ?
+                            risk to grab some value from other loaders...
                                 
                         PRBLM 2: what if no more value in list and still dependant loader
                             if env, no problem, if context prblm always need a value
+                            
+                    SOLUTION 2: okay okay, we need to know which value comes from which loader
+                        and also which value is missing and which value is extra
                         
+                        In addon, for each parameter:
+                            list of "value to add"        (compute on registering)  (value to load)
+                            list of "value to remove"     (compute on loading)      (loaded value to remove on unload)
+                            
+                            list of "extra value"         (come from addon config file)
+                            list of "removed value"       (come from addon config file)
+                            
+                            "value to add", "extra value" and "removed value" should be in the same data structure behind the same key
+                            
+                        In memmory, for each parameter (to be implemented)
+                            for each addon, "list of value" (only first index and size)
+                            a "list of new value" (value added by user)
+                        
+                        Axioms
+                            In addon, if no registering change, "value to add" will always be the same list
+                            In addon, "list of value to remove" can change depending of the value loaded or not, extra value, removed value
+                            intersection between "extra value" and "removed value" is always empty
+                            in Parameter memmory, "list of value" can not be increase, it can decrease or stay the same
+                        
+                        Case study for a single parameter on addon load, compute a part of "list of value" and "value to remove"
+                            if parameter exist
+                                take the list "value to add"
+                                substract the "removed value"
+                                add the "extra value"
+                                then add the value in the "list of value" of the parameter
+                                and add the value in "value to remove"
+                        
+                        Case study for a single parameter on addon unload
+                            extract "list of value" from parameter in memory, compare with the list of "value to remove"
+                            If equal size
+                                remove the loader from dependancies and remove the value from the parameter
+                            else
+                                look after missing value in the "list of new value"
+                                if still missing value
+                                    remove them from "extra value" if possible
+                                    
+                                    if still missing value
+                                        add them in "removed value"
+                            
+                            if loader is the last one in the parameter dependancies list
+                                if "list of new value" is not empty
+                                    remove them from "removed value"
+                                    
+                                    if "list of new value" is still not empty
+                                        add them in "extra value"
+
+                                remove the parameter
+                                
+                        this solution protect addons value from each others
+                        but does not manage value insertion for a specific addons, could cause logical choice but not understandable by a user... TODO
+                            
+                        PRBLM 1: if a value is marked as removed in the addon But, on next reboot the parameter does not exist SOLVED
+                            so the addon can't add its list of value on the parameter
+                            And can't removed any value
+                            And so at the save, value to removed will be lost...
+                            
+                            a registered value does not disappear if the parameter does not exist, store remove/extra value in the same data structure as registerd
+                            
+                        PRBLN 1b: Same problem with extra value than with removed value, if the parameter does not exist on next reboot SOLVED see previous
+                            the information will be loose...
+                            
+                        PRBLM 2: if an extra value is stored in an addon config file, this value has to be in the "value to add" of the addon ? SOLVED
+                            nope, extra value has to be identified in front of registered value 
+                        
+                        PRLBM 3: what to do if a parameter key exists in the addon config file but is not registered anymore in the addon ? SOLVED
+                            remove the value from addon config file
+                            
+                        PRBLM 4: if an addon completly overwrite the parameter ? (setParameter) loose of every previous value TODO
+                            an addon has the possibility to re create a parameter if it already exist, if it happens, previous value are removed
+                            so at the other addons unloading, every value will be marked as "removed" but it is just overwrittin
+                            
+                            with value tracking, we can't just overwritte a parameter, we need to manage that
+                            
+                            SOLUTION 1.1: remove overwritting choice, it is out of the current design
+                                what about conflict ?
+                                    if a parameter already exists with different type => error on the loader currently loaded
+                                    if a parameter already exists with the same type => do no create 
+                                    if no parameter exist, create it with provided settings
+                                
+                                lose power of expression...
+                                
+                            SOLUTION 1.2: remove setParameter in loader, only keep addValue
+                                how to create parameter and set type ? 
+                                    provide a type to create the parameter if it doesn't exist
+                                    type could be None, so use default type
+                            
+                            SOLUTION 2.1: when overwritting, set a flag to the loader to indicate that is not a remove
+                            SOLUTION 2.2: when overwritting, keep loader as dependant but update their "value to remove" list by removing everything
+                                what about new value ?
+                                and what to do if overwritter is unloaded? restore old type and value ? 
+                                
+                                pretty ugly and overkill as solution
+                            
+                            SOLUTION 3: merge value if parameter type is the same
+                                what to do if type is not the same ?
+                                    => error ?
+                                    => remove previous one ?
+                                
+                            SOLUTION 4: forbide overriden and create a system to maintain unicity name in anycase
+                                for example if two loader want to create the same parameter name, but with different purpose
+                                manage to have two separate name with transparency
+                                
+                                and create a boolean to explictly decide if we use unicity or reusability
+                                    in the first case, a new parameter will be created in every loader using the same name
+                                    in the second case, only one parameter will be create without overriding allowing but if type mismatch, an error will occur
+                            
+                        
+                        PRBLM 5: loose the system of single file SOLVED
+                        
+                            SOLUTION 1 : become a system based on directory XXX
+                                provide a directory to the application, not a config file
+                            
+                        PRBLM 6: distribution of settings change TODO
+                            need a way to centralize settings but distribute values...
+                            
+                            SOLUTION 1: propagate them into every related addons
+                                yeah but what about not loaded addons that have a dependancy to this parameter
+                                they won't be updated, not a good solution
+                                
+                            SOLUTION 2: create a new files "politics" than will apply every change on the parameters setting
+                        
+                        PRBLM 7: how to know when to save ? SOLVED (more or less)
+                            four cases
+                            compare "removed value" and "extra value" from the beginning to the end of the execution
+                            if both empty at the starting
+                                if still empty at the end then do not save
+                                else need to be saved
+                            else #was previously stored
+                                if the content had change then saved
+                                else: candidate to be saved (if only candidate to be saved and file is still the same, do not save)
+                                
+                            yeah but what about the settings ? (see prblm 6)                            
+                            
             question:
                 -a user can be able to remove/update a loader parameter ?
                     -if yes, the removed/updated loader/settings value has to be memorized ? 
