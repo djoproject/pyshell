@@ -151,9 +151,11 @@ class CommandLoader(AbstractLoader):
                         exceptions.addException( LoadException("(CommandLoader) load, fail to insert key '"+str(" ".join(key))+"' in multi tries: path already exists"))
                         continue
 
-                    if override:
-                        mltries.update(key, cmd)
-                        self.loadedCommand.append(key)
+                    if not override:
+                        continue
+                        
+                    mltries.update(key, cmd)
+                    self.loadedCommand.append(key)
 
                 else:
                     mltries.insert(key, cmd)
