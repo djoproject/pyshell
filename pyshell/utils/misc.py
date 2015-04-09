@@ -44,6 +44,8 @@ def getTerminalSize():
     return int(cr[1]), int(cr[0])
     
 def raiseIfInvalidKeyList(keyList, exceptionClass,packageName, methName):
+    #TODO test if a simple string could be a valid keyList, it shouldn't be the case
+
     if not hasattr(keyList,"__iter__"):
         raise exceptionClass("("+packageName+") "+methName+", list of string is not iterable")
 

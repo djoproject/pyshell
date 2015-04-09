@@ -78,7 +78,7 @@ class MultiCommand(list):
     def __init__(self,name,showInHelp=True):
         self.name         = name        #the name of the command
         self.helpMessage  = None #helpMessage #message to show in the help context
-        self.showInHelp   = showInHelp  #is this command must appear in the help context ?
+        self.showInHelp   = showInHelp  #is this command must appear in the help context ? #TODO still used ? because there is the stopTraversal in the tries...
         self.usageBuilder = None        #which (pre/pro/post) process of the first command must be used to create the usage.
         
         self.onlyOnceDict = {}          #this dict is used to prevent the insertion of the an existing dynamic sub command

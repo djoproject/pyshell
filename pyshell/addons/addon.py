@@ -17,7 +17,6 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #TODO
-    #replace 'Sub part' by profile
     #only one profile by addon can be load, adapt printing if needed
     #on list print, don't print any profile name if unloaded
     #profile is not saved with addon to load list, find a way to store it
@@ -101,7 +100,7 @@ def listAddonFun(addon_dico):
     if len(l) == 0:
         return [("No addon available",)]
     
-    l.insert(0, (formatBolt("Addon name"),formatBolt("Sub part"),formatBolt("State"), ) )
+    l.insert(0, (formatBolt("Addon name"),formatBolt("Profile"),formatBolt("State"), ) )
     return l
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(), 
@@ -217,7 +216,7 @@ def getAddonInformation(name, addon_dico, tabsize, ):
              subAddon =      stringArgChecker(), 
              parameters =    completeEnvironmentChecker())
 def subLoaderReload(name, subLoaderName, parameters, subAddon = None):
-    "reload a sub part of an addon from memory"    
+    "reload a profile of an addon from memory"    
     
     #addon name exist ?
     addon = _tryToGetAddonFromParameters(parameters, name)

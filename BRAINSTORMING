@@ -229,6 +229,7 @@ About history (after brainstorming, it is not really an history, it is value ori
                 -do not save loader value (system included) if no value/settings modified
                 -do not regenerate parameters files if not needed
                 -get the params state as closed as possible as the params state at the end of previous exit
+                    if the order and the count of the loader does not change, the params state must be exactly the same
                 -add/remove value in a existing parameter
 
             goals:
@@ -403,7 +404,8 @@ About history (after brainstorming, it is not really an history, it is value ori
                                 and create a boolean to explictly decide if we use unicity or reusability
                                     in the first case, a new parameter will be created in every loader using the same name
                                     in the second case, only one parameter will be create without overriding allowing but if type mismatch, an error will occur
-                            
+                                
+                                overkill... and will add so complexity in the parameter use
                         
                         PRBLM 5: loose the system of single file SOLVED
                         
@@ -418,6 +420,7 @@ About history (after brainstorming, it is not really an history, it is value ori
                                 they won't be updated, not a good solution
                                 
                             SOLUTION 2: create a new files "politics" than will apply every change on the parameters setting
+                                --- add an extra file, not related to any addon
                         
                         PRBLM 7: how to know when to save ? SOLVED (more or less)
                             four cases
