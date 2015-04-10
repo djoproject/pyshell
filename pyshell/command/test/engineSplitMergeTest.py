@@ -16,7 +16,7 @@ class splitAndMergeTest(unittest.TestCase):
  
     #mergeDataAndSetEnablingMap(self,toppestItemToMerge = -1, newMap = None, count = 2):
     def test_mergeWithCustomeMap(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
@@ -66,7 +66,7 @@ class splitAndMergeTest(unittest.TestCase):
             
     #def mergeData(self,toppestItemToMerge = -1, count = 2, depthOfTheMapToKeep = None)
     def test_basicMerge(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
@@ -167,7 +167,7 @@ class splitAndMergeTest(unittest.TestCase):
 
     #splitDataAndSetEnablingMap(self,itemToSplit = -1, splitAtDataIndex=0, map1 = None, map2=None)
     def test_splitWithSet(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
@@ -235,7 +235,7 @@ class splitAndMergeTest(unittest.TestCase):
         
     #splitData(self, itemToSplit = -1,splitAtDataIndex=0, resetEnablingMap = False):
     def test_split(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
@@ -281,7 +281,7 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertRaises(executionException, engine.splitData,-1, 1, False)
         
     def test_multiLevel(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)

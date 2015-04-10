@@ -57,6 +57,7 @@ class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
         self.profileList = {}
+        self.lastUpdatedProfile = None
 
     def getOrCreateLoader(self, loaderName, classDefinition, profile = None): 
         if profile is None:
@@ -81,6 +82,9 @@ class GlobalLoader(AbstractLoader):
         return loader
             
     def _innerLoad(self,methodName, parameterManager, profile, allowedState, invalidStateMessage, nextState,nextStateIfError):
+        if self.lastUpdatedProfile is not None:
+            profileName, profileState = self.lastUpdatedProfile
+        
         exceptions = ListOfException()
 
         if profile is None:

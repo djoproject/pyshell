@@ -35,7 +35,7 @@ class SolvingTest(unittest.TestCase):
     def setUp(self):
         self.mltries = multiLevelTries()
         
-        m = UniCommand("plop", plop_meth)
+        m = UniCommand(plop_meth)
         self.mltries.insert( ("plop",) ,m)
         
         self.var     = VariableParameterManager()
@@ -236,7 +236,7 @@ class SolvingTest(unittest.TestCase):
     ### SOLVING COMMAND ###
     
     def test_solving1(self):#ambiguous command
-        m = UniCommand("plap", plop_meth)
+        m = UniCommand(plop_meth)
         self.mltries.insert( ("plap",) ,m)
     
         p = Parser("pl")
@@ -246,7 +246,7 @@ class SolvingTest(unittest.TestCase):
         self.assertRaises(DefaultPyshellException, s.solve, p, self.mltries, self.var)
         
     def test_solving2(self):#all token used and no command found
-        m = UniCommand("plap plup plip", plop_meth)
+        m = UniCommand(plop_meth)
         self.mltries.insert( ("plap","plup","plip",) ,m)
     
         p = Parser("plap plup")
@@ -263,7 +263,7 @@ class SolvingTest(unittest.TestCase):
         self.assertRaises(DefaultPyshellException, s.solve, p, self.mltries, self.var)
         
     def test_solving4(self):#at least first token found
-        m = UniCommand("plap plup plip", plop_meth)
+        m = UniCommand(plop_meth)
         self.mltries.insert( ("plap","plup","plip",) ,m)
     
         p = Parser("plap toto")
@@ -336,7 +336,7 @@ class SolvingTest(unittest.TestCase):
         self.assertEqual(len(mappedArgsList[0][2]), 0)
         
     def test_solvingParams2(self): #no command in command
-        self.mltries.insert( ("tata",) ,MultiCommand("tata"))
+        self.mltries.insert( ("tata",) ,MultiCommand())
         
         p = Parser("tata")
         p.parse()
@@ -356,7 +356,7 @@ class SolvingTest(unittest.TestCase):
         self.assertEqual(len(mappedArgsList[0][2]), 0)
         
     def test_solvingParams3a(self): #checker on pre OR pro OR post
-        m = UniCommand("plapA", preProcess = plop_meth)
+        m = UniCommand(preProcess = plop_meth)
         self.mltries.insert( ("plapA",) ,m)
         
         p = Parser("plapA -param aa bb cc")
@@ -380,7 +380,7 @@ class SolvingTest(unittest.TestCase):
         self.assertEqual(mappedArgsList[0][0]["param"], ("aa", "bb", "cc",))
         
     def test_solvingParams3b(self): #checker on pre OR pro OR post
-        m = UniCommand("plapB", process = plop_meth)
+        m = UniCommand(process = plop_meth)
         self.mltries.insert( ("plapB",) ,m)
         
         p = Parser("plapB -param aa bb cc")
@@ -404,7 +404,7 @@ class SolvingTest(unittest.TestCase):
         self.assertEqual(mappedArgsList[0][1]["param"], ("aa", "bb", "cc",))
         
     def test_solvingParams3c(self): #checker on pre OR pro OR post
-        m = UniCommand("plapC", postProcess = plop_meth)
+        m = UniCommand(postProcess = plop_meth)
         self.mltries.insert( ("plapC",) ,m)
         
         p = Parser("plapC -param aa bb cc")
@@ -457,7 +457,7 @@ class SolvingTest(unittest.TestCase):
         def tutu(param1,param2):
             pass
             
-        m = UniCommand("tutu", tutu)
+        m = UniCommand(tutu)
         self.mltries.insert( ("tutu",) ,m)
         
         p = Parser("tutu -param1 1 2 3 4 5 6 -param2 aa bb cc")
@@ -491,7 +491,7 @@ class SolvingTest(unittest.TestCase):
         def tutu(param1,param2):
             pass
             
-        m = UniCommand("tutu", tutu)
+        m = UniCommand(tutu)
         self.mltries.insert( ("tutu",) ,m)
         
         p = Parser("tutu -param1 1 2 3 -param2 aa bb cc")
@@ -524,7 +524,7 @@ class SolvingTest(unittest.TestCase):
         def tutu(param1,param2):
             pass
             
-        m = UniCommand("tutu", tutu)
+        m = UniCommand(tutu)
         self.mltries.insert( ("tutu",) ,m)
         
         p = Parser("tutu -param1 1 -param2 aa bb cc")
@@ -557,7 +557,7 @@ class SolvingTest(unittest.TestCase):
         def tutu(param1):
             pass
             
-        m = UniCommand("tutu", tutu)
+        m = UniCommand(tutu)
         self.mltries.insert( ("tutu",) ,m)
         
         p = Parser("tutu -param1 1 2 3 4 5 6")
@@ -587,7 +587,7 @@ class SolvingTest(unittest.TestCase):
         def tutu(param1):
             pass
             
-        m = UniCommand("tutu", tutu)
+        m = UniCommand(tutu)
         self.mltries.insert( ("tutu",) ,m)
         
         p = Parser("tutu -param1 1 2 3")
@@ -616,7 +616,7 @@ class SolvingTest(unittest.TestCase):
         def tutu(param1):
             pass
             
-        m = UniCommand("tutu", tutu)
+        m = UniCommand(tutu)
         self.mltries.insert( ("tutu",) ,m)
         
         p = Parser("tutu -param1 1 2")
@@ -645,7 +645,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean")
@@ -675,7 +675,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean -anything 123")
@@ -708,7 +708,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean plop")
@@ -740,7 +740,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean plop -anything 123")
@@ -774,7 +774,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean plop plip plap")
@@ -805,7 +805,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean plop plip plap -anything 123")
@@ -839,7 +839,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean tr")
@@ -869,7 +869,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean tr -anything 123")
@@ -902,7 +902,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean tr plop plip plap")
@@ -933,7 +933,7 @@ class SolvingTest(unittest.TestCase):
         def boo(boolean = False,anything=None):
             pass
             
-        m = UniCommand("boo", boo)
+        m = UniCommand(boo)
         self.mltries.insert( ("boo",) ,m)
         
         p = Parser("boo -boolean tr plop plip plap -anything 123")

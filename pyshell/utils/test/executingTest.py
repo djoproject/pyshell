@@ -128,7 +128,7 @@ class ExecutingTest(unittest.TestCase):
         
         self.mltries = multiLevelTries()
         
-        m = UniCommand("plop", plop_meth)
+        m = UniCommand(plop_meth)
         self.mltries.insert( ("plop",) ,m)
         
         param = self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance()), localParam = False)
@@ -139,7 +139,7 @@ class ExecutingTest(unittest.TestCase):
         RESULT = None
         RESULT_BIS = None
         
-        self.m = MultiCommand("plap")
+        self.m = MultiCommand()
         self.mltries.insert( ("plap",) ,self.m)
                         
     ### execute test ###
@@ -225,7 +225,7 @@ class ExecutingTest(unittest.TestCase):
         self.assertEqual(RESULT,None)
         
     def test_execute10(self):#check if commands are correctly cloned        
-        m = MultiCommand("tutu")
+        m = MultiCommand()
         m.addProcess(process=plop_meth)
 
         c = Command()
@@ -249,7 +249,7 @@ class ExecutingTest(unittest.TestCase):
     
         n = NewOutput()
 
-        m = MultiCommand("test_1")
+        m = MultiCommand()
         m.addProcess(process=raiseExc1)
 
         self.mltries.insert( ("test_1",) ,m)
@@ -262,7 +262,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_2")
+        m = MultiCommand()
         m.addProcess(process=raiseExc2)
 
         self.mltries.insert( ("test_2",) ,m)
@@ -275,7 +275,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_3")
+        m = MultiCommand()
         m.addProcess(process=raiseExc3)
 
         self.mltries.insert( ("test_3",) ,m)
@@ -288,7 +288,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_4")
+        m = MultiCommand()
         m.addProcess(process=raiseExc4)
 
         self.mltries.insert( ("test_4",) ,m)
@@ -301,7 +301,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_5")
+        m = MultiCommand()
         m.addProcess(process=raiseExc5)
 
         self.mltries.insert( ("test_5",) ,m)
@@ -314,7 +314,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_6")
+        m = MultiCommand()
         m.addProcess(process=raiseExc6)
 
         self.mltries.insert( ("test_6",) ,m)
@@ -327,7 +327,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_7")
+        m = MultiCommand()
         m.addProcess(process=raiseExc7)
 
         self.mltries.insert( ("test_7",) ,m)
@@ -340,7 +340,7 @@ class ExecutingTest(unittest.TestCase):
 
         ##
 
-        m = MultiCommand("test_8")
+        m = MultiCommand()
         m.addProcess(process=raiseExc8)
 
         self.mltries.insert( ("test_8",) ,m)
@@ -376,7 +376,7 @@ class ExecutingTest(unittest.TestCase):
         
     def test_generateSuffix5(self):#test without commandNameList
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"] )
+        e = engineV3([UniCommand(plop_meth)], [["titi"]],["titi"] )
         self.assertEqual(_generateSuffix(self.params,None,e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         
     def test_generateSuffix6(self):#test with None engine
@@ -385,13 +385,13 @@ class ExecutingTest(unittest.TestCase):
         
     def test_generateSuffix7(self):#test with empty engine
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
+        e = engineV3([UniCommand(plop_meth)], [["titi"]],["titi"])
         del e.stack[:]
         self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         
     def test_generateSuffix8(self):#test with valid engine and commandNameList
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        e = engineV3([UniCommand("plop", plop_meth)], [["titi"]],["titi"])
+        e = engineV3([UniCommand(plop_meth)], [["titi"]],["titi"])
         self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__', command='plop')")
 
         

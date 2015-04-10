@@ -205,7 +205,7 @@ class SettingsTest(unittest.TestCase):
         gs = GlobalSettings()
         gs.setStartingPoint("toto", "tutu", "tata")
         self.assertTrue(gs.isEqualToStartingHash("toto"))
-        self.assertEqual(gs.getOrigin(), ("tutu", "tata",))
+        self.assertEqual(gs.getStartingPoint(), ("tutu", "tata",))
     
     def test_globalSettings9(self):
         gs = GlobalSettings()
@@ -231,7 +231,7 @@ class SettingsTest(unittest.TestCase):
         
         self.assertEqual(gs.getLoaderSet(), set( ("plop", "plup") ))
         self.assertTrue(gs.isEqualToStartingHash("toto"))
-        self.assertEqual(gs.getOrigin(), ("tutu", "tata",))
+        self.assertEqual(gs.getStartingPoint(), ("tutu", "tata",))
         
     def test_globalSettings12(self):#mergeFromPreviousSettings, settings is not an instance of GlobalSettings
         gs = GlobalSettings()
@@ -252,7 +252,7 @@ class SettingsTest(unittest.TestCase):
         
         self.assertIs(gs.getLoaderSet(), None )
         self.assertTrue(gs.isEqualToStartingHash("plop"))
-        self.assertEqual(gs.getOrigin(), ("plup", "plap",))
+        self.assertEqual(gs.getStartingPoint(), ("plup", "plap",))
         
     def test_globalSettings14(self):#mergeFromPreviousSettings, loader in self, no loader in settings
         gs = GlobalSettings()
@@ -267,7 +267,7 @@ class SettingsTest(unittest.TestCase):
         
         self.assertEqual(gs.getLoaderSet(), set( ("plop", "plup") ))
         self.assertTrue(gs.isEqualToStartingHash("plop"))
-        self.assertEqual(gs.getOrigin(), ("plup", "plap",))
+        self.assertEqual(gs.getStartingPoint(), ("plup", "plap",))
         
     def test_globalSettings15(self):#mergeFromPreviousSettings, no loader in self, loader in settings
         gs = GlobalSettings()
@@ -282,7 +282,7 @@ class SettingsTest(unittest.TestCase):
         
         self.assertEqual(gs.getLoaderSet(), set( ("lolo", "lulu") ))
         self.assertTrue(gs.isEqualToStartingHash("plop"))
-        self.assertEqual(gs.getOrigin(), ("plup", "plap",))
+        self.assertEqual(gs.getStartingPoint(), ("plup", "plap",))
         
     def test_globalSettings16(self):#mergeFromPreviousSettings, loader in self, loader in settings
         gs = GlobalSettings()
@@ -300,7 +300,7 @@ class SettingsTest(unittest.TestCase):
         
         self.assertEqual(gs.getLoaderSet(), set( ("plop", "plup", "lolo", "lulu") ))
         self.assertTrue(gs.isEqualToStartingHash("plop"))
-        self.assertEqual(gs.getOrigin(), ("plup", "plap",))
+        self.assertEqual(gs.getStartingPoint(), ("plup", "plap",))
 
 if __name__ == '__main__':
     unittest.main()

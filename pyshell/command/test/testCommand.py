@@ -12,12 +12,12 @@ class commandTest(unittest.TestCase):
 #test multicommand
     #init an empty one and check the args
     def testEmptyCommand(self):
-        mc = MultiCommand("plop", False)
-        self.assertTrue(mc.name == "plop" and mc.helpMessage is None and not mc.showInHelp)
+        mc = MultiCommand()
+        self.assertTrue(mc.helpMessage is None)
         
     #addProcess
     def testAddProcess(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         #add preProcess with/withou checker
         self.assertRaises(commandException, mc.addProcess) #pre/pro/post process are None
         
@@ -39,7 +39,7 @@ class commandTest(unittest.TestCase):
         self.assertTrue(mc.addProcess(None,None,toto) is None)
         self.assertTrue(mc.usageBuilder == 52) #the usage builder is still the builder of the first command inserted
         
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         mc.addProcess(None,None,toto)
         self.assertTrue(mc.usageBuilder == 54)
         
@@ -51,7 +51,7 @@ class commandTest(unittest.TestCase):
         mc.addProcess(None,toto)
         self.assertTrue(mc.usageBuilder == 54)
         
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         toto.checker = 53
         mc.addProcess(None,toto)
         self.assertTrue(mc.usageBuilder == 53)
@@ -77,7 +77,7 @@ class commandTest(unittest.TestCase):
         
     #addStaticCommand
     def testStaticCommand(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         c = Command()
         
         #try to insert anything but cmd instance
@@ -95,18 +95,18 @@ class commandTest(unittest.TestCase):
         
     #usage
     def testUsage(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         c = Command()
         
         #test with and without self.usageBuilder
-        self.assertTrue(mc.usage() == "plop: no args needed")
+        self.assertTrue(mc.usage() == "no args needed")
         
         mc.addStaticCommand(c)
-        self.assertEqual(mc.usage(),"plop `[args:(<any> ... <any>)]`")
+        self.assertEqual(mc.usage(),"`[args:(<any> ... <any>)]`")
         
     #reset
     def testReset(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         c = Command()
         
         #populate
@@ -129,7 +129,7 @@ class commandTest(unittest.TestCase):
         
     #setArgs
     """def testArgs(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         #try to add anything
         mc.setArgs(42)
         self.assertTrue(isinstance(mc.args, MultiOutput))
@@ -143,7 +143,7 @@ class commandTest(unittest.TestCase):
     
     #flushArgs
     def testFlus(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         #set (anything/multioutput) then flush
         mc.setArgs(42)
         mc.flushArgs()
@@ -153,7 +153,7 @@ class commandTest(unittest.TestCase):
     
     #addDynamicCommand
     def testAddDynamicCommand(self):
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         c = Command()
     
         #try to insert anything but command
@@ -174,18 +174,18 @@ class commandTest(unittest.TestCase):
     #test unicommand class
     def testUniCommand(self):
         #test to create a basic empty one
-        self.assertRaises(commandException, UniCommand, "plop")
+        self.assertRaises(commandException, UniCommand)
         
         def toto():
             pass
         
         #then with different kind of args
-        self.assertTrue(UniCommand("plop", toto) is not None )
-        self.assertTrue(UniCommand("plop", None, toto) is not None )
-        self.assertTrue(UniCommand("plop", None,None,toto) is not None )
+        self.assertTrue(UniCommand(toto) is not None )
+        self.assertTrue(UniCommand(None, toto) is not None )
+        self.assertTrue(UniCommand(None,None,toto) is not None )
 
         #try to add another command
-        uc = UniCommand("plop", toto)
+        uc = UniCommand(toto)
         self.assertTrue(len(uc) == 1)
         
         uc.addProcess()
@@ -198,7 +198,7 @@ class commandTest(unittest.TestCase):
         def plop():
             pass
 
-        mc = MultiCommand("plop", False)
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop)
         mc.addProcess(plop)

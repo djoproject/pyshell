@@ -163,5 +163,6 @@ class GlobalSettings(LocalSettings):
         return hashi == self.startingHash
 
     def getStartingPoint(self):
-        pass #TODO return origin point of this settings, first items in the list
-                
+        pass#TODO return origin point of this settings, first items in the list
+        
+        

@@ -1116,7 +1116,7 @@ class engineV3(object):
             return
         
         for i in range(0, len(self.cmdList)):
-            print "Command <"+str(i)+"> "+self.cmdList[i].name
+            print "Command <"+str(i)+">"
             for j in range(0, len(self.cmdList[i])):
                 c,a,e = self.cmdList[i][j]
                 print "    SubCommand <"+str(j)+"> (useArgs="+str(a)+", enabled="+str(e)+")"
@@ -1142,8 +1142,8 @@ class engineV3(object):
                 continue
 
             if len(self.cmdList[i]) == 1:
-                print "#["+str(i)+"]"+self.cmdList[i].name
+                print "#["+str(i)+"]"
                 continue
 
-            print "#["+str(i)+"]"+self.cmdList[i].name+" (sub="+str(topPath[i])+")"
+            print "#["+str(i)+"]"+" (sub="+str(topPath[i])+")"
 

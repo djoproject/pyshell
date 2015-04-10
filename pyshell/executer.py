@@ -130,7 +130,7 @@ class CommandExecuter():
     def _initStartUpEvent(self):
         ## prepare atStartUp ##
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
-        _atstartup = ProcedureFromList(EVENT__ON_STARTUP, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
+        _atstartup = ProcedureFromList(EVENT__ON_STARTUP, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         _atstartup.setNeverStopProcedureIfErrorOccured()
         
         _atstartup.addCommand( "addon load pyshell.addons.parameter" )
@@ -142,7 +142,7 @@ class CommandExecuter():
         _atstartup.settings.setReadOnly(True)
         mltries.insert( (EVENT__ON_STARTUP, ), _atstartup ,stopTraversalAtThisNode=True)
         
-        atstartup = ProcedureFromList(EVENT_ON_STARTUP, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
+        atstartup = ProcedureFromList(EVENT_ON_STARTUP, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         atstartup.setNeverStopProcedureIfErrorOccured()
         atstartup.addCommand( "history load" )
         #atstartup.addCommand( "key load" )
@@ -152,7 +152,7 @@ class CommandExecuter():
         mltries = self.params.environment.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY, perfectMatch=True).getValue()
     
         ## prepare atExit ##
-        atExit = ProcedureFromList(EVENT_AT_EXIT, showInHelp = False, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
+        atExit = ProcedureFromList(EVENT_AT_EXIT, settings=GlobalSettings(readOnly = False, removable = False, transient = True))
         atExit.setNeverStopProcedureIfErrorOccured()
         
         atExit.addCommand( "parameter save" ) #TODO need to have parameters addons parameter loaded before to save
@@ -321,7 +321,7 @@ class CommandExecuter():
         with self.ExceptionManager("An error occured during the script execution: "):
             afile.execute(args = (), parameters=self.params)
 
-####################################################################################################
+#TODO this part should be in an other file, e.g. exec ####################################################################################################
 #no need to use printing system on the following function because shell is not yet running
 
 def usage():

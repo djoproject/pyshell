@@ -111,6 +111,8 @@ def usageFun(args, mltries):
         raise DefaultPyshellException("incomplete command call, no usage information available, try to complete the command name", USER_WARNING)
 
     cmd = searchResult.getLastTokenFoundValue()
+    
+    #TODO the command name has been removed, need to add complete command path + usage
     return cmd.usage()
 
 @shellMethod(mltries = environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY), 

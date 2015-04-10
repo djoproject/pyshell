@@ -13,13 +13,13 @@ def noneFun():
 
 class injectTest(unittest.TestCase):
     def setUp(self):
-        self.mc = MultiCommand("Multiple test", "help me")
+        self.mc = MultiCommand()
         self.mc.addProcess(noneFun,noneFun,noneFun)
         self.mc.addProcess(noneFun,noneFun,noneFun)
         self.mc.addProcess(noneFun,noneFun,noneFun)
         self.mc.addProcess(noneFun,noneFun,noneFun)
 
-        self.mc2 = MultiCommand("Multiple test2", "help me2")
+        self.mc2 = MultiCommand()
         self.mc2.addProcess(noneFun,noneFun,noneFun)
         self.mc2.addProcess(noneFun,noneFun,noneFun)
         self.mc2.addProcess(noneFun,noneFun,noneFun)

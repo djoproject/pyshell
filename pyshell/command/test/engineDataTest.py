@@ -10,7 +10,7 @@ def noneFun():
 
 class dataTest(unittest.TestCase):
     def setUp(self):
-        self.mc = MultiCommand("Multiple test", "help me")
+        self.mc = MultiCommand()
         self.mc.addProcess(noneFun,noneFun,noneFun)
     
     #flushData

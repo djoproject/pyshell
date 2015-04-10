@@ -274,8 +274,6 @@
 
         #in the unit test, check the exception message, there is a unit test method to do that 
 
-        #remove showInHelp from command, it is not used
-
         #not a real logic in exception usage, sometime DefaultPyshellException is used, and sometimes is is custom exception that inherit from DefaultPyshellException
             #define a usage way and always use it everywhere
             

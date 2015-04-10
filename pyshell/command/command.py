@@ -24,19 +24,6 @@ from pyshell.command.utils     import isAValidIndex
 class MultiOutput(list): #just a marker class to differentiate an standard list from a multiple output 
     pass
 
-"""#
-# this method check the args with respect to meth
-#
-# @argument args, the arguments to apply
-# @argument meth, the method to wich apply the argument
-# @return a dictionary with the argument bounded to the method
-#
-def selfArgChecker(args,meth):
-    if hasattr(meth, "checker"):
-        return meth.checker.checkArgs(args)
-    else:
-        return {} #no available binding"""
-
 class Command(object):
     #default preProcess
     @shellMethod(args=listArgChecker(ArgChecker()))
@@ -74,11 +61,8 @@ class Command(object):
 # a multicommand will produce several process with only one call
 #
 class MultiCommand(list):
-    #def __init__(self,name,helpMessage,showInHelp=True):
-    def __init__(self,name,showInHelp=True):
-        self.name         = name        #the name of the command
+    def __init__(self):
         self.helpMessage  = None #helpMessage #message to show in the help context
-        self.showInHelp   = showInHelp  #is this command must appear in the help context ? #TODO still used ? because there is the stopTraversal in the tries...
         self.usageBuilder = None        #which (pre/pro/post) process of the first command must be used to create the usage.
         
         self.onlyOnceDict = {}          #this dict is used to prevent the insertion of the an existing dynamic sub command
@@ -168,9 +152,9 @@ class MultiCommand(list):
                 #normaly no problem with addProcess
     
         if self.usageBuilder is None :
-            return self.name+": no args needed"
+            return "no args needed"
         else:
-            return self.name+" `"+self.usageBuilder.usage()+"`"
+            return "`"+self.usageBuilder.usage()+"`"
 
     def reset(self): #TODO is it still usefull ? reset become deprecated because of cloning, no?
         #remove dynamic command
@@ -196,9 +180,8 @@ class MultiCommand(list):
 
     def clone(self, From=None):
         if From is None:
-            From = MultiCommand(self.name, self.showInHelp)
+            From = MultiCommand()
             
-        From.showInHelp = From.showInHelp
         From.helpMessage  = self.helpMessage
         From.usageBuilder = self.usageBuilder
         del From[:]
@@ -263,8 +246,8 @@ class MultiCommand(list):
 # special command class, with only one command (the starting point)
 #
 class UniCommand(MultiCommand):
-    def __init__(self,name,preProcess=None,process=None,postProcess=None,showInHelp=True):
-        MultiCommand.__init__(self,name,showInHelp)
+    def __init__(self,preProcess=None,process=None,postProcess=None):
+        MultiCommand.__init__(self)
         MultiCommand.addProcess(self,preProcess,process,postProcess)
 
     def addProcess(self,preProcess=None,process=None,postProcess=None, useArgs = True):
@@ -276,7 +259,7 @@ class UniCommand(MultiCommand):
     def clone(self, From=None):
         if From is None:
             cmd, useArg, enabled = self[0]
-            From = UniCommand(self.name, cmd.preProcess, cmd.process, cmd.postProcess, self.showInHelp)
+            From = UniCommand(cmd.preProcess, cmd.process, cmd.postProcess)
 
         return MultiCommand.clone(self,From)
 

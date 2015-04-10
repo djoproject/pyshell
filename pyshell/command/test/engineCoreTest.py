@@ -42,7 +42,7 @@ class EngineCoreTest(unittest.TestCase):
         self.assertRaises(executionInitException,engineV3,42, [], [])
         
         #check command
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand()
         self.assertRaises(executionInitException,engineV3,[mc], [[]], [[{},{},{}]])
         
         mc.addProcess(noneFun,noneFun,noneFun)
@@ -89,7 +89,7 @@ class EngineCoreTest(unittest.TestCase):
         #simple test
         self.valueToTest = 25
         self.preCount = self.proCount = self.postCount = 0
-        uc = UniCommand("simple test", pre, pro, post)
+        uc = UniCommand(pre, pro, post)
         self.engine = engineV3([uc], [[]], [[{},{},{}]])
         self.engine.execute()
         self.assertEqual(self.preCount,1)
@@ -140,7 +140,7 @@ class EngineCoreTest(unittest.TestCase):
         #simple test
         self.valueToTest = [25,125, 100, 1000]
         self.preCount = self.proCount = self.postCount = 0
-        uc = UniCommand("simple test", pre, pro, post)
+        uc = UniCommand(pre, pro, post)
         self.engine = engineV3([uc], [[]], [[{},{},{}]])
         self.engine.execute()
         self.assertEqual(self.preCount,1)
@@ -168,7 +168,7 @@ class EngineCoreTest(unittest.TestCase):
     
     #test du mutlicommand
     def testMultiCommand(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         self.preCount = [0,0,0]
         self.proCount = [0,0,0]
         self.postCount = [0,0,0]
@@ -286,7 +286,7 @@ class EngineCoreTest(unittest.TestCase):
 
     #test du mutliOutput avec multicommand
     def testMultiOuputAndMultiCommand(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         self.preCount = [0,0]
         self.proCount = [0,0]
         self.postCount = [0,0]
@@ -428,7 +428,7 @@ class EngineCoreTest(unittest.TestCase):
             self.checkStack(self.engine.stack, self.engine.cmdList)
             return MultiOutput([arg3, arg3])
 
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(pre1,pro1,post1)
         mc.addProcess(pre2,pro2,post2)
         
@@ -598,7 +598,7 @@ class EngineCoreTest(unittest.TestCase):
         #simple test
         self.valueToTest = 25
         self.preCount = self.proCount = self.postCount = 0
-        uc = UniCommand("simple test", pre, pro, post)
+        uc = UniCommand(pre, pro, post)
         
         #set a large amount of data for the pre, then the pro, then the post
         engine = engineV3([uc], [[]], [[{},{},{}]])
@@ -625,7 +625,7 @@ class EngineCoreTest(unittest.TestCase):
         
     #getEnv
     def test_GetEnv(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand()
         mc.addProcess(noneFun,noneFun,noneFun)  
     
         e = engineV3([mc], [[]], [[{},{},{}]])

@@ -48,9 +48,10 @@ def getAbsoluteIndex(index, listSize):
     return index
 
 class Procedure(UniCommand):#TODO should implement hash system, like parameter
-    def __init__(self, name, showInHelp = True, settings = None):
-        UniCommand.__init__(self, name, self._internalPrePost, None, None, showInHelp) #by default, enable on pre process #TODO this information should be stored
+    def __init__(self, name, settings = None):
+        UniCommand.__init__(self, self._internalPrePost, None, None) #by default, enable on pre process #TODO this information should be stored
         
+        self.name = name
         self.setStopProcedureOnFirstError() #default error policy  #TODO should be in settings
         self.interrupt        = False
         self.interruptReason  = None
@@ -203,8 +204,8 @@ class Procedure(UniCommand):#TODO should implement hash system, like parameter
         return hash(self.settings)
             
 class ProcedureFromList(Procedure):
-    def __init__(self, name, showInHelp = True, settings = None):
-        Procedure.__init__(self, name, showInHelp, settings)
+    def __init__(self, name, settings = None):
+        Procedure.__init__(self, name, settings)
         
         #specific command system
         self.stringCmdList    = [] 
@@ -376,8 +377,8 @@ class ProcedureFromList(Procedure):
         pass #TODO       
         
 class ProcedureFromFile(Procedure):
-    def __init__(self, filePath, showInHelp = True, settings = None):
-        Procedure.__init__(self, "execute "+str(filePath), showInHelp, settings)
+    def __init__(self, filePath, settings = None):
+        Procedure.__init__(self, "execute "+str(filePath), settings)
         self.setFilePath(filePath)
     
     def getFilePath(self):

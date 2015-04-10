@@ -17,17 +17,17 @@ def noneFun():
 
 class splitAndMergeTest(unittest.TestCase): 
     def setUp(self):
-        self.mc = MultiCommand("Multiple test", "help me")
+        self.mc = MultiCommand()
         self.mc.addProcess(noneFun,noneFun,noneFun)
         
-        self.mc2 = MultiCommand("Multiple test2", "help me2")
+        self.mc2 = MultiCommand()
         self.mc2.addProcess(noneFun,noneFun,noneFun)
         
         self.e = engineV3([self.mc,self.mc2,self.mc2],[[],[],[]], [[{},{},{}],[{},{},{}],[{},{},{}]])
 
     #_willThisCmdBeCompletlyDisabled(self, cmdID, startSkipRange, rangeLength=1)
     def test_willThisCmdBeCompletlyDisabled(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand()
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
@@ -100,7 +100,7 @@ class splitAndMergeTest(unittest.TestCase):
         
     #_willThisDataBunchBeCompletlyDisabled(self, dataIndex, startSkipRange, rangeLength=1)
     def test_willThisDataBunchBeCompletlyDisabled_NoneDatabunch(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand()
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
@@ -172,7 +172,7 @@ class splitAndMergeTest(unittest.TestCase):
             #skip range must have a size of 0, 1 or more than 1
 
     def test_willThisDataBunchBeCompletlyDisabled_NotNoneDatabunch(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand()
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
@@ -248,7 +248,7 @@ class splitAndMergeTest(unittest.TestCase):
     
     #_willThisDataBunchBeCompletlyEnabled(self, dataIndex, startSkipRange, rangeLength=1)
     def test_willThisDataBunchBeCompletlyEnabled(self):
-        mc = MultiCommand("Multiple test", "help me")
+        mc = MultiCommand()
         for i in range(0,6):
             mc.addProcess(noneFun,noneFun,noneFun)
 
@@ -838,7 +838,7 @@ class splitAndMergeTest(unittest.TestCase):
         self.assertEqual(self.e.stack[0][2], PREPROCESS_INSTRUCTION)
         
     def test_isCurrentRootCommand(self):
-        mc = MultiCommand("Multiple test")
+        mc = MultiCommand()
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
         mc.addProcess(plop,plop,plop)
