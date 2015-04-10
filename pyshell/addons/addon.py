@@ -26,7 +26,7 @@ from pyshell.arg.decorator     import shellMethod
 import os, sys
 from pyshell.utils.postProcess import printColumn, listResultHandler
 from pyshell.arg.argchecker    import defaultInstanceArgChecker, completeEnvironmentChecker, stringArgChecker, listArgChecker, environmentParameterChecker, contextParameterChecker
-from pyshell.utils.constants   import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY, STATE_LOADED,STATE_UNLOADED, STATE_REGISTERED, ENVIRONMENT_TAB_SIZE_KEY
+from pyshell.utils.constants   import DEFAULT_PROFILE_NAME, ADDONLIST_KEY, ENVIRONMENT_ADDON_TO_LOAD_KEY, STATE_LOADED,STATE_UNLOADED, ENVIRONMENT_TAB_SIZE_KEY
 from pyshell.utils.exception   import ListOfException
 from pyshell.utils.printing    import notice, formatException, formatGreen, formatOrange, formatRed, formatBolt
 from pyshell.system.environment import EnvironmentParameter
@@ -65,7 +65,7 @@ def _tryToImportLoaderFromFile(name):
 def _formatState(state, printok, printwarning, printerror):
     if state == STATE_LOADED:
         return printok(state)
-    elif state in (STATE_UNLOADED, STATE_REGISTERED,):
+    elif state == STATE_UNLOADED:
         return printwarning(state)
     else:
         return printerror(state)
