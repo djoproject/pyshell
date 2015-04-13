@@ -76,27 +76,7 @@ class GlobalLoader(AbstractLoader):
 
         return loader
             
-    def _innerLoad(self,methodName, parameterManager, profile, allowedFromOtherProfile, invalidStateMessage, nextState,nextStateIfError):
-        if profile is None:
-            profile = DEFAULT_PROFILE_NAME
-        
-        #can execute this operation ?
-        if self.lastUpdatedProfile is not None:
-            lastProfileName, lastProfileState = self.lastUpdatedProfile
-
-            #TODO not convinced by the next statment, refactore/analyse it
-            if lastProfileState not in allowedState:
-                if lastProfileName == profile:
-                    raise LoadException("(GlobalLoader) '"+methodName+"', profile '"+str(profile)+"' "+invalidStateMessage)
-                
-                raise LoadException("(GlobalLoader) '"+methodName+"', can not operate this operation on this profile '"+profile+"' because the profile '"+lastProfileName+"' is in state '"+lastProfileState+"'")
-            else:
-                if lastProfileName != profile and methodName != "load": #can not proceed a unload/load on profile B after a load on profile A
-                    raise LoadException("(GlobalLoader) '"+methodName+"', can not operate this operation on this profile '"+profile+"' because the profile '"+lastProfileName+"' is in state '"+lastProfileState+"'")
-        else:
-            pass #TODO if we try to unload/reload => error
-
-
+    def _innerLoad(self,methodName, parameterManager, profile, nextState,nextStateIfError):
         exceptions = ListOfException()
 
         #no loader available for this profile
@@ -126,10 +106,31 @@ class GlobalLoader(AbstractLoader):
     _unloadAllowedState = (STATE_LOADED, STATE_LOADED_E,)
 
     def load(self, parameterManager, profile=None):
-        self._innerLoad("load",   parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._loadAllowedState, invalidStateMessage="is already loaded",nextState=STATE_LOADED,  nextStateIfError=STATE_LOADED_E)
+        if profile is None:
+            profile = DEFAULT_PROFILE_NAME
+
+        if self.lastUpdatedProfile is not None and self.lastUpdatedProfile[1] not in GlobalLoader._loadAllowedState:
+            if profile == self.lastUpdatedProfile[0]:
+                raise LoadException("(GlobalLoader) 'load', profile '"+str(profile)+"' is already loaded")
+            else:
+                raise LoadException("(GlobalLoader) 'load', profile '"+str(profile)+"' is not loaded but an other profile '"+str(self.lastUpdatedProfile[0])+"' is already loaded")
+
+        self._innerLoad("load",   parameterManager=parameterManager, profile=profile, nextState=STATE_LOADED,  nextStateIfError=STATE_LOADED_E)
 
     def unload(self, parameterManager, profile=None):
-        self._innerLoad("unload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_UNLOADED,nextStateIfError=STATE_UNLOADED_E)
+        if profile is None:
+            profile = DEFAULT_PROFILE_NAME
+
+        if self.lastUpdatedProfile is None or self.lastUpdatedProfile[0] != profile or self.lastUpdatedProfile[1] not in GlobalLoader._unloadAllowedState:
+            raise LoadException("(GlobalLoader) 'unload', profile '"+str(profile)+"' is not loaded")
+
+        self._innerLoad("unload", parameterManager=parameterManager, profile=profile, nextState=STATE_UNLOADED,nextStateIfError=STATE_UNLOADED_E)
 
     def reload(self, parameterManager, profile=None):
-        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, allowedState=GlobalLoader._unloadAllowedState, invalidStateMessage="is not loaded",    nextState=STATE_LOADED,nextStateIfError=STATE_LOADED_E)
+        if profile is None:
+            profile = DEFAULT_PROFILE_NAME
+
+        if self.lastUpdatedProfile is None or self.lastUpdatedProfile[0] != profile or self.lastUpdatedProfile[1] not in GlobalLoader._unloadAllowedState:
+            raise LoadException("(GlobalLoader) 'reload', profile '"+str(profile)+"' is not loaded")
+
+        self._innerLoad("reload", parameterManager=parameterManager, profile=profile, nextState=STATE_LOADED,nextStateIfError=STATE_LOADED_E)
