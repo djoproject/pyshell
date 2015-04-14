@@ -372,20 +372,21 @@ About history (after brainstorming, it is not really an history, it is value ori
                             
                             with value tracking, we can't just overwritte a parameter, we need to manage that
                             
-                            SOLUTION 1.1: remove overwritting choice, it is out of the current design
+                            SOLUTION 1.1: remove overwritting choice, it is out of the current design XXX
                                 what about conflict ?
                                     if a parameter already exists with different type => error on the loader currently loaded
                                     if a parameter already exists with the same type => do no create 
                                     if no parameter exist, create it with provided settings
                                 
                                 lose power of expression...
+                                yeah but the current design talk about sharing a parameter, no unique owner
                                 
                             SOLUTION 1.2: remove setParameter in loader, only keep addValue
                                 how to create parameter and set type ? 
                                     provide a type to create the parameter if it doesn't exist
                                     type could be None, so use default type
                             
-                            SOLUTION 2.1: when overwritting, set a flag to the loader to indicate that is not a remove
+                            SOLUTION 2.1: when overwritting, set a flag to the past loader to indicate that is not a remove
                             SOLUTION 2.2: when overwritting, keep loader as dependant but update their "value to remove" list by removing everything
                                 what about new value ?
                                 and what to do if overwritter is unloaded? restore old type and value ? 
@@ -406,6 +407,9 @@ About history (after brainstorming, it is not really an history, it is value ori
                                     in the second case, only one parameter will be create without overriding allowing but if type mismatch, an error will occur
                                 
                                 overkill... and will add so complexity in the parameter use
+                                
+                            SOLUTION 5: if an override occure, in overriden addon, remove extra value, and put every value in to be removed
+                                prblm: if a reboot occured and the overrider addon is not loaded, no more value will be loaded from other addon
                         
                         PRBLM 5: loose the system of single file SOLVED
                         
@@ -419,8 +423,14 @@ About history (after brainstorming, it is not really an history, it is value ori
                                 yeah but what about not loaded addons that have a dependancy to this parameter
                                 they won't be updated, not a good solution
                                 
+                                last loaded addon will apply its settings
+                                
                             SOLUTION 2: create a new files "politics" than will apply every change on the parameters setting
                                 --- add an extra file, not related to any addon
+                                
+                            SOLUTION 3: set a version number to the settings, always apply the last one
+                            
+                            SOLUTION 4:
                         
                         PRBLM 7: how to know when to save ? SOLVED (more or less)
                             four cases

@@ -16,6 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #add a check on the targeted addon, to block at unload if a dependancy exist
+    #remove the check to the dependancy if the dependant addon is removed
+
 from pyshell.loader.utils     import getAndInitCallerModule, AbstractLoader
 from pyshell.loader.exception import RegisterException, LoadException
 from pyshell.utils.constants  import ADDONLIST_KEY, DEFAULT_PROFILE_NAME, STATE_LOADED, STATE_LOADED_E
