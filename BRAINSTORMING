@@ -222,7 +222,7 @@ About history (after brainstorming, it is not really an history, it is value ori
                     SOLUTION 1: add a field in globalSettings "fileOrigin" and store the filePath hash into
                         If the field is set to None, the parameter does not come from a file
 
-        PRBLM 8: start to become overkill...
+********PRBLM 8: start to become overkill...
             should find a way to easy manage that. if it is not easy to get it, prblm of design or goals
 
             what we want:
@@ -347,9 +347,6 @@ About history (after brainstorming, it is not really an history, it is value ori
 
                                 remove the parameter
                                 
-                        this solution protect addons value from each others
-                        but does not manage value insertion for a specific addons, could cause logical choice but not understandable by a user... TODO
-                            
                         PRBLM 1: if a value is marked as removed in the addon But, on next reboot the parameter does not exist SOLVED
                             so the addon can't add its list of value on the parameter
                             And can't removed any value
@@ -366,7 +363,7 @@ About history (after brainstorming, it is not really an history, it is value ori
                         PRLBM 3: what to do if a parameter key exists in the addon config file but is not registered anymore in the addon ? SOLVED
                             remove the value from addon config file
                             
-                        PRBLM 4: if an addon completly overwrite the parameter ? (setParameter) loose of every previous value TODO
+                        PRBLM 4: if an addon completly overwrite the parameter ? (setParameter) loose of every previous value SOLVED
                             an addon has the possibility to re create a parameter if it already exist, if it happens, previous value are removed
                             so at the other addons unloading, every value will be marked as "removed" but it is just overwrittin
                             
@@ -416,7 +413,7 @@ About history (after brainstorming, it is not really an history, it is value ori
                             SOLUTION 1 : become a system based on directory XXX
                                 provide a directory to the application, not a config file
                             
-                        PRBLM 6: distribution of settings change TODO
+                        PRBLM 6: distribution of settings change SOLVED
                             need a way to centralize settings but distribute values...
                             
                             SOLUTION 1: propagate them into every related addons
@@ -430,7 +427,17 @@ About history (after brainstorming, it is not really an history, it is value ori
                                 
                             SOLUTION 3: set a version number to the settings, always apply the last one
                             
-                            SOLUTION 4:
+                            SOLUTION 4: put settings only into "system" addon config file + fantom parameter XXX
+                                a fantom parameter == Global + no loader registered
+                            
+                                a fantom parameter is created with saved settings AND is not available until an addon registers to it
+                                need a command to register the system addon to a fantom parameter
+                                
+                                on parameter listing, show the list of removed value (at the addon)
+                                    only the static value coming from loader registering
+                                
+                                on listing, give the possibility to display fantom parameter (to eventually remove them)
+                                    and also print removed value from addon
                         
                         PRBLM 7: how to know when to save ? SOLVED (more or less)
                             four cases
@@ -442,7 +449,26 @@ About history (after brainstorming, it is not really an history, it is value ori
                                 if the content had change then saved
                                 else: candidate to be saved (if only candidate to be saved and file is still the same, do not save)
                                 
-                            yeah but what about the settings ? (see prblm 6)                            
+                            yeah but what about the settings ? (see prblm 6)  
+                            
+                        PRBLM 8: this solution protect addons value from each others, so a loader can not steal any value to another loader
+                            BUT does not manage value insertion for a specific addons, could cause logical choice but not understandable by a user...
+                            
+                            extra value are stored in system, is it a good idea ?
+                            
+                            but how to know if a value is a system one or a undo remove on loader ?
+                            
+                            And what about global not transient parameter created in the execution of an addon command ?
+                                these parameters should have a dependancy to the creator loader
+                                And so, should be saved in loader (parameter creation + value set)
+                            
+                            SOLUTION 1
+                                on command "parameter set", "parameter add value", "parameter remove value",... add an argument "origin"
+                                    This argument has to be an existing AND loaded loader name
+                                    If leave empty, origin is system
+                                
+                                parameter created into loader command has loader origin and became extra parameter
+                                store extra value and parameter for each addon in corresponding loader file
                             
             question:
                 -a user can be able to remove/update a loader parameter ?
