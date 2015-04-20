@@ -59,6 +59,11 @@ ADDON ADDON
         parameter add value
         parameter remove value
 
+
+
+###############################################
+
+
 LIST OF LOADER, procedure type
     goal: know where are the command for a specific loader
     axioms: command could be totally merged in random place in the procedure
@@ -98,6 +103,10 @@ LIST OF LOADER, procedure type
 
         every op become o(1): win
             maybe a bit of memory waste
+
+        key generation:
+            solution 1: juste keep a counter and give the next available to the next command
+                the key is only valid at runtime
 
 
 LIST OF LOADER, parameter type
@@ -151,6 +160,7 @@ LIST OF LOADER, parameter type
 
     SOLUTION 6: override list interface XXX
         a list composed of several sub list
+            map of list (key is the loader id)
         each sub list is associated to a loader
         a compute index method, compute the sub list index and the index in the sublist
 
@@ -161,18 +171,81 @@ LIST OF LOADER, parameter type
         getSlice and other kind of method: O(n)
 
         --- will be funny to implement :)
+        --- not really convince by this solution
 
-PRBLM what about context, it hold a set, not a list of value...
+    SOLUTION 7: a tree ?
+        nop, must be indexable
+
+    SOLUTION 8: wrap the value
+        a value is wrapped into a container that hold the value
+        map of loader to their first container (also keep the size)
+        linked list of item
+
+        still the sme prblm of index update...
+
+    SOLUTION 9: TODO
+
+
+
+PRBLM what about context list of value, it hold a set, not a list of value...
     what to do if two loader want to add the same value ?
 
     update process to compute value removed
 
     what about value added ?
 
+    SOLUTION 1: 
+        On load, if value exists, do not add, but if value does not exist, add it
+        On unload, if value is not in the set anymore, mark as removed in every loader
+        On unload, if value still exists, only remove the value if no other loader are interested by the value
+
+        PRBLM 1: what about value adding to a specific loader ?
+            only one instance of value can exist at a time
+            if the value has been removed and marked as removed in several loader, how to add it again ?
+
+            SOLUTION 1: allowed to set several origin in value add XXX
+                or even a special keyword "*" to add in every loaded loader
+
+        PRBLM 2: How to know which value is registered to which loader ?
+            SOLUTION 1: each value hold a counter of interested loader (could be a simple map) XXX
+            SOLUTION 2: each value is attached to a list of loader
+                not really useful to get the list of loader
+            SOLUTION 3: could use the list of value to remove
+                this list does not exist anymore...
+
+        PRBLM 3: about value tracking ? value are merged every where...
+            a loader has to known which are its values
+            ideally, don't just keep a list of index...
+            linked to the problem of parameter tracking value
+            value index never change, except if a remove occurs on a previous value
+
+            SOLUTION 1: list of index
+                --- need to update index of every loader on every removal
+
+            SOLUTION 2: list of value
+                --- each value is stored at lead two time and maybe more...
+
+            SOLUTION 3: double map
+                a map A with
+                    key = loader
+                    value = set of loader value
+
+                a map B with
+                    key = loader value
+                    value = list of loader
+
+                getValue return B.keys()
+                add/remove o(1)
+                load/unload o(n) with n the list of value in the loader to load/unload
+                memory: o(n2)
+
+            SOLUTION 4: TODO
+
+
 PRBLM how to restore command moving after an application reboot ?
     e.g. two commands are reversed in the list
 
-    command can come from registering, added by user or in a process
+    command can come from registering, added by user or added in a process
     a command could disappear
     a command is not identified with a uniq id out of running (hash ?)
 
@@ -185,5 +258,16 @@ PRBLM how to restore command moving after an application reboot ?
         other command are saved in line and in the correct order during the save process
 
         --- registered command can not be inverted or suppressed
+
+    SOLUTION 2: XXX
+        command from registering are not supposed to change
+        move the command in front of their supposed key
+
+PRBLM what about removing a command from registering ?
+    
+    SOLUTION 1: add a boolean to enable/disable command
+        command from registering are not removable but it is possible to disable them
+
+
 
 

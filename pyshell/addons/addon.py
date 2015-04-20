@@ -74,9 +74,10 @@ def _formatState(state, printok, printwarning, printerror):
 def listAddonFun(addon_dico):
     "list the available addons"
     
+    #get dico of loaded addon
     addon_dico = addon_dico.getValue()
 
-    #create addon list from default addon directory
+    #create addon list from default addon directory (that does not include addon loaded from outside)
     local_addon = []
     if os.path.exists("./pyshell/addons/"):
         for dirname, dirnames, filenames in os.walk('./pyshell/addons/'):
@@ -89,9 +90,10 @@ def listAddonFun(addon_dico):
         if name in local_addon:
             local_addon.remove(name)
         
-        for subAddonName, (subloader,state, ) in loader.profileList.items():
-            l.append( (name, subAddonName, _formatState(state, formatGreen, formatOrange, formatRed ), ) )
+        profileName, profileState = loader.lastUpdatedProfile #TODO could be None if not loader, manage it
+        l.append( (name, profileName, _formatState(profileState, formatGreen, formatOrange, formatRed ), ) )
 
+    #print not loaded local addon
     for name in local_addon:
         l.append( (name,"",formatOrange(STATE_UNLOADED), ) )
 
