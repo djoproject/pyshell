@@ -42,6 +42,9 @@ class Settings(object):
     def isRemovable(self):
         return True
 
+    def isFantom(self):
+        return False
+
     def addLoader(self, loaderSignature):
         pass
 
@@ -103,8 +106,6 @@ class GlobalSettings(LocalSettings):
         
         self.setTransient(transient)
         self.loaderSet    = None
-        #self.origin       = None
-        #self.originArg    = None
         self.startingHash = None
         self.setReadOnly(readOnly)
 
