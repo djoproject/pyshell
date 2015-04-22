@@ -413,4 +413,196 @@ class ProcedureFromFile(Procedure):
         
     def __hash__(self):
         return hash(str(hash(Procedure.__hash__(self))) + str(hash(self.filePath)))
+
+#concept
+    #executer queue can change (add/remove/move/swap/...)
+    #in loader queue, no swapping/move
+        #registered command will never move or be removed
+        #extra command are always added at the end and can be added or removed
+    #key are never swapped
+
+#TODO
+    #loader need to knwon 
+        #its lowest index
+        #its amount of registered command
+    #OR need to differenciate registered command from extra command
+        
+    #need way to protect command on update
+        #because an execution could occur during an update and there is protection
+        #during a cloning, a procedure shouldn't be updated
+        #but a cloned one will never be cloned again, so no need to have lock in cloned
+        
+    #goto can only work FROM and TO instruction of the same loader
     
+#TODO need to find an easy way to identify move between command of the same loader on the loader unload
+
+class _CommandInQueue(object):
+    def __init__(self, key, parser):
+        self.key = key
+        self.parser = parser
+        
+        #list of execution (order can change)
+        self.prev = None
+        self.next = None
+        
+        #list of insertion (order never change)
+        self.loaderPrev = None
+        self.loaderNext = None
+        
+        self.enabled = True
+        
+    def isEnabled():
+        return self.enabled
+    
+class ProcedureInQueue(Procedure):
+    def __init__(self, name, settings = None):
+        Procedure.__init__(self, name, settings)
+        self.nextAvailableKey = 0
+        self.size             = 0
+        self.firstCommand     = None
+        self.lastCommand      = None
+        self.commandMap       = {}
+        self.nextCommand      = None
+        
+    def execute(self, parameters):
+        engine = None
+        
+        #for cmd in self.stringCmdList:
+        i = 0
+        currentCommand = self.firstCommand
+        while currentCommand is not None:
+            if currentCommand.isEnabled():
+                lastException, engine = self._innerExecute(currentCommand.parser, self.name + " (key: "+str(currentCommand.key)+")", parameters)
+
+            if self.nextCommand is not None:
+                currentCommand = self.nextCommand
+                self.nextCommand = None
+            else:
+                currentCommand = currentCommand.nextTrue
+
+        #return the result of last command in the procedure
+        if engine is None:
+            return ()
+            
+        return engine.getLastResult()
+                
+    #### business method
+
+    def setNextCommandToExecute(self, key):
+        if key not in self.commandMap:
+            raise ParameterException("(ProcedureInQueue) upCommand, not existant key: "+str(key))
+            
+        self.nextCommand = self.commandMap[key]
+            
+    def addCommandBefore(self, key, commandStringList, origin=None):
+        pass #TODO
+        
+    def addCommandAfter(self, key, commandStringList, origin=None):
+        pass #TODO
+
+    def addCommandLast(self, commandString, origin=None):
+        #TODO add in main queue
+        #TODO add in loader queue, mark as extra ?
+            #a loader know its starting index and its size, so if a command exist after the size, this is an extra (new or coming from file)
+    
+        pass
+            
+    def removeCommand(self, key):
+        #TODO remove in main queue
+        #TODO in loader queue, can only remove extra command
+            #for registered command, only disabling is allowed
+    
+        pass
+        
+    def _exchangeCommand(self, firstCommand, secondCommand):
+        firstNext = firstCommand.next
+        firstPrev = firstCommand.prev
+        
+        firstCommand.next = secondCommand.next
+        firstCommand.prev = secondCommand.prev
+        
+        if secondCommand is self.firstCommand:
+            self.firstCommand = firstCommand
+            
+        if secondCommand is self.lastCommand:
+            self.lastCommand = firstCommand
+            
+        secondCommand.next = firstNext
+        secondCommand.prev = firstPrev
+        
+        if firstCommand is self.firstCommand:
+            self.firstCommand = secondCommand
+            
+        if firstCommand is self.lastCommand:
+            self.lastCommand = secondCommand
+                
+    def exchangeCommand(self,firstKey, secondKey):
+        if firstKey not in self.commandMap:
+            raise ParameterException("(ProcedureInQueue) upCommand, not existant first key: "+str(firstKey))
+            
+        if secondKey not in self.commandMap:
+            raise ParameterException("(ProcedureInQueue) upCommand, not existant second key: "+str(secondKey))
+            
+        self._exchangeCommand(self.commandMap[firstKey], self.commandMap[secondKey])
+            
+    def upCommand(self,key):
+        if key not in self.commandMap:
+            raise ParameterException("(ProcedureInQueue) upCommand, not existant key: "+str(key))
+            
+        ciq = self.commandMap[key]
+        
+        if ciq.prev is None:
+            return
+            
+        self._exchangeCommand(ciq.prev, ciq)
+        
+    def downCommand(self,key):
+        if key not in self.commandMap:
+            raise ParameterException("(ProcedureInQueue) downCommand, not existant key: "+str(key))
+            
+        ciq = self.commandMap[key]
+        
+        if ciq.next is None:
+            return
+            
+        self._exchangeCommand(ciq.next, ciq)
+        
+    def moveCommandAfter(self, key, destinationKey):
+        pass #TODO
+        
+    def moveCommandBefore(self, key, destinationKey):
+        pass #TODO
+        
+    def enableLoop(self):
+        if self.firstCommand is None:
+            return
+            
+        self.firstCommand.prev = self.lastCommand
+        self.lastCommand.next = self.firstCommand
+        
+    def disableLoop(self):
+        if self.firstCommand is None:
+            return
+            
+        self.firstCommand.prev = None
+        self.lastCommand.next = None
+        
+    def isLoop(self):
+        return self.firstCommand.prev is not None
+        
+    def enableCommand(self, key):
+        pass #TODO
+        
+    def disableCommand(self, key):
+        pass #TODO
+        
+    def isCommandDisabled(self, key):
+        pass #TODO
+            
+    def clone(self, From=None):
+        pass #TODO
+        
+    def __hash__(self):
+        pass #TODO
+        
+        
