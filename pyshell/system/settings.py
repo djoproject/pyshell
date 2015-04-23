@@ -105,7 +105,7 @@ class GlobalSettings(LocalSettings):
         LocalSettings.__init__(self, False, removable)
         
         self.setTransient(transient)
-        self.loaderSet    = None
+        self.loaderSet    = set()
         self.startingHash = None
         self.setReadOnly(readOnly)
 
@@ -120,14 +120,20 @@ class GlobalSettings(LocalSettings):
     def isTransient(self):
         return self.transient
 
-    def addLoader(self, loaderSignature):
-        if self.loaderSet is None:
-            self.loaderSet = set()
-            
-        self.loaderSet.add(loaderSignature)
+    def setLoaderState(self, loaderSignature, loaderState):
+        self.loaderSet[loaderSignature] = loaderState
+        
+    def getLoaderState(self, loaderSignature):
+        return self.loaderSet[loaderSignature]
+        
+    def hasLoaderState(self, loaderSignature):
+        return loaderSignature in self.loaderSet
         
     def getLoaderSet(self):
-        return self.loaderSet
+        return self.loaderSet.keys()
+        
+    def isFantom(self):
+        return len(self.loaderSet) == 0
     
     def mergeFromPreviousSettings(self, settings):
         if settings is None:
@@ -145,25 +151,14 @@ class GlobalSettings(LocalSettings):
             self.loaderSet = self.loaderSet.union(otherLoaders)
     
         #manage origin
-        
-        #TODO the first tuple (origin,originProfile,) of the current settings has to stay in first position
-        
         self.startingHash = settings.startingHash
         
     def setStartingPoint(self, hashi, origin, originProfile = None):
         if self.startingHash is not None:
             raise ParameterException("(GlobalSettings) setStartingPoint, a starting point was already defined for this parameter") 
             
-        self.startingHash = hashi
-        
-        #TODO 
-            #(origin,originProfile,) become first in loaderSet AND should always stay first
-        
+        self.startingHash = hashi        
         
     def isEqualToStartingHash(self, hashi):
-        return hashi == self.startingHash
-
-    def getStartingPoint(self):
-        pass#TODO return origin point of this settings, first items in the list
-        
+        return hashi == self.startingHash        
         
