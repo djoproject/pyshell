@@ -433,12 +433,22 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
 
 #TODO BRAINSTORMING about false branching
     #goto can only work FROM and TO instruction of the same loader
+    
+    #SOLUTION 1: goto hold the string key
+    
+    #SOLUTION 2: goto hold reference node
+    
+    #SOLUTION 3: goto is stored into node
+    
+    #SOLUTION 4: 
+    
 
 #TODO PRBLM 1: need to differenciate a registered command from an extra one 
     #why ? because a registered command can not be deleted
     #why ? because it will be pretty impossible to reverse the remove from a user instruction
     
     #could be interresting to find a solution without new variable
+        #it should be possible to do that :/
     
     #SOLUTION 1: a boolean to indicate registering from extra XXX (for the moment)
         #easy to access, but need one more var
@@ -446,15 +456,35 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     #SOLUTION 2: keep the key value of the last registered, every bigger key are extra command
         #need a link to the loader information, so one more var too
         
-    #SOLUTION 3:
+    #SOLUTION 3: 
 
 #TODO PRBLM 2: 
     #need to find an easy way to identify move between command of the same loader on the loader unload
     #need to have a tools that identify if a command is before or after another one in o(1)
+        #no necessary needed to compute exact index, just have a tools "<"
     
     #SOLUTION 1: each CommandInQueue has a number, bigger than its previous but lower than its followers
         #yeah, then how to generate this number ?
         #and be carefull with float python precision
+        
+        #ALGO 1: sum of the two key then divide by two.
+            #LIMITATION: after 40 insertion between two node, reach the python float limit...
+            
+        #ALGO 2: key concat (string)
+            #e.g: previous has key "0", next has key "1", if we want to insert betweem these two key, the in-between key will be "0-1"
+            # 0 < 1, 0< 0-1, 0-1 < 1
+            #if we insert between 0-1 and 1, in-between key will be 0-1-1
+            
+            #--- string comparison
+            
+        #ALGO 3: key concat (number)
+            #same as algo 2 but use list of integer
+            #take the key of the previous and the next and put them into a list
+            #no size limit, integer comparison
+            
+            #--- if multiple insertion, comparison time could really increase, need a constant time 
+            
+        #ALGO 4:
     
     #SOLUTION 2:
 
@@ -465,7 +495,7 @@ DESTINATION_KEY_NAME = "destination key"
 
 class _CommandInQueue(object):
     def __init__(self, key, parser):
-        self.key = key
+        self.key    = key
         self.parser = parser
         
         #list of execution (order can change)
@@ -476,7 +506,7 @@ class _CommandInQueue(object):
         self.loaderPrev = None
         self.loaderNext = None
         
-        self.enabled = True
+        self.enabled    = True
         self.registered = False #TODO set it to True in loader
         
     def isEnabled():
@@ -790,10 +820,22 @@ class ProcedureInQueue(Procedure):
         pass #TODO
         
     def __hash__(self):
+        #TODO each loader need a hash with its command
+            #settings are only part of the system loader hash
+            
+            #three hash: hash_file, hash_default (static), current_hash
+            #if hash_file is None and current_hash == hash_default => not a candidate to be saved
+            #if hash_file is not None
+                #if current_hash == hash_file => candidate to be save + does not trigger file regeneration
+                #if current_hash == hash_default => need to be remove of the file + trigger file regeneration
+                #else => need to be saved + trigger file regeneration
+    
         #TODO hashing what ?
-            #executing order
-            #command instruction
-            #parent (settings)
+            #executing order (for each loader)
+            #command instruction (for each loader)
+            #parent (settings)(only for system loader)
+            
+        #TODO prblm, so need to know the execution order in loader to compute hash...
             
         pass #TODO
         
