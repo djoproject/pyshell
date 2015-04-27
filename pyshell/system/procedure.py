@@ -463,7 +463,12 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     #need to have a tools that identify if a command is before or after another one in o(1)
         #no necessary needed to compute exact index, just have a tools "<"
     
-    #SOLUTION 1: each CommandInQueue has a number, bigger than its previous but lower than its followers
+    #SOLUTION 1: recompute index for the whole queue from the insertion point
+        #--- insertion will become o(n)
+        #no need to update other meth like remove
+        #switch need to exchange key
+    
+    #SOLUTION 2: each CommandInQueue has a number, bigger than its previous but lower than its followers
         #yeah, then how to generate this number ?
         #and be carefull with float python precision
         
@@ -476,17 +481,23 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
             #if we insert between 0-1 and 1, in-between key will be 0-1-1
             
             #--- string comparison
+            #--- memory increase
+            #--- comparison time increase in case of multiple insertion
             
         #ALGO 3: key concat (number)
             #same as algo 2 but use list of integer
             #take the key of the previous and the next and put them into a list
             #no size limit, integer comparison
             
-            #--- if multiple insertion, comparison time could really increase, need a constant time 
+            #--- memory increase
+            #--- comparison time increase in case of multiple insertion
             
-        #ALGO 4:
+        #ALGO 4: TODO ???
+            #need a key comparison in constant time
+            #need a constant key size
+            #no insertion limitation by key accuracy loss
     
-    #SOLUTION 2:
+    #SOLUTION 3: 
 
 DEFAULT_KEY_NAME     = "key"
 FIRST_KEY_NAME       = "first key"
@@ -733,7 +744,7 @@ class ProcedureInQueue(Procedure):
             
         self._exchangeCommand(ciq.next, ciq)
                 
-    def moveCommandAfter(self, key, destinationKey):
+    def moveCommandAfter(self, key, destinationKey): #TODO could be possible to create a common code with addAfter
         if key == destinationKey: #can not move a command on itself
             return
     
@@ -757,7 +768,7 @@ class ProcedureInQueue(Procedure):
         if ciq_destination is self.lastCommand:
             self.lastCommand = ciq_toMove
         
-    def moveCommandBefore(self, key, destinationKey):
+    def moveCommandBefore(self, key, destinationKey): #TODO could be possible to create a common code with addBefore
         if key == destinationKey: #can not move a command on itself
             return
     
