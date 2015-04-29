@@ -498,6 +498,42 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
             #no insertion limitation by key accuracy loss
     
     #SOLUTION 3: 
+        #concept: each node hold: command, next in the same cat, prev in the same loader
+                 #a method exist to find the next command in another loader 
+                 
+        #ALGO 1:  
+        
+    #SOLUTION 4: don't allow command merging from different loader XXX
+        #it won't be saved, so why allow to merge command from different loader at running time ? just considere a loader group like a individual statement
+        #but allow to order the loaders
+        
+        #PRBLM 1: how to save loader order ? TODO
+            #in system, like fantom settings ?
+                #uuuh, how to store that ? 
+            #no order, executed in front of loading order ?
+        
+        #PRBLM 2: what about loader isolation ? if a loader loop forever or crashed ?
+            #if a loader loop forever, hard to execute the next loader statement
+            #about crashed? add a settings or an error isolation level (so each loader statement has its error level + one isolation level for the whole procedure)
+            #where to store this information? phantom settings in system
+        
+        #PRBLM 3: how to store command in memory for each loader?
+            #insert/remove in o(1) and unload in o(n) with n the amount of command into a loader queue
+            
+            #still used the double linked queue with dict, but for each loader
+            #each command are tagged as registered/extra, count the amount of registered command
+            #key generation is isolated in each loader, so two command in two different loader can have the same key
+            #can also disable command
+            #registered command hold the x first key, no more, no less
+            #each key up to the x first is an extra key
+            
+            #on unload, iterate from the first command in list
+                #if register at the correct order, do nothing
+                #if register at the wrong place, add moveCommand
+                #if extra before the last registered, addCommand + moveCommand
+                #if extra after last registed, just addCommand
+            
+        
 
 DEFAULT_KEY_NAME     = "key"
 FIRST_KEY_NAME       = "first key"
