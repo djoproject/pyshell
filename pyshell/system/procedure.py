@@ -430,9 +430,12 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
         #because an execution could occur during an update and there is protection
         #during a cloning, a procedure shouldn't be updated
         #but a cloned one will never be cloned again, so no need to have lock in cloned
+        
+        #clone call must block update
 
 #TODO BRAINSTORMING about false branching
     #goto can only work FROM and TO instruction of the same loader
+    #what about command move ?
     
     #SOLUTION 1: goto hold the string key
     
@@ -443,7 +446,7 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     #SOLUTION 4: 
     
 
-#TODO PRBLM 1: need to differenciate a registered command from an extra one 
+#PRBLM 1: need to differenciate a registered command from an extra one 
     #why ? because a registered command can not be deleted
     #why ? because it will be pretty impossible to reverse the remove from a user instruction
     
@@ -456,9 +459,9 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     #SOLUTION 2: keep the key value of the last registered, every bigger key are extra command
         #need a link to the loader information, so one more var too
         
-    #SOLUTION 3: 
+    #SOLUTION 3: fixed in prblm 2 with the selected structure
 
-#TODO PRBLM 2: 
+#PRBLM 2: 
     #need to find an easy way to identify move between command of the same loader on the loader unload
     #need to have a tools that identify if a command is before or after another one in o(1)
         #no necessary needed to compute exact index, just have a tools "<"
@@ -492,7 +495,7 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
             #--- memory increase
             #--- comparison time increase in case of multiple insertion
             
-        #ALGO 4: TODO ???
+        #ALGO 4:
             #need a key comparison in constant time
             #need a constant key size
             #no insertion limitation by key accuracy loss
@@ -507,10 +510,17 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
         #it won't be saved, so why allow to merge command from different loader at running time ? just considere a loader group like a individual statement
         #but allow to order the loaders
         
-        #PRBLM 1: how to save loader order ? TODO
+        #PRBLM 1: how to save loader order ?
+            #prblm, loader are not always loaded in the same order
             #in system, like fantom settings ?
                 #uuuh, how to store that ? 
-            #no order, executed in front of loading order ?
+                    #always before/after other loader ?
+                    #at least position x ?
+                    #store full loader list ?
+                    #...
+            #no order, executed in front of loading order ? easiest one XXX
+                #loaders are independant and execution order shouldn't have any impact on them
+                #if a loader need to be executed after another one, just add a dependancy in the loader to require the other loader to be loaded before
         
         #PRBLM 2: what about loader isolation ? if a loader loop forever or crashed ?
             #if a loader loop forever, hard to execute the next loader statement
@@ -524,15 +534,23 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
             #each command are tagged as registered/extra, count the amount of registered command
             #key generation is isolated in each loader, so two command in two different loader can have the same key
             #can also disable command
-            #registered command hold the x first key, no more, no less
-            #each key up to the x first is an extra key
+            #only extra command are removable
+            #registered command hold the x first key, no more, no less, the x is a constant
+            #each key up to the x first is an extra key, no more need of boolean to identify extra command
             
             #on unload, iterate from the first command in list
-                #if register at the correct order, do nothing
+                #if register at the correct place (compare key and position), do nothing
                 #if register at the wrong place, add moveCommand
                 #if extra before the last registered, addCommand + moveCommand
+                    #move what ? extra or registered ? extra.
+                        #registered will always be added before extra, and a move occur in front of existing thing, so move extra
                 #if extra after last registed, just addCommand
-            
+                
+            #PRBLM 3.1: define move TODO
+                #relative move ? absolute move ? in front of key ? in front of zero ?
+                #key can move
+                
+        #PRBLM 4: what about goto/false jump with this structure ? TODO
         
 
 DEFAULT_KEY_NAME     = "key"
