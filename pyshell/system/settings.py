@@ -105,7 +105,7 @@ class GlobalSettings(LocalSettings):
         LocalSettings.__init__(self, False, removable)
         
         self.setTransient(transient)
-        self.loaderSet    = set()
+        self.loaderSet    = {}
         self.startingHash = None
         self.setReadOnly(readOnly)
 
@@ -121,15 +121,24 @@ class GlobalSettings(LocalSettings):
         return self.transient
 
     def setLoaderState(self, loaderSignature, loaderState):
+        #TODO loaderState must be hashable
+
         self.loaderSet[loaderSignature] = loaderState
+        return loaderState
         
     def getLoaderState(self, loaderSignature):
         return self.loaderSet[loaderSignature]
         
     def hasLoaderState(self, loaderSignature):
         return loaderSignature in self.loaderSet
+
+    def hashForLoader(self, loaderSignature):
+        #for system loader, hash settings + loaderState
+        #for any other loader, only hash loaderState
+
+        pass #TODO
         
-    def getLoaderSet(self):
+    def getLoaders(self):
         return self.loaderSet.keys()
         
     def isFantom(self):

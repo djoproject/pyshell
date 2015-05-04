@@ -30,6 +30,11 @@ from pyshell.system.settings   import GlobalSettings
 from pyshell.utils.printing    import warning,getPrinterFromExceptionSeverity,printShell
 from pyshell.utils.constants   import SYSTEM_VIRTUAL_LOADER
 import thread, threading, sys
+
+if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
+    from pyshell.utils.ordereddict import OrderedDict #TODO get from pipy, so the path will change
+else:
+    from collections import OrderedDict 
                 
 ### UTILS COMMAND ###
     
@@ -445,112 +450,52 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     
     #SOLUTION 4: 
     
-
-#PRBLM 1: need to differenciate a registered command from an extra one 
-    #why ? because a registered command can not be deleted
-    #why ? because it will be pretty impossible to reverse the remove from a user instruction
-    
-    #could be interresting to find a solution without new variable
-        #it should be possible to do that :/
-    
-    #SOLUTION 1: a boolean to indicate registering from extra XXX (for the moment)
-        #easy to access, but need one more var
-    
-    #SOLUTION 2: keep the key value of the last registered, every bigger key are extra command
-        #need a link to the loader information, so one more var too
         
-    #SOLUTION 3: fixed in prblm 2 with the selected structure
-
-#PRBLM 2: 
-    #need to find an easy way to identify move between command of the same loader on the loader unload
-    #need to have a tools that identify if a command is before or after another one in o(1)
-        #no necessary needed to compute exact index, just have a tools "<"
+#CURRENT STRUCT: don't allow command merging from different loader XXX
+    #it won't be saved, so why allow to merge command from different loader at running time ? just considere a loader group like a individual statement
+    #but allow to order the loaders
     
-    #SOLUTION 1: recompute index for the whole queue from the insertion point
-        #--- insertion will become o(n)
-        #no need to update other meth like remove
-        #switch need to exchange key
+    #PRBLM 1: how to save loader order ?
+        #prblm, loader are not always loaded in the same order
+        #in system, like fantom settings ?
+            #uuuh, how to store that ? 
+                #always before/after other loader ?
+                #at least position x ?
+                #store full loader list ?
+                #...
+        #no order, executed in front of loading order ? easiest one XXX
+            #loaders are independant and execution order shouldn't have any impact on them
+            #if a loader need to be executed after another one, just add a dependancy in the loader to require the other loader to be loaded before
     
-    #SOLUTION 2: each CommandInQueue has a number, bigger than its previous but lower than its followers
-        #yeah, then how to generate this number ?
-        #and be carefull with float python precision
-        
-        #ALGO 1: sum of the two key then divide by two.
-            #LIMITATION: after 40 insertion between two node, reach the python float limit...
-            
-        #ALGO 2: key concat (string)
-            #e.g: previous has key "0", next has key "1", if we want to insert betweem these two key, the in-between key will be "0-1"
-            # 0 < 1, 0< 0-1, 0-1 < 1
-            #if we insert between 0-1 and 1, in-between key will be 0-1-1
-            
-            #--- string comparison
-            #--- memory increase
-            #--- comparison time increase in case of multiple insertion
-            
-        #ALGO 3: key concat (number)
-            #same as algo 2 but use list of integer
-            #take the key of the previous and the next and put them into a list
-            #no size limit, integer comparison
-            
-            #--- memory increase
-            #--- comparison time increase in case of multiple insertion
-            
-        #ALGO 4:
-            #need a key comparison in constant time
-            #need a constant key size
-            #no insertion limitation by key accuracy loss
+    #PRBLM 2: what about loader isolation ? if a loader loop forever or crashed ?
+        #if a loader loop forever, hard to execute the next loader statement
+        #about crashed? add a settings or an error isolation level (so each loader statement has its error level + one isolation level for the whole procedure)
+        #where to store this information? phantom settings in system
     
-    #SOLUTION 3: 
-        #concept: each node hold: command, next in the same cat, prev in the same loader
-                 #a method exist to find the next command in another loader 
-                 
-        #ALGO 1:  
+    #PRBLM 3: how to store command in memory for each loader?
+        #insert/remove in o(1) and unload in o(n) with n the amount of command into a loader queue
         
-    #SOLUTION 4: don't allow command merging from different loader XXX
-        #it won't be saved, so why allow to merge command from different loader at running time ? just considere a loader group like a individual statement
-        #but allow to order the loaders
+        #still used the double linked queue with dict, but for each loader
+        #each command are tagged as registered/extra, count the amount of registered command
+        #key generation is isolated in each loader, so two command in two different loader can have the same key
+        #can also disable command
+        #only extra command are removable
+        #registered command hold the x first key, no more, no less, the x is a constant
+        #each key up to the x first is an extra key, no more need of boolean to identify extra command
         
-        #PRBLM 1: how to save loader order ?
-            #prblm, loader are not always loaded in the same order
-            #in system, like fantom settings ?
-                #uuuh, how to store that ? 
-                    #always before/after other loader ?
-                    #at least position x ?
-                    #store full loader list ?
-                    #...
-            #no order, executed in front of loading order ? easiest one XXX
-                #loaders are independant and execution order shouldn't have any impact on them
-                #if a loader need to be executed after another one, just add a dependancy in the loader to require the other loader to be loaded before
-        
-        #PRBLM 2: what about loader isolation ? if a loader loop forever or crashed ?
-            #if a loader loop forever, hard to execute the next loader statement
-            #about crashed? add a settings or an error isolation level (so each loader statement has its error level + one isolation level for the whole procedure)
-            #where to store this information? phantom settings in system
-        
-        #PRBLM 3: how to store command in memory for each loader?
-            #insert/remove in o(1) and unload in o(n) with n the amount of command into a loader queue
+        #on unload, iterate from the first command in list
+            #if register at the correct place (compare key and position), do nothing
+            #if register at the wrong place, add moveCommand
+            #if extra before the last registered, addCommand + moveCommand
+                #move what ? extra or registered ? extra.
+                    #registered will always be added before extra, and a move occur in front of existing thing, so move extra
+            #if extra after last registed, just addCommand
             
-            #still used the double linked queue with dict, but for each loader
-            #each command are tagged as registered/extra, count the amount of registered command
-            #key generation is isolated in each loader, so two command in two different loader can have the same key
-            #can also disable command
-            #only extra command are removable
-            #registered command hold the x first key, no more, no less, the x is a constant
-            #each key up to the x first is an extra key, no more need of boolean to identify extra command
+        #PRBLM 3.1: define move TODO
+            #relative move ? absolute move ? in front of key ? in front of zero ?
+            #key can move
             
-            #on unload, iterate from the first command in list
-                #if register at the correct place (compare key and position), do nothing
-                #if register at the wrong place, add moveCommand
-                #if extra before the last registered, addCommand + moveCommand
-                    #move what ? extra or registered ? extra.
-                        #registered will always be added before extra, and a move occur in front of existing thing, so move extra
-                #if extra after last registed, just addCommand
-                
-            #PRBLM 3.1: define move TODO
-                #relative move ? absolute move ? in front of key ? in front of zero ?
-                #key can move
-                
-        #PRBLM 4: what about goto/false jump with this structure ? TODO
+    #PRBLM 4: what about goto/false jump with this structure ? TODO
         
 
 DEFAULT_KEY_NAME     = "key"
@@ -566,45 +511,68 @@ class _CommandInQueue(object):
         #list of execution (order can change)
         self.prev = None
         self.next = None
-        
-        #list of insertion (order never change)
-        self.loaderPrev = None
-        self.loaderNext = None
-        
+                
         self.enabled    = True
-        self.registered = False #TODO set it to True in loader
         
     def isEnabled():
         return self.enabled
-        
-    def isAregisteredCommand():
-        return self.registered
-        
+
+    def __hash__(self):
+        pass #TODO
+            #value to hash: key, parser, enabled
+
+class _LoaderInfo(object):
+    def __init__(self):
+        self.commandMap       = {}
+        self.firstCommand     = None
+        self.lastCommand      = None
+        self.nextAvailableKey = 0
+        self.registeredCount  = 0
+
+    def __hash__(self):
+        return object.__hash__(self)
+        #TODO each loader need a hash with its command
+            #settings are only part of the system loader hash
+            
+            #three hash: hash_file, hash_default (static), current_hash
+            #if hash_file is None and current_hash == hash_default => not a candidate to be saved
+            #if hash_file is not None
+                #if current_hash == hash_file => candidate to be save + does not trigger file regeneration
+                #if current_hash == hash_default => need to be remove of the file + trigger file regeneration
+                #else => need to be saved + trigger file regeneration
+    
+        #TODO value to hash: command list, 
+
 class ProcedureInQueue(Procedure):
     def __init__(self, name, settings = None):
         Procedure.__init__(self, name, settings)
-        self.nextAvailableKey = 0
-        self.size             = 0
-        self.firstCommand     = None
-        self.lastCommand      = None
-        self.commandMap       = {}
-        self.nextCommand      = None
+        self.size               = 0
+        self.nextCommand        = None
+        self.loopEnabled        = False
+        self.currentLoader      = None
+        self.currentLoaderState = None
         
     def execute(self, parameters):
         engine = None
-        
-        #for cmd in self.stringCmdList:
-        i = 0
-        currentCommand = self.firstCommand
-        while currentCommand is not None:
-            if currentCommand.isEnabled():
-                lastException, engine = self._innerExecute(currentCommand.parser, self.name + " (key: "+str(currentCommand.key)+")", parameters)
 
-            if self.nextCommand is not None:
-                currentCommand = self.nextCommand
-                self.nextCommand = None
-            else:
-                currentCommand = currentCommand.nextTrue
+        while True:
+            for self.currentLoader, self.currentLoaderState in self.settings.getLoaders().items():
+                currentCommand = self.currentLoaderState.firstCommand
+                while currentCommand is not None:
+                    if currentCommand.isEnabled():
+                        lastException, engine = self._innerExecute(currentCommand.parser, self.name + " (key: "+str(currentCommand.key)+", loader: '"+str(self.currentLoader)+"')", parameters)
+
+                    if self.nextCommand is not None:
+                        currentCommand = self.nextCommand
+                        self.nextCommand = None
+                    else:
+                        currentCommand = currentCommand.next
+
+            if not self.loopEnabled:
+                break
+
+        self.currentLoader      = None
+        self.currentLoaderState = None
 
         #return the result of last command in the procedure
         if engine is None:
@@ -617,47 +585,69 @@ class ProcedureInQueue(Procedure):
     def getSize(self):
         return self.size
     
-    def _raiseIfInvalidKey(self, key, methName, keyName = DEFAULT_KEY_NAME):
-        if key not in self.commandMap:
-            raise ParameterException("(ProcedureInQueue) "+str(methName)+", not existant "+str(keyName)+": "+str(key))
+    def _checkOrigin(self, origin, methName, createIfDoesNotExist=False):
+        if origin is None:
+            origin = SYSTEM_VIRTUAL_LOADER
+
+        if not self.settings.hasLoaderState(origin):
+            if not createIfDoesNotExist:
+                raise ParameterException("(ProcedureInQueue) "+str(methName)+", the loader '"+str(origin)+"' does not exist in this procedure")
+
+            loaderInfo = self.settings.setLoaderState(origin,_LoaderInfo())
+        else:
+            loaderInfo = self.settings.getLoaderState(origin)
+
+        return origin, loaderInfo
+
+    def _checkKey(self, key, origin, loaderInfo, methName, keyName = DEFAULT_KEY_NAME):
+        if key not in loaderInfo.commandMap:
+            raise ParameterException("(ProcedureInQueue) "+str(methName)+", not existant "+str(keyName)+" '"+str(key)+"' for loader '"+str(origin)+"'")
             
-        return self.commandMap[key]
+        return loaderInfo.commandMap[key]
+
+    def _checkCommandString(self, commandStringList, methName):
+        if not isinstance(commandStringList, Parser):
+            parser = commandStringList
+        else:
+            parser = Parser(commandString)
+
+        if not parser.isParsed()
+            parser.parse()
+
+        if len(parser) == 0:
+            raise ParameterException("(Procedure) '"+str(methName)+"', try to add a command string that does not hold any command")
+
+        return parser
 
     def setNextCommandToExecute(self, key):
-        self.nextCommand = self._raiseIfInvalidKey(key, "setNextCommandToExecute")
+        if self.currentLoader is None:
+            raise ParameterException("(ProcedureInQueue) setNextCommandToExecute, not possible to set next command to execute, the procedure is not running")
+
+        self.nextCommand = self._checkKey(key, self.currentLoader, self.settings.getLoaderState(self.currentLoader), "setNextCommandToExecute")
     
-    def _extractCommandFromQueue(self, cmd):
+    def _extractCommandFromQueue(self, cmd, loaderInfo):
         if cmd.prev is not None:
-            cmd.prev.next = next
-            
+            cmd.prev.next = cmd.next
+
         if cmd.next is not None:
             cmd.next.prev = cmd.prev
             
-        if cmd is self.firstCommand:
-            self.firstCommand = cmd.next
-            
-        if cmd is self.lastCommand:
-            self.lastCommand = cmd.prev
-    
-    def _addCommandBefore(self, commandNode, commandStringList, origin=None):
-        parser = Parser(commandString)
-        parser.parse()
+        if cmd is loaderInfo.firstCommand:
+            loaderInfo.firstCommand = cmd.next
 
-        if len(parser) == 0:
-            raise ParameterException("(Procedure) _addCommandBefore, try to add a command string that does not hold any command")
-        
-        #None origin is system
-        if origin is None:
-            origin = SYSTEM_VIRTUAL_LOADER
-        
-        newNode = CommandInQueue(self.nextAvailableKey,parser)
-        self.nextAvailableKey += 1
-        
+        cmd.prev = cmd.next = None
+
+        return cmd
+
+    def _addCommandBefore(self, commandNode, parser, origin, loaderInfo):
+        newNode = CommandInQueue(loaderInfo.nextAvailableKey,parser)
+        loaderInfo.nextAvailableKey += 1
+        self.size += 1
+
         #first insertion
         if commandNode is None: 
-            self.firstCommand = self.lastCommand = newNode
-            self.settings.setLoaderState(origin, newNode)
-            return
+            loaderInfo.firstCommand = loaderInfo.lastCommand = newNode
+            return newNode
 
         if commandNode.prev is not None:
             newNode.prev = commandNode.prev
@@ -666,41 +656,20 @@ class ProcedureInQueue(Procedure):
         commandNode.prev = newNode
         newNode.next = commandNode
         
-        if commandNode is self.firstCommand:
-            self.firstCommand = newNode
-        
-        if not self.settings.hasLoaderState(origin):
-            self.settings.setLoaderState(origin, newNode)
-            return
-            
-        previousState = self.settings.getLoaderState()
-        previousState.loaderNext = newNode
-        newNode.loaderPrev = previousState
-        self.settings.setLoaderState(origin, newNode)
-        
-        self.size += 1
-        
+        if commandNode is loaderInfo.firstCommand:
+            loaderInfo.firstCommand = newNode
+                
         return newNode
         
-    def _addCommandAfter(self, commandNode, commandStringList, origin=None):
-        parser = Parser(commandString)
-        parser.parse()
-
-        if len(parser) == 0:
-            raise ParameterException("(Procedure) _addCommandAfter, try to add a command string that does not hold any command")
-        
-        #None origin is system
-        if origin is None:
-            origin = SYSTEM_VIRTUAL_LOADER
-        
-        newNode = CommandInQueue(self.nextAvailableKey,parser)
-        self.nextAvailableKey += 1
+    def _addCommandAfter(self, commandNode, parser, origin, loaderInfo):      
+        newNode = CommandInQueue(loaderInfo.nextAvailableKey,parser)
+        loaderInfo.nextAvailableKey += 1
+        self.size += 1
         
         #first insertion
         if commandNode is None: 
-            self.firstCommand = self.lastCommand = newNode
-            self.settings.setLoaderState(origin, newNode)
-            return
+            loaderInfo.firstCommand = loaderInfo.lastCommand = newNode
+            return newNode
 
         if commandNode.next is not None:
             newNode.next = commandNode.next
@@ -709,101 +678,101 @@ class ProcedureInQueue(Procedure):
         commandNode.next = newNode
         newNode.prev = commandNode
         
-        if commandNode is self.lastCommand:
-            self.lastCommand = newNode
-        
-        if not self.settings.hasLoaderState(origin):
-            self.settings.setLoaderState(origin, newNode)
-            return
-            
-        previousState = self.settings.getLoaderState()
-        previousState.loaderNext = newNode
-        newNode.loaderPrev = previousState
-        self.settings.setLoaderState(origin, newNode)
-        
-        self.size += 1
+        if commandNode is loaderInfo.lastCommand:
+            loaderInfo.lastCommand = newNode
         
         return newNode
         
-    def removeCommand(self, key):
-        ciq = self._raiseIfInvalidKey(key, "removeCommand")
+    def removeCommand(self, key, origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "removeCommand", createIfDoesNotExist=False)
+        ciq = self._checkKey(key, origin, loaderInfo, "removeCommand")
         
         #is a command registered ? call disabling then return.  removing not allowed
-        if ciq.isAregisteredCommand():
+        if ciq.key < loaderInfo.registeredCount:
             ciq.enabled = False
             return
         
         #remove from executing queue
-        self._extractCommandFromQueue(ciq)
-        
-        #remove from loader queue
-        if ciq.loaderPrev is not None:
-            ciq.loaderPrev.loaderNext = ciq.loaderNext
-        
-        if ciq.loaderNext is not None:
-            ciq.loaderNext.loaderPrev = ciq.loaderPrev
-            
+        self._extractCommandFromQueue(ciq)      
         self.size -= 1
-        
+
     def addCommandBefore(self, key, commandStringList, origin=None):
-        return self._addCommandBefore(self, self._raiseIfInvalidKey(key, "addCommandBefore"), commandStringList, origin)
+        parser = self._checkCommandString(commandStringList, "addCommandBefore")
+        origin, loaderInfo = self._checkOrigin(origin, "addCommandBefore", createIfDoesNotExist=False)
+        ciq = self._checkKey(key, origin, loaderInfo, "addCommandBefore")
+        return self._addCommandBefore(self, ciq, parser, origin, loaderInfo)
         
     def addCommandAfter(self, key, commandStringList, origin=None):
-        return self._addCommandAfter(self, self._raiseIfInvalidKey(key, "addCommandAfter"), commandStringList, origin)
+        parser = self._checkCommandString(commandStringList, "addCommandAfter")
+        origin, loaderInfo = self._checkOrigin(origin, "addCommandAfter", createIfDoesNotExist=False)
+        ciq = self._checkKey(key, origin, loaderInfo, "addCommandAfter")
+        return self._addCommandAfter(self, ciq, parser, origin, loaderInfo)
         
     def addCommandFirst(self, commandString, origin=None):
-        return self._addCommandBefore(self, self.firstCommand, commandStringList, origin)
+        parser = self._checkCommandString(commandStringList, "addCommandFirst")
+        origin, loaderInfo = self._checkOrigin(origin, "addCommandFirst", createIfDoesNotExist=True)
+        return self._addCommandBefore(self, loaderInfo.firstCommand, parser, origin, loaderInfo)
         
     def addCommandLast(self, commandString, origin=None):
-        return self._addCommandAfter(self, self.lastCommand, commandStringList, origin)
-            
-    def _exchangeCommand(self, firstCommand, secondCommand):
+        parser = self._checkCommandString(commandStringList, "addCommandLast")
+        origin, loaderInfo = self._checkOrigin(origin, "addCommandLast", createIfDoesNotExist=True)
+        return self._addCommandAfter(self, loaderInfo.lastCommand, parser, origin, loaderInfo)
+    
+    ####
+
+    def _exchangeCommand(self, firstCommand, secondCommand, loaderInfo):
         firstNext = firstCommand.next
         firstPrev = firstCommand.prev
         
         firstCommand.next = secondCommand.next
         firstCommand.prev = secondCommand.prev
         
-        if secondCommand is self.firstCommand:
-            self.firstCommand = firstCommand
+        if secondCommand is loaderInfo.firstCommand:
+            loaderInfo.firstCommand = firstCommand
             
-        if secondCommand is self.lastCommand:
-            self.lastCommand = firstCommand
+        if secondCommand is loaderInfo.lastCommand:
+            loaderInfo.lastCommand = firstCommand
             
         secondCommand.next = firstNext
         secondCommand.prev = firstPrev
         
-        if firstCommand is self.firstCommand:
-            self.firstCommand = secondCommand
+        if firstCommand is loaderInfo.firstCommand:
+            loaderInfo.firstCommand = secondCommand
             
-        if firstCommand is self.lastCommand:
-            self.lastCommand = secondCommand
+        if firstCommand is loaderInfo.lastCommand:
+            loaderInfo.lastCommand = secondCommand
                 
-    def exchangeCommand(self,firstKey, secondKey):
-        self._exchangeCommand(self._raiseIfInvalidKey(firstKey, "exchangeCommand",FIRST_KEY_NAME), self._raiseIfInvalidKey(secondKey, "exchangeCommand", SECOND_KEY_NAME))
+    def exchangeCommand(self,firstKey, secondKey, origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "exchangeCommand", createIfDoesNotExist=False)
+        ciq1 = self._checkKey(firstKey, origin, loaderInfo, "exchangeCommand",FIRST_KEY_NAME)
+        ciq2 = self._checkKey(secondKey, origin, loaderInfo, "exchangeCommand",SECOND_KEY_NAME)
+        self._exchangeCommand(ciq1, ciq2, loaderInfo)
             
-    def upCommand(self,key):
-        ciq = self._raiseIfInvalidKey(key, "upCommand")
+    def upCommand(self,key, origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "upCommand", createIfDoesNotExist=False)
+        ciq = self._checkKey(firstKey, origin, loaderInfo, "upCommand")
         
         if ciq.prev is None:
             return
             
-        self._exchangeCommand(ciq.prev, ciq)
+        self._exchangeCommand(ciq.prev, ciq, loaderInfo)
         
-    def downCommand(self,key):
-        ciq = self._raiseIfInvalidKey(key, "downCommand")
+    def downCommand(self,key, origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "downCommand", createIfDoesNotExist=False)
+        ciq = self._checkKey(firstKey, origin, loaderInfo, "downCommand")
         
         if ciq.next is None:
             return
             
-        self._exchangeCommand(ciq.next, ciq)
+        self._exchangeCommand(ciq.next, ciq, loaderInfo)
                 
-    def moveCommandAfter(self, key, destinationKey): #TODO could be possible to create a common code with addAfter
+    def moveCommandAfter(self, key, destinationKey, origin=None):
         if key == destinationKey: #can not move a command on itself
             return
     
-        ciq_toMove = self._raiseIfInvalidKey(key, "moveCommandAfter")
-        ciq_destination = self._raiseIfInvalidKey(destinationKey, "moveCommandAfter",DESTINATION_KEY_NAME)
+        origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
+        ciq_toMove = self._checkKey(key, origin, loaderInfo, "moveCommandAfter")
+        ciq_destination = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandAfter",DESTINATION_KEY_NAME)
                 
         if ciq_destination.next is ciq_toMove: #position is already ok
             return
@@ -820,14 +789,15 @@ class ProcedureInQueue(Procedure):
             ciq_toMove.next.prev = ciq_toMove
             
         if ciq_destination is self.lastCommand:
-            self.lastCommand = ciq_toMove
+            loaderInfo.lastCommand = ciq_toMove
         
-    def moveCommandBefore(self, key, destinationKey): #TODO could be possible to create a common code with addBefore
+    def moveCommandBefore(self, key, destinationKey, origin=None): 
         if key == destinationKey: #can not move a command on itself
             return
-    
-        ciq_toMove = self._raiseIfInvalidKey(key, "moveCommandBefore")
-        ciq_destination = self._raiseIfInvalidKey(destinationKey, "moveCommandBefore",DESTINATION_KEY_NAME)
+        
+        origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
+        ciq_toMove = self._checkKey(key, origin, loaderInfo, "moveCommandBefore")
+        ciq_destination = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandBefore",DESTINATION_KEY_NAME)
                 
         if ciq_destination.prev is ciq_toMove: #position is already ok
             return
@@ -844,38 +814,33 @@ class ProcedureInQueue(Procedure):
             ciq_toMove.prev.next = ciq_toMove
             
         if ciq_destination is self.firstCommand:
-            self.firstCommand = ciq_toMove
+            loaderInfo.firstCommand = ciq_toMove
         
     def enableLoop(self):
-        if self.firstCommand is None:
-            return
-            
-        self.firstCommand.prev = self.lastCommand
-        self.lastCommand.next = self.firstCommand
+        self.loopEnabled = True
         
     def disableLoop(self):
-        if self.firstCommand is None:
-            return
-            
-        self.firstCommand.prev = None
-        self.lastCommand.next = None
+        self.loopEnabled = False
         
     def isLoop(self):
-        return self.firstCommand.prev is not None
+        return self.loopEnabled
         
-    def enableCommand(self, key):
-        ciq = self._raiseIfInvalidKey(key, "enableCommand")
+    def enableCommand(self, key,origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "enableCommand")
+        ciq = self._checkKey(key, origin, loaderInfo, "enableCommand")
         ciq.enabled = True
         
-    def disableCommand(self, key):
-        ciq = self._raiseIfInvalidKey(key, "disableCommand")
+    def disableCommand(self, key,origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "disableCommand")
+        ciq = self._checkKey(key, origin, loaderInfo, "disableCommand")
         ciq.enabled = False
         
-    def isCommandDisabled(self, key):
-        ciq = self._raiseIfInvalidKey(key, "isCommandDisabled")
+    def isCommandDisabled(self, key,origin=None):
+        origin, loaderInfo = self._checkOrigin(origin, "isCommandDisabled")
+        ciq = self._checkKey(key, origin, loaderInfo, "isCommandDisabled")
         return ciq.isEnabled()
         
-    def clone(self, From=None):
+    def clone(self, From=None): #TODO the method name should change, cloneForExecution
         #TODO clone what ?
             #executing queue
             #parent class
@@ -883,25 +848,4 @@ class ProcedureInQueue(Procedure):
             #next key (?)
     
         pass #TODO
-        
-    def __hash__(self):
-        #TODO each loader need a hash with its command
-            #settings are only part of the system loader hash
-            
-            #three hash: hash_file, hash_default (static), current_hash
-            #if hash_file is None and current_hash == hash_default => not a candidate to be saved
-            #if hash_file is not None
-                #if current_hash == hash_file => candidate to be save + does not trigger file regeneration
-                #if current_hash == hash_default => need to be remove of the file + trigger file regeneration
-                #else => need to be saved + trigger file regeneration
-    
-        #TODO hashing what ?
-            #executing order (for each loader)
-            #command instruction (for each loader)
-            #parent (settings)(only for system loader)
-            
-        #TODO prblm, so need to know the execution order in loader to compute hash...
-            
-        pass #TODO
-        
-        
+                

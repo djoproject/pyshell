@@ -173,5 +173,6 @@ class Parser(list):
     def isParsed(self):
         return self.parsed
 
-
+    def __hash__(self): #TODO test
+        pass #TODO
 
