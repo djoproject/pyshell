@@ -16,9 +16,10 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.constants import EMPTY_STRING
+from pyshell.utils.constants import EMPTY_STRING, SYSTEM_VIRTUAL_LOADER
 from pyshell.utils.exception import ParameterException
 from pyshell.system.container import AbstractParameterContainer
+import collections
 
 class Settings(object):
     def __init__(self, readOnly = False, removable = True):
@@ -121,7 +122,9 @@ class GlobalSettings(LocalSettings):
         return self.transient
 
     def setLoaderState(self, loaderSignature, loaderState):
-        #TODO loaderState must be hashable
+        #loaderState must be hashable
+        if not isinstance(loaderSignature, collections.Hashable):
+            raise ParameterException("(GlobalSettings) setLoaderState, loaderSignature has to be hashable") 
 
         self.loaderSet[loaderSignature] = loaderState
         return loaderState
@@ -132,17 +135,27 @@ class GlobalSettings(LocalSettings):
     def hasLoaderState(self, loaderSignature):
         return loaderSignature in self.loaderSet
 
-    def hashForLoader(self, loaderSignature):
-        #for system loader, hash settings + loaderState
-        #for any other loader, only hash loaderState
-
-        pass #TODO
+    def hashForLoader(self, loaderSignature = None):
+        if loaderSignature is None:
+            SYSTEM_VIRTUAL_LOADER
+            
+        if loaderSignature is not SYSTEM_VIRTUAL_LOADER:
+            return hash(self.loaderSet[loaderSignature])
+            
+        if SYSTEM_VIRTUAL_LOADER not in self.loaderSet:
+            return hash(self)
+            
+        return hash( str(hash(self)) + str(hash(self.loaderSet[loaderSignature])))
         
     def getLoaders(self):
         return self.loaderSet.keys()
         
     def isFantom(self):
         return len(self.loaderSet) == 0
+    
+    ##### TODO remove method below, and update parameter/container
+        #each loader will store two hash for each storable items (original hash, hash after file load)
+        #merge does not exist anymore
     
     def mergeFromPreviousSettings(self, settings):
         if settings is None:
@@ -162,7 +175,7 @@ class GlobalSettings(LocalSettings):
         #manage origin
         self.startingHash = settings.startingHash
         
-    def setStartingPoint(self, hashi, origin, originProfile = None):
+    def setStartingPoint(self, hashi, origin, originProfile = None): 
         if self.startingHash is not None:
             raise ParameterException("(GlobalSettings) setStartingPoint, a starting point was already defined for this parameter") 
             

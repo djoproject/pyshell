@@ -16,6 +16,23 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#TODO
+    #prevoir un system simple pour permettre au loader d'indiquer si des elements doivent etre sauver
+    #et un system pour les sauver
+    
+    #pour l'instant: procedure, environment, contexte, variable
+            
+    #each item can hold three hash: 
+        #hash_file: computed at file loading (set to None if item is not updated)
+        #hash_default (static): computed at registering, always the same from an execution to another
+        #current_hash: not computed but could be computed at any time
+        
+    #if hash_file is None and current_hash == hash_default => not a candidate to be saved
+    #if hash_file is not None
+        #if current_hash == hash_file => candidate to be save + does not trigger file regeneration
+        #if current_hash == hash_default => need to be remove of the file + trigger file regeneration
+        #else => need to be saved + trigger file regeneration
+
 import inspect,traceback
 from pyshell.loader.exception import RegisterException,LoadException
 from pyshell.utils.exception  import ListOfException
