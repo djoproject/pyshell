@@ -60,6 +60,12 @@ class Settings(object):
         
     def __hash__(self):
         return hash(self.getProperties())
+        
+    def clone(self, From=None):
+        if From is None:
+            return Settings()
+            
+        return From
 
 class LocalSettings(Settings):
     def __init__(self, readOnly = False, removable = True):
@@ -100,6 +106,16 @@ class LocalSettings(Settings):
 
     def isRemovable(self):
         return self.removable
+        
+    def clone(self, From=None):
+        if From is None:
+            return LocalSettings(self.isReadOnly(), self.isRemovable())
+        
+        From.setReadOnly(False)
+        From.setRemovable(self.isRemovable())
+        From.setReadOnly(self.isReadOnly())
+        
+        return Settings.clone(From)
 
 class GlobalSettings(LocalSettings):
     def __init__(self, readOnly = False, removable = True, transient = False):
@@ -156,6 +172,8 @@ class GlobalSettings(LocalSettings):
     ##### TODO remove method below, and update parameter/container
         #each loader will store two hash for each storable items (original hash, hash after file load)
         #merge does not exist anymore
+        #create a method, setRegisteredHashForLoader, setFileHashForLoader (these methods will be called in loaders)
+            #these methods only take the loaders signature as argument, the hash occurs on the information stored in the settings
     
     def mergeFromPreviousSettings(self, settings):
         if settings is None:
@@ -182,5 +200,17 @@ class GlobalSettings(LocalSettings):
         self.startingHash = hashi        
         
     def isEqualToStartingHash(self, hashi):
-        return hashi == self.startingHash        
+        return hashi == self.startingHash   
+    
+    #XXX stop removing here ###############################################
+    
+    def clone(self, From=None):
+        if From is None:
+            From = GlobalSettings(self.isReadOnly(), self.isRemovable(), self.isTransient())
+        else:
+            From.setTransient(self.isTransient())
+        
+        #TODO clone loader state
+        
+        return LocalSettings.clone(From)
         

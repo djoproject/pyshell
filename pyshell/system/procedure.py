@@ -38,7 +38,7 @@ else:
                 
 ### UTILS COMMAND ###
     
-def getAbsoluteIndex(index, listSize):
+def getAbsoluteIndex(index, listSize): #TODO will be deleted with procedureInList class
     "convert any positive or negative index into an absolute positive one"
 
     if index >= 0:
@@ -53,7 +53,7 @@ def getAbsoluteIndex(index, listSize):
     
     return index
 
-class Procedure(UniCommand):#TODO should implement hash system, like parameter
+class Procedure(UniCommand):
     def __init__(self, name, settings = None):
         UniCommand.__init__(self, self._internalProcess, None, None) #by default, enable on pre process #TODO this information should be stored
         
@@ -179,7 +179,7 @@ class Procedure(UniCommand):#TODO should implement hash system, like parameter
     
     ###### get/set method
     
-    def setNextCommandIndex(self, index):
+    def setNextCommandIndex(self, index): #TODO remove me 
         raise DefaultPyshellException("(Procedure) setNextCommandIndex, not possible to set next command index on this king of procedure")
                     
     def setStopProcedureOnFirstError(self):
@@ -203,16 +203,15 @@ class Procedure(UniCommand):#TODO should implement hash system, like parameter
                 
     def clone(self, From=None):
         if From is None:
-            From = Procedure(self.name)
+            From = Procedure(self.name, settings = self.settings.clone())
         
         From.errorGranularity = self.errorGranularity
-        #TODO does not clone settings ?
         return UniCommand.clone(self,From)
         
     def __hash__(self):
         return hash(self.settings)
             
-class ProcedureFromList(Procedure): #TODO obsolete, will be replaced by ProcedureInQueue
+class ProcedureFromList(Procedure): #TODO obsolete, will be replaced by ProcedureInQueue, don't care about TODO in this class
     def __init__(self, name, settings = None):
         Procedure.__init__(self, name, settings)
         
@@ -385,7 +384,7 @@ class ProcedureFromList(Procedure): #TODO obsolete, will be replaced by Procedur
     def getListOfCommandsToSave(self):
         pass #TODO       
         
-class ProcedureFromFile(Procedure): #TODO probably remove this class, and replace by a method to load a file into a ProcedureInQueue
+class ProcedureFromFile(Procedure): #TODO probably remove this class, and replace by a method to load a file into a ProcedureInQueue, don't care about TODO in this class
     def __init__(self, filePath, settings = None):
         Procedure.__init__(self, "execute "+str(filePath), settings)
         self.setFilePath(filePath)
@@ -433,12 +432,18 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     #key are never swapped
 
 #TODO        
-    #need way to protect command on update
+    #TODO need way to protect command on update
         #because an execution could occur during an update and there is protection
         #during a cloning, a procedure shouldn't be updated
         #but a cloned one will never be cloned again, so no need to have lock in cloned
         
         #clone call must block update
+        
+    #TODO need a granularity in the loader execution and between the loader execution
+        #the inner granularity will stop the loader execution
+        #the outer granularity will stop the whole execution
+        
+    #TODO false branching
 
 #BRAINSTORMING about false branching
     #goto can only work FROM and TO instruction of the same loader
@@ -453,6 +458,7 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
     #SOLUTION 4: XXX
         #create a field falseNext in node
         #create a method to set next node (not bases on the key like now)
+            #a method like "use falseNext if difined" (?) or raise ?
         #create a method to change the branching and call this method in the addon method directly
         
 #CURRENT STRUCT: don't allow command merging from different loader XXX
@@ -549,18 +555,38 @@ class _LoaderInfo(object):
         return hash(hashString)
         
     def clone(self):
-        pass #TODO
-            #no need to clone parser instance, just recreate queue
-            #create new instance of CommandInQueue
+        cloned = _LoaderInfo()
+        cloned.nextAvailableKey = self.nextAvailableKey
+        cloned.registeredCount = self.registeredCount
+        
+        if self.firstCommand is not None:
+            currentNode         = self.firstCommand
+            
+            currentClonedNode   = _CommandInQueue(self.firstCommand.key, self.firstCommand.parser)
+            cloned.firstCommand = currentClonedNode
+            clones.commandMap[currentClonedNode.key] = currentClonedNode
+            
+            while currentNode.next is not None:
+                newClonedNode = _CommandInQueue(currentNode.next.key, currentNode.next.parser)
+                clones.commandMap[newClonedNode.key] = newClonedNode
+                currentClonedNode.next = newClonedNode
+                newClonedNode.prev     = currentClonedNode
+                
+                currentNode = currentNode.next
+                currentClonedNode = newClonedNode
+                
+            cloned.lastCommand = currentClonedNode
+    
+        return cloned
 
 class ProcedureInQueue(Procedure):
     def __init__(self, name, settings = None):
         Procedure.__init__(self, name, settings)
         self.size               = 0
-        self.nextCommand        = None
         self.loopEnabled        = False
         
         #temp fields
+        self.nextCommand        = None
         self.currentLoader      = None
         self.currentLoaderState = None
     
@@ -622,7 +648,7 @@ class ProcedureInQueue(Procedure):
         else:
             parser = Parser(commandString)
 
-        if not parser.isParsed()
+        if not parser.isParsed():
             parser.parse()
 
         if len(parser) == 0:
@@ -641,66 +667,54 @@ class ProcedureInQueue(Procedure):
             
         if cmd is loaderInfo.firstCommand:
             loaderInfo.firstCommand = cmd.next
+            
+        if cmd is loaderInfo.lastCommand:
+            loaderInfo.lastCommand = cmd.prev
 
         cmd.prev = cmd.next = None
 
         return cmd
         
     def _addAfter(self, nodeToInsert, targetNode, loaderInfo):
-        pass #TODO
+        if nodeToInsert is targetNode:
+            return nodeToInsert
+            
+        if targetNode is None:
+            loaderInfo.firstCommand = loaderInfo.lastCommand = nodeToInsert
+            return nodeToInsert
+            
+        nodeToInsert.next = targetNode.next
+        nodeToInsert.prev = targetNode
+        
+        if targetNode is loaderInfo.firstCommand:
+            loaderInfo.firstCommand = nodeToInsert
+        else:
+            nodeToInsert.next.prev = nodeToInsert
+        
+        targetNode.next = nodeToInsert
+        
+        return nodeToInsert
         
     def _addBefore(self, nodeToInsert, targetNode, loaderInfo):
-        pass #TODO
-        
-    #TODO should be possible to implement everything with these three method:
-        #extract
-        #insert after
-        #insert before
-
-    def _addCommandBefore(self, commandNode, parser, origin, loaderInfo):
-        newNode = CommandInQueue(loaderInfo.nextAvailableKey,parser)
-        loaderInfo.nextAvailableKey += 1
-        self.size += 1
-
-        #first insertion
-        if commandNode is None: 
-            loaderInfo.firstCommand = loaderInfo.lastCommand = newNode
-            return newNode
-
-        if commandNode.prev is not None:
-            newNode.prev = commandNode.prev
-            newNode.prev.next = newNode
+        if nodeToInsert is targetNode:
+            return nodeToInsert
             
-        commandNode.prev = newNode
-        newNode.next = commandNode
-        
-        if commandNode is loaderInfo.firstCommand:
-            loaderInfo.firstCommand = newNode
-                
-        return newNode
-        
-    def _addCommandAfter(self, commandNode, parser, origin, loaderInfo):      
-        newNode = CommandInQueue(loaderInfo.nextAvailableKey,parser)
-        loaderInfo.nextAvailableKey += 1
-        self.size += 1
-        
-        #first insertion
-        if commandNode is None: 
-            loaderInfo.firstCommand = loaderInfo.lastCommand = newNode
-            return newNode
-
-        if commandNode.next is not None:
-            newNode.next = commandNode.next
-            newNode.next.prev = newNode
+        if targetNode is None:
+            loaderInfo.firstCommand = loaderInfo.lastCommand = nodeToInsert
+            return nodeToInsert
             
-        commandNode.next = newNode
-        newNode.prev = commandNode
+        nodeToInsert.next = targetNode
+        nodeToInsert.prev = targetNode.prev
         
-        if commandNode is loaderInfo.lastCommand:
-            loaderInfo.lastCommand = newNode
+        if targetNode is loaderInfo.firstCommand:
+            loaderInfo.firstCommand = nodeToInsert
+        else:
+            nodeToInsert.prev.next = nodeToInsert
         
-        return newNode
+        targetNode.prev = nodeToInsert
         
+        return nodeToInsert
+            
     def _exchangeCommand(self, firstCommand, secondCommand, loaderInfo):
         firstNext = firstCommand.next
         firstPrev = firstCommand.prev
@@ -722,43 +736,56 @@ class ProcedureInQueue(Procedure):
             
         if firstCommand is loaderInfo.lastCommand:
             loaderInfo.lastCommand = secondCommand
+            
+    def _createNewNode(self,loaderInfo,parser):
+        newNode = CommandInQueue(loaderInfo.nextAvailableKey,parser)
+        loaderInfo.nextAvailableKey += 1
+        self.size += 1
         
     ## add method ##
     
     def removeCommand(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "removeCommand", createIfDoesNotExist=False)
-        ciq = self._checkKey(key, origin, loaderInfo, "removeCommand")
+        target = self._checkKey(key, origin, loaderInfo, "removeCommand")
         
         #is a command registered ? call disabling then return.  removing not allowed
-        if ciq.key < loaderInfo.registeredCount:
-            ciq.enabled = False
+        if target.key < loaderInfo.registeredCount:
+            target.enabled = False
             return
         
         #remove from executing queue
-        self._extractCommandFromQueue(ciq)      
+        self._extractCommandFromQueue(target)      
         self.size -= 1
 
     def addCommandBefore(self, key, commandStringList, origin=None):
-        parser = self._checkCommandString(commandStringList, "addCommandBefore")
+        parser             = self._checkCommandString(commandStringList, "addCommandBefore")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandBefore", createIfDoesNotExist=False)
-        ciq = self._checkKey(key, origin, loaderInfo, "addCommandBefore")
-        return self._addCommandBefore(self, ciq, parser, origin, loaderInfo)
+        target             = self._checkKey(key, origin, loaderInfo, "addCommandBefore")
+        newNode            = self._createNewNode(loaderInfo, parser)
+        
+        return self._addBefore(self, newNode, target, loaderInfo)
         
     def addCommandAfter(self, key, commandStringList, origin=None):
-        parser = self._checkCommandString(commandStringList, "addCommandAfter")
+        parser             = self._checkCommandString(commandStringList, "addCommandAfter")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandAfter", createIfDoesNotExist=False)
-        ciq = self._checkKey(key, origin, loaderInfo, "addCommandAfter")
-        return self._addCommandAfter(self, ciq, parser, origin, loaderInfo)
+        target             = self._checkKey(key, origin, loaderInfo, "addCommandAfter")
+        newNode            = self._createNewNode(loaderInfo, parser)
+        
+        return self._addAfter(self, newNode, target, loaderInfo)
         
     def addCommandFirst(self, commandString, origin=None):
-        parser = self._checkCommandString(commandStringList, "addCommandFirst")
+        parser             = self._checkCommandString(commandStringList, "addCommandFirst")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandFirst", createIfDoesNotExist=True)
-        return self._addCommandBefore(self, loaderInfo.firstCommand, parser, origin, loaderInfo)
+        newNode            = self._createNewNode(loaderInfo, parser)
+        
+        return self._addBefore(self, newNode, loaderInfo.firstCommand, loaderInfo)
         
     def addCommandLast(self, commandString, origin=None):
-        parser = self._checkCommandString(commandStringList, "addCommandLast")
+        parser             = self._checkCommandString(commandStringList, "addCommandLast")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandLast", createIfDoesNotExist=True)
-        return self._addCommandAfter(self, loaderInfo.lastCommand, parser, origin, loaderInfo)
+        newNode            = self._createNewNode(loaderInfo, parser)
+        
+        return self._addAfter(self, newNode, loaderInfo.lastCommand, loaderInfo)
     
     ## exchange method ##
                 
@@ -766,6 +793,7 @@ class ProcedureInQueue(Procedure):
         origin, loaderInfo = self._checkOrigin(origin, "exchangeCommand", createIfDoesNotExist=False)
         ciq1 = self._checkKey(firstKey, origin, loaderInfo, "exchangeCommand",FIRST_KEY_NAME)
         ciq2 = self._checkKey(secondKey, origin, loaderInfo, "exchangeCommand",SECOND_KEY_NAME)
+        
         self._exchangeCommand(ciq1, ciq2, loaderInfo)
             
     def upCommand(self,key, origin=None):
@@ -789,60 +817,46 @@ class ProcedureInQueue(Procedure):
     ## move method ##
     
     def moveCommandAfter(self, key, destinationKey, origin=None):
-        if key == destinationKey: #can not move a command on itself
-            return
-    
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
-        ciq_toMove = self._checkKey(key, origin, loaderInfo, "moveCommandAfter")
-        ciq_destination = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandAfter",DESTINATION_KEY_NAME)
+        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandAfter")
+        ciq_destination    = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandAfter",DESTINATION_KEY_NAME)
                 
-        if ciq_destination.next is ciq_toMove: #position is already ok
+        if ciq_toMove is ciq_destination or ciq_destination.next is ciq_toMove: #position is already ok
             return
             
-        #remove command from its place
         self._extractCommandFromQueue(ciq_toMove)
-        
-        #put the command at its new place
-        ciq_toMove.prev = ciq_destination
-        ciq_toMove.next = ciq_destination.next
-        ciq_destination.next = ciq_toMove
-        
-        if ciq_toMove.next is not None:
-            ciq_toMove.next.prev = ciq_toMove
-            
-        if ciq_destination is self.lastCommand:
-            loaderInfo.lastCommand = ciq_toMove
+        self._addAfter(ciq_toMove, ciq_destination, loaderInfo)
         
     def moveCommandBefore(self, key, destinationKey, origin=None): 
-        if key == destinationKey: #can not move a command on itself
-            return
-        
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
-        ciq_toMove = self._checkKey(key, origin, loaderInfo, "moveCommandBefore")
-        ciq_destination = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandBefore",DESTINATION_KEY_NAME)
+        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandBefore")
+        ciq_destination    = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandBefore",DESTINATION_KEY_NAME)
                 
-        if ciq_destination.prev is ciq_toMove: #position is already ok
+        if ciq_toMove is ciq_destination or ciq_destination.prev is ciq_toMove: #position is already ok
             return
             
-        #remove command from its place
         self._extractCommandFromQueue(ciq_toMove)
-        
-        #put the command at its new place
-        ciq_toMove.next = ciq_destination
-        ciq_toMove.prev = ciq_destination.prev
-        ciq_destination.prev = ciq_toMove
-        
-        if ciq_toMove.prev is not None:
-            ciq_toMove.prev.next = ciq_toMove
-            
-        if ciq_destination is self.firstCommand:
-            loaderInfo.firstCommand = ciq_toMove
+        self._addBefore(ciq_toMove, ciq_destination, loaderInfo)
             
     def moveCommandFirst(self, key, origin=None):
-        pass #TODO
+        origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
+        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandBefore")
+                
+        if ciq_toMove is loaderInfo.firstCommand: #position is already ok
+            return
+            
+        self._extractCommandFromQueue(ciq_toMove)
+        self._addBefore(ciq_toMove, loaderInfo.firstCommand, loaderInfo)
         
     def moveCommandLast(self, key, origin=None):
-        pass #TODO
+        origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
+        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandAfter")
+                
+        if ciq_toMove is loaderInfo.lastCommand: #position is already ok
+            return
+            
+        self._extractCommandFromQueue(ciq_toMove)
+        self._addAfter(ciq_toMove, loaderInfo.lastCommand, loaderInfo)
     
     ## misc method ##
     
@@ -879,13 +893,12 @@ class ProcedureInQueue(Procedure):
 
         self.nextCommand = self._checkKey(key, self.currentLoader, self.settings.getLoaderState(self.currentLoader), "setNextCommandToExecute")
     
-    def clone(self, From=None): #TODO the method name should change, cloneForExecution
-        #TODO clone what ?
-            #executing queue
-            #parent procedure class
-            #loaders queue (? not needed for an execution, and will be really hard to clone)
-                #so need to clone settings
-            #next key (?)
-    
-        pass #TODO
+    def clone(self, From=None):
+        if From is None:
+            From = ProcedureInQueue(name=self.name, settings = self.settings.clone())) 
+        
+        From.size = self.size
+        From.loopEnabled = self.loopEnabled
+                            
+        return Procedure.clone(From)
                 
