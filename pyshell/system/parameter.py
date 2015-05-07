@@ -28,7 +28,7 @@ from functools import wraps
 from threading import Lock
 from tries     import multiLevelTries
 
-def synchronous():
+def synchronous(): #TODO move to utils
     def _synched(func):
         @wraps(func)
         def _synchronizer(self,*args, **kwargs):

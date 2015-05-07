@@ -211,6 +211,8 @@ class GlobalSettings(LocalSettings):
             From.setTransient(self.isTransient())
         
         #TODO clone loader state
+            #if no clone method, use copy tools
+                #simple or deep copy ?
         
         return LocalSettings.clone(From)
         

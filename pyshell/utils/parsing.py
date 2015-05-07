@@ -174,5 +174,9 @@ class Parser(list):
         return self.parsed
 
     def __hash__(self): #TODO test
-        pass #TODO
+        hashString = ""
+        for currentCommand, argSpotted, paramSpotted in self:
+            hashString += str(hash(currentCommand)) + str(hash(argSpotted)) + str(hash(paramSpotted))
+            
+        return hash(hashString)
 

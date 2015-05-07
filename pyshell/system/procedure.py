@@ -439,9 +439,21 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
         
         #clone call must block update
         
+        #only main procedure need to be protected, cloned method don't need this system
+        
+        #create a method "lockForUpdate" and call it everywhere in update method or clone method
+        #in cloned procedure, this method does not do anything
+        
+        #use synchronize
+        
     #TODO need a granularity in the loader execution and between the loader execution
         #the inner granularity will stop the loader execution
+            #store it in loader state
+            #has to be used in hashing and to be saved if needed
+        
         #the outer granularity will stop the whole execution
+            #should be stored in setting
+            #and be saved if updated
         
     #TODO false branching
 
@@ -460,6 +472,28 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
         #create a method to set next node (not bases on the key like now)
             #a method like "use falseNext if difined" (?) or raise ?
         #create a method to change the branching and call this method in the addon method directly
+        
+        #a node can ben targetted by more than one other node
+        
+        #PRBLM 1: what if the target node is removed ? TODO
+            #SOLUTION 1: keep a list of source node in the target one
+                #then what ? 
+                    #remove source node ?
+                        #will probably change procedure behaviour
+                    #move the goto to the next node ?
+                        #risk to create forever loop in procedure
+                        
+            #SOLUTION 2: keep a source counter
+                #if try to remove the node and the counter is bigger than 0, raise
+                #event "force" argument won't be able to remove the node
+                
+            #SOLUTION 3: gave the choice to the user
+                #remove on cascade
+                #jump to next 
+                #raise if the node is targetted (default behavior)
+                #other ?
+                
+            #SOLUTION 4: ?
         
 #CURRENT STRUCT: don't allow command merging from different loader XXX
     #it won't be saved, so why allow to merge command from different loader at running time ? just considere a loader group like a individual statement
@@ -519,7 +553,7 @@ FIRST_KEY_NAME       = "first key"
 SECOND_KEY_NAME      = "second key"
 DESTINATION_KEY_NAME = "destination key"
 
-class _CommandInQueue(object):
+class CommandNode(object):
     def __init__(self, key, parser):
         self.key    = key
         self.parser = parser
@@ -534,9 +568,9 @@ class _CommandInQueue(object):
         return self.enabled
 
     def __hash__(self):
-        return hash(str(self.key)+str(self.enabled)+str(hash(self.parser))) #TODO don't forget to implement hash in parser
+        return hash(str(self.key)+str(self.enabled)+str(hash(self.parser)))
 
-class _LoaderInfo(object):
+class CommandQueue(object):
     def __init__(self):
         self.commandMap       = {}
         self.firstCommand     = None
@@ -544,6 +578,96 @@ class _LoaderInfo(object):
         self.nextAvailableKey = 0
         self.registeredCount  = 0
 
+    def extractCommandFromQueue(self, cmd):
+        if cmd.prev is not None:
+            cmd.prev.next = cmd.next
+
+        if cmd.next is not None:
+            cmd.next.prev = cmd.prev
+            
+        if cmd is self.firstCommand:
+            self.firstCommand = cmd.next
+            
+        if cmd is self.lastCommand:
+            self.lastCommand = cmd.prev
+
+        cmd.prev = cmd.next = None
+
+        return cmd
+        
+    def addAfter(self, nodeToInsert, targetNode):
+        if nodeToInsert is targetNode:
+            return nodeToInsert
+            
+        if targetNode is None:
+            self.firstCommand = self.lastCommand = nodeToInsert
+            return nodeToInsert
+            
+        nodeToInsert.next = targetNode.next
+        nodeToInsert.prev = targetNode
+        
+        if targetNode is self.firstCommand:
+            self.firstCommand = nodeToInsert
+        else:
+            nodeToInsert.next.prev = nodeToInsert
+        
+        targetNode.next = nodeToInsert
+        
+        return nodeToInsert
+        
+    def addBefore(self, nodeToInsert, targetNode):
+        if nodeToInsert is targetNode:
+            return nodeToInsert
+            
+        if targetNode is None:
+            self.firstCommand = self.lastCommand = nodeToInsert
+            return nodeToInsert
+            
+        nodeToInsert.next = targetNode
+        nodeToInsert.prev = targetNode.prev
+        
+        if targetNode is self.firstCommand:
+            self.firstCommand = nodeToInsert
+        else:
+            nodeToInsert.prev.next = nodeToInsert
+        
+        targetNode.prev = nodeToInsert
+        
+        return nodeToInsert
+            
+    def exchangeCommand(self, firstCommand, secondCommand):
+        firstNext = firstCommand.next
+        firstPrev = firstCommand.prev
+        
+        firstCommand.next = secondCommand.next
+        firstCommand.prev = secondCommand.prev
+        
+        if secondCommand is self.firstCommand:
+            self.firstCommand = firstCommand
+            
+        if secondCommand is self.lastCommand:
+            self.lastCommand = firstCommand
+            
+        secondCommand.next = firstNext
+        secondCommand.prev = firstPrev
+        
+        if firstCommand is self.firstCommand:
+            self.firstCommand = secondCommand
+            
+        if firstCommand is self.lastCommand:
+            self.lastCommand = secondCommand
+            
+    def createNewNode(self,parser):
+        newNode = CommandNode(self.nextAvailableKey,parser)
+        self.nextAvailableKey += 1
+        self.size += 1
+        
+    def getNode(self, key, origin, methName, keyName = DEFAULT_KEY_NAME):
+        if key not in self.commandMap:
+            raise ParameterException("(ProcedureInQueue) "+str(methName)+", not existant "+str(keyName)+" '"+str(key)+"' for loader '"+str(origin)+"'")
+            
+        return self.commandMap[key]
+        
     def __hash__(self):
         hashString = ""
         currentNode = self.firstCommand
@@ -555,19 +679,19 @@ class _LoaderInfo(object):
         return hash(hashString)
         
     def clone(self):
-        cloned = _LoaderInfo()
+        cloned = CommandQueue()
         cloned.nextAvailableKey = self.nextAvailableKey
         cloned.registeredCount = self.registeredCount
         
         if self.firstCommand is not None:
             currentNode         = self.firstCommand
             
-            currentClonedNode   = _CommandInQueue(self.firstCommand.key, self.firstCommand.parser)
+            currentClonedNode   = CommandNode(self.firstCommand.key, self.firstCommand.parser)
             cloned.firstCommand = currentClonedNode
             clones.commandMap[currentClonedNode.key] = currentClonedNode
             
             while currentNode.next is not None:
-                newClonedNode = _CommandInQueue(currentNode.next.key, currentNode.next.parser)
+                newClonedNode = CommandNode(currentNode.next.key, currentNode.next.parser)
                 clones.commandMap[newClonedNode.key] = newClonedNode
                 currentClonedNode.next = newClonedNode
                 newClonedNode.prev     = currentClonedNode
@@ -578,6 +702,7 @@ class _LoaderInfo(object):
             cloned.lastCommand = currentClonedNode
     
         return cloned
+        
 
 class ProcedureInQueue(Procedure):
     def __init__(self, name, settings = None):
@@ -590,7 +715,7 @@ class ProcedureInQueue(Procedure):
         self.currentLoader      = None
         self.currentLoaderState = None
     
-    ## inherited methods ##
+    ## overrided methods ##
     
     def execute(self, parameters):
         engine = None
@@ -619,6 +744,17 @@ class ProcedureInQueue(Procedure):
             return ()
             
         return engine.getLastResult()
+        
+    ## runtime method ##
+    
+    def setNextCommandToExecute(self, key):
+        if self.currentLoaderState is None or self.currentLoader is None:
+            raise ParameterException("(ProcedureInQueue) setNextCommandToExecute, not possible to set next command to execute, the procedure is not running")
+
+        self.nextCommand = self.currentLoaderState.getNode(key, self.currentLoader, "setNextCommandToExecute")
+        
+    def tryToUseFalseBranching(self):
+        pass #TODO
                         
     ## check methods ##
     
@@ -630,17 +766,11 @@ class ProcedureInQueue(Procedure):
             if not createIfDoesNotExist:
                 raise ParameterException("(ProcedureInQueue) "+str(methName)+", the loader '"+str(origin)+"' does not exist in this procedure")
 
-            loaderInfo = self.settings.setLoaderState(origin,_LoaderInfo())
+            loaderInfo = self.settings.setLoaderState(origin,CommandQueue())
         else:
             loaderInfo = self.settings.getLoaderState(origin)
 
         return origin, loaderInfo
-
-    def _checkKey(self, key, origin, loaderInfo, methName, keyName = DEFAULT_KEY_NAME):
-        if key not in loaderInfo.commandMap:
-            raise ParameterException("(ProcedureInQueue) "+str(methName)+", not existant "+str(keyName)+" '"+str(key)+"' for loader '"+str(origin)+"'")
-            
-        return loaderInfo.commandMap[key]
 
     def _checkCommandString(self, commandStringList, methName):
         if not isinstance(commandStringList, Parser):
@@ -655,98 +785,12 @@ class ProcedureInQueue(Procedure):
             raise ParameterException("(Procedure) '"+str(methName)+"', try to add a command string that does not hold any command")
 
         return parser
-    
-    ## base methods ##
-    
-    def _extractCommandFromQueue(self, cmd, loaderInfo):
-        if cmd.prev is not None:
-            cmd.prev.next = cmd.next
-
-        if cmd.next is not None:
-            cmd.next.prev = cmd.prev
             
-        if cmd is loaderInfo.firstCommand:
-            loaderInfo.firstCommand = cmd.next
-            
-        if cmd is loaderInfo.lastCommand:
-            loaderInfo.lastCommand = cmd.prev
-
-        cmd.prev = cmd.next = None
-
-        return cmd
-        
-    def _addAfter(self, nodeToInsert, targetNode, loaderInfo):
-        if nodeToInsert is targetNode:
-            return nodeToInsert
-            
-        if targetNode is None:
-            loaderInfo.firstCommand = loaderInfo.lastCommand = nodeToInsert
-            return nodeToInsert
-            
-        nodeToInsert.next = targetNode.next
-        nodeToInsert.prev = targetNode
-        
-        if targetNode is loaderInfo.firstCommand:
-            loaderInfo.firstCommand = nodeToInsert
-        else:
-            nodeToInsert.next.prev = nodeToInsert
-        
-        targetNode.next = nodeToInsert
-        
-        return nodeToInsert
-        
-    def _addBefore(self, nodeToInsert, targetNode, loaderInfo):
-        if nodeToInsert is targetNode:
-            return nodeToInsert
-            
-        if targetNode is None:
-            loaderInfo.firstCommand = loaderInfo.lastCommand = nodeToInsert
-            return nodeToInsert
-            
-        nodeToInsert.next = targetNode
-        nodeToInsert.prev = targetNode.prev
-        
-        if targetNode is loaderInfo.firstCommand:
-            loaderInfo.firstCommand = nodeToInsert
-        else:
-            nodeToInsert.prev.next = nodeToInsert
-        
-        targetNode.prev = nodeToInsert
-        
-        return nodeToInsert
-            
-    def _exchangeCommand(self, firstCommand, secondCommand, loaderInfo):
-        firstNext = firstCommand.next
-        firstPrev = firstCommand.prev
-        
-        firstCommand.next = secondCommand.next
-        firstCommand.prev = secondCommand.prev
-        
-        if secondCommand is loaderInfo.firstCommand:
-            loaderInfo.firstCommand = firstCommand
-            
-        if secondCommand is loaderInfo.lastCommand:
-            loaderInfo.lastCommand = firstCommand
-            
-        secondCommand.next = firstNext
-        secondCommand.prev = firstPrev
-        
-        if firstCommand is loaderInfo.firstCommand:
-            loaderInfo.firstCommand = secondCommand
-            
-        if firstCommand is loaderInfo.lastCommand:
-            loaderInfo.lastCommand = secondCommand
-            
-    def _createNewNode(self,loaderInfo,parser):
-        newNode = CommandInQueue(loaderInfo.nextAvailableKey,parser)
-        loaderInfo.nextAvailableKey += 1
-        self.size += 1
-        
     ## add method ##
     
     def removeCommand(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "removeCommand", createIfDoesNotExist=False)
-        target = self._checkKey(key, origin, loaderInfo, "removeCommand")
+        target = loaderInfo.getNode(key, origin, "removeCommand")
         
         #is a command registered ? call disabling then return.  removing not allowed
         if target.key < loaderInfo.registeredCount:
@@ -754,111 +798,111 @@ class ProcedureInQueue(Procedure):
             return
         
         #remove from executing queue
-        self._extractCommandFromQueue(target)      
+        loaderInfo.extractCommandFromQueue(target)      
         self.size -= 1
 
     def addCommandBefore(self, key, commandStringList, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandBefore")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandBefore", createIfDoesNotExist=False)
-        target             = self._checkKey(key, origin, loaderInfo, "addCommandBefore")
-        newNode            = self._createNewNode(loaderInfo, parser)
+        target             = loaderInfo.getNode(key, origin, "addCommandBefore")
+        newNode            = loaderInfo.createNewNode(parser)
         
-        return self._addBefore(self, newNode, target, loaderInfo)
+        return loaderInfo.addBefore(self, newNode, target)
         
     def addCommandAfter(self, key, commandStringList, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandAfter")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandAfter", createIfDoesNotExist=False)
-        target             = self._checkKey(key, origin, loaderInfo, "addCommandAfter")
-        newNode            = self._createNewNode(loaderInfo, parser)
+        target             = loaderInfo.getNode(key, origin, "addCommandAfter")
+        newNode            = loaderInfo.createNewNode(parser)
         
-        return self._addAfter(self, newNode, target, loaderInfo)
+        return loaderInfo.addAfter(self, newNode, target)
         
     def addCommandFirst(self, commandString, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandFirst")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandFirst", createIfDoesNotExist=True)
-        newNode            = self._createNewNode(loaderInfo, parser)
+        newNode            = loaderInfo.createNewNode(parser)
         
-        return self._addBefore(self, newNode, loaderInfo.firstCommand, loaderInfo)
+        return loaderInfo.addBefore(self, newNode, loaderInfo.firstCommand)
         
     def addCommandLast(self, commandString, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandLast")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandLast", createIfDoesNotExist=True)
-        newNode            = self._createNewNode(loaderInfo, parser)
+        newNode            = loaderInfo.createNewNode(parser)
         
-        return self._addAfter(self, newNode, loaderInfo.lastCommand, loaderInfo)
+        return loaderInfo.addAfter(self, newNode, loaderInfo.lastCommand)
     
     ## exchange method ##
                 
     def exchangeCommand(self,firstKey, secondKey, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "exchangeCommand", createIfDoesNotExist=False)
-        ciq1 = self._checkKey(firstKey, origin, loaderInfo, "exchangeCommand",FIRST_KEY_NAME)
-        ciq2 = self._checkKey(secondKey, origin, loaderInfo, "exchangeCommand",SECOND_KEY_NAME)
+        firstNode          = loaderInfo.getNode(firstKey, origin, "exchangeCommand",FIRST_KEY_NAME)
+        secondNode         = loaderInfo.getNode(secondKey, origin, "exchangeCommand",SECOND_KEY_NAME)
         
-        self._exchangeCommand(ciq1, ciq2, loaderInfo)
+        loaderInfo.exchangeCommand(firstNode, secondNode)
             
     def upCommand(self,key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "upCommand", createIfDoesNotExist=False)
-        ciq = self._checkKey(firstKey, origin, loaderInfo, "upCommand")
+        node               = loaderInfo.getNode(firstKey, origin, "upCommand")
         
-        if ciq.prev is None:
+        if node.prev is None:
             return
             
-        self._exchangeCommand(ciq.prev, ciq, loaderInfo)
+        loaderInfo.exchangeCommand(node.prev, node)
         
     def downCommand(self,key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "downCommand", createIfDoesNotExist=False)
-        ciq = self._checkKey(firstKey, origin, loaderInfo, "downCommand")
+        node               = loaderInfo.getNode(firstKey, origin, "downCommand")
         
-        if ciq.next is None:
+        if node.next is None:
             return
             
-        self._exchangeCommand(ciq.next, ciq, loaderInfo)
+        loaderInfo.exchangeCommand(node.next, node)
     
     ## move method ##
     
     def moveCommandAfter(self, key, destinationKey, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
-        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandAfter")
-        ciq_destination    = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandAfter",DESTINATION_KEY_NAME)
+        nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandAfter")
+        nodeDestination    = loaderInfo.getNode(destinationKey, origin, "moveCommandAfter",DESTINATION_KEY_NAME)
                 
-        if ciq_toMove is ciq_destination or ciq_destination.next is ciq_toMove: #position is already ok
+        if nodeToMove is nodeDestination or nodeDestination.next is nodeToMove: #position is already ok
             return
             
-        self._extractCommandFromQueue(ciq_toMove)
-        self._addAfter(ciq_toMove, ciq_destination, loaderInfo)
+        loaderInfo.extractCommandFromQueue(nodeToMove)
+        loaderInfo.addAfter(nodeToMove, nodeDestination)
         
     def moveCommandBefore(self, key, destinationKey, origin=None): 
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
-        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandBefore")
-        ciq_destination    = self._checkKey(destinationKey, origin, loaderInfo, "moveCommandBefore",DESTINATION_KEY_NAME)
+        nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandBefore")
+        nodeDestination    = loaderInfo.getNode(destinationKey, origin, "moveCommandBefore",DESTINATION_KEY_NAME)
                 
-        if ciq_toMove is ciq_destination or ciq_destination.prev is ciq_toMove: #position is already ok
+        if nodeToMove is nodeDestination or nodeDestination.prev is nodeToMove: #position is already ok
             return
             
-        self._extractCommandFromQueue(ciq_toMove)
-        self._addBefore(ciq_toMove, ciq_destination, loaderInfo)
+        loaderInfo.extractCommandFromQueue(nodeToMove)
+        loaderInfo.addBefore(nodeToMove, nodeDestination)
             
     def moveCommandFirst(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
-        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandBefore")
+        nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandBefore")
                 
-        if ciq_toMove is loaderInfo.firstCommand: #position is already ok
+        if nodeToMove is loaderInfo.firstCommand: #position is already ok
             return
             
-        self._extractCommandFromQueue(ciq_toMove)
-        self._addBefore(ciq_toMove, loaderInfo.firstCommand, loaderInfo)
+        loaderInfo.extractCommandFromQueue(nodeToMove)
+        loaderInfo.addBefore(nodeToMove, loaderInfo.firstCommand)
         
     def moveCommandLast(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
-        ciq_toMove         = self._checkKey(key, origin, loaderInfo, "moveCommandAfter")
+        nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandAfter")
                 
-        if ciq_toMove is loaderInfo.lastCommand: #position is already ok
+        if nodeToMove is loaderInfo.lastCommand: #position is already ok
             return
             
-        self._extractCommandFromQueue(ciq_toMove)
-        self._addAfter(ciq_toMove, loaderInfo.lastCommand, loaderInfo)
+        loaderInfo.extractCommandFromQueue(nodeToMove)
+        loaderInfo.addAfter(nodeToMove, loaderInfo.lastCommand)
     
-    ## misc method ##
+    ## loop method ##
     
     def enableLoop(self):
         self.loopEnabled = True
@@ -869,33 +913,31 @@ class ProcedureInQueue(Procedure):
     def isLoop(self):
         return self.loopEnabled
         
+    ## enabling method ##
+        
     def enableCommand(self, key,origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "enableCommand")
-        ciq = self._checkKey(key, origin, loaderInfo, "enableCommand")
-        ciq.enabled = True
+        node               = loaderInfo.getNode(key, origin, "enableCommand")
+        node.enabled = True
         
     def disableCommand(self, key,origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "disableCommand")
-        ciq = self._checkKey(key, origin, loaderInfo, "disableCommand")
-        ciq.enabled = False
+        node               = loaderInfo.getNode(key, origin, "disableCommand")
+        node.enabled = False
         
     def isCommandDisabled(self, key,origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "isCommandDisabled")
-        ciq = self._checkKey(key, origin, loaderInfo, "isCommandDisabled")
-        return ciq.isEnabled()
+        node               = loaderInfo.getNode(key, origin, "isCommandDisabled")
+        return node.isEnabled()
+    
+    ## misc method ##
     
     def getSize(self):
         return self.size
-        
-    def setNextCommandToExecute(self, key):
-        if self.currentLoader is None:
-            raise ParameterException("(ProcedureInQueue) setNextCommandToExecute, not possible to set next command to execute, the procedure is not running")
-
-        self.nextCommand = self._checkKey(key, self.currentLoader, self.settings.getLoaderState(self.currentLoader), "setNextCommandToExecute")
-    
+            
     def clone(self, From=None):
         if From is None:
-            From = ProcedureInQueue(name=self.name, settings = self.settings.clone())) 
+            From = ProcedureInQueue(name=self.name, settings = self.settings.clone())
         
         From.size = self.size
         From.loopEnabled = self.loopEnabled
