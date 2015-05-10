@@ -13,3 +13,4 @@ python -m pyshell.utils.test.valuableTest || exit 1
 python -m pyshell.utils.test.exceptionTest || exit 1
 python -m pyshell.utils.test.keyTest || exit 1
 python -m pyshell.utils.test.flushableTest || exit 1
+python -m pyshell.utils.test.synchronizedTest || exit 1

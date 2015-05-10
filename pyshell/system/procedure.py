@@ -16,19 +16,22 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO brainstorming about origin usage, see TODO file
+#TODO
+    #once procedureInQueue will be finished and in use, merge Procedure and procedureInQueue
 
-from pyshell.utils.exception   import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
-from pyshell.utils.executing   import execute
-from pyshell.command.command   import UniCommand, MultiCommand
-from pyshell.command.exception import engineInterruptionException
-from pyshell.arg.decorator     import shellMethod
-from pyshell.arg.argchecker    import ArgChecker,listArgChecker, defaultInstanceArgChecker
-from pyshell.utils.parsing     import Parser
-from pyshell.system.variable   import VarParameter
-from pyshell.system.settings   import GlobalSettings
-from pyshell.utils.printing    import warning,getPrinterFromExceptionSeverity,printShell
-from pyshell.utils.constants   import SYSTEM_VIRTUAL_LOADER
+from pyshell.utils.exception    import DefaultPyshellException, PyshellException, ERROR, USER_ERROR, ListOfException, ParameterException, ParameterLoadingException, ProcedureStackableException
+from pyshell.utils.executing    import execute
+from pyshell.command.command    import UniCommand, MultiCommand
+from pyshell.command.exception  import engineInterruptionException
+from pyshell.arg.decorator      import shellMethod
+from pyshell.arg.argchecker     import ArgChecker,listArgChecker, defaultInstanceArgChecker
+from pyshell.utils.parsing      import Parser
+from pyshell.system.variable    import VarParameter
+from pyshell.system.settings    import GlobalSettings
+from pyshell.utils.printing     import warning,getPrinterFromExceptionSeverity,printShell
+from pyshell.utils.constants    import SYSTEM_VIRTUAL_LOADER
+from pyshell.utils.synchronized import synchronous, FAKELOCK
+
 import thread, threading, sys
 
 if sys.version_info[0] < 2 or (sys.version_info[0] < 3 and sys.version_info[0] < 7):
@@ -431,21 +434,7 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
         #extra command are always added at the end and can be added or removed
     #key are never swapped
 
-#TODO        
-    #TODO need way to protect command on update
-        #because an execution could occur during an update and there is protection
-        #during a cloning, a procedure shouldn't be updated
-        #but a cloned one will never be cloned again, so no need to have lock in cloned
-        
-        #clone call must block update
-        
-        #only main procedure need to be protected, cloned method don't need this system
-        
-        #create a method "lockForUpdate" and call it everywhere in update method or clone method
-        #in cloned procedure, this method does not do anything
-        
-        #use synchronize
-        
+#TODO                
     #TODO need a granularity in the loader execution and between the loader execution
         #the inner granularity will stop the loader execution
             #store it in loader state
@@ -493,7 +482,9 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
                 #raise if the node is targetted (default behavior)
                 #other ?
                 
-            #SOLUTION 4: ?
+            #SOLUTION 4: keep a list of parentNextFalse
+                #if a node is removed, removed its reference from any other node prevFalse
+                #and in the procedure showing, print a red reference next the GOTO without falseNext
         
 #CURRENT STRUCT: don't allow command merging from different loader XXX
     #it won't be saved, so why allow to merge command from different loader at running time ? just considere a loader group like a individual statement
@@ -557,26 +548,31 @@ class CommandNode(object):
     def __init__(self, key, parser):
         self.key    = key
         self.parser = parser
-        
-        #list of execution (order can change)
-        self.prev = None
-        self.next = None
-                
         self.enabled    = True
+        
+        #list of execution
+        self.prev      = None
+        self.next      = None
+        self.nextFalse = None
+                
+        self.falsePrev = None
         
     def isEnabled():
         return self.enabled
 
     def __hash__(self):
-        return hash(str(self.key)+str(self.enabled)+str(hash(self.parser)))
+        return hash(str(self.key)+str(self.enabled)+str(hash(self.parser))) #TODO use nextFalse key in hash (and falsePrev ? don't think so)
 
 class CommandQueue(object):
-    def __init__(self):
+    def __init__(self, queueGranularity=None):
         self.commandMap       = {}
         self.firstCommand     = None
         self.lastCommand      = None
         self.nextAvailableKey = 0
         self.registeredCount  = 0
+        self.queueGranularity = queueGranularity #TODO check value of queueGranularity, see Procedure class
+
+    #TODO create method to get/set queueGranularity with check
 
     def extractCommandFromQueue(self, cmd):
         if cmd.prev is not None:
@@ -667,6 +663,23 @@ class CommandQueue(object):
             raise ParameterException("(ProcedureInQueue) "+str(methName)+", not existant "+str(keyName)+" '"+str(key)+"' for loader '"+str(origin)+"'")
             
         return self.commandMap[key]
+
+    def setNextFalse(self, command, nextFalseCommand):
+        if command.nextFalse is not None:
+            if command.nextFalse is nextFalseCommand:
+                return
+
+            command.nextFalse.falsePrev.remove(command)
+
+            if len(command.nextFalse.falsePrev) == 0:
+                command.nextFalse.falsePrev = None
+
+        command.nextFalse = nextFalseCommand
+
+        if nextFalseCommand.falsePrev is None:
+            nextFalseCommand.falsePrev = set()
+
+        nextFalseCommand.falsePrev.add(command)
         
     def __hash__(self):
         hashString = ""
@@ -676,7 +689,7 @@ class CommandQueue(object):
             hashString += str(hash(currentNode))
             currentNode = currentNode.next
         
-        return hash(hashString)
+        return hash(hashString) #TODO use granularity in hash
         
     def clone(self):
         cloned = CommandQueue()
@@ -700,25 +713,37 @@ class CommandQueue(object):
                 currentClonedNode = newClonedNode
                 
             cloned.lastCommand = currentClonedNode
+
+            #TODO recreate parentPrev
     
         return cloned
         
 
 class ProcedureInQueue(Procedure):
-    def __init__(self, name, settings = None):
+    def __init__(self, name, settings = None, cloned=False):
         Procedure.__init__(self, name, settings)
         self.size               = 0
-        self.loopEnabled        = False
+        self.loopEnabled        = False #TODO should be in settings
         
         #temp fields
         self.nextCommand        = None
         self.currentLoader      = None
         self.currentLoaderState = None
+        self.useFalseBranch     = False
+
+        if cloned: #cloned procedure do not need to be protected, will never be used in several thread
+            self._internalLock = FAKELOCK
+        else:
+            self._internalLock = threading.Lock()
     
     ## overrided methods ##
     
     def execute(self, parameters):
         engine = None
+
+        #TODO manage inner granularity
+
+        #TODO manage false branching
 
         while True:
             for self.currentLoader, self.currentLoaderState in self.settings.getLoaders().items():
@@ -754,7 +779,7 @@ class ProcedureInQueue(Procedure):
         self.nextCommand = self.currentLoaderState.getNode(key, self.currentLoader, "setNextCommandToExecute")
         
     def tryToUseFalseBranching(self):
-        pass #TODO
+        self.useFalseBranch = True
                         
     ## check methods ##
     
@@ -788,6 +813,7 @@ class ProcedureInQueue(Procedure):
             
     ## add method ##
     
+    @synchronous()
     def removeCommand(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "removeCommand", createIfDoesNotExist=False)
         target = loaderInfo.getNode(key, origin, "removeCommand")
@@ -801,6 +827,10 @@ class ProcedureInQueue(Procedure):
         loaderInfo.extractCommandFromQueue(target)      
         self.size -= 1
 
+        #TODO manage nextFalse removing
+            #remove every next branching in prevFalse
+
+    @synchronous()
     def addCommandBefore(self, key, commandStringList, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandBefore")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandBefore", createIfDoesNotExist=False)
@@ -808,7 +838,8 @@ class ProcedureInQueue(Procedure):
         newNode            = loaderInfo.createNewNode(parser)
         
         return loaderInfo.addBefore(self, newNode, target)
-        
+    
+    @synchronous()
     def addCommandAfter(self, key, commandStringList, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandAfter")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandAfter", createIfDoesNotExist=False)
@@ -816,14 +847,16 @@ class ProcedureInQueue(Procedure):
         newNode            = loaderInfo.createNewNode(parser)
         
         return loaderInfo.addAfter(self, newNode, target)
-        
+    
+    @synchronous()
     def addCommandFirst(self, commandString, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandFirst")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandFirst", createIfDoesNotExist=True)
         newNode            = loaderInfo.createNewNode(parser)
         
         return loaderInfo.addBefore(self, newNode, loaderInfo.firstCommand)
-        
+    
+    @synchronous()
     def addCommandLast(self, commandString, origin=None):
         parser             = self._checkCommandString(commandStringList, "addCommandLast")
         origin, loaderInfo = self._checkOrigin(origin, "addCommandLast", createIfDoesNotExist=True)
@@ -832,14 +865,16 @@ class ProcedureInQueue(Procedure):
         return loaderInfo.addAfter(self, newNode, loaderInfo.lastCommand)
     
     ## exchange method ##
-                
+    
+    @synchronous()
     def exchangeCommand(self,firstKey, secondKey, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "exchangeCommand", createIfDoesNotExist=False)
         firstNode          = loaderInfo.getNode(firstKey, origin, "exchangeCommand",FIRST_KEY_NAME)
         secondNode         = loaderInfo.getNode(secondKey, origin, "exchangeCommand",SECOND_KEY_NAME)
         
         loaderInfo.exchangeCommand(firstNode, secondNode)
-            
+    
+    @synchronous()
     def upCommand(self,key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "upCommand", createIfDoesNotExist=False)
         node               = loaderInfo.getNode(firstKey, origin, "upCommand")
@@ -848,7 +883,8 @@ class ProcedureInQueue(Procedure):
             return
             
         loaderInfo.exchangeCommand(node.prev, node)
-        
+    
+    @synchronous()
     def downCommand(self,key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "downCommand", createIfDoesNotExist=False)
         node               = loaderInfo.getNode(firstKey, origin, "downCommand")
@@ -860,6 +896,7 @@ class ProcedureInQueue(Procedure):
     
     ## move method ##
     
+    @synchronous()
     def moveCommandAfter(self, key, destinationKey, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
         nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandAfter")
@@ -870,7 +907,8 @@ class ProcedureInQueue(Procedure):
             
         loaderInfo.extractCommandFromQueue(nodeToMove)
         loaderInfo.addAfter(nodeToMove, nodeDestination)
-        
+    
+    @synchronous()
     def moveCommandBefore(self, key, destinationKey, origin=None): 
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
         nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandBefore")
@@ -881,7 +919,8 @@ class ProcedureInQueue(Procedure):
             
         loaderInfo.extractCommandFromQueue(nodeToMove)
         loaderInfo.addBefore(nodeToMove, nodeDestination)
-            
+    
+    @synchronous()
     def moveCommandFirst(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
         nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandBefore")
@@ -891,7 +930,8 @@ class ProcedureInQueue(Procedure):
             
         loaderInfo.extractCommandFromQueue(nodeToMove)
         loaderInfo.addBefore(nodeToMove, loaderInfo.firstCommand)
-        
+    
+    @synchronous()
     def moveCommandLast(self, key, origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "moveCommandBefore", createIfDoesNotExist=False)
         nodeToMove         = loaderInfo.getNode(key, origin, "moveCommandAfter")
@@ -901,6 +941,10 @@ class ProcedureInQueue(Procedure):
             
         loaderInfo.extractCommandFromQueue(nodeToMove)
         loaderInfo.addAfter(nodeToMove, loaderInfo.lastCommand)
+
+    ## false next method ##
+
+    #TODO create method to set next method
     
     ## loop method ##
     
@@ -915,16 +959,19 @@ class ProcedureInQueue(Procedure):
         
     ## enabling method ##
         
+    @synchronous()
     def enableCommand(self, key,origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "enableCommand")
         node               = loaderInfo.getNode(key, origin, "enableCommand")
         node.enabled = True
         
+    @synchronous()
     def disableCommand(self, key,origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "disableCommand")
         node               = loaderInfo.getNode(key, origin, "disableCommand")
         node.enabled = False
-        
+    
+    @synchronous()
     def isCommandDisabled(self, key,origin=None):
         origin, loaderInfo = self._checkOrigin(origin, "isCommandDisabled")
         node               = loaderInfo.getNode(key, origin, "isCommandDisabled")
@@ -935,9 +982,10 @@ class ProcedureInQueue(Procedure):
     def getSize(self):
         return self.size
             
+    @synchronous()
     def clone(self, From=None):
         if From is None:
-            From = ProcedureInQueue(name=self.name, settings = self.settings.clone())
+            From = ProcedureInQueue(name=self.name, settings = self.settings.clone(), cloned=True)
         
         From.size = self.size
         From.loopEnabled = self.loopEnabled

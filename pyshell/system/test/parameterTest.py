@@ -24,15 +24,7 @@ from pyshell.system.settings  import LocalSettings, GlobalSettings
 from pyshell.utils.exception  import ParameterException
 from pyshell.utils.constants import ORIGIN_PROCESS
 from tries     import multiLevelTries
-from threading import current_thread, Lock
-
-class SynchronizedTester(object):
-    def __init__(self):
-        self._internalLock = Lock()
-
-    @synchronous()
-    def tester(self):
-        return 42
+from threading import current_thread
 
 class ParameterTest(unittest.TestCase):
     def setUp(self):
@@ -41,11 +33,7 @@ class ParameterTest(unittest.TestCase):
         self.params.setParameter("ab.bc.cd", Parameter("plip"))
 
     ## misc ##
-    
-    def test_ParameterMisc1(self):#test synchronized, simple execution test without other thread
-        st = SynchronizedTester()
-        self.assertEqual(st.tester(), 42)
-        
+            
     def test_ParameterMisc2(self):#isAValidStringPath, with invalid string
         state, message = isAValidStringPath(object())
         self.assertFalse(state)

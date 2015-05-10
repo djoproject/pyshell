@@ -54,7 +54,7 @@ from pyshell.system.key         import CryptographicKeyParameterManager
                 #GOTO or LOOP
                 #command to readline and execute
 
-class CommandExecuter():
+class CommandExecuter(): #TODO does not work if we import it in a python shell and try to instanciate it without args
     def __init__(self, paramFile = None, outsideArgs = None):
         self._initParams(paramFile, outsideArgs)
         self._initPrinter()

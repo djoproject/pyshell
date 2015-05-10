@@ -22,6 +22,7 @@ from pyshell.command.stackEngine import engineStack
 from pyshell.command.utils       import *
 from pyshell.system.container    import ParameterContainer
 from pyshell.system.environment  import EnvironmentParameter, ParametersLocker
+from pyshell.utils.synchronized  import FAKELOCK
 
 #TODO TO TEST
     #None type: create a cmd that allow to return None or not, and test    
@@ -35,15 +36,6 @@ DEFAULT_EXECUTION_LIMIT = 255
 PREPROCESS_INSTRUCTION  = 0
 PROCESS_INSTRUCTION     = 1
 POSTPROCESS_INSTRUCTION = 2
-
-class FakeLock(object):
-    def __enter__(self):
-        return self
-        
-    def __exit__(self, type, value, traceback):
-        pass
-        
-FAKELOCK = FakeLock()
 
 class _emptyDataToken(object):
     pass

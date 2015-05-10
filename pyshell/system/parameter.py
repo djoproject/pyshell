@@ -17,28 +17,16 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## internal modules ##
-from pyshell.utils.exception  import ParameterException
-from pyshell.utils.flushable  import Flushable
-from pyshell.utils.valuable   import Valuable
-from pyshell.system.container import AbstractParameterContainer, DEFAULT_DUMMY_PARAMETER_CONTAINER
-from pyshell.system.settings  import LocalSettings, GlobalSettings
+from pyshell.utils.exception    import ParameterException
+from pyshell.utils.flushable    import Flushable
+from pyshell.utils.synchronized import synchronous
+from pyshell.utils.valuable     import Valuable
+from pyshell.system.container   import AbstractParameterContainer, DEFAULT_DUMMY_PARAMETER_CONTAINER
+from pyshell.system.settings    import LocalSettings, GlobalSettings
 
 ## external modules ##
-from functools import wraps
 from threading import Lock
 from tries     import multiLevelTries
-
-def synchronous(): #TODO move to utils
-    def _synched(func):
-        @wraps(func)
-        def _synchronizer(self,*args, **kwargs):
-            self._internalLock.acquire()
-            try:
-                return func(self, *args, **kwargs)
-            finally:
-                self._internalLock.release()
-        return _synchronizer
-    return _synched
 
 def isAValidStringPath(stringPath):
     if type(stringPath) != str and type(stringPath) != unicode:
