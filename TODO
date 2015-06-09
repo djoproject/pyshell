@@ -391,7 +391,7 @@
 ##################################################################################################################################
 
     #############################
-    ### state machine process ### OLD NAME : workflow, application
+    ### state machine process ### (OLD NAME : workflow, application)
     #############################
         #d'une certaine manière, une application dans le shell
             #possede un etat (creer un objet etat qui peut stocker plein de chose)
