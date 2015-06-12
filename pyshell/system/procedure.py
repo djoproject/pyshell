@@ -637,7 +637,7 @@ class CommandNode(object):
 
 class DumbCommandNode(CommandNode):
     def __init__(self, key, originNode):
-        CommandNode.__init__(self,key,None):
+        CommandNode.__init__(self,key,None)
         self.falsePrev = originNode
 
 class CommandQueue(object):
