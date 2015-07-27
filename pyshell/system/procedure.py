@@ -596,7 +596,7 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
             #NOT POSSIBLE, a procedure execution is a clone of the updatable procedure, an update won't have any impact on the current execution
             #only runtime commands have an impact on the current execution
             
-        #ideally should be reduce to a single execution language, even if some method allow
+        #ideally should be reduced to a single execution language, even if some method allow
         #it is better to see a procedure in script file like it will execute, not like it will be build...
             
         #a command like 'goto' could exist but its target will be interpreted at running time, not at definition
@@ -604,41 +604,59 @@ class ProcedureFromFile(Procedure): #TODO probably remove this class, and replac
         
         #SOLUTION 1: add a syntax element 'target' than will be interpreted on syntax parsing
             #ex: 'target:', '[target]', ...
+
+            #TODO create a new kind of node, target node (think about it)
             
         #SOLUTION 2: stay like that
         
         #SOLUTION 3:
+
+## CONST DECLARATION ##
 
 DEFAULT_KEY_NAME     = "key"
 FIRST_KEY_NAME       = "first key"
 SECOND_KEY_NAME      = "second key"
 DESTINATION_KEY_NAME = "destination key"
 
-class CommandNode(object):
-    def __init__(self, key, parser):
-        self.key    = key
-        self.parser = parser
+## NODE DECLARATION ##
+
+class AbstractCommandNode(object):
+    def __init__(self, key):
+        self.key        = key
+        self.parser     = None
         self.enabled    = True
-        
+
+    def isEnabled(self):
+        return self.enabled
+
+    def isCommandNode(self):
+        return self.parser is not None
+
+    def isDumbNode(self):
+        return self.parser is None
+
+class CommandNode(AbstractCommandNode):
+    def __init__(self, key, parser):
+        AbstractCommandNode.__init__(self, key)
+        self.parser = parser
+
         #list of execution
         self.prev      = None
         self.next      = None
         self.nextFalse = None
                 
-    def isEnabled():
-        return self.enabled
-
     def __hash__(self):
         return hash(str(self.key)+str(self.enabled)+str(hash(self.parser))) 
-        #TODO use nextFalse key in hash (and falsePrev ? don't think so)]
-            #as we don't use prev or next, prevFalse is not useful
-            #but nextFalse is needed to store the False branching information
-            #the true branching information is represented by the order of hashing in the commandQueue
 
-class DumbCommandNode(CommandNode):
+class DumbCommandNode(AbstractCommandNode):
     def __init__(self, key, originNode):
-        CommandNode.__init__(self,key,None)
+        AbstractCommandNode.__init__(self,key)
         self.falsePrev = originNode
+
+    def __hash__(self):
+        return hash(str(self.key)+str(self.enabled)+str(hash(self.falsePrev.parser))) 
+
+## QUEUE DECLARATION ##
 
 class CommandQueue(object):
     def __init__(self, queueGranularity=None):
@@ -647,9 +665,6 @@ class CommandQueue(object):
         self.lastCommand      = None
         self.nextAvailableKey = 0
         self.registeredCount  = 0
-        self.queueGranularity = queueGranularity #TODO check value of queueGranularity, see Procedure class
-
-    #TODO create method to get/set queueGranularity with check
 
     def extractCommandFromQueue(self, cmd):
         if cmd.prev is not None:
@@ -734,29 +749,33 @@ class CommandQueue(object):
         newNode = CommandNode(self.nextAvailableKey,parser)
         self.nextAvailableKey += 1
         self.size += 1
+        return newNode
+
+    #TODO create false node (really needed ? is it not possible to do it in setNextFalse ?)
         
-    def getNode(self, key, origin, methName, keyName = DEFAULT_KEY_NAME):
+    def getNode(self, key, origin, methName, keyName = DEFAULT_KEY_NAME): #TODO add a parameter forUpdate
+        #TODO if for update and is a dumb, raise
+
         if key not in self.commandMap:
             raise ParameterException("(ProcedureInQueue) "+str(methName)+", not existant "+str(keyName)+" '"+str(key)+"' for loader '"+str(origin)+"'")
             
         return self.commandMap[key]
 
-    def setNextFalse(self, command, nextFalseCommand):
+    def setNextFalse(self, command, nextFalseCommand): #TODO some update to do in front of dumb node system
         if command.nextFalse is not None:
-            if command.nextFalse is nextFalseCommand:
-                return
+            #TODO find first real node then compare
+            #if command.nextFalse is nextFalseCommand:
+            #    return
 
-            command.nextFalse.falsePrev.remove(command)
-
-            if len(command.nextFalse.falsePrev) == 0:
-                command.nextFalse.falsePrev = None
+            self.extractCommandFromQueue(command.nextFalse)
 
         command.nextFalse = nextFalseCommand
 
-        if nextFalseCommand.falsePrev is None:
-            nextFalseCommand.falsePrev = set()
+        if nextFalseCommand is not None:
+            if nextFalseCommand.falsePrev is None:
+                nextFalseCommand.falsePrev = set()
 
-        nextFalseCommand.falsePrev.add(command)
+            nextFalseCommand.falsePrev.add(command)
         
     def __hash__(self):
         hashString = ""
@@ -766,9 +785,9 @@ class CommandQueue(object):
             hashString += str(hash(currentNode))
             currentNode = currentNode.next
         
-        return hash(hashString) #TODO use granularity in hash
+        return hash(hashString)
         
-    def clone(self):
+    def clone(self): #TODO manage new dumb node system
         cloned = CommandQueue()
         cloned.nextAvailableKey = self.nextAvailableKey
         cloned.registeredCount = self.registeredCount
@@ -791,9 +810,9 @@ class CommandQueue(object):
                 
             cloned.lastCommand = currentClonedNode
 
-            #TODO manage dumNode and false branching (how ?)
-    
         return cloned   
+
+## PROCEDURE DECLARATION ##
 
 class ProcedureInQueue(UniCommand):
     def __init__(self, name, settings = None, cloned=False):

@@ -9,6 +9,10 @@
             #ou flinguer le courant et demander pour la suite
                 #comme dans un terminal classique
 
+            #sigint : ctrl-c
+            #sigkill : ctrl-u
+            #sigquit : ctrl-\
+
     #####################
     ### event manager ###
     #####################
@@ -26,7 +30,7 @@
     #################
             
         stored file is just ugly... (still the case ?)
-        save the two type of command
+        save the two type of command (will only contains one type of command in the futur)
 
     #################
     ### parameter ###
@@ -54,11 +58,14 @@
     #go outside of shell scope, really needed ? (see brainstorming)
         loop, if, goto, ...
 
+        not really needed, just need a simple way to jump from command to command is needed
+        the advanced stuff (loop, if, object) is managed in python inside the command
+
     #################
     ### std addon ###
     #################      
         #gérer les commentaires, dans le parser plutot, non ?
-            #voir shell.py
+            #voir shell.py (dans superShell, pas dans pyshell)
             
         #echo/echo16/toascii execut themself only in postprocess now
             #this is the better place to be executed
@@ -85,12 +92,13 @@
             #l'ensemble du code de rfidshell a été transféré dans apdu
                 #non débuggé !!!
             #il reste à faire les addons pour pyshell
-            #in progress
+                #in progress
 
         #/System/Library/Frameworks/PCSC.framework/Versions/A/Headers/winscard.h
             le wrapper essaye de mapper une fonction qui n'existe pas dans la lib en C, on ne peut pas faire grand chose
                 afficher un message pour dire que c'est normal
                 oui mais le message d'erreur ne s'affiche pas toujours, comment savoir s'il s'est affiché ou non ?
+                    idée: dupliquer le flux d'erreur et le parser lors du load de pcsc, si le message d'erreur est dedans, afficher une info pour dire que c'est normal
        
         #faire un système de gestion des codes d'erreurs
             à faire dans executeAPDU
@@ -103,10 +111,11 @@
         
         #la commande wait est pourrie dans pyscard, ça fait friser le raspi
             #essayer de voir s'il n'y a pas moyen d'en faire une custom moins agressive
+            #la commande actuelle bombarde le lecteur de isThereACard?, le bus de donnée finit par crasher...
 
         #faire des tests de multi process
             #lancer deux instances de l'application et essayer de se connecter à la même carte
-                #pyscard est-il thread safe ? ou pcsc?
+                #pyscard est-il thread safe ? ou pcsc? chercher dans la doc
                 
         #element faisant partie du contexte
             #type de lecteur
@@ -122,9 +131,9 @@
     ### arg feeder    ###
     #####################
 
-        pouvoir générer un tries à partir du dico de parameter pour l'utiliser avec les "dashed parameter name" dans utils/solving
+        #pouvoir générer un tries à partir du dico de parameter pour l'utiliser avec les "dashed parameter name" dans utils/solving
 
-        integrate default value in usage
+        #integrate default value in usage
 
 #################### COMMAND #################################################################################################
 
@@ -137,6 +146,7 @@
     #####################
     
         on parameter set, when origin loader is selected, not only the loader name is required, but also the profile name
+            (?)
     
     #####################
     ### utils         ###

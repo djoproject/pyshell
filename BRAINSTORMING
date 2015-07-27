@@ -501,6 +501,8 @@ About history (after brainstorming, it is not really an history, it is value ori
 ####################### PROCEDURE LOADER  #########################################################################
 ###################################################################################################################
 
+        !!! TOTALLY OUT OF DATE !!!
+
         PROBLEME des settings, ce serait bien de les intégrer de la même manière que dans les parameters, en tout cas les ProcedureFromList
             
             WHAT DO WE WANT ?
@@ -731,4 +733,126 @@ we want to be able to redirect output without executing process on the last comm
         
     What could work
         use custom print function in
+
+###################################################################################################################
+####################### NEW LOADER MODEL ##########################################################################
+###################################################################################################################
+
+MODEL 1 (STRONG_ISOLATION):
+    each loader has its own tuple of :
+        context variables
+        environment variables
+        procedures
+        key variables
+
+    other loader can NOT update/read/access this tuple
+
+
+MODEL 2 (MIDDLE_ISOLATION(procedures)): (inherit properties from model 1)
+
+    each addon/profile own a file that contains update from the default state
+
+    Create event where any addon can register procedure        
+            PRBLM 1: how to manage event creation/deletion ?
+
+                SOLUTION 1: (EXPLICIT) event are created at addon load, an addon will say which event it will trigger
+                    prblm: if an addon want to register a procedure into an event and no addon need to use it
+                        the event won't exist
+
+                SOLUTION 2: (EXPLICIT) event are created at addon load, an addon will say where it will register a procedure
+                    prblm: if an addon try to trigger an event with no procedure inside, this event won't exist
+
+                SOLUTION 3: (IMPLICIT) procedure create event at registeration and delete it when an event is empty  XXX
+                    prblm: if an addon try to trigger an event with no procedure inside, this event won't exist
+                        solution: allow to trigger unexisting event
+
+
+MODEL 3 (MIDDLE_ISOLATION(procedures, variables)) (inherit properties from model 2) XXX
+
+    Create hierachy in addon, a child addon can read parent variables
+    each addon is by default a child of addon System
+    a child can change index value in parent context
+    a parent could be aware of its children, but without an update right on the var
+
+    QUESTION 1: multiple or single inheritance ?
+        CHOICE 1: single XXX
+            easiest model, but is it not too limitative ?
+
+        CHOICE 2: multiple
+            a child addon can not be loaded without its parent, if no conditionnal dependancy, load parent
+
+            PRBLM 1: what if several parent hold same variable name ?
+                could have ambiguous situation, need a system to identify the target parent
+                not really cool to need a desambiguos system :/
+
+            PRBLM 2: what if conditionnal dependancy ? (need A or need B)
+                give a type to addon and allow to have a dependancy to a type of addon
+
+    QUESTION 2: what can contains a procedure? only command call from parent and from current ?
+        a procedure created by an addon can only be updated by this current addon or by the user
+
+        CHOICE 1: procedure can only contain command from current of from parent
+            +++ we are sure the procedure will only contains existing commands
+            --- reduce rasticaly the power of the procedure
+
+        CHOICE 2: procedure can contains command from any addon
+            +++ can create any kind of procedure
+            --- some of the used command can unexist
+
+        CHOICE 3: addon has its dependancy system and procedure has its own multiple dependancy system XXX
+            +++ can create any kind of procedure
+            +++ no problem of dependancy at execution
+
+    QUESTION 3: what can update a procedure of an addon ?
+        CHOICE 1: only process from the origin addon and the user
+
+        CHOICE 2: any process
+
+
+    UPDATE TO DO:
+        -procedure do not need to manage several subprocedure per addon
+        -create a special type of transient procedure that can be updated by any addon, this type of procedure is "event"
+            -in this type of procedure, need to be able to identify command origin for addon unload
+            -no jump statement allowed in these procedure
+        -in variable system, just managed extra value and removed value.  update can only come from addon or user
+        -
+
+
+MODEL 4 (WEAK_ISOLATION(procedures, variables)) (inherit properties from model 3)
+
+    any child can update/access to the parent procedure/variable
+
+    PRBLM 1: how to manage update/deletion/concurrent access/duplicate/... from sibling ?
+        is there really case where it is needed ?
+            e.g. pcsc keep a list of mapping reader name<=>relative addon
+                the goal of this is to automaticaly select the correct reader addon in case of data transferring
+
+        SOLUTION 1: save every information about add/remove/dup/... and manage it during unloading
+            after trying to implement it, no simple and efficient way to do it...
+
+            why is it a problem?
+                -env or cont return a list of value, a python type list
+                    two possibility, 
+                        the list can be rebuilt each time an addon is loaded or unloaded and has an impact on this var
+                        or the list canr be rebuilt each time a process call getValues and if load/unload had had on this var
+                        no way to do it in another way because it is not possible to colorate list item in python...
+
+                -in context, if an item is inserted twice, it can not be deleted if one of the addon is unloaded
+
+            idea (to brainstorm?) can modify only transient variables
+                so the update from an addon does not impact on next reboot
+                but what about an addon unloading during execution ?
+
+        SOLUTION 2: the original state is saved in the addons py file, save the current state at program exit
+            on addon unload, do not remove anything
+
     
+MODEL 5 (WEAK_ISOLATION(any)) (inherit properties from model 4) (CURRENT MODEL)
+    
+    any addon can update any elements of any addon, could produce a wonderful mess...
+
+
+
+
+
+
