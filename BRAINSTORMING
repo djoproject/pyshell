@@ -639,7 +639,7 @@ we want to be able to redirect output without executing process on the last comm
         but recreate wheels without improvment...
         interresting for event/scripting but not for shell
         
-    IDEA 1 : don't implement any iterative/conditionnal stuff in shell process
+    IDEA 1 : don't implement any iterative/conditionnal stuff in shell process XXX
         focus only on scriptToPython solution
             purpose of this is to be able to call shell method through python script
             
