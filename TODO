@@ -78,58 +78,9 @@
                     
                 do not forget to set origin (so create command in addon)
                 do not forget to set banished value (so create command in addon)
-
-#################### UTILS ###################################################################################################
-
-    #####################
-    ### print service ###
-    #####################
-
-        #adapter printing pour pouvoir facilement utiliser le package log
-            
-        #gérer des trucs comme >, >>, 2>, 2>>, ...
-            #changer le flux d'output pour la commande
-            #le restaurer ensuiste
-            #s'il y a deja un descripteur de fichier ouvert vers un fichier, le reutiliser
-                #pour eviter d'avoir plusieurs descripteur vers le même fichier
-                #et ainsi eviter d'avoir des overlaps dans le fichier
-
-        #commande pour rediriger l'output vers un fichier
-            #faire une commande de flush
-            #flush and close at exit
-            #si on fait un close, il faut retirer l'event at_exit
-            
-    #####################
-    ### solving       ###
-    #####################
-    
-        faire en sorte de pouvoir utiliser les prefix avec les dash_parameters (wait for refactoring of argFeeder)
-
+  
 #################### MISC ####################################################################################################
 
-    #############################
-    ### MISC                  ###
-    #############################
-
-        #in the unit test, check the exception message, there is a unit test method to do that 
-
-        #not a real logic in exception usage, sometime DefaultPyshellException is used, and sometimes is is custom exception that inherit from DefaultPyshellException
-            #define a usage way and always use it everywhere
-            
-            #IDEA 1 : each package has its exception module, these exception depends from utils/exception/PyshellException
-                      And only these exception can be raised in their package
-
-        #a lot of place in the code just raise default exception "raise Exception"
-            #replace with pyshell exception raising
-            
-        #dans les tests, ne pas utiliser le type de base Exception dans les assertRaises
-        
-        #tous les noms de classe devraient commencer par une majuscule
-        
-        #remplacer "#!/usr/bin/python" par #!/usr/bin/env python -t
-        
-        #remplacer partout dans les lancements d'exceptions raise exc("(class name) ...") par raise exc("("+self.__class__.__name__+") ...")
-     
     #############################
     ### DESIGN ISSUES         ###
     #############################
@@ -163,67 +114,10 @@
         SOLUTION3:
             ... 
 
-    #############################
-    ### utilisation des tries ###
-    #############################
 
-    plusieurs mechanisme n'utilise pas les tries dans leur fonctionnement, c'est un peu dommage et ça casse la synergie du "tout en prefix"
+
+            
         
-        Where to update:
-            -addon name (TODO)
-            -dashed parameter name (TODO)
-                dans solving
-            -...
-
-        look after dictionary init { everywhere in the code
-            grep -r "{}" * | grep -v "~"
-        
-        IDEA (TODO ?)
-            faire une fonction qui gère les ambiguité
-                construire un message d'erreur generique a toute l'applic
-                ce message contiendra l'ensemble des possibilités (ou un subset)
-                
-                l'objectif est de réduire la duplication de code du au tries pour la gestion des ambiguité
-
-    ##########################################
-    ### threading management brainstorming ###
-    ##########################################
-
-        #definition 
-            #groupe de commande 
-                #liste de 1 à n commande
-            
-            #process de lock
-                #tous les locks sont connu
-                #ils sont classé dans ordre précis
-                #on les acquierent toujours dans le même ordre
-                
-            #lock static
-                #exemple l'utilisation d'une fonction à accès unique dans une librairie
-                
-            #lock dynamique
-                #un lecteur de carte, une carte a puce, ...
-
-    ### NOT YET SOLVED ####
-
-        #XXX    Quid des ressource dynamique necessitant un verrou d'utilisation
-            #exemple une connexion vers une carte rfid
-            
-            #solution a la con
-                #ne pas stocker de ressource devant avoir leur propre lock dans des structures ne possedant qu'un seul lock
-                #dans le cas de la rfid, il suffirait de stocker les connexions et les cartes chacune dans un env indépendant
-                    #du coup chaque objet aurait son lock, on augmente le threading et ça résoud le problème
-                
-        #quid de l'execution de deux instances de l'application...
-            #objet partagé avec pyro ? chiant avec pyro, besoin d'une lib externe...
-            #fichier de lock ?
-            #analyse des process en memoire ? (need to be root)
-            #flux de com en mémoire ?
-            #...
-            
-        #pour l'instant les ressource seront lockée pour un single process
-            #pas pour une commande, ni une multicommande, ni une piped commande, ni un procedureevent, ni ...
-            #est ce le meilleur choix de design ?
 
 
 
