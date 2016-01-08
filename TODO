@@ -103,16 +103,32 @@
             process | echo16
 
         because pro of process will never be executed, only process of echo16 will be
+        
+            prox read 0 | pcs tran | echo16
+        
+        this will not execute method pro from pcs tran but empty method pro from echo16
+        so no instruction will be sent to the card
+        
+        we want to be able to redirect output without executing process on the last command
 
         SOLUTION1:
             could be possible to get access to previous command and execute its pro from current args
             COULD be possible to access to any command of the current engine execution
 
-        SOLUTION2:
+        SOLUTION2: implement double piping
             double || to have similar behaviour as classical bash
+            
+            prox read 0 | pcs tran || echo16
+                
+                "prox read 0 | pcs tran " will be executed alone
+                    then the result will be forward to a new engine with "echo16" 
 
         SOLUTION3:
             ... 
+            
+
+
+                
 
 
 
