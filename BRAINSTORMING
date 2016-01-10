@@ -575,32 +575,11 @@ MODEL 1 (STRONG_ISOLATION):
     each loader has its own tuple of :
         context variables
         environment variables
-        procedures
         key variables
 
     other loader can NOT update/read/access this tuple
 
-
-MODEL 2 (MIDDLE_ISOLATION(procedures)): (inherit properties from model 1)
-
-    each addon/profile own a file that contains update from the default state
-
-    Create event where any addon can register procedure        
-            PRBLM 1: how to manage event creation/deletion ?
-
-                SOLUTION 1: (EXPLICIT) event are created at addon load, an addon will say which event it will trigger
-                    prblm: if an addon want to register a procedure into an event and no addon need to use it
-                        the event won't exist
-
-                SOLUTION 2: (EXPLICIT) event are created at addon load, an addon will say where it will register a procedure
-                    prblm: if an addon try to trigger an event with no procedure inside, this event won't exist
-
-                SOLUTION 3: (IMPLICIT) procedure create event at registeration and delete it when an event is empty  XXX
-                    prblm: if an addon try to trigger an event with no procedure inside, this event won't exist
-                        solution: allow to trigger unexisting event
-
-
-MODEL 3 (MIDDLE_ISOLATION(procedures, variables)) (inherit properties from model 2) XXX
+MODEL 2 (MIDDLE_ISOLATION(variables)) (inherit properties from model 2) XXX
 
     Create hierachy in addon, a child addon can read parent variables
     each addon is by default a child of addon System
@@ -618,42 +597,27 @@ MODEL 3 (MIDDLE_ISOLATION(procedures, variables)) (inherit properties from model
                 could have ambiguous situation, need a system to identify the target parent
                 not really cool to need a desambiguos system :/
 
+                SOLUTION: parameter name have to be unique
+
             PRBLM 2: what if conditionnal dependancy ? (need A or need B)
                 give a type to addon and allow to have a dependancy to a type of addon
 
-    QUESTION 2: what can contains a procedure? only command call from parent and from current ?
-        a procedure created by an addon can only be updated by this current addon or by the user
 
-        CHOICE 1: procedure can only contain command from current of from parent
-            +++ we are sure the procedure will only contains existing commands
-            --- reduce rasticaly the power of the procedure
+                SOLUTION: strict dependancy only
 
-        CHOICE 2: procedure can contains command from any addon
-            +++ can create any kind of procedure
-            --- some of the used command can unexist
-
-        CHOICE 3: addon has its dependancy system and procedure has its own multiple dependancy system XXX
-            +++ can create any kind of procedure
-            +++ no problem of dependancy at execution
-
-    QUESTION 3: what can update a procedure of an addon ?
-        CHOICE 1: only process from the origin addon and the user
-
-        CHOICE 2: any process
-
+    QUESTION 2: it is not possible to track value origin, how to manage it ?
+        SOLUTION: 
+            parameter names are unique
+            value added/removed are only managed by addon creator itself
+                even if the action comes from another addon
 
     UPDATE TO DO:
-        -procedure do not need to manage several subprocedure per addon
-        -create a special type of transient procedure that can be updated by any addon, this type of procedure is "event"
-            -in this type of procedure, need to be able to identify command origin for addon unload
-            -no jump statement allowed in these procedure
         -in variable system, just managed extra value and removed value.  update can only come from addon or user
-        -
 
 
-MODEL 4 (WEAK_ISOLATION(procedures, variables)) (inherit properties from model 3)
+MODEL 3 (WEAK_ISOLATION(variables)) (inherit properties from model 3)
 
-    any child can update/access to the parent procedure/variable
+    any child can update/access to the parent variable
 
     PRBLM 1: how to manage update/deletion/concurrent access/duplicate/... from sibling ?
         is there really case where it is needed ?
@@ -676,11 +640,15 @@ MODEL 4 (WEAK_ISOLATION(procedures, variables)) (inherit properties from model 3
                 so the update from an addon does not impact on next reboot
                 but what about an addon unloading during execution ?
 
+            NO OPTIMAL SOLUTION TO SOLVE THIS.
+
         SOLUTION 2: the original state is saved in the addons py file, save the current state at program exit
             on addon unload, do not remove anything
 
+        SOLUTION 3: see QUESTION 2 in model 2 XXX
+
     
-MODEL 5 (WEAK_ISOLATION(any)) (inherit properties from model 4) (CURRENT MODEL)
+MODEL 4 (WEAK_ISOLATION(any)) (inherit properties from model 4) (CURRENT MODEL)
     
     any addon can update any elements of any addon, could produce a wonderful mess...
 
