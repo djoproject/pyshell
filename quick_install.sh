@@ -21,8 +21,8 @@ git clone https://github.com/djo938/pytries.git || quit "Failed to retrieve pytr
 rm -rf ../tries
 mv ./pytries/tries ../
 rm -rf ./*
-git clone https://github.com/djo938/supershell.git || quit "Failed to retrieve supershell source code from github"
+git clone https://github.com/djo938/pyshell.git || quit "Failed to retrieve supershell source code from github"
 rm -rf ../pyshell
-mv ./supershell/* ../
-rm ../BRAINSTORMING ../BUG ../STRUCT ../TODO ../makefile
+mv ./pyshell/* ../
+rm ../makefile
 quit "Success to install/update, use exec.sh to start the shell"
