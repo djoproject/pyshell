@@ -65,7 +65,7 @@ class Procedure(UniCommand):
         if settings is not None:
             if not isinstance(settings, GlobalSettings):
                 raise ParameterException("(EnvironmentParameter) __init__, "
-                                         "a LocalSettings was expected for "
+                                         "a GlobalSettings was expected for "
                                          "settings, got '" +
                                          str(type(settings))+"'")
 
@@ -122,11 +122,11 @@ class Procedure(UniCommand):
         threadID, level = parameters.getCurrentId()
 
         if level == 0 and self.errorGranularity is not None:
-            warning("WARN: execution of the procedure " +
-                    str(self.name) +
+            warning("WARN: execution of the procedure " + str(self.name) +
                     " at level 0 with an error granularity equal to '" +
-                    str(self.errorGranularity) +
-                    "'.  Any error with a granularity equal or lower will interrupt the application.")
+                    str(self.errorGranularity) + "'.  Any error with a " +
+                    "granularity equal or lower will interrupt the " +
+                    "application.")
 
         self._setArgs(parameters, args)
         try:
@@ -136,7 +136,11 @@ class Procedure(UniCommand):
 
     def interrupt(self, reason=None):
         self.interruptReason = reason
-        self.interrupt = True  # ALWAYS keep interrupt at last, because it will interrupt another thread, and the other thread could be interrupt before the end of this method if interrupt is not set at the end
+
+        # ALWAYS keep interrupt at last, because it will interrupt another
+        # thread, and the other thread could be interrupt before the end of
+        # this method if interrupt is not set at the end
+        self.interrupt = True
 
     def execute(self, parameters):
         pass  # XXX TO OVERRIDE AND USE _innerExecute
@@ -165,7 +169,8 @@ class Procedure(UniCommand):
             else:
                 severity = ERROR
 
-            if self.errorGranularity is not None and severity <= self.errorGranularity:
+            if self.errorGranularity is not None and \
+               severity <= self.errorGranularity:
                 if isinstance(lastException, ProcedureStackableException):
                     lastException.append((cmd, name,))
                     raise lastException
@@ -212,8 +217,9 @@ class Procedure(UniCommand):
     # get/set method
 
     def setNextCommandIndex(self, index):  # TODO remove me
-        raise DefaultPyshellException(
-            "(Procedure) setNextCommandIndex, not possible to set next command index on this king of procedure")
+        raise DefaultPyshellException("(Procedure) setNextCommandIndex, not "
+                                      "possible to set next command index on "
+                                      "this king of procedure")
 
     def setStopProcedureOnFirstError(self):
         self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
@@ -223,19 +229,18 @@ class Procedure(UniCommand):
         self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
             None)
 
-    def setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
-            self,
-            value):
+    def setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(self,
+                                                                       value):
         """
-        Every error granularity bellow this limit will stop the execution of the current procedure.  A None value is equal to no limit.
+        Every error granularity bellow this limit will stop the execution of
+        the current procedure.  A None value is equal to no limit.
         """
 
         if value is not None and (not isinstance(value, int) or value < 0):
-            raise ParameterException(
-                "(Procedure) setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo, expected a integer value bigger than 0, got '" +
-                str(
-                    type(value)) +
-                "'")
+            raise ParameterException("(Procedure) setStopProcedureIfAnErrorOcc"
+                                     "uredWithAGranularityLowerOrEqualTo, "
+                                     "expected a integer value bigger than 0, "
+                                     "got '" + str(type(value)) + "'")
 
         self.errorGranularity = value
 
@@ -267,18 +272,20 @@ class ProcedureFromList(Procedure):
         try:
             value = int(value)
         except ValueError as va:
-            raise ParameterException(
-                "(Procedure) setLockedTo, expected an integer value as parameter: " + str(va))
+            raise ParameterException("(Procedure) setLockedTo, expected an "
+                                     "integer value as parameter: " + str(va))
 
         if value < -1 or value >= len(self.stringCmdList):
             if len(self.stringCmdList) == 0:
-                raise ParameterException(
-                    "(Procedure) setLockedTo, only -1 is allowed because procedure list is empty, got '" +
-                    str(value) +
-                    "'")
+                raise ParameterException("(Procedure) setLockedTo, only -1 is "
+                                         "allowed because procedure list is "
+                                         "empty, got '" + str(value) + "'")
             else:
-                raise ParameterException("(Procedure) setLockedTo, only a value from -1 to '" + str(
-                    len(self.stringCmdList) - 1) + "' is allowed, got '" + str(value) + "'")
+                raise ParameterException("(Procedure) setLockedTo, only a " +
+                                         "value from -1 to '" +
+                                         str(len(self.stringCmdList) - 1) +
+                                         "' is allowed, got '" + str(value) +
+                                         "'")
 
         self.lockedTo = value
 
@@ -295,8 +302,11 @@ class ProcedureFromList(Procedure):
         # for cmd in self.stringCmdList:
         i = 0
         while i < len(self.stringCmdList):
-            lastException, engine = self._innerExecute(
-                self.stringCmdList[i], self.name + " (index: " + str(i) + ")", parameters)
+            lastException, engine = self._innerExecute(self.stringCmdList[i],
+                                                       self.name +
+                                                       " (index: " + str(i) +
+                                                       ")",
+                                                       parameters)
 
             if self.nextCommandIndex is not None:
                 i = self.nextCommandIndex
@@ -316,17 +326,14 @@ class ProcedureFromList(Procedure):
         try:
             value = int(index)
         except ValueError as va:
-            raise ParameterException(
-                "(Procedure) setNextCommandIndex, expected an integer index as parameter, got '" +
-                str(
-                    type(va)) +
-                "'")
+            raise ParameterException("(Procedure) setNextCommandIndex, "
+                                     "expected an integer index as parameter, "
+                                     "got '" + str(type(va)) + "'")
 
         if value < 0:
-            raise ParameterException(
-                "(Procedure) setNextCommandIndex, negativ value not allowed, got '" +
-                str(value) +
-                "'")
+            raise ParameterException("(Procedure) setNextCommandIndex, "
+                                     "negativ value not allowed, got '" +
+                                     str(value) + "'")
 
         self.nextCommandIndex = value
 
@@ -337,8 +344,9 @@ class ProcedureFromList(Procedure):
         parser.parse()
 
         if len(parser) == 0:
-            raise ParameterException(
-                "(Procedure) addCommand, try to add a command string that does not hold any command")
+            raise ParameterException("(Procedure) addCommand, try to add a "
+                                     "command string that does not hold any "
+                                     "command")
 
         index = getAbsoluteIndex(index, len(self.stringCmdList))
 
@@ -356,8 +364,9 @@ class ProcedureFromList(Procedure):
         parser.parse()
 
         if len(parser) == 0:
-            raise ParameterException(
-                "(Procedure) addCommand, try to add a command string that does not hold any command")
+            raise ParameterException("(Procedure) addCommand, try to add a "
+                                     "command string that does not hold any "
+                                     "command")
 
         # TODO mark the command if loader, origin information should be
         # available through settings
@@ -387,16 +396,12 @@ class ProcedureFromList(Procedure):
 
         self.stringCmdList.insert(toIndex, self.stringCmdList.pop(fromIndex))
 
-    def _checkAccess(
-            self,
-            methName,
-            indexToCheck=(),
-            raiseIfOutOfBound = True):
+    def _checkAccess(self, methName, indexToCheck=(),
+                     raiseIfOutOfBound=True):
         if self.settings.isReadOnly():
-            raise ParameterException(
-                "(Procedure) " +
-                methName +
-                ", this procedure is readonly, can not do any update on its content")
+            raise ParameterException("(Procedure) " + methName + ", this "
+                                     "procedure is readonly, can not do any "
+                                     "update on its content")
 
         for index in indexToCheck:
             # check validity
