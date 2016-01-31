@@ -1,256 +1,369 @@
 #!/usr/bin/env python -t
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject.net>
+# Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject.net>
 
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #mapDashedParams does not use tries yet
-        #convert it
-        #add test for that
-        #check old test (everything should be ok) 
-        
-        #need to refactore argFeeder before to do that
+# TODO
+#   mapDashedParams does not use tries yet
+#       convert it
+#       add test for that
+#       check old test (everything should be ok)
 
-from pyshell.arg.argchecker   import booleanValueArgChecker,defaultInstanceArgChecker
-from pyshell.command.engine   import EMPTY_MAPPED_ARGS
-from pyshell.utils.exception  import DefaultPyshellException, SYSTEM_ERROR, USER_WARNING
-from pyshell.utils.parsing    import Parser
+#       need to refactore argFeeder before to do that
+
+from pyshell.arg.argchecker import booleanValueArgChecker, \
+                                   defaultInstanceArgChecker
+from pyshell.command.engine import EMPTY_MAPPED_ARGS
+from pyshell.utils.exception import DefaultPyshellException, \
+                                    SYSTEM_ERROR, USER_WARNING
+from pyshell.utils.parsing import Parser
 from pyshell.system.parameter import ParameterManager
-from tries                    import multiLevelTries
+from tries import multiLevelTries
+from tries.exception import triesException
 
-class Solver(object):            
+
+class Solver(object):
     def solve(self, parser, mltries, variablesContainer):
         if not isinstance(parser, Parser):
-            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, a parser object was expected, got '"+str(type(parser))+"'",SYSTEM_ERROR)
-            
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "__init__, fail to init solver, a "
+                                          "parser object was expected, got '" +
+                                          str(type(parser))+"'",
+                                          SYSTEM_ERROR)
+
         if not parser.isParsed():
-            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, parser object is not yet parsed",SYSTEM_ERROR)
-            
-        if not isinstance(variablesContainer,ParameterManager):
-            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, a ParameterManager object was expected, got '"+str(type(variablesContainer))+"'",SYSTEM_ERROR)
-            
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "__init__, fail to init solver, "
+                                          "parser object is not yet parsed",
+                                          SYSTEM_ERROR)
+
+        if not isinstance(variablesContainer, ParameterManager):
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "__init__, fail to init solver, a "
+                                          "ParameterManager object was "
+                                          "expected, got '" +
+                                          str(type(variablesContainer))+"'",
+                                          SYSTEM_ERROR)
+
         if not isinstance(mltries, multiLevelTries):
-            raise DefaultPyshellException("("+self.__class__.__name__+") __init__, fail to init solver, a multiLevelTries object was expected, got '"+str(type(mltries))+"'",SYSTEM_ERROR)
-            
-        self.parser             = parser
-        self.mltries            = mltries
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "__init__, fail to init solver, a "
+                                          "multiLevelTries object was "
+                                          "expected, got '" +
+                                          str(type(mltries)) + "'",
+                                          SYSTEM_ERROR)
+
+        self.parser = parser
+        self.mltries = mltries
         self.variablesContainer = variablesContainer
 
-        commandList     = []
+        commandList = []
         commandNameList = []
-        argList         = []
-        mappedArgsList  = []
+        argList = []
+        mappedArgsList = []
 
         for tokenList, argSpotted, paramSpotted in self.parser:
             if len(paramSpotted) > 0:
                 paramSpotted = list(paramSpotted)
 
-            tokenList                        = self._solveVariables(tokenList,argSpotted,paramSpotted)
-            command, remainingTokenList      = self._solveCommands(tokenList)
-            
-            commandTokenLength = len(tokenList) - len(remainingTokenList)
-            commandNameList.append( tuple(tokenList[0:commandTokenLength]) )
-            
-            _removeEveryIndexUnder(paramSpotted,  commandTokenLength)
-            _addValueToIndex(paramSpotted, 0, len(remainingTokenList) - len(tokenList))
-                                    
-            mappedParams, remainingTokenList = self._solveDashedParameters(command, remainingTokenList, paramSpotted)
-            
-            commandList.append(    command            )
-            argList.append(        remainingTokenList )
-            mappedArgsList.append( mappedParams       )
-            
-        return commandList, argList, mappedArgsList, commandNameList
-        
-    def _solveVariables(self,tokenList,argSpotted, paramSpotted):
-        "replace argument like `$toto` into their value in parameter, the input must come from the output of the method parseArgument"
+            tokenList = self._solveVariables(tokenList,
+                                             argSpotted,
+                                             paramSpotted)
+            command, remainingTokenList = self._solveCommands(tokenList)
 
-        #no arg spotted
+            commandTokenLength = len(tokenList) - len(remainingTokenList)
+            commandNameList.append(tuple(tokenList[0:commandTokenLength]))
+
+            _removeEveryIndexUnder(paramSpotted, commandTokenLength)
+            _addValueToIndex(paramSpotted,
+                             0,
+                             len(remainingTokenList) - len(tokenList))
+
+            mappedParams, remainingTokenList = \
+                self._solveDashedParameters(command,
+                                            remainingTokenList,
+                                            paramSpotted)
+
+            commandList.append(command)
+            argList.append(remainingTokenList)
+            mappedArgsList.append(mappedParams)
+
+        return commandList, argList, mappedArgsList, commandNameList
+
+    def _solveVariables(self, tokenList, argSpotted, paramSpotted):
+        """
+        replace argument like `$toto` into their value in parameter,
+        the input must come from the output of the method parseArgument
+        """
+
+        # no arg spotted
         if len(argSpotted) == 0:
             return tokenList
 
         tokenList = list(tokenList)
         indexCorrection = 0
-        
+
         for argIndex in argSpotted:
             argIndex += indexCorrection
-        
-            #get the token and remove $
+
+            # get the token and remove $
             stringToken = tokenList[argIndex][1:]
 
-            #remove old key from token list
+            # remove old key from token list
             del tokenList[argIndex]
 
-            #if not existing var, act as an empty var
+            # if not existing var, act as an empty var
             var = self.variablesContainer.getParameter(stringToken)
             if var is None:
                 varSize = 0
             else:
-                #insert the var list at the correct place (var is always a list)
+                # insert the var list at the correct place
+                # (var is always a list)
                 values = var.getValue()
-                tokenList = tokenList[0:argIndex] + values + tokenList[argIndex:]
+                preList = tokenList[0:argIndex]
+                postList = tokenList[argIndex:]
+                tokenList = preList + values + postList
                 varSize = len(values)
-            
-            #update every spotted param index with an index bigger than the var if the value of the var is different of 1
+
+            # update every spotted param index with an index bigger than
+            # the var if the value of the var is different of 1
             if varSize != 1:
                 indexCorrection += varSize-1
                 _addValueToIndex(paramSpotted, argIndex+1, indexCorrection)
-                
+
         return tokenList
 
     def _solveCommands(self, tokenList):
         "indentify command name and args from output of method parseArgument"
 
-        #search the command with advanced seach
+        # search the command with advanced seach
         searchResult = None
         try:
             searchResult = self.mltries.advancedSearch(tokenList, False)
         except triesException as te:
-            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, failed to find the command '"+str(tokenList)+"', reason: "+str(te), USER_WARNING)
-        
-        #ambiguity on the last token used
-        if searchResult.isAmbiguous():                    
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "_solveCommands, failed to find the "
+                                          "command '"+str(tokenList)+"', "
+                                          "reason: "+str(te),
+                                          USER_WARNING)
+
+        # ambiguity on the last token used
+        if searchResult.isAmbiguous():
             tokenIndex = len(searchResult.existingPath) - 1
             tries = searchResult.existingPath[tokenIndex][1].localTries
             keylist = tries.getKeyList(tokenList[tokenIndex])
-            
-            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, ambiguity on command '"+" ".join(tokenList)+"', token '"+str(tokenList[tokenIndex])+"', possible value: "+ ", ".join(keylist), USER_WARNING)
-        
-        #no value on the last token found OR no token found
+
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "_solveCommands, ambiguity on "
+                                          "command '"+" ".join(tokenList)+"', "
+                                          "token '" +
+                                          str(tokenList[tokenIndex]) +
+                                          "', possible value: " +
+                                          ", ".join(keylist),
+                                          USER_WARNING)
+
+        # no value on the last token found OR no token found
         elif not searchResult.isAvalueOnTheLastTokenFound():
             if searchResult.getTokenFoundCount() == len(tokenList):
-                raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, uncomplete command '"+" ".join(tokenList)+"', type 'help "+" ".join(tokenList)+"' to get the next available parts of this command", USER_WARNING)
-                
+                raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                              "_solveCommands, uncomplete "
+                                              "command '" +
+                                              " ".join(tokenList)+"', type "
+                                              "'help "+" ".join(tokenList) +
+                                              "' to get the next available "
+                                              "parts of this command",
+                                              USER_WARNING)
+
             if len(tokenList) == 1:
-                raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', type 'help' to get the list of commands", USER_WARNING)
-                
-            raise DefaultPyshellException("("+self.__class__.__name__+") _solveCommands, unknown command '"+" ".join(tokenList)+"', token '"+str(tokenList[searchResult.getTokenFoundCount()])+"' is unknown, type 'help' to get the list of commands", USER_WARNING) #TODO put the found tokens with the 'help' command
+                raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                              "_solveCommands, unknown command"
+                                              " '"+" ".join(tokenList)+"', "
+                                              "type 'help' to get the list "
+                                              "of commands",
+                                              USER_WARNING)
 
-        #return the command found and the not found token
-        return searchResult.getLastTokenFoundValue(), list(searchResult.getNotFoundTokenList())
-        
-    def _solveDashedParameters(self, command, remainingTokenList, paramSpotted):
-        #empty command list, nothing to map
+            # TODO put the found tokens with the 'help' command
+            tokenFound = str(tokenList[searchResult.getTokenFoundCount()])
+            raise DefaultPyshellException("("+self.__class__.__name__+") "
+                                          "_solveCommands, unknown command "
+                                          "'"+" ".join(tokenList)+"', token "
+                                          "'" + tokenFound +
+                                          "' is unknown, type 'help' to get "
+                                          "the list of commands",
+                                          USER_WARNING)
+
+        # return the command found and the not found token
+        return searchResult.getLastTokenFoundValue(), \
+            list(searchResult.getNotFoundTokenList())
+
+    def _solveDashedParameters(self,
+                               command,
+                               remainingTokenList,
+                               paramSpotted):
+        # empty command list, nothing to map
         if len(command) == 0 or len(paramSpotted) == 0:
-            return (EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS, ), remainingTokenList 
+            return (EMPTY_MAPPED_ARGS,
+                    EMPTY_MAPPED_ARGS,
+                    EMPTY_MAPPED_ARGS,), remainingTokenList
 
-        #get multi-command entry command, the first command
-        firstSingleCommand,useArgs,enabled = command[0]
+        # get multi-command entry command, the first command
+        firstSingleCommand, useArgs, enabled = command[0]
 
-        #extract arfeeder
-        if (  (not hasattr(firstSingleCommand.preProcess, "isDefault") or not firstSingleCommand.preProcess.isDefault)) and hasattr(firstSingleCommand.preProcess, "checker"):
+        # extract arfeeder
+        if (not hasattr(firstSingleCommand.preProcess, "isDefault") or
+            not firstSingleCommand.preProcess.isDefault) and \
+           hasattr(firstSingleCommand.preProcess, "checker"):
             feeder = firstSingleCommand.preProcess.checker
             indexToSet = 0
-        elif ( (not hasattr(firstSingleCommand.process, "isDefault") or not firstSingleCommand.process.isDefault)) and hasattr(firstSingleCommand.process, "checker"):
+        elif ((not hasattr(firstSingleCommand.process, "isDefault") or
+               not firstSingleCommand.process.isDefault) and
+              hasattr(firstSingleCommand.process, "checker")):
             feeder = firstSingleCommand.process.checker
             indexToSet = 1
-        elif ( (not hasattr(firstSingleCommand.postProcess, "isDefault") or not firstSingleCommand.postProcess.isDefault)) and hasattr(firstSingleCommand.postProcess, "checker"):
+        elif ((not hasattr(firstSingleCommand.postProcess, "isDefault") or
+               not firstSingleCommand.postProcess.isDefault) and
+              hasattr(firstSingleCommand.postProcess, "checker")):
             feeder = firstSingleCommand.postProcess.checker
             indexToSet = 2
         else:
-            return (EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS, ), remainingTokenList                
+            return (EMPTY_MAPPED_ARGS,
+                    EMPTY_MAPPED_ARGS,
+                    EMPTY_MAPPED_ARGS,), remainingTokenList
 
-        #compute arg mapping for this command
-        localMappedArgs = [EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS,EMPTY_MAPPED_ARGS]
-        paramFound, remainingArgs = _mapDashedParams(remainingTokenList, feeder.argTypeList,paramSpotted)
+        # compute arg mapping for this command
+        localMappedArgs = [EMPTY_MAPPED_ARGS,
+                           EMPTY_MAPPED_ARGS,
+                           EMPTY_MAPPED_ARGS]
+        paramFound, remainingArgs = _mapDashedParams(remainingTokenList,
+                                                     feeder.argTypeList,
+                                                     paramSpotted)
         localMappedArgs[indexToSet] = paramFound
-        
+
         return localMappedArgs, remainingArgs
-        
+
+
 def _removeEveryIndexUnder(indexList, endIndex):
-    for i in xrange(0,len(indexList)):
+    for i in xrange(0, len(indexList)):
         if indexList[i] < endIndex:
             continue
-        
+
         del indexList[:i]
         return
-    
+
     if len(indexList) > 0:
         del indexList[:]
 
+
 def _addValueToIndex(indexList, startingIndex, valueToAdd=1):
-    for i in xrange(0,len(indexList)):
+    for i in xrange(0, len(indexList)):
         if indexList[i] < startingIndex:
             continue
-        
+
         indexList[i] += valueToAdd
 
-def _mapDashedParams(inputArgs, argTypeMap,paramSpotted):  
+
+def _mapDashedParams(inputArgs, argTypeMap, paramSpotted):
     if len(paramSpotted) == 0:
         return {}, inputArgs
-    
-    notUsedArgs   = []
-    paramFound    = {}
-    
-    currentName   = None
-    currentParam  = None
-    currentIndex  = 0 
+
+    notUsedArgs = []
+    paramFound = {}
+
+    currentName = None
+    currentParam = None
+    currentIndex = 0
 
     for index in paramSpotted:
         paramName = inputArgs[index][1:]
-    
-        #remove false param
-        if paramName not in argTypeMap: #TODO should use tries
+
+        # remove false param
+        if paramName not in argTypeMap:  # TODO should use tries
             continue
-        
-        #manage last met param
+
+        # manage last met param
         if currentParam is not None:
-            _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, index)
+            _mapDashedParamsManageParam(inputArgs,
+                                        currentName,
+                                        currentParam,
+                                        currentIndex,
+                                        paramFound,
+                                        notUsedArgs,
+                                        index)
         else:
-            #base case, process the first param index, need to flush available arg before this index
+            # base case, process the first param index, need to flush
+            # available arg before this index
             notUsedArgs.extend(inputArgs[0:index])
-        
-        currentName  = paramName
-        currentParam = argTypeMap[paramName] #TODO should use tries
+
+        currentName = paramName
+        currentParam = argTypeMap[paramName]  # TODO should use tries
         currentIndex = index
-    
-    #never found any valid and existing param
+
+    # never found any valid and existing param
     if currentParam is None:
         return {}, inputArgs
-    
-    #manage last param
-    _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, len(inputArgs))
-    
-    return paramFound,notUsedArgs
-    
-def _mapDashedParamsManageParam(inputArgs, currentName, currentParam, currentIndex, paramFound, notUsedArgs, lastIndex):
+
+    # manage last param
+    _mapDashedParamsManageParam(inputArgs,
+                                currentName,
+                                currentParam,
+                                currentIndex,
+                                paramFound,
+                                notUsedArgs,
+                                len(inputArgs))
+
+    return paramFound, notUsedArgs
+
+
+def _mapDashedParamsManageParam(inputArgs,
+                                currentName,
+                                currentParam,
+                                currentIndex,
+                                paramFound,
+                                notUsedArgs,
+                                lastIndex):
     argAvailableCount = lastIndex - currentIndex - 1
 
-    #special case for boolean, parameter alone is equivalent to true
+    # special case for boolean, parameter alone is equivalent to true
     if isinstance(currentParam, booleanValueArgChecker):
         if argAvailableCount == 0:
             paramFound[currentName] = ("true",)
         elif _isValidBooleanValueForChecker(inputArgs[currentIndex+1]):
             paramFound[currentName] = (inputArgs[currentIndex+1],)
-            notUsedArgs.extend( inputArgs[currentIndex+2:lastIndex] )
+            notUsedArgs.extend(inputArgs[currentIndex+2:lastIndex])
         else:
             paramFound[currentName] = ("true",)
-            notUsedArgs.extend( inputArgs[currentIndex+1:lastIndex] )
+            notUsedArgs.extend(inputArgs[currentIndex+1:lastIndex])
     else:
-        #did we reach max size ?
-        #don't care about minimum size, it will be check during execution phase
-        if currentParam.maximumSize is not None and currentParam.maximumSize < argAvailableCount:
-            paramFound[currentName] = tuple( inputArgs[currentIndex+1:currentIndex+1+currentParam.maximumSize] )
-            notUsedArgs.extend(inputArgs[currentIndex+1+currentParam.maximumSize:lastIndex])
+        # did we reach max size ?
+        # don't care about minimum size, it will be check during
+        # execution phase
+        if currentParam.maximumSize is not None and \
+           currentParam.maximumSize < argAvailableCount:
+            pivot = currentIndex+1+currentParam.maximumSize
+            paramFound[currentName] = tuple(inputArgs[currentIndex+1:pivot])
+            notUsedArgs.extend(inputArgs[pivot:lastIndex])
         else:
-            paramFound[currentName] = tuple( inputArgs[currentIndex+1:lastIndex] )
+            params = tuple(inputArgs[currentIndex+1:lastIndex])
+            paramFound[currentName] = params
+
 
 def _isValidBooleanValueForChecker(value):
+    checker = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance()
     try:
-        defaultInstanceArgChecker.getbooleanValueArgCheckerInstance().getValue(value)
+        checker.getValue(value)
         return True
     except Exception:
         return False
