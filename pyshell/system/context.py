@@ -85,7 +85,7 @@ class ContextSettings(Settings):
         self.index = self.defaultIndex
 
     def setIndexValue(self, value):
-        checker = self.context.typ
+        checker = self.context.typ.checker
         try:
             self.index = self.context.value.index(checker.getValue(value))
         except ValueError:
