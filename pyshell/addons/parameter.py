@@ -187,7 +187,7 @@ def loadParameter(filePath, parameters):
 
     if os.path.exists(filePath.getValue()):
         afile = ProcedureFromFile(filePath.getValue())
-        afile.setNeverStopProcedureIfErrorOccured()
+        afile.neverStopIfErrorOccured()
             #TODO yeaah, never stop execution BUT there is a problem
                 #if a parameter creation trigger an exception, the "set properties" will still be executed
                     #think about that

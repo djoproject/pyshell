@@ -60,7 +60,7 @@ class Procedure(UniCommand):
 
         self.name = name
         # default error policy  #TODO should be in settings
-        self.setStopProcedureOnFirstError()
+        self.stopOnFirstError()
 
         if settings is not None:
             if not isinstance(settings, GlobalSettings):
@@ -221,16 +221,14 @@ class Procedure(UniCommand):
                                       "possible to set next command index on "
                                       "this king of procedure")
 
-    def setStopProcedureOnFirstError(self):
-        self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
+    def stopOnFirstError(self):
+        self.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
             sys.maxsize)
 
-    def setNeverStopProcedureIfErrorOccured(self):
-        self.setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
-            None)
+    def neverStopIfErrorOccured(self):
+        self.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(None)
 
-    def setStopProcedureIfAnErrorOccuredWithAGranularityLowerOrEqualTo(self,
-                                                                       value):
+    def stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(self, value):
         """
         Every error granularity bellow this limit will stop the execution of
         the current procedure.  A None value is equal to no limit.

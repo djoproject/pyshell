@@ -139,12 +139,26 @@ class ContextSettings(Settings):
             
         return tuple(prop)
 
+    def clone(self, From=None):
+        if From is None:
+            From = ContextSettings()
+
+        return From
+
 class LocalContextSettings(LocalSettings, ContextSettings):
     getProperties = ContextSettings.getProperties
 
     def __init__(self, readOnly = False, removable = True):
         ContextSettings.__init__(self)
         LocalSettings.__init__(self,readOnly,removable)
+
+    def clone(self, From=None):
+        if From is None:
+            From = LocalContextSettings(self.isReadOnly(), self.isRemovable())
+
+        ContextSettings.clone(self, From)
+
+        return LocalSettings.clone(self, From)
 
 class GlobalContextSettings(GlobalSettings, ContextSettings):
     getProperties = ContextSettings.getProperties
@@ -168,6 +182,19 @@ class GlobalContextSettings(GlobalSettings, ContextSettings):
     def isTransientIndex(self):
         return self.transientIndex
 
+    def clone(self, From=None):
+        if From is None:
+            From = GlobalContextSettings(self.isReadOnly(), self.isRemovable(), self.isTransient(), self.isTransientIndex())
+        else:
+            readOnly = self.isReadOnly()
+            From.setReadOnly(False)
+            From.setTransientIndex(self.isTransientIndex())
+            From.setReadOnly(readOnly)
+        
+        ContextSettings.clone(self, From)
+        
+        return GlobalSettings.clone(self, From)
+
 class ContextParameter(EnvironmentParameter, SelectableValuable):
     @staticmethod
     def getInitSettings():
@@ -190,7 +217,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         #set and check settings
         if settings is not None:
             if not isinstance(settings, ContextSettings):
-                raise ParameterException("(ContextParameter) __init__, a LocalContextSettings was expected for settings, got '"+str(type(settings))+"'")
+                raise ParameterException("(ContextParameter) __init__, a ContextSettings was expected for settings, got '"+str(type(settings))+"'")
         else:
             settings = self.getInitSettings()
         

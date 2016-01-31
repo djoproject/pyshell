@@ -110,12 +110,13 @@ class LocalSettings(Settings):
     def clone(self, From=None):
         if From is None:
             return LocalSettings(self.isReadOnly(), self.isRemovable())
+        else:
+            readOnly = self.isReadOnly()
+            From.setReadOnly(False)
+            From.setRemovable(self.isRemovable())
+            From.setReadOnly(readOnly)
         
-        From.setReadOnly(False)
-        From.setRemovable(self.isRemovable())
-        From.setReadOnly(self.isReadOnly())
-        
-        return Settings.clone(From)
+        return Settings.clone(self, From)
 
 class GlobalSettings(LocalSettings):
     def __init__(self, readOnly = False, removable = True, transient = False):
@@ -208,11 +209,14 @@ class GlobalSettings(LocalSettings):
         if From is None:
             From = GlobalSettings(self.isReadOnly(), self.isRemovable(), self.isTransient())
         else:
+            readOnly = self.isReadOnly()
+            From.setReadOnly(False)
             From.setTransient(self.isTransient())
+            From.setReadOnly(readOnly)
         
         #TODO clone loader state
             #if no clone method, use copy tools
                 #simple or deep copy ?
         
-        return LocalSettings.clone(From)
+        return LocalSettings.clone(self, From)
         
