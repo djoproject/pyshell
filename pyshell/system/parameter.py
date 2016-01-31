@@ -93,26 +93,41 @@ class ParameterManager(Flushable):
 
         if raiseIfAmbiguous and advancedResult.isAmbiguous():
             indexOfAmbiguousKey = advancedResult.getTokenFoundCount()
-            possiblePath = self.mltries.buildDictionnary(path[:indexOfAmbiguousKey], ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
+            possiblePath = \
+                self.mltries.buildDictionnary(path[:indexOfAmbiguousKey],
+                                              ignoreStopTraversal=True,
+                                              addPrexix=True,
+                                              onlyPerfectMatch=False)
             possibleValue = []
-            for k,v in possiblePath.items():
+            for k, v in possiblePath.items():
                 possibleValue.append(k[indexOfAmbiguousKey])
 
-            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexOfAmbiguousKey])+"' is ambiguous for path '"+".".join(_buildExistingPathFromError(path, advancedResult))+"', possible value are: '"+",".join(possibleValue)+"'")
+            existingPath = ".".join(
+                _buildExistingPathFromError(path, advancedResult))
+            raise ParameterException("(ParameterManager) "+str(methName) +
+                                     ", key '"+str(path[indexOfAmbiguousKey]) +
+                                     "' is ambiguous for path '" +
+                                     existingPath+"', possible value are: '" +
+                                     ",".join(possibleValue)+"'")
 
         if raiseIfNotFound and not advancedResult.isValueFound():
             indexNotFound = advancedResult.getTokenFoundCount()
-            raise ParameterException("(ParameterManager) "+str(methName)+", key '"+str(path[indexNotFound])+"' is unknown for path '"+".".join(_buildExistingPathFromError(path, advancedResult))+"'")
+            existingPath = ".".join(
+                _buildExistingPathFromError(path, advancedResult))
+            raise ParameterException("(ParameterManager) "+str(methName) +
+                                     ", key '"+str(path[indexNotFound]) +
+                                     "' is unknown for path '" +
+                                     existingPath+"'")
 
         return advancedResult
 
     def getAllowedType(self):  # XXX to override if needed
         return Parameter
 
-    def isAnAllowedType(self,value): #XXX to override if needed
-        return isinstance(value,self.getAllowedType()) and \
+    def isAnAllowedType(self, value):  # XXX to override if needed
+        return isinstance(value, self.getAllowedType()) and \
             value.__class__.__name__ == self.getAllowedType().__name__
-            # second condition is to forbidde child class
+        # second condition is to forbidde child class
 
     def extractParameter(self, value):
         if self.isAnAllowedType(value):
@@ -127,10 +142,10 @@ class ParameterManager(Flushable):
         return self.getAllowedType()(value)
 
     @synchronous()
-    def setParameter(self,stringPath, param, localParam = True):
+    def setParameter(self, stringPath, param, localParam=True):
         param = self.extractParameter(param)
 
-        #check safety and existing
+        # check safety and existing
         advancedResult = self._getAdvanceResult("setParameter",
                                                 stringPath,
                                                 False,
@@ -140,25 +155,41 @@ class ParameterManager(Flushable):
             (global_var, local_var, ) = advancedResult.getValue()
 
             if localParam:
-                key            = self.parentContainer.getCurrentId()
+                key = self.parentContainer.getCurrentId()
 
                 if key in local_var:
                     if local_var[key].settings.isReadOnly():
+                        completePath = " ".join(
+                            advancedResult.getFoundCompletePath())
                         raise ParameterException("(ParameterManager) "
                                                  "setParameter, can not set "
-                                                 "the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
+                                                 "the parameter '" +
+                                                 completePath+"' because a "
+                                                 "parameter with this name "
+                                                 "already exist and is not "
+                                                 "editable")
                 else:
                     if key not in self.threadLocalVar:
                         self.threadLocalVar[key] = set()
 
-                    self.threadLocalVar[key].add( '.'.join(str(x) for x in advancedResult.getFoundCompletePath()) )
+                    completePath = advancedResult.getFoundCompletePath()
+                    self.threadLocalVar[key].add(
+                        '.'.join(str(x) for x in completePath))
 
                 param.enableLocal()
                 local_var[key] = param
             else:
                 if global_var is not None:
                     if global_var.settings.isReadOnly():
-                        raise ParameterException("(ParameterManager) setParameter, can not set the parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' because a parameter with this name already exist and is not editable")
+                        completePath = " ".join(
+                            advancedResult.getFoundCompletePath())
+                        raise ParameterException("(ParameterManager) "
+                                                 "setParameter, can not set "
+                                                 "the parameter '" +
+                                                 completePath+"' because a "
+                                                 "parameter with this name "
+                                                 "already exist and is not "
+                                                 "editable")
 
                     previous_setting = global_var.settings
                 else:
@@ -166,37 +197,51 @@ class ParameterManager(Flushable):
 
                 param.enableGlobal()
                 param.settings.mergeFromPreviousSettings(previous_setting)
-                self.mltries.update( stringPath.split("."), (param, local_var, ) )
+                self.mltries.update(stringPath.split("."), (param, local_var,))
         else:
             local_var = {}
             if localParam:
-                global_var     = None
-                key            = self.parentContainer.getCurrentId()
+                global_var = None
+                key = self.parentContainer.getCurrentId()
                 local_var[key] = param
                 param.enableLocal()
 
                 if key not in self.threadLocalVar:
                     self.threadLocalVar[key] = set()
 
-                self.threadLocalVar[key].add( stringPath )
+                self.threadLocalVar[key].add(stringPath)
 
             else:
                 global_var = param
                 param.enableGlobal()
-                param.settings.setStartingPoint( hash(param), *self.parentContainer.getOrigin())
+                settings = param.settings
+                settings.setStartingPoint(hash(param),
+                                          *self.parentContainer.getOrigin())
 
-            self.mltries.insert( stringPath.split("."), (global_var, local_var, ) )
+            self.mltries.insert(stringPath.split("."),
+                                (global_var, local_var,))
 
         return param
 
     @synchronous()
-    def getParameter(self, stringPath, perfectMatch = False, localParam = True, exploreOtherLevel=True):
-        advancedResult = self._getAdvanceResult("getParameter",stringPath, perfectMatch=perfectMatch, raiseIfNotFound=False) #this call will raise if value not found or ambiguous
+    def getParameter(self,
+                     stringPath,
+                     perfectMatch=False,
+                     localParam=True,
+                     exploreOtherLevel=True):
+
+        # this call will raise if value not found or ambiguous
+        advancedResult = self._getAdvanceResult("getParameter",
+                                                stringPath,
+                                                perfectMatch=perfectMatch,
+                                                raiseIfNotFound=False)
 
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()
 
-            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without ordering
+            # simple loop to explore the both statment of this condition
+            # if needed, without ordering
+            for case in xrange(0, 2):
                 if localParam:
                     key = self.parentContainer.getCurrentId()
                     if key in local_var:
@@ -216,13 +261,26 @@ class ParameterManager(Flushable):
         return None
 
     @synchronous()
-    def hasParameter(self, stringPath, raiseIfAmbiguous = True, perfectMatch = False, localParam = True, exploreOtherLevel=True):
-        advancedResult = self._getAdvanceResult("hasParameter",stringPath, False,raiseIfAmbiguous, perfectMatch) #this call will raise if ambiguous
+    def hasParameter(self,
+                     stringPath,
+                     raiseIfAmbiguous=True,
+                     perfectMatch=False,
+                     localParam=True,
+                     exploreOtherLevel=True):
+
+        # this call will raise if ambiguous
+        advancedResult = self._getAdvanceResult("hasParameter",
+                                                stringPath,
+                                                False,
+                                                raiseIfAmbiguous,
+                                                perfectMatch)
 
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()
 
-            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
+            # simple loop to explore the both statment of this condition if
+            # needed, without any order
+            for case in xrange(0, 2):
                 if localParam:
                     key = self.parentContainer.getCurrentId()
 
@@ -243,34 +301,59 @@ class ParameterManager(Flushable):
         return False
 
     @synchronous()
-    def unsetParameter(self, stringPath, localParam = True, exploreOtherLevel=True, force=False):
-        advancedResult = self._getAdvanceResult("unsetParameter", stringPath, perfectMatch=True) #this call will raise if value not found or ambiguous
+    def unsetParameter(self,
+                       stringPath,
+                       localParam=True,
+                       exploreOtherLevel=True,
+                       force=False):
+
+        # this call will raise if value not found or ambiguous
+        advancedResult = self._getAdvanceResult("unsetParameter",
+                                                stringPath,
+                                                perfectMatch=True)
 
         if advancedResult.isValueFound():
             (global_var, local_var, ) = advancedResult.getValue()
-            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
+
+            # simple loop to explore the both statment of this condition if
+            # needed, without any order
+            for case in xrange(0, 2):
                 if localParam:
                     key = self.parentContainer.getCurrentId()
 
                     if key not in local_var:
                         if not exploreOtherLevel:
-                            raise ParameterException("(ParameterManager) unsetParameter, unknown local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+                            completePath = " ".join(
+                                advancedResult.getFoundCompletePath())
+                            raise ParameterException("(ParameterManager) "
+                                                     "unsetParameter, unknown "
+                                                     "local parameter '" +
+                                                     completePath+"'")
 
                         localParam = not localParam
                         continue
 
                     if not force:
                         if not local_var[key].settings.isRemovable():
-                            raise ParameterException("(ParameterManager) unsetParameter, local parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
+                            completePath = " ".join(
+                                advancedResult.getFoundCompletePath())
+                            raise ParameterException("(ParameterManager) "
+                                                     "unsetParameter, local "
+                                                     "parameter '" +
+                                                     completePath+"' is not "
+                                                     "removable")
 
-                    #remove from thread local list
-                    self.threadLocalVar[key].remove('.'.join(str(x) for x in advancedResult.getFoundCompletePath()))
+                    # remove from thread local list
+                    completePath = advancedResult.getFoundCompletePath()
+                    self.threadLocalVar[key].remove(
+                        '.'.join(str(x) for x in completePath))
                     if len(self.threadLocalVar[key]) == 0:
                         del self.threadLocalVar[key]
 
-                    #remove from mltries
+                    # remove from mltries
                     if len(local_var) == 1 and global_var is None:
-                        self.mltries.remove( advancedResult.getFoundCompletePath() )
+                        self.mltries.remove(
+                            advancedResult.getFoundCompletePath())
                     else:
                         del local_var[key]
 
@@ -279,48 +362,83 @@ class ParameterManager(Flushable):
                 else:
                     if global_var is None:
                         if not exploreOtherLevel:
-                            raise ParameterException("(ParameterManager) unsetParameter, unknown global parameter '"+" ".join(advancedResult.getFoundCompletePath())+"'")
+                            completePath = " ".join(
+                                advancedResult.getFoundCompletePath())
+                            raise ParameterException("(ParameterManager) "
+                                                     "unsetParameter, unknown "
+                                                     "global parameter '" +
+                                                     completePath+"'")
 
                         localParam = not localParam
                         continue
 
                     if not force:
                         if not global_var.settings.isRemovable():
-                            raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' is not removable")
+                            completePath = " ".join(
+                                advancedResult.getFoundCompletePath())
+                            raise ParameterException("(ParameterManager) "
+                                                     "unsetParameter, "
+                                                     "parameter '" +
+                                                     completePath+"' is not "
+                                                     "removable")
 
                         loaderSet = global_var.settings.getLoaderSet()
                         if loaderSet is not None and len(loaderSet) > 0:
-                            raise ParameterException("(ParameterManager) unsetParameter, parameter '"+" ".join(advancedResult.getFoundCompletePath())+"' can be removed, at least on loader is registered on this parameter")
+                            completePath = " ".join(
+                                advancedResult.getFoundCompletePath())
+                            raise ParameterException("(ParameterManager) "
+                                                     "unsetParameter, "
+                                                     "parameter '" +
+                                                     completePath+"' can be "
+                                                     "removed, at least on "
+                                                     "loader is registered "
+                                                     "on this parameter")
 
                     if len(local_var) == 0:
-                        self.mltries.remove( advancedResult.getFoundCompletePath() )
+                        self.mltries.remove(
+                            advancedResult.getFoundCompletePath())
                     else:
-                        self.mltries.update( advancedResult.getFoundCompletePath(), (None, local_var, ) )
+                        self.mltries.update(
+                            advancedResult.getFoundCompletePath(),
+                            (None, local_var,))
 
                     return
 
     @synchronous()
-    def flush(self): #flush the Variable at this Level For This Thread
+    def flush(self):  # flush the Variable at this Level For This Thread
         key = self.parentContainer.getCurrentId()
 
-        #clean level
-        if key in self.threadLocalVar: #do we have recorded some variables for this thread at this level ?
-            for path in self.threadLocalVar[key]: #no error possible, missing value or invalid type is possible here, because of the process in set/unset
-                advancedResult = self._getAdvanceResult("popVariableLevelForThisThread",path, False, False)
+        # clean level
+        # do we have recorded some variables for this thread at this level ?
+        if key in self.threadLocalVar:
+
+            # no error possible, missing value or invalid type is possible
+            # here, because of the process in set/unset
+            for path in self.threadLocalVar[key]:
+                methName = "popVariableLevelForThisThread"
+                advancedResult = self._getAdvanceResult(methName,
+                                                        path,
+                                                        False,
+                                                        False)
                 (global_var_value, local_var_dic,) = advancedResult.getValue()
                 del local_var_dic[key]
 
                 if global_var_value is None and len(local_var_dic) == 0:
-                    self.mltries.remove( path.split(".") ) #can not raise, because every path exist
+                    # can not raise, because every path exist
+                    self.mltries.remove(path.split("."))
 
             del self.threadLocalVar[key]
 
     @synchronous()
-    def buildDictionnary(self, stringPath, localParam = True, exploreOtherLevel=True):
+    def buildDictionnary(self,
+                         stringPath,
+                         localParam=True,
+                         exploreOtherLevel=True):
         state, result = isAValidStringPath(stringPath)
 
         if not state:
-            raise ParameterException("(ParameterManager) buildDictionnary, "+result)
+            raise ParameterException("(ParameterManager) buildDictionnary, " +
+                                     result)
 
         result = self.mltries.buildDictionnary(result, True, True, False)
 
@@ -329,7 +447,10 @@ class ParameterManager(Flushable):
 
         for var_key, (global_var, local_var) in result.items():
             localParam_tmp = localParam
-            for case in xrange(0,2): #simple loop to explore the both statment of this condition if needed, without any order
+
+            # simple loop to explore the both statment of this condition if
+            # needed, without any order
+            for case in xrange(0, 2):
                 if localParam_tmp:
                     if key is None:
                         key = self.parentContainer.getCurrentId()
@@ -352,7 +473,8 @@ class ParameterManager(Flushable):
 
         return to_ret
 
-class Parameter(Valuable): #abstract
+
+class Parameter(Valuable):  # abstract
     @staticmethod
     def getInitSettings():
         return LocalSettings()
@@ -360,7 +482,10 @@ class Parameter(Valuable): #abstract
     def __init__(self, value, settings=None):
         if settings is not None:
             if not isinstance(settings, LocalSettings):
-                raise ParameterException("(EnvironmentParameter) __init__, a LocalSettings was expected for settings, got '"+str(type(settings))+"'")
+                raise ParameterException("(EnvironmentParameter) __init__, a "
+                                         "LocalSettings was expected for "
+                                         "settings, got '" +
+                                         str(type(settings))+"'")
 
             self.settings = settings
         else:
@@ -377,7 +502,7 @@ class Parameter(Valuable): #abstract
     def getValue(self):
         return self.value
 
-    def setValue(self,value):
+    def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__, "setValue")
         self.value = value
 
@@ -391,18 +516,19 @@ class Parameter(Valuable): #abstract
         if isinstance(self.settings, GlobalSettings):
             return
 
-        self.settings = GlobalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
+        self.settings = GlobalSettings(readOnly=self.settings.isReadOnly(),
+                                       removable=self.settings.isRemovable())
 
     def enableLocal(self):
         if isinstance(self.settings, LocalSettings):
             return
 
-        self.settings = LocalSettings(readOnly = self.settings.isReadOnly(), removable = self.settings.isRemovable())
+        self.settings = LocalSettings(readOnly=self.settings.isReadOnly(),
+                                      removable=self.settings.isRemovable())
 
     def __hash__(self):
         value = self.getValue()
-        if hasattr(value,"__iter__"):
-            return hash( str(hash(tuple(value))) + str(hash(self.settings)))
+        if hasattr(value, "__iter__"):
+            return hash(str(hash(tuple(value))) + str(hash(self.settings)))
         else:
-            return hash( str(hash(value)) + str(hash(self.settings)))
-
+            return hash(str(hash(value)) + str(hash(self.settings)))
