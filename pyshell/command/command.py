@@ -342,4 +342,3 @@ class UniCommand(MultiCommand):
             From = UniCommand(cmd.preProcess, cmd.process, cmd.postProcess)
 
         return MultiCommand.clone(self, From)
-

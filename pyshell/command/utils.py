@@ -150,4 +150,3 @@ def getFirstEnabledIndexInEnablingMap(enablingMap,
                  "map from "+str(starting)+" to the end")
 
     return i
-

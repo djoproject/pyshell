@@ -91,4 +91,3 @@ class DependanciesLoader(AbstractLoader):
                 raise LoadException("(DependanciesLoader) load, addon '" +
                                     str(dependancyName)+"', profile '" +
                                     str(dependancyProfile)+"' is not loaded")
-

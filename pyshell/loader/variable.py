@@ -43,4 +43,3 @@ def registerSetVariable(varKey,
 class VariableLoader(ParameterAbstractLoader):
     def __init__(self):
         ParameterAbstractLoader.__init__(self, VARIABLE_ATTRIBUTE_NAME)
-

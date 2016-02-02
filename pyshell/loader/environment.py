@@ -43,4 +43,3 @@ def registerSetEnvironment(envKey,
 class EnvironmentLoader(ParameterAbstractLoader):
     def __init__(self):
         ParameterAbstractLoader.__init__(self, ENVIRONMENT_ATTRIBUTE_NAME)
-

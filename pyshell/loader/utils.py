@@ -219,4 +219,3 @@ class GlobalLoader(AbstractLoader):
                         profile=profile,
                         nextState=STATE_LOADED,
                         nextStateIfError=STATE_LOADED_E)
-

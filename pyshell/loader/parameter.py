@@ -263,4 +263,3 @@ class ParameterAbstractLoader(AbstractLoader):
         # raise error list
         if exceptions.isThrowable():
             raise exceptions
-

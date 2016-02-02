@@ -38,4 +38,3 @@ def registerSetKey(key,
 class KeyLoader(ParameterAbstractLoader):
     def __init__(self):
         ParameterAbstractLoader.__init__(self, KEY_ATTRIBUTE_NAME)
-

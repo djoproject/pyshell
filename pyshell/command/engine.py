@@ -17,9 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.command.command import MultiOutput, MultiCommand, Command
-from pyshell.command.exception import *
+from pyshell.command.exception import executionInitException, \
+                                      executionException, \
+                                      engineInterruptionException
 from pyshell.command.stackEngine import engineStack
-from pyshell.command.utils import *
+from pyshell.command.utils import equalPath, isAValidIndex, topPath, \
+                                  raisIfInvalidMap, equalMap, \
+                                  raiseIfInvalidPath
 from pyshell.system.container import ParameterContainer
 from pyshell.system.environment import EnvironmentParameter, ParametersLocker
 from pyshell.utils.synchronized import FAKELOCK
@@ -494,7 +498,7 @@ class engineV3(object):
                       "sub command list")
 
         # no prblm found, the disabling can occur
-        howManyToEnable =  min(len(self.cmdList[cmdID]), subCmdID+enableCount)
+        howManyToEnable = min(len(self.cmdList[cmdID]), subCmdID+enableCount)
         for i in xrange(subCmdID, howManyToEnable):
             self.cmdList[cmdID].enableCmd(i)
 
@@ -528,7 +532,9 @@ class engineV3(object):
         enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
 
         if enablingMap is None:
-            enablingMap = [True] * self.stack.subCmdLengthOnIndex(dataBunchIndex, self.cmdList)
+            cmdLength = self.stack.subCmdLengthOnIndex(dataBunchIndex,
+                                                       self.cmdList)
+            enablingMap = [True] * cmdLength
 
         for i in xrange(subCmdID, min(subCmdID+skipCount, len(enablingMap))):
             if not enablingMap[i]:
@@ -540,24 +546,32 @@ class engineV3(object):
 
     def _enableOnDataBunch(self, dataBunchIndex, subCmdID, enableCount=1):
         if enableCount < 1:
-            raise executionException("(engine) _skipOnDataBunch, skip count must be equal or bigger than 1")
+            raise executionException("(engine) _skipOnDataBunch, skip count "
+                                     "must be equal or bigger than 1")
 
         self.stack.raiseIfEmpty("_skipOnDataBunch")
 
         # check valid index
         isAValidIndex(self.stack, dataBunchIndex, "_skipOnDataBunch", "stack")
-        isAValidIndex(self.stack.getCmd(dataBunchIndex, self.cmdList), subCmdID, "_skipOnDataBunch", "sub command list")
+        isAValidIndex(self.stack.getCmd(dataBunchIndex, self.cmdList),
+                      subCmdID,
+                      "_skipOnDataBunch",
+                      "sub command list")
 
         #  can only skip the next command if the state is pre_process
         if self.stack.typeOnIndex(dataBunchIndex) != PREPROCESS_INSTRUCTION:
-            raise executionException("(engine) _skipOnDataBunch, can only skip method on PREPROCESS item")
+            raise executionException("(engine) _skipOnDataBunch, can only "
+                                     "skip method on PREPROCESS item")
 
-        if self._willThisDataBunchBeCompletlyEnabled(dataBunchIndex, subCmdID, enableCount):
+        if self._willThisDataBunchBeCompletlyEnabled(dataBunchIndex,
+                                                     subCmdID,
+                                                     enableCount):
             enablingMap = None
         else:
             enablingMap = self.stack.enablingMapOnIndex(dataBunchIndex)
 
-            for i in xrange(subCmdID, min(subCmdID+enableCount, len(enablingMap))):
+            enableUntil = min(subCmdID+enableCount, len(enablingMap))
+            for i in xrange(subCmdID, enableUntil):
                 if enablingMap[i]:
                     continue
 
@@ -567,18 +581,26 @@ class engineV3(object):
 
     def skipNextSubCommandOnTheCurrentData(self, skipCount=1):
         if skipCount < 1:
-            raise executionException("(engine) skipNextSubCommandOnTheCurrentData, skip count must be equal or bigger than 1")
+            raise executionException("(engine) "
+                                     "skipNextSubCommandOnTheCurrentData, skip"
+                                     " count must be equal or bigger than 1")
 
         self.stack.raiseIfEmpty("skipNextSubCommandOnTheCurrentData")
         #  can only skip the next command if the state is pre_process
         if self.stack.typeOnTop() != PREPROCESS_INSTRUCTION:
-            raise executionException("(engine) skipNextSubCommandOnTheCurrentData, can only skip method on PREPROCESS item")
+            raise executionException("(engine) "
+                                     "skipNextSubCommandOnTheCurrentData, can"
+                                     " only skip method on PREPROCESS item")
 
         if self._isInProcess:
             if self.topPreIndexOpp is None or self.topPreIndexOpp >= 0:
                 self.topPreIndexOpp += skipCount
             else:
-                raise executionException("(engine) skipNextSubCommandOnTheCurrentData, a pending operation is already present on this databunch, can not skip the next sub command")
+                raise executionException("(engine) "
+                                         "skipNextSubCommandOnTheCurrentData, "
+                                         "a pending operation is already "
+                                         "present on this databunch, can not "
+                                         "skip the next sub command")
         else:
             self.stack[-1][1][-1] += skipCount
 
@@ -588,14 +610,20 @@ class engineV3(object):
 
     def skipNextSubCommandForTheEntireExecution(self, skipCount=1):
         self.stack.raiseIfEmpty("skipNextSubCommandForTheEntireExecution")
-        self._skipOnCmd(self.stack.cmdIndexOnTop(), self.stack.subCmdIndexOnTop(), skipCount)
+        self._skipOnCmd(self.stack.cmdIndexOnTop(),
+                        self.stack.subCmdIndexOnTop(),
+                        skipCount)
 
     def disableEnablingMapOnDataBunch(self, index=-1):
-        isAValidIndex(self.stack, index, "disableEnablingMapOnDataBunch", "stack")
+        isAValidIndex(self.stack,
+                      index,
+                      "disableEnablingMapOnDataBunch",
+                      "stack")
 
         #  can only skip the next command if the state is pre_process
         if self.stack.typeOnIndex(index) != PREPROCESS_INSTRUCTION:
-            raise executionException("(engine) disableEnablingMapOnDataBunch, can only skip method on PREPROCESS item")
+            raise executionException("(engine) disableEnablingMapOnDataBunch, "
+                                     "can only skip method on PREPROCESS item")
 
         mapping = self.stack.enablingMapOnIndex(index)
 
@@ -623,14 +651,20 @@ class engineV3(object):
 
         isAValidIndex(self.argsList, cmdID, "flushArgs", "arg list")
         self.argsList[cmdID] = None
-        self.mappedArgsList[cmdID] = (EMPTY_MAPPED_ARGS, EMPTY_MAPPED_ARGS, EMPTY_MAPPED_ARGS,)
+        self.mappedArgsList[cmdID] = (EMPTY_MAPPED_ARGS,
+                                      EMPTY_MAPPED_ARGS,
+                                      EMPTY_MAPPED_ARGS,)
 
     def addSubCommand(self, cmd, cmdID=None, onlyAddOnce=True, useArgs=True):
         # is a valid cmd ?
-        if not isinstance(cmd, Command):  # only the Command are allowed in the list
-            raise executionException("(engine) addSubCommand, cmd is not a Command instance, got '"+str(type(cmd))+"'")
+        # only the Command are allowed in the list
+        if not isinstance(cmd, Command):
+            raise executionException("(engine) addSubCommand, cmd is not a "
+                                     "Command instance, got '"+str(type(cmd)) +
+                                     "'")
 
-        # compute the current command index where the sub command will be insert, check the cmd path on the stack
+        # compute the current command index where the sub command will be
+        # insert, check the cmd path on the stack
         if cmdID is None:
             self.stack.raiseIfEmpty("addSubCommand")
             cmdID = self.stack.cmdIndexOnTop()
@@ -640,7 +674,8 @@ class engineV3(object):
         # add the sub command
         self.cmdList[cmdID].addDynamicCommand(cmd, onlyAddOnce, useArgs)
 
-        # build a list with the index in cmdList with the equivalent cmd as the cmd at cmdID
+        # build a list with the index in cmdList with the equivalent cmd as
+        # the cmd at cmdID
         cmdToUpdate = []
         for i in range(0, len(self.cmdList)):
             if self.cmdList[i] == self.cmdList[cmdID]:
@@ -662,11 +697,16 @@ class engineV3(object):
             enablingMap.append(True)
 
     def addCommand(self, cmd, convertProcessToPreProcess=False):
-        if not isinstance(cmd, MultiCommand):  # only the MultiCommand are allowed in the list
-            raise executionException("(engine) addCommand, cmd is not a MultiCommand instance, got '"+str(type(cmd))+"'")
+        # only the MultiCommand are allowed in the list
+        if not isinstance(cmd, MultiCommand):
+            raise executionException("(engine) addCommand, cmd is not a "
+                                     "MultiCommand instance, got '" +
+                                     str(type(cmd))+"'")
 
-        # The process (!= pre and != post), must always be the process of the last command in the list
-        # if we add a new command, the existing process on the stack became invalid
+        # The process (!= pre and != post), must always be the process
+        # of the last command in the list
+        # if we add a new command, the existing process on the stack
+        # became invalid
         stackSize = self.stack.size()
         for i in range(0, len(self.stack)):
             # if we reach a preprocess, we never reach again a process
@@ -678,20 +718,28 @@ class engineV3(object):
 
             # so, here we only have PROCESS_INSTRUCTION
 
-            # if it is the process at the top, it must have its current data and the next
-                # the current data of a top process is currently consumed by a process, so on the next iteration it will not be a problem anymore.  But if a next data exist, it is a problem.
+            # if it is the process at the top, it must have its current data
+            # and the next
+            #   the current data of a top process is currently consumed by a
+            #   process, so on the next iteration it will not be a problem
+            #   anymore.  But if a next data exist, it is a problem.
             if i == stackSize-1 and len(self.stack.dataOnTop()) == 1:
                 continue
 
             if not convertProcessToPreProcess:
-                raise executionException("(engine) addCommand, some process are waiting on the stack, can not add a command")
+                raise executionException("(engine) addCommand, some process "
+                                         "are waiting on the stack, can not "
+                                         "add a command")
 
-            # convert the existing process on the stack into preprocess of the new command
+            # convert the existing process on the stack into preprocess of
+            # the new command
             if self._isInProcess and i == (self.stack.size()-1):
                 self.topProcessToPre = True
             else:
                 new_path = self.stack.pathOnIndex(i)[:]
-                new_path.append(0)  # no need to compute the index, the cmd will be reset, so the first available sub cmd will be at the index 0
+                # no need to compute the index, the cmd will be reset,
+                # so the first available sub cmd will be at the index 0
+                new_path.append(0)
                 self.stack.setPathOnIndex(i, new_path)
 
             self.stack.setTypeOnIndex(i, PREPROCESS_INSTRUCTION)
@@ -718,22 +766,34 @@ class engineV3(object):
     def getPreviousCommand(self):
         self.stack.raiseIfEmpty("getPreviousCommand")
         if self.stack.cmdIndexOnTop() == 0:
-            raise executionException("(engine) getPreviousCommand, there is no previous command")
+            raise executionException("(engine) getPreviousCommand, there is no"
+                                     " previous command")
 
         return self.cmdList[self.stack.cmdIndexOnTop()-1]
 
 # ##  SPLIT/MERGE meth # ##
 
-    def mergeDataAndSetEnablingMap(self, toppestItemToMerge=-1, newMap=None, count=2):
+    def mergeDataAndSetEnablingMap(self,
+                                   toppestItemToMerge=-1,
+                                   newMap=None,
+                                   count=2):
         self.stack.raiseIfEmpty("mergeDataAndSetEnablingMap")
-        isAValidIndex(self.stack, toppestItemToMerge, "mergeDataAndSetEnablingMap", "stack")
-        raisIfInvalidMap(newMap, self.stack.subCmdLengthOnIndex(toppestItemToMerge, self.cmdList), "mergeDataAndSetEnablingMap")
+        isAValidIndex(self.stack,
+                      toppestItemToMerge,
+                      "mergeDataAndSetEnablingMap",
+                      "stack")
+        raisIfInvalidMap(newMap,
+                         self.stack.subCmdLengthOnIndex(toppestItemToMerge,
+                                                        self.cmdList),
+                         "mergeDataAndSetEnablingMap")
 
         # current index must be enabled in map
         if newMap is not None:
             subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
             if not newMap[subindex]:
-                raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the new map")
+                raise executionException("(engine) mergeDataAndSetEnablingMap,"
+                                         " the current sub command is disabled"
+                                         " in the new map")
 
         # convert toppestItemToMerge into positive value
         if toppestItemToMerge < 0:
@@ -745,7 +805,10 @@ class engineV3(object):
         # set the new map
         self.stack.setEnableMapOnIndex(toppestItemToMerge - count + 1, newMap)
 
-    def mergeData(self, toppestItemToMerge=-1, count=2, indexOfTheMapToKeep=None):
+    def mergeData(self,
+                  toppestItemToMerge=-1,
+                  count=2,
+                  indexOfTheMapToKeep=None):
         # need at least two item to merge
         if count < 2:
             return False  # no need to merge
@@ -757,16 +820,22 @@ class engineV3(object):
 
         # the stack need to hold at least count
         if toppestItemToMerge+1 < count:
-            raise executionException("(engine) mergeDataOnStack, no enough of data on stack to merge from this index")
+            raise executionException("(engine) mergeDataOnStack, no enough of "
+                                     "data on stack to merge from this index")
 
         # can only merge on PREPROCESS
-        if self.stack.typeOnIndex(toppestItemToMerge) != PREPROCESS_INSTRUCTION:
-            raise executionException("(engine) mergeDataOnStack, try to merge a not preprocess action")
+        if (self.stack.typeOnIndex(toppestItemToMerge) !=
+           PREPROCESS_INSTRUCTION):
+            raise executionException("(engine) mergeDataOnStack, try to merge "
+                                     "a not preprocess action")
 
         # check dept and get map
         if indexOfTheMapToKeep is not None:
-            if indexOfTheMapToKeep < 0 or indexOfTheMapToKeep > toppestItemToMerge:
-                raise executionException("(engine) mergeDataOnStack, the selected map to apply is not one the map of the selected items")
+            if (indexOfTheMapToKeep < 0 or
+               indexOfTheMapToKeep > toppestItemToMerge):
+                raise executionException("(engine) mergeDataOnStack, the "
+                                         "selected map to apply is not one the"
+                                         " map of the selected items")
 
             # get the valid map
             enablingMap = self.stack.enablingMapOnIndex(indexOfTheMapToKeep)
@@ -775,7 +844,10 @@ class engineV3(object):
                 # the current index must be enabled in the new map
                 subindex = self.stack.subCmdIndexOnIndex(toppestItemToMerge)
                 if not enablingMap[subindex]:
-                    raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command is disabled in the selected map")
+                    raise executionException("(engine) "
+                                             "mergeDataAndSetEnablingMap, the "
+                                             "current sub command is disabled "
+                                             "in the selected map")
 
         else:
             # does not keep any map
@@ -786,19 +858,29 @@ class engineV3(object):
 
         for i in range(1, count):
             currentStackItem = self.stack.itemOnIndex(toppestItemToMerge-i)
-            equals, sameLength, equalsCount, path1IsHigher = equalPath(path, currentStackItem[1])
+            equals, sameLength, equalsCount, path1IsHigher = \
+                equalPath(path, currentStackItem[1])
 
             # the path must be the same for each item to merge
-            #   execpt for the last command, the items not at the top of the stack must have 0 or the cmdStartLimit
+            #   execpt for the last command, the items not at the top of the
+            #   stack must have 0 or the cmdStartLimit
             if not sameLength:
-                raise executionException("(engine) mergeDataOnStack, the command path is different for the item at index <"+str(i)+">")
+                raise executionException("(engine) mergeDataOnStack, the "
+                                         "command path is different for the "
+                                         "item at index <"+str(i)+">")
 
             if not equals:
-                raise executionException("(engine) mergeDataOnStack, a subcommand index is different for the item at sub index <"+str(equalsCount)+">")
+                raise executionException("(engine) mergeDataOnStack, a "
+                                         "subcommand index is different for "
+                                         "the item at sub index <" +
+                                         str(equalsCount)+">")
 
             # the action must be the same type
             if currentStackItem[2] != PREPROCESS_INSTRUCTION:
-                raise executionException("(engine) mergeDataOnStack, the action of the item at index <"+str(i)+"> is different of the action ot the first item")
+                raise executionException("(engine) mergeDataOnStack, the "
+                                         "action of the item at index <" +
+                                         str(i)+"> is different of the action"
+                                         " ot the first item")
 
         # merge data and keep start/end command
         dataBunch = []
@@ -806,13 +888,25 @@ class engineV3(object):
             dataBunch.extend(self.stack.dataOnIndex(toppestItemToMerge - i))
             del self.stack[toppestItemToMerge - i]
 
-        self.stack.insert(toppestItemToMerge - count + 1, (dataBunch, path, PREPROCESS_INSTRUCTION, enablingMap,))
+        self.stack.insert(toppestItemToMerge-count+1,
+                          (dataBunch,
+                           path,
+                           PREPROCESS_INSTRUCTION,
+                           enablingMap,))
         return True
 
-    def splitDataAndSetEnablingMap(self, itemToSplit=-1, splitAtDataIndex=0, map1=None, map2=None):
+    def splitDataAndSetEnablingMap(self,
+                                   itemToSplit=-1,
+                                   splitAtDataIndex=0,
+                                   map1=None,
+                                   map2=None):
         self.stack.raiseIfEmpty("splitDataAndSetEnablingMap")
-        isAValidIndex(self.stack, itemToSplit, "splitDataAndSetEnablingMap", "stack")
-        expectedMapLength = self.stack.subCmdLengthOnIndex(itemToSplit, self.cmdList)
+        isAValidIndex(self.stack,
+                      itemToSplit,
+                      "splitDataAndSetEnablingMap",
+                      "stack")
+        expectedMapLength = self.stack.subCmdLengthOnIndex(itemToSplit,
+                                                           self.cmdList)
         raisIfInvalidMap(map1, expectedMapLength, "splitDataAndSetEnablingMap")
         raisIfInvalidMap(map2, expectedMapLength, "splitDataAndSetEnablingMap")
 
@@ -821,8 +915,11 @@ class engineV3(object):
             itemToSplit = len(self.stack) + itemToSplit
 
         # current index must be enabled in new map1 (really ?)
-        if map1 is not None and not map1[self.stack.subCmdIndexOnIndex(itemToSplit)]:
-            raise executionException("(engine) mergeDataAndSetEnablingMap, the current sub command can not be disabled in the map1")
+        if (map1 is not None and
+           not map1[self.stack.subCmdIndexOnIndex(itemToSplit)]):
+            raise executionException("(engine) mergeDataAndSetEnablingMap, the"
+                                     " current sub command can not be disabled"
+                                     " in the map1")
 
         # compute first available in map2
         newMap2Index = 0
@@ -840,14 +937,22 @@ class engineV3(object):
 
         return state
 
-    def splitData(self, itemToSplit=-1, splitAtDataIndex=0, resetEnablingMap=False):  # split the data into two separate stack item at the index, but will not change anything in the process order
+    # split the data into two separate stack item at the index, but will not
+    # change anything in the process order
+    def splitData(self,
+                  itemToSplit=-1,
+                  splitAtDataIndex=0,
+                  resetEnablingMap=False):
         # is empty stack ?
         self.stack.raiseIfEmpty("splitData")
         isAValidIndex(self.stack, itemToSplit, "splitData", "stack")
 
         # is it a pre ? (?)
         if self.stack.typeOnIndex(itemToSplit) != PREPROCESS_INSTRUCTION:
-            raise executionException("(engine) splitData, can't split the data of a PRO/POST process because it will not change anything on the execution")
+            raise executionException("(engine) splitData, can't split the "
+                                     "data of a PRO/POST process because it "
+                                     "will not change anything on the "
+                                     "execution")
 
         # split point exist ?
         topdata = self.stack.dataOnIndex(itemToSplit)
@@ -871,11 +976,17 @@ class engineV3(object):
             path[-1] = 0
         else:
             enableMap = top[3]
-            path[-1] = 0  # getFirstEnabledIndexInEnablingMap(enableMap, self.cmdList[len(top[1])-1], 0, "splitData")
+            path[-1] = 0
 
         # push the two new items
-        self.stack.insert(itemToSplit, (top[0][0:splitAtDataIndex], top[1], top[2], enableMap,))
-        self.stack.insert(itemToSplit, (top[0][splitAtDataIndex:], path, top[2], enableMap,))
+        self.stack.insert(itemToSplit, (top[0][0:splitAtDataIndex],
+                                        top[1],
+                                        top[2],
+                                        enableMap,))
+        self.stack.insert(itemToSplit, (top[0][splitAtDataIndex:],
+                                        path,
+                                        top[2],
+                                        enableMap,))
 
         return True
 
@@ -883,7 +994,8 @@ class engineV3(object):
 
     def flushData(self):
         self.stack.raiseIfEmpty("flushData")
-        del self.stack.dataOnTop()[:]  # remove everything, the engine is able to manage an empty data bunch
+        # remove everything, the engine is able to manage an empty data bunch
+        del self.stack.dataOnTop()[:]
 
     def appendData(self, newdata):
         self.stack.raiseIfEmpty("addData")
@@ -894,7 +1006,11 @@ class engineV3(object):
         data = self.stack.dataOnTop()
 
         if forbideInsertionAtZero and offset == 0:
-            raise executionException("(engine) addData, can't insert a data at offset 0, it could create infinite loop. it is possible to override this check with the boolean forbideInsertionAtZero, set it to False")
+            raise executionException("(engine) addData, can't insert a data at"
+                                     " offset 0, it could create infinite "
+                                     "loop. it is possible to override this "
+                                     "check with the boolean "
+                                     "forbideInsertionAtZero, set it to False")
 
         data.insert(offset, newdata)
 
@@ -906,14 +1022,22 @@ class engineV3(object):
         # remove the data
         del data[offset]
 
-        # set the current cmd index to startIndex -1 (the minus 1 is because the engine will make a plus 1 to execute the next command)
-        if resetSubCmdIndexIfOffsetZero and (offset == 0 or len(data) == 0):  # len(data) == 0 is to manage the removal of the last item with -1 index on a data bunch of size 1
-            # the engine will compute the first enabled cmd, if there is no more data, let the engine compute the cmd index too
+        # set the current cmd index to startIndex -1 (the minus 1 is because
+        # the engine will make a plus 1 to execute the next command)
+        #
+        # len(data) == 0 is to manage the removal of the last item with -1
+        # index on a data bunch of size 1
+        if resetSubCmdIndexIfOffsetZero and (offset == 0 or len(data) == 0):
+            # the engine will compute the first enabled cmd, if there is no
+            # more data, let the engine compute the cmd index too
             if self._isInProcess:
                 if self.topPreIndexOpp is None or self.topPreIndexOpp == -1:
                     self.topPreIndexOpp = -1
                 else:
-                    raise executionException("(engine) removeData, a pending operation is already present on this databunch, can not remove the data at zero index")
+                    raise executionException("(engine) removeData, a pending "
+                                             "operation is already present on "
+                                             "this databunch, can not remove "
+                                             "the data at zero index")
             else:
                 self.stack[-1][1][-1] = 0
 
@@ -931,11 +1055,13 @@ class engineV3(object):
 
     def hasNextData(self):
         self.stack.raiseIfEmpty("hasNextData")
-        return len(self.stack.dataOnTop()) > 1  # 1 and not zero, because there are the current data and the next one
+        # 1 and not zero, because there are the current data and the next one
+        return len(self.stack.dataOnTop()) > 1
 
     def getRemainingDataCount(self):
         self.stack.raiseIfEmpty("getRemainingDataCount")
-        return len(self.stack.dataOnTop())-1  # -1 because we don't care about the current data
+        # -1 because we don't care about the current data
+        return len(self.stack.dataOnTop())-1
 
     def getDataCount(self):
         self.stack.raiseIfEmpty("getDataCount")
@@ -965,14 +1091,20 @@ class engineV3(object):
             subCmdIndex %= len(cmd)
             beforeCurrentIndex = (subCmdIndex + len(cmd) - 1) % len(cmd)
             while len(data) > 0:
-                if (enablingMap is not None and not enablingMap[subCmdIndex]) or cmd.isdisabledCmd(subCmdIndex):
-                    if subCmdIndex == beforeCurrentIndex:  # we test every cmd available in this databunch, they are all disabled
+                if ((enablingMap is not None and
+                   not enablingMap[subCmdIndex]) or
+                   cmd.isdisabledCmd(subCmdIndex)):
+                    # we test every cmd available in this databunch,
+                    # they are all disabled
+                    if subCmdIndex == beforeCurrentIndex:
                         data = ()
-                        continue  # will go to the else statement of the current loop
+                        # will go to the else statement of the current loop
+                        continue
 
                     subCmdIndex += 1
 
-                    # do we reach the end of the available index for this data ?
+                    # do we reach the end of the available index for this
+                    # data ?
                     if subCmdIndex >= len(cmd):
                         del data[0]
                         subCmdIndex = 0
@@ -980,7 +1112,9 @@ class engineV3(object):
                     continue  # need to test the next index
                 break  # we have an enabled index with at least one data
 
-            else:  # len(self.stack.dataOnTop()) == 0: # if empty data, this databunch is out, no more thing to do
+            # len(self.stack.dataOnTop()) == 0: # if empty data, this
+            # databunch is out, no more thing to do
+            else:
                 self.stack.pop()
                 continue
 
@@ -991,7 +1125,9 @@ class engineV3(object):
             top[1][-1] = subCmdIndex  # set current index in databunch
 
             # ##  EXECUTE command # ##
-            to_stack = None  # prepare the var to push on the stack, if the var keep the none value, nothing will be stacked
+            # prepare the var to push on the stack, if the var keep the
+            # none value, nothing will be stacked
+            to_stack = None
 
             if useArgs:
                 indexOnTop = self.stack.cmdIndexOnTop()
@@ -1003,13 +1139,18 @@ class engineV3(object):
 
             # #  PRE PROCESS
             if insType == PREPROCESS_INSTRUCTION:  # pre
-                r = self._executeMethod(cmd, subcmd.preProcess, top, args, mappedArgs[0])
+                r = self._executeMethod(cmd,
+                                        subcmd.preProcess,
+                                        top,
+                                        args,
+                                        mappedArgs[0])
                 subcmd.preCount += 1
 
                 new_path = top[1][:]  # copy the path
                 if self.topPreIndexOpp is not None:
                     if self.topPreIndexOpp < 0:
-                        # little hack to get the index 0 on the current data on the next execution
+                        # little hack to get the index 0 on the current data
+                        # on the next execution
                         top[1][-1] = len(cmd) - 1
                         top[0].insert(0, None)
                     else:
@@ -1018,23 +1159,36 @@ class engineV3(object):
                     self.topPreIndexOpp = None
 
                 # manage result
-                if len(top[1]) == len(self.cmdList):  # no child, next step will be a process
+                # no child, next step will be a process
+                if len(top[1]) == len(self.cmdList):
                     to_stack = (r, new_path, PROCESS_INSTRUCTION, )
-                else:  # there are some child, next step will be another preprocess
+                else:
+                    # there are some child, next step will be another
+                    # preprocess
                     # build first index to execute, it's not always 0
-                    # new_cmd = self.cmdList[len(top[1])]  # the -1 is not missing, we want the next cmd, not the current
-                    # nextData, newIndex = self._computeTheNextChildToExecute(new_cmd, len(new_cmd)-1, None)
+                    # new_cmd = self.cmdList[len(top[1])]  # the -1 is not
+                    # missing, we want the next cmd, not the current
+                    # nextData, newIndex =
+                    # self._computeTheNextChildToExecute(new_cmd,
+                    # len(new_cmd)-1, None)
 
-                    # the first cmd has no subcmd enabled, impossible to start the engine
+                    # the first cmd has no subcmd enabled, impossible to
+                    # start the engine
                     # if newIndex == -1:
-                    #     raise executionException("(engine) execute, no enabled subcmd on the cmd "+str(len(top[1])))
+                    #     raise executionException("(engine) execute, no
+                    #       enabled subcmd on the cmd "+str(len(top[1])))
 
-                    new_path.append(0)  # then add the first index of the next command
+                    # then add the first index of the next command
+                    new_path.append(0)
                     to_stack = (r, new_path, PREPROCESS_INSTRUCTION, )
 
             # #  PROCESS # #
             elif insType == PROCESS_INSTRUCTION:  # pro
-                r = self._executeMethod(cmd, subcmd.process, top, None, mappedArgs[1])
+                r = self._executeMethod(cmd,
+                                        subcmd.process,
+                                        top,
+                                        None,
+                                        mappedArgs[1])
                 subcmd.proCount += 1
                 # manage result
                 to_stack = (r, top[1][:], POSTPROCESS_INSTRUCTION,)
@@ -1045,14 +1199,22 @@ class engineV3(object):
 
             # #  POST PROCESS # #
             elif insType == POSTPROCESS_INSTRUCTION:  # post
-                r = self._executeMethod(cmd, subcmd.postProcess, top, None, mappedArgs[2])
+                r = self._executeMethod(cmd,
+                                        subcmd.postProcess,
+                                        top,
+                                        None,
+                                        mappedArgs[2])
                 subcmd.postCount += 1
 
                 # manage result
                 if len(top[1]) > 1:  # not on the root node
-                    to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,)  # just remove one item in the path to get the next postprocess to execute
-                else:  # so this is the last post for this data
-                    if self.stack.size() == 1:  # and there is no more data to process
+                    # just remove one item in the path to get the next
+                    # postprocess to execute
+                    to_stack = (r, top[1][:-1], POSTPROCESS_INSTRUCTION,)
+                # so this is the last post for this data
+                else:
+                    # and there is no more data to process
+                    if self.stack.size() == 1:
                         if isinstance(r, MultiOutput):
                             self.lastResult = r
                         else:
@@ -1061,40 +1223,66 @@ class engineV3(object):
                             else:
                                 self.lastResult = r
             else:
-                raise executionException("(engine) execute, unknwon process command '"+str(insType)+"'")
+                raise executionException("(engine) execute, unknwon process "
+                                         "command '"+str(insType)+"'")
 
             if self.selfkillreason is not None:
                 reason, abnormal = self.selfkillreason
-                raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
+                raise engineInterruptionException("(engine) stopExecution, "
+                                                  "execution stop, reason: " +
+                                                  reason,
+                                                  abnormal)
 
             if subcmd.preCount > DEFAULT_EXECUTION_LIMIT:
-                raise executionException("(engine) execute, this subcommand reach the execution limit count for preprocess")
+                raise executionException("(engine) execute, this subcommand "
+                                         "reach the execution limit count for "
+                                         "preprocess")
             elif subcmd.proCount > DEFAULT_EXECUTION_LIMIT:
-                raise executionException("(engine) execute, this subcommand reach the execution limit count for process")
+                raise executionException("(engine) execute, this subcommand "
+                                         "reach the execution limit count for "
+                                         "process")
             elif subcmd.postCount > DEFAULT_EXECUTION_LIMIT:
-                raise executionException("(engine) execute, this subcommand reach the execution limit count for postprocess")
+                raise executionException("(engine) execute, this subcommand "
+                                         "reach the execution limit count for "
+                                         "postprocess")
 
             # ##  MANAGE STACK, need to repush the current item ? # ##
             self.stack.pop()
-            if insType == PROCESS_INSTRUCTION or insType == POSTPROCESS_INSTRUCTION:  # process or postprocess ?
+
+            # process or postprocess ?
+            if (insType == PROCESS_INSTRUCTION or
+               insType == POSTPROCESS_INSTRUCTION):
                 if len(top[0]) > 1:  # still data to execute ?
-                    self.stack.push(top[0][1:], top[1], top[2])  # remove the last used data and push on the stack
-            else:  # insType == 0 # preprocess, can't be anything else, a test has already occured sooner in the engine function
-                nextData, newIndex = self._computeTheNextChildToExecute(cmd, top[1][-1], top[3])
-                # something to do ? (if newIndex == -1, there is no more enabled cmd for this data bunch)
-                if ((not nextData and len(top[0]) > 0) or len(top[0]) > 1) and newIndex >= 0:
-                    # if we need to use the next data, we need to remove the old one
+                    # remove the last used data and push on the stack
+                    self.stack.push(top[0][1:], top[1], top[2])
+            # insType == 0 # preprocess, can't be anything else, a test has
+            # already occured sooner in the engine function
+            else:
+                nextData, newIndex = \
+                    self._computeTheNextChildToExecute(cmd, top[1][-1], top[3])
+                # something to do ? (if newIndex == -1, there is no
+                # more enabled cmd for this data bunch)
+                if (((not nextData and len(top[0]) > 0) or len(top[0]) > 1) and
+                   newIndex >= 0):
+                    # if we need to use the next data,
+                    # we need to remove the old one
                     if nextData:
                         del top[0][0]  # remove the used data
 
-                    top[1][-1] = newIndex  # select the next child id
-                    self.stack.push(top[0], top[1], top[2], top[3])  # push on the stack again
+                    # select the next child id
+                    top[1][-1] = newIndex
+
+                    # push on the stack again
+                    self.stack.push(top[0], top[1], top[2], top[3])
 
             # ##  STACK THE RESULT of the current process if needed # ##
             if to_stack is not None:
                 self.stack.push(*to_stack)
 
-    def _computeTheNextChildToExecute(self, cmd, currentSubCmdIndex, enablingMap):
+    def _computeTheNextChildToExecute(self,
+                                      cmd,
+                                      currentSubCmdIndex,
+                                      enablingMap):
         currentSubCmdIndex = min(currentSubCmdIndex, len(cmd) - 1)
         startingIndex = currentSubCmdIndex
         executeOnNextData = False
@@ -1107,23 +1295,30 @@ class engineV3(object):
                 executeOnNextData = True
 
             # is it a valid command to execute ?
-            if cmd[startingIndex][2] and (enablingMap is None or enablingMap[startingIndex]):
+            if (cmd[startingIndex][2] and
+               (enablingMap is None or enablingMap[startingIndex])):
                 return executeOnNextData, startingIndex
 
             # stop condition
             if startingIndex == currentSubCmdIndex:
                 return executeOnNextData, -1
 
-    def _executeMethod(self, cmd, subcmd, stackState, args=None, mappedArgs=EMPTY_MAPPED_ARGS):
+    def _executeMethod(self,
+                       cmd,
+                       subcmd,
+                       stackState,
+                       args=None,
+                       mappedArgs=EMPTY_MAPPED_ARGS):
         nextData = stackState[0][0]
 
         # prepare data
         if args is not None:
             args = args[:]
             if nextData != EMPTY_DATA_TOKEN:
-                if hasattr(nextData, "__iter__"):  # case where the previous process return a list of element
+                # case where the previous process return a list of element
+                if hasattr(nextData, "__iter__"):
                     args.extend(nextData)
-                else:                            # case where the previous process return only one args
+                else:  # case where the previous process return only one args
                     args.append(nextData)
 
         elif nextData != EMPTY_DATA_TOKEN:
@@ -1155,7 +1350,7 @@ class engineV3(object):
             lock = FAKELOCK
 
         # execute Xprocess (X for pre/pro/post)
-        with lock:  # TODO if an exception raise in command, lock is released ? (stupid question but I prefer to be sure)
+        with lock:
             self._isInProcess = True
             try:
                 r = subcmd(**data)
@@ -1164,7 +1359,8 @@ class engineV3(object):
 
         # manage None output
         if r is None:
-            if hasattr(subcmd, "allowToReturnNone") and subcmd.allowToReturnNone:
+            if (hasattr(subcmd, "allowToReturnNone") and
+               subcmd.allowToReturnNone):
                 return [[None]]
             else:
                 return [EMPTY_DATA_TOKEN]
@@ -1175,15 +1371,23 @@ class engineV3(object):
 
         return [r]
 
-    def stopExecution(self, reason=None, afterThisProcess=True, abnormal=False):
+    def stopExecution(self,
+                      reason=None,
+                      afterThisProcess=True,
+                      abnormal=False):
         if not self._isInProcess:
-            raise executionException("(engine) stopExecution, can not execute this method outside of a process")
+            raise executionException("(engine) stopExecution, can not "
+                                     "execute this method outside of a "
+                                     "process")
 
         if reason is None:
             reason = "unknown"
 
         if not afterThisProcess:
-            raise engineInterruptionException("(engine) stopExecution, execution stop, reason: "+reason, abnormal)
+            raise engineInterruptionException("(engine) stopExecution, "
+                                              "execution stop, reason: " +
+                                              reason,
+                                              abnormal)
         else:
             self.selfkillreason = (reason, abnormal,)
 
@@ -1194,7 +1398,8 @@ class engineV3(object):
             methName += ", "
 
         if self._isInProcess:
-            raise executionException("(engine) "+methName+", not allowed to execute this method inside a process")
+            raise executionException("(engine) "+methName+", not allowed to "
+                                     "execute this method inside a process")
 
     def raiseIfNotInMethodExecution(self, methName=None):
         if methName is None:
@@ -1203,7 +1408,8 @@ class engineV3(object):
             methName += ", "
 
         if not self._isInProcess:
-            raise executionException("(engine) "+methName+", not allowed to execute this method outside a process")
+            raise executionException("(engine) "+methName+", not allowed to "
+                                     "execute this method outside a process")
 
 # ##  DEBUG meth # ##
 

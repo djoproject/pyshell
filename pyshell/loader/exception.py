@@ -28,4 +28,3 @@ class RegisterException(DefaultPyshellException):
 class LoadException(DefaultPyshellException):
     def __init__(self, value):
         DefaultPyshellException.__init__(self, value, PARSE_WARNING)
-

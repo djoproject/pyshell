@@ -140,4 +140,3 @@ class engineStack(list):
             return methToCall(*nargs)
 
         return meth
-
