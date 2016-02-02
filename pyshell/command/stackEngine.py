@@ -1,35 +1,38 @@
 #!/usr/bin/env python -t
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2012  Jonathan Delvaux <pyshell@djoproject.net>
+# Copyright (C) 2012  Jonathan Delvaux <pyshell@djoproject.net>
 
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.command.exception import *
+from pyshell.command.exception import executionException
+
 
 class engineStack(list):
-    def push(self, data, cmdPath, instructionType, cmdMap = None):
-        self.append((data, cmdPath, instructionType,cmdMap,))
-        
-    def raiseIfEmpty(self, methName = None):
+    def push(self, data, cmdPath, instructionType, cmdMap=None):
+        self.append((data, cmdPath, instructionType, cmdMap,))
+
+    def raiseIfEmpty(self, methName=None):
         if len(self) == 0:
             if methName is None:
-                raise executionException("(engine) engineStack, no item on the stack")
+                raise executionException("(engine) engineStack, no item on "
+                                         "the stack")
             else:
-                raise executionException("(engine) "+methName+", no item on the stack")
-    
-    ### SIZE meth ###
+                raise executionException("(engine) "+methName+", no item on "
+                                         "the stack")
+
+    # ## SIZE meth ## #
     def size(self):
         return len(self)
 
@@ -39,7 +42,7 @@ class engineStack(list):
     def isLastStackItem(self):
         return len(self) == 1
 
-    ### 
+    # ##
     def data(self, index):
         return self[index][0]
 
@@ -70,48 +73,51 @@ class engineStack(list):
     def subCmdIndex(self, index):
         return self[index][1][-1]
 
-    def setEnableMap(self,index,newMap):
+    def setEnableMap(self, index, newMap):
         current = self[index]
-        self[index] = (current[0], current[1], current[2], newMap, )
+        self[index] = (current[0], current[1], current[2], newMap,)
 
     def setPath(self, index, path):
         current = self[index]
-        self[index] = (current[0], path, current[2], current[3], )
+        self[index] = (current[0], path, current[2], current[3],)
 
     def setType(self, index, newType):
         current = self[index]
-        self[index] = (current[0], current[1], newType, current[3], )
+        self[index] = (current[0], current[1], newType, current[3],)
 
-    ### MISC meth ###
+    # ## MISC meth ## #
 
     def top(self):
         return self[-1]
 
     def getIndexBasedXRange(self):
-        return xrange(0,len(self),1)
+        return xrange(0, len(self), 1)
 
-    ##########
+    # #########
     def __getattr__(self, name):
         if name.endswith("OnTop"):
             index = -1
-            sub   = None
+            sub = None
             name = name[:-5]
         elif name.endswith("OnIndex"):
             index = None
-            sub   = None
+            sub = None
             name = name[:-7]
         elif name.endswith("OnDepth"):
             index = None
             sub = len(self)-1
             name = name[:-7]
         else:
-            #return getattr(self,name)
+            # return getattr(self,name)
             return object.__getattribute__(self, name)
 
-        if name not in ["data", "path", "type", "enablingMap", "cmdIndex", "cmdLength", "item", "getCmd", "subCmdLength", "subCmdIndex", "setEnableMap", "setPath", "setType"]:
-            raise executionException("(engineStack) __getattr__, try to get an unallowed or unexistant meth")
+        if name not in ["data", "path", "type", "enablingMap", "cmdIndex",
+                        "cmdLength", "item", "getCmd", "subCmdLength",
+                        "subCmdIndex", "setEnableMap", "setPath", "setType"]:
+            raise executionException("(engineStack) __getattr__, try to get an"
+                                     " unallowed or unexistant meth")
 
-        methToCall  = object.__getattribute__(self, name)
+        methToCall = object.__getattribute__(self, name)
 
         def meth(*args):
             if index is None:
@@ -119,7 +125,8 @@ class engineStack(list):
                     lindex = int(args[0])
                     startIndex = 1
                 else:
-                    #if index is not define, no need to do compute anything else
+                    # if index is not define, no need to do compute
+                    # anything else
                     return methToCall(*args)
             else:
                 startIndex = 0
@@ -133,5 +140,4 @@ class engineStack(list):
             return methToCall(*nargs)
 
         return meth
-
 
