@@ -93,8 +93,8 @@ class funAnalyser(object):
         index = self.inspect_result.args.index(argname)
         if not (index < (len(self.inspect_result.args) - self.lendefault)):
             indexToReturn = (index -
-                             len(self.inspect_result.args) -
-                             len(self.inspect_result.defaults))
+                             (len(self.inspect_result.args) -
+                             len(self.inspect_result.defaults)))
             return self.inspect_result.defaults[indexToReturn]
 
         raise decoratorException("(decorator) no default value to the "
