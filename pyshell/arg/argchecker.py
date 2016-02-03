@@ -1,181 +1,221 @@
 #!/usr/bin/env python -t
 # -*- coding: utf-8 -*-
 
-#Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
+# Copyright (C) 2014  Jonathan Delvaux <pyshell@djoproject.net>
 
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO
-    #create an argchecker to check if the value is an instance of
-    #create an argchecker to check if the value is a type of
-    #and when it will be done, look after listargchecker(defaultargchecker()) and replace them if possible
+# TODO
+#   create an argchecker to check if the value is an instance of
+#   create an argchecker to check if the value is a type of
+#   and when it will be done, look after listargchecker(defaultargchecker())
+#   and replace them if possible
+#
+#   create a checker to instanciate a class instance from a number of parameter
 
-    #create a checker to instanciate a class instance from a number of parameter
-
-from tries                   import tries
-from tries.exception         import ambiguousPathException
-import collections # for collections.Hashable
-from math                    import log
+import collections
+from math import log
 import os
-from threading               import Lock
+from threading import Lock
 
-from pyshell.arg.exception   import *
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, CONTEXT_ATTRIBUTE_NAME, VARIABLE_ATTRIBUTE_NAME, KEY_ATTRIBUTE_NAME
-from pyshell.utils.key       import CryptographicKey
+from tries import tries
+from tries.exception import ambiguousPathException
 
-#string argchecker definition
-ARGCHECKER_TYPENAME                  = "any"
-STRINGCHECKER_TYPENAME               = "string"
-INTEGERCHECKER_TYPENAME              = "integer"
-LIMITEDINTEGERCHECKER_TYPENAME       = "limited integer"
-HEXACHECKER_TYPENAME                 = "hexadecimal"
-BINARYCHECKER_TYPENAME               = "binary"
-FILEPATHCHECKER_TYPENAME             = "filePath"
-LISTCHECKER_TYPENAME                 = "list"
-DEFAULTVALUE_TYPENAME                = "default"
-ENVIRONMENTDYNAMICCHECKER_TYPENAME   = "environment dynamic"
-CONTEXTDYNAMICCHECKER_TYPENAME       = "context dynamic"
-VARIABLEDYNAMICCHECKER_TYPENAME      = "variable dynamic"
-ENVIRONMENTCHECKER_TYPENAME          = "environment"
-CONTEXTCHECKER_TYPENAME              = "context"
-VARIABLECHECKER_TYPENAME             = "variable"
-PARAMETERDYNAMICCHECKER_TYPENAME     = "parameter dynamic"
-PARAMETERCHECKER_TYPENAME            = "parameter"
-COMPLETEENVIRONMENTCHECKER_TYPENAME  = "complete Environment"
-ENGINECHECKER_TYPENAME               = "engine"
-FLOATCHECKER_TYPENAME                = "float"
-BOOLEANCHECKER_TYPENAME              = "boolean"
-TOKENCHECKER_TYPENAME                = "token"
-KEYCHECKER_TYPENAME                  = "key"
-KEYTRANSLATORCHECKER_TYPENAME       = "keyTranslator"
-KEYTRASNLATORCHECKER_TYPENAME        = "keyTranslator"
+from pyshell.arg.exception import *
+from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
+from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
+from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
+from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
+from pyshell.utils.key import CryptographicKey
+
+# string argchecker definition
+ARGCHECKER_TYPENAME = "any"
+STRINGCHECKER_TYPENAME = "string"
+INTEGERCHECKER_TYPENAME = "integer"
+LIMITEDINTEGERCHECKER_TYPENAME = "limited integer"
+HEXACHECKER_TYPENAME = "hexadecimal"
+BINARYCHECKER_TYPENAME = "binary"
+FILEPATHCHECKER_TYPENAME = "filePath"
+LISTCHECKER_TYPENAME = "list"
+DEFAULTVALUE_TYPENAME = "default"
+ENVIRONMENTDYNAMICCHECKER_TYPENAME = "environment dynamic"
+CONTEXTDYNAMICCHECKER_TYPENAME = "context dynamic"
+VARIABLEDYNAMICCHECKER_TYPENAME = "variable dynamic"
+ENVIRONMENTCHECKER_TYPENAME = "environment"
+CONTEXTCHECKER_TYPENAME = "context"
+VARIABLECHECKER_TYPENAME = "variable"
+PARAMETERDYNAMICCHECKER_TYPENAME = "parameter dynamic"
+PARAMETERCHECKER_TYPENAME = "parameter"
+COMPLETEENVIRONMENTCHECKER_TYPENAME = "complete Environment"
+ENGINECHECKER_TYPENAME = "engine"
+FLOATCHECKER_TYPENAME = "float"
+BOOLEANCHECKER_TYPENAME = "boolean"
+TOKENCHECKER_TYPENAME = "token"
+KEYCHECKER_TYPENAME = "key"
+KEYTRANSLATORCHECKER_TYPENAME = "keyTranslator"
+KEYTRASNLATORCHECKER_TYPENAME = "keyTranslator"
 KEYTRANSLATORDYNAMICCHECKER_TYPENAME = "keyTranslator dynamic"
+
 
 class defaultInstanceArgChecker(object):
     _lock = Lock()
-    ARGCHECKER           = None
-    STRINGARGCHECKER     = None
-    INTEGERARGCHECKER    = None
-    BOOLEANCHECKER       = None
-    FLOATCHECKER         = None
-    ENVCHECKER           = None
-    KEYCHECKER           = None
+    ARGCHECKER = None
+    STRINGARGCHECKER = None
+    INTEGERARGCHECKER = None
+    BOOLEANCHECKER = None
+    FLOATCHECKER = None
+    ENVCHECKER = None
+    KEYCHECKER = None
     KEYTRANSLATORCHECKER = None
-    ENGINECHECKER        = None
-    FILECHECKER          = None
+    ENGINECHECKER = None
+    FILECHECKER = None
 
-    DEFAULTCHECKER_DICO  ={ARGCHECKER_TYPENAME          :None,
-                           STRINGCHECKER_TYPENAME       :None,
-                           INTEGERCHECKER_TYPENAME      :None,
-                           BOOLEANCHECKER_TYPENAME      :None,
-                           FLOATCHECKER_TYPENAME        :None,
-                           ENVIRONMENTCHECKER_TYPENAME  :None,
-                           KEYCHECKER_TYPENAME          :None,
-                           ENGINECHECKER_TYPENAME       :None,
-                           FILEPATHCHECKER_TYPENAME     :None}
+    DEFAULTCHECKER_DICO = {ARGCHECKER_TYPENAME: None,
+                           STRINGCHECKER_TYPENAME: None,
+                           INTEGERCHECKER_TYPENAME: None,
+                           BOOLEANCHECKER_TYPENAME: None,
+                           FLOATCHECKER_TYPENAME: None,
+                           ENVIRONMENTCHECKER_TYPENAME: None,
+                           KEYCHECKER_TYPENAME: None,
+                           ENGINECHECKER_TYPENAME: None,
+                           FILEPATHCHECKER_TYPENAME: None}
 
     @staticmethod
     def _getCheckerInstance(key, classdef):
-        if defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key] is None:
-            with defaultInstanceArgChecker._lock:
-                if defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key] is None:
-                    defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key] = classdef()
-                    defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key].setDefaultValueEnable(False)
+        if self.DEFAULTCHECKER_DICO[key] is None:
+            with self._lock:
+                if self.DEFAULTCHECKER_DICO[key] is None:
+                    self.DEFAULTCHECKER_DICO[key] = classdef()
+                    self.DEFAULTCHECKER_DICO[key].setDefaultValueEnable(False)
 
-        return defaultInstanceArgChecker.DEFAULTCHECKER_DICO[key]
+        return self.DEFAULTCHECKER_DICO[key]
 
     @staticmethod
     def getArgCheckerInstance():
-        return defaultInstanceArgChecker._getCheckerInstance(ARGCHECKER_TYPENAME, ArgChecker)
+        return self._getCheckerInstance(ARGCHECKER_TYPENAME, ArgChecker)
 
     @staticmethod
     def getStringArgCheckerInstance():
-        return defaultInstanceArgChecker._getCheckerInstance(STRINGCHECKER_TYPENAME, stringArgChecker)
+        return self._getCheckerInstance(STRINGCHECKER_TYPENAME,
+                                        stringArgChecker)
 
     @staticmethod
     def getIntegerArgCheckerInstance():
-        return defaultInstanceArgChecker._getCheckerInstance(INTEGERCHECKER_TYPENAME, IntegerArgChecker)
+        return self._getCheckerInstance(INTEGERCHECKER_TYPENAME,
+                                        IntegerArgChecker)
 
     @staticmethod
     def getbooleanValueArgCheckerInstance():
-        return defaultInstanceArgChecker._getCheckerInstance(BOOLEANCHECKER_TYPENAME, booleanValueArgChecker)
+        return self._getCheckerInstance(BOOLEANCHECKER_TYPENAME,
+                                        booleanValueArgChecker)
 
     @staticmethod
     def getFloatTokenArgCheckerInstance():
-        return defaultInstanceArgChecker._getCheckerInstance(FLOATCHECKER_TYPENAME, floatTokenArgChecker)
+        return self._getCheckerInstance(FLOATCHECKER_TYPENAME,
+                                        floatTokenArgChecker)
 
     @staticmethod
     def getCompleteEnvironmentChecker():
-        return defaultInstanceArgChecker._getCheckerInstance(ENVIRONMENTCHECKER_TYPENAME, completeEnvironmentChecker)
+        return self._getCheckerInstance(ENVIRONMENTCHECKER_TYPENAME,
+                                        completeEnvironmentChecker)
 
     @staticmethod
     def getKeyChecker():
-        return defaultInstanceArgChecker._getCheckerInstance(KEYCHECKER_TYPENAME, KeyArgChecker)
+        return self._getCheckerInstance(KEYCHECKER_TYPENAME,
+                                        KeyArgChecker)
 
     @staticmethod
     def getEngineChecker():
-        return defaultInstanceArgChecker._getCheckerInstance(ENGINECHECKER_TYPENAME, engineChecker)
+        return self._getCheckerInstance(ENGINECHECKER_TYPENAME,
+                                        engineChecker)
 
     @staticmethod
     def getFileChecker():
-        return defaultInstanceArgChecker._getCheckerInstance(FILEPATHCHECKER_TYPENAME, filePathArgChecker)
+        return self._getCheckerInstance(FILEPATHCHECKER_TYPENAME,
+                                        filePathArgChecker)
 
-###############################################################################################
-##### ArgChecker ##############################################################################
-###############################################################################################
+
+# #############################################################################
+# #### ArgChecker #############################################################
+# #############################################################################
 
 class ArgChecker(object):
-    def __init__(self,minimumSize = 1,maximumSize = 1,showInUsage=True, typeName = ARGCHECKER_TYPENAME):
-        self.typeName    = typeName
+    def __init__(self,
+                 minimumSize=1,
+                 maximumSize=1,
+                 showInUsage=True,
+                 typeName=ARGCHECKER_TYPENAME):
+        self.typeName = typeName
         self.setSize(minimumSize, maximumSize)
         self.defaultValueEnabled = True
-        self.hasDefault          = False
-        self.default             = None
-        self.showInUsage         = showInUsage
-        self.engine              = None
+        self.hasDefault = False
+        self.default = None
+        self.showInUsage = showInUsage
+        self.engine = None
 
     def setSize(self, minimumSize=None, maximumSize=None):
         self.checkSize(minimumSize, maximumSize)
-        self.minimumSize         = minimumSize
-        self.maximumSize         = maximumSize
+        self.minimumSize = minimumSize
+        self.maximumSize = maximumSize
 
-    def checkSize(self,minimumSize, maximumSize):
+    def checkSize(self, minimumSize, maximumSize):
         if minimumSize is not None:
             if type(minimumSize) != int:
-                raise argInitializationException("("+self.typeName+") Minimum size must be an integer, got type '"+str(type(minimumSize))+"' with the following value <"+str(minimumSize)+">")
+                raise argInitializationException("("+self.typeName+") Minimum "
+                                                 "size must be an integer, got"
+                                                 " type '" +
+                                                 str(type(minimumSize))+"' "
+                                                 "with the following value <" +
+                                                 str(minimumSize)+">")
 
             if minimumSize < 0:
-                raise argInitializationException("("+self.typeName+") Minimum size must be a positive value, got <"+str(minimumSize)+">")
+                raise argInitializationException("("+self.typeName+") Minimum "
+                                                 "size must be a positive "
+                                                 "value, got <" +
+                                                 str(minimumSize)+">")
 
         if maximumSize is not None:
             if type(maximumSize) != int:
-                raise argInitializationException("("+self.typeName+") Maximum size must be an integer, got type '"+str(type(maximumSize))+"' with the following value <"+str(maximumSize)+">")
+                raise argInitializationException("("+self.typeName+") Maximum "
+                                                 "size must be an integer, got"
+                                                 " type '" +
+                                                 str(type(maximumSize))+"' "
+                                                 "with the following value <" +
+                                                 str(maximumSize)+">")
 
             if maximumSize < 0:
-                raise argInitializationException("("+self.typeName+") Maximum size must be a positive value, got <"+str(maximumSize)+">")
+                raise argInitializationException("("+self.typeName+") Maximum "
+                                                 "size must be a positive "
+                                                 "value, got <" +
+                                                 str(maximumSize)+">")
 
-        if minimumSize is not None and maximumSize is not None and maximumSize < minimumSize:
-            raise argInitializationException("("+self.typeName+") Maximum size <"+str(maximumSize)+"> can not be smaller than Minimum size <"+str(minimumSize)+">")
+        if (minimumSize is not None and
+           maximumSize is not None and
+           maximumSize < minimumSize):
+            raise argInitializationException("("+self.typeName+") Maximum size"
+                                             " <"+str(maximumSize)+"> can not "
+                                             "be smaller than Minimum size <" +
+                                             str(minimumSize)+">")
 
     def isVariableSize(self):
-        return (self.minimumSize == self.maximumSize is None) or self.minimumSize != self.maximumSize
+        return ((self.minimumSize == self.maximumSize is None) or
+                self.minimumSize != self.maximumSize)
 
     def needData(self):
         return self.minimumSize is not None and self.minimumSize > 0
-        #return not (self.minimumSize == self.maximumSize == 0)
 
-    def getValue(self,value,argNumber=None, argNameToBind=None):
+    def getValue(self, value, argNumber=None, argNameToBind=None):
         return value
 
     def getUsage(self):
@@ -193,9 +233,13 @@ class ArgChecker(object):
 
         return self.hasDefault
 
-    def setDefaultValue(self,value, argNameToBind=None):
+    def setDefaultValue(self, value, argNameToBind=None):
         if not self.defaultValueEnabled:
-            raise argInitializationException("("+self.typeName+") default value is not allowed with this kind of checker, probably because it is a default instance checker")
+            raise argInitializationException("("+self.typeName+") default "
+                                             "value is not allowed with this "
+                                             "kind of checker, probably "
+                                             "because it is a default instance"
+                                             " checker")
 
         self.hasDefault = True
 
@@ -203,7 +247,8 @@ class ArgChecker(object):
             self.default = None
             return
 
-        self.default = self.getValue(value, None,argNameToBind) #will convert the value if needed
+        # will convert the value if needed
+        self.default = self.getValue(value, None, argNameToBind)
 
     def setDefaultValueEnable(self, state):
         self.defaultValueEnabled = state
@@ -217,16 +262,28 @@ class ArgChecker(object):
 
     def _raiseIfEnvIsNotAvailable(self, argNumber=None, argNameToBind=None):
         if self.engine is None:
-            self._raiseArgException("can not get Environment, no engine linked to this argument instance", argNumber, argNameToBind)
+            self._raiseArgException("can not get Environment, no engine "
+                                    "linked to this argument instance",
+                                    argNumber,
+                                    argNameToBind)
 
-        if not hasattr(self.engine,"getEnv"):
-            self._raiseArgException("can not get Environment, linked engine does not have a method to get the environment", argNumber, argNameToBind)
+        if not hasattr(self.engine, "getEnv"):
+            self._raiseArgException("can not get Environment, linked engine "
+                                    "does not have a method to get the "
+                                    "environment",
+                                    argNumber,
+                                    argNameToBind)
 
         if self.engine.getEnv() is None:
-            self._raiseArgException("can not get Environment, no environment linked to the engine", argNumber, argNameToBind)
+            self._raiseArgException("can not get Environment, no environment "
+                                    "linked to the engine",
+                                    argNumber,
+                                    argNameToBind)
 
     def _isEnvAvailable(self):
-        return not (self.engine is None or not hasattr(self.engine,"getEnv") or self.engine.getEnv() is None)
+        return (not (self.engine is None or
+                not hasattr(self.engine, "getEnv") or
+                self.engine.getEnv() is None))
 
     def _raiseArgException(self, message, argNumber=None, argNameToBind=None):
         prefix = ""
@@ -243,24 +300,42 @@ class ArgChecker(object):
         if len(prefix) > 0:
             prefix += ": "
 
-        raise argException("("+self.typeName+") "+ prefix + message)
+        raise argException("("+self.typeName+") "+prefix+message)
 
     def getTypeName(self):
         return self.typeName
 
+
 class stringArgChecker(ArgChecker):
-    def __init__(self, minimumStringSize=0, maximumStringSize = None, typeName = STRINGCHECKER_TYPENAME):
-        ArgChecker.__init__(self,1,1,True, typeName)
+    def __init__(self,
+                 minimumStringSize=0,
+                 maximumStringSize=None,
+                 typeName=STRINGCHECKER_TYPENAME):
+        ArgChecker.__init__(self, 1, 1, True, typeName)
 
         if type(minimumStringSize) != int:
-            raise argInitializationException("("+self.typeName+") Minimum string size must be an integer, got type '"+str(type(minimumStringSize))+"' with the following value <"+str(minimumStringSize)+">")
+            raise argInitializationException("("+self.typeName+") Minimum "
+                                             "string size must be an integer, "
+                                             "got type '" +
+                                             str(type(minimumStringSize)) +
+                                             "' with the following value <" +
+                                             str(minimumStringSize)+">")
 
         if minimumStringSize < 0:
-            raise argInitializationException("("+self.typeName+") Minimum string size must be a positive value bigger or equal to 0, got <"+str(minimumStringSize)+">")
+            raise argInitializationException("("+self.typeName+") Minimum "
+                                             "string size must be a positive "
+                                             "value bigger or equal to 0, got "
+                                             "<"+str(minimumStringSize)+">")
 
         if maximumStringSize is not None:
             if type(maximumStringSize) != int:
-                raise argInitializationException("("+self.typeName+") Maximum string size must be an integer, got type '"+str(type(maximumStringSize))+"' with the following value <"+str(maximumStringSize)+">")
+                raise argInitializationException("("+self.typeName+") Maximum "
+                                                 "string size must be an "
+                                                 "integer, got type '" +
+                                                 str(type(maximumStringSize)) +
+                                                 "' with the following value "
+                                                 "<" +
+                                                 str(maximumStringSize)+">")
 
             if maximumStringSize < 1:
                 raise argInitializationException("("+self.typeName+") Maximum string size must be a positive value bigger than 0, got <"+str(maximumStringSize)+">")
@@ -293,6 +368,7 @@ class stringArgChecker(ArgChecker):
 
     def getUsage(self):
         return "<string>"
+
 
 class IntegerArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None,showInUsage=True, typeName=INTEGERCHECKER_TYPENAME):
@@ -362,6 +438,7 @@ class IntegerArgChecker(ArgChecker):
                 return "<"+self.shortType+" *-"+str(self.maximum)+">"
         return "<"+self.shortType+">"
 
+
 class LimitedInteger(IntegerArgChecker):
     def __init__(self, amountOfBit=8, signed = False):
         if amountOfBit < 8:
@@ -375,17 +452,20 @@ class LimitedInteger(IntegerArgChecker):
         else:
             IntegerArgChecker.__init__(self, 0x0, (2**amountOfBit) -1, True, LIMITEDINTEGERCHECKER_TYPENAME)
 
+
 class hexaArgChecker(IntegerArgChecker):
     def __init__(self, minimum=None, maximum=None):
         self.bases = [16]
         self.shortType     = "hex"
         IntegerArgChecker.__init__(self, minimum,maximum, True, HEXACHECKER_TYPENAME)
 
+
 class binaryArgChecker(IntegerArgChecker):
     def __init__(self, minimum=None, maximum=None):
         self.bases = [2]
         self.shortType     = "bin"
         IntegerArgChecker.__init__(self, minimum,maximum, True, BINARYCHECKER_TYPENAME)
+
 
 class tokenValueArgChecker(stringArgChecker):
     def __init__(self, tokenDict, typename=TOKENCHECKER_TYPENAME):
@@ -416,6 +496,7 @@ class tokenValueArgChecker(stringArgChecker):
     def getUsage(self):
         return "("+ ("|".join(self.localtries.getKeyList())) + ")"
 
+
 class booleanValueArgChecker(tokenValueArgChecker):
     def __init__(self,TrueName=None,FalseName=None):
         if TrueName is None:
@@ -439,6 +520,7 @@ class booleanValueArgChecker(tokenValueArgChecker):
             value = str(value).lower()
 
         return tokenValueArgChecker.getValue(self,value,argNumber,argNameToBind)
+
 
 class floatTokenArgChecker(ArgChecker):
     def __init__(self, minimum=None, maximum=None):
@@ -487,6 +569,7 @@ class floatTokenArgChecker(ArgChecker):
                 return "<float *.*-"+str(self.maximum)+">"
         return "<float>"
 
+
 class engineChecker(ArgChecker):
     def __init__(self):
         ArgChecker.__init__(self,0,0,False, ENGINECHECKER_TYPENAME)
@@ -508,6 +591,7 @@ class engineChecker(ArgChecker):
 
     def erraseDefaultValue(self):
         pass
+
 
 class completeEnvironmentChecker(ArgChecker):
     def __init__(self):
@@ -533,7 +617,9 @@ class completeEnvironmentChecker(ArgChecker):
     def erraseDefaultValue(self):
         pass
 
-#TODO this checker should not be use anywhere, use contextParameterChecker or environmentParameterChecker
+
+# TODO this checker should not be use anywhere, use contextParameterChecker
+# or environmentParameterChecker
 class abstractParameterChecker(ArgChecker):
     def __init__(self,keyname, containerAttribute, typeName = PARAMETERCHECKER_TYPENAME):
         ArgChecker.__init__(self,0,0,False, typeName)
@@ -569,7 +655,7 @@ class abstractParameterChecker(ArgChecker):
     def usage(self):
         return ""
 
-    #TODO est ce qu'il existe vraiment un cas de figure ou les valeurs par defaut peuvent être appellée avec un argument de taille min=0, max=0 ?
+    # TODO est ce qu'il existe vraiment un cas de figure ou les valeurs par defaut peuvent être appellée avec un argument de taille min=0, max=0 ?
     def getDefaultValue(self, argNameToBind=None):
         container = self._getContainer(None, argNameToBind)
 
@@ -588,6 +674,7 @@ class abstractParameterChecker(ArgChecker):
 
     def erraseDefaultValue(self):
         pass
+
 
 class abstractParameterDynamicChecker(ArgChecker):
     def __init__(self, containerAttribute, typeName = PARAMETERDYNAMICCHECKER_TYPENAME):
@@ -627,29 +714,36 @@ class abstractParameterDynamicChecker(ArgChecker):
 
 #TODO use constant name
 
+
 class contextParameterChecker(abstractParameterChecker):
     def __init__(self, contextStringPath):
         abstractParameterChecker.__init__(self, contextStringPath, CONTEXT_ATTRIBUTE_NAME, CONTEXTCHECKER_TYPENAME)
+
 
 class environmentParameterChecker(abstractParameterChecker):
     def __init__(self, environmentStringPath):
         abstractParameterChecker.__init__(self, environmentStringPath, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENTCHECKER_TYPENAME)
 
+
 class variableParameterChecker(abstractParameterChecker):
     def __init__(self, environmentStringPath):
         abstractParameterChecker.__init__(self, environmentStringPath, VARIABLE_ATTRIBUTE_NAME, VARIABLECHECKER_TYPENAME)
+
 
 class contextParameterDynamicChecker(abstractParameterDynamicChecker):
     def __init__(self):
         abstractParameterDynamicChecker.__init__(self, CONTEXT_ATTRIBUTE_NAME, CONTEXTDYNAMICCHECKER_TYPENAME)
 
+
 class environmentParameterDynamicChecker(abstractParameterDynamicChecker):
     def __init__(self):
         abstractParameterDynamicChecker.__init__(self, ENVIRONMENT_ATTRIBUTE_NAME, ENVIRONMENTDYNAMICCHECKER_TYPENAME)
 
+
 class variableParameterDynamicChecker(abstractParameterDynamicChecker):
     def __init__(self):
         abstractParameterDynamicChecker.__init__(self, VARIABLE_ATTRIBUTE_NAME, VARIABLEDYNAMICCHECKER_TYPENAME)
+
 
 class defaultValueChecker(ArgChecker):
     def __init__(self,value):
@@ -662,6 +756,7 @@ class defaultValueChecker(ArgChecker):
 
     def getValue(self,value,argNumber=None, argNameToBind=None):
         return self.getDefaultValue(argNameToBind)
+
 
 class listArgChecker(ArgChecker):
     def __init__(self,checker,minimumSize=None,maximumSize=None):
@@ -804,6 +899,7 @@ class listArgChecker(ArgChecker):
         ArgChecker.setEngine(self, engine)
         self.checker.setEngine(engine)
 
+
 class filePathArgChecker(stringArgChecker):
     #just check a path, no operation are executed here, it is the job of the addon to perform change
 
@@ -920,6 +1016,7 @@ class filePathArgChecker(stringArgChecker):
     def getUsage(self):
         return "<file_path>"
 
+
 class abstractKeyStoreTranslatorArgChecker(stringArgChecker):
     "retrieve a key from the keystore"
 
@@ -968,6 +1065,7 @@ class abstractKeyStoreTranslatorArgChecker(stringArgChecker):
     def getUsage(self):
         return "<key name>"
 
+
 class KeyParameterChecker(abstractParameterChecker, abstractKeyStoreTranslatorArgChecker):
     def __init__(self, environmentStringPath, keySize = None, byteKey=True, allowdifferentKeySize = False):
         abstractParameterChecker.__init__(self, environmentStringPath, KEY_ATTRIBUTE_NAME, KEYTRASNLATORCHECKER_TYPENAME)
@@ -977,6 +1075,7 @@ class KeyParameterChecker(abstractParameterChecker, abstractKeyStoreTranslatorAr
         parameter = abstractParameterChecker.getValue(value, argNumber, argNameToBind)
         return abstractKeyStoreTranslatorArgChecker.getValue(parameter.getValue())
 
+
 class KeyParameterDynamicChecker(abstractParameterDynamicChecker, abstractKeyStoreTranslatorArgChecker):
     def __init__(self, keySize = None, byteKey=True, allowdifferentKeySize = False):
         abstractParameterDynamicChecker.__init__(self, KEY_ATTRIBUTE_NAME, KEYTRANSLATORDYNAMICCHECKER_TYPENAME)
@@ -985,6 +1084,7 @@ class KeyParameterDynamicChecker(abstractParameterDynamicChecker, abstractKeySto
     def getValue(self, value,argNumber=None, argNameToBind=None):
         parameter = abstractParameterChecker.getValue(value, argNumber, argNameToBind)
         return abstractKeyStoreTranslatorArgChecker.getValue(parameter.getValue())
+
 
 class KeyArgChecker(IntegerArgChecker):
     "create a key from the input"
@@ -1003,5 +1103,4 @@ class KeyArgChecker(IntegerArgChecker):
 
     def getUsage(self):
         return "<key>"
-
 
