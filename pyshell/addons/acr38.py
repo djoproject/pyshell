@@ -17,8 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from apdu.readers.acr38u import acr38uAPDUBuilder
-from pyshell.arg.argchecker import defaultInstanceArgChecker
+
 from pyshell.arg.argchecker import IntegerArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker
 from pyshell.arg.argchecker import listArgChecker
 from pyshell.arg.argchecker import tokenValueArgChecker
 from pyshell.arg.decorator import shellMethod

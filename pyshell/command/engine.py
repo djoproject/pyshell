@@ -21,7 +21,7 @@ from pyshell.command.exception import executionInitException, \
                                       executionException, \
                                       engineInterruptionException
 from pyshell.command.stackEngine import engineStack
-from pyshell.command.utils import equalPath, isAValidIndex, topPath, \
+from pyshell.command.utils import equalPath, isAValidIndex, \
                                   raisIfInvalidMap, equalMap, \
                                   raiseIfInvalidPath
 from pyshell.system.container import ParameterContainer
@@ -1482,12 +1482,12 @@ class engineV3(object):
 
             path = self.stack.pathOnTop()
 
-        for i in range(0, len(topPath)):
+        for i in range(0, len(path)):
             if i >= len(self.cmdList):
                 print("# ["+str(i)+"] out of bound index")
                 continue
 
-            if topPath[i] < 0 or topPath[i] >= len(self.cmdList[i]):
+            if path[i] < 0 or path[i] >= len(self.cmdList[i]):
                 print("# ["+str(i)+"] out of bound index in the command")
                 continue
 
@@ -1495,4 +1495,4 @@ class engineV3(object):
                 print("# ["+str(i)+"]")
                 continue
 
-            print("# ["+str(i)+"]"+" (sub="+str(topPath[i])+")")
+            print("# ["+str(i)+"]"+" (sub="+str(path[i])+")")
