@@ -24,8 +24,8 @@
 
 from math import log
 
-from pyshell.arg.argchecker import defaultInstanceArgChecker
 from pyshell.arg.argchecker import IntegerArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker
 from pyshell.arg.argchecker import listArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
