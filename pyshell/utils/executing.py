@@ -16,40 +16,43 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.command.engine import engineV3
-from pyshell.command.exception import executionInitException, \
-                                      executionException, \
-                                      commandException, \
-                                      engineInterruptionException
+import threading
+
 from pyshell.arg.exception import argException
-from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY, \
-                                    CONTEXT_EXECUTION_KEY, \
-                                    CONTEXT_EXECUTION_SHELL, \
-                                    DEBUG_ENVIRONMENT_NAME
-from pyshell.utils.exception import DefaultPyshellException, \
-                                    ListOfException, CORE_WARNING, \
-                                    CORE_ERROR, ProcedureStackableException
+from pyshell.command.engine import engineV3
+from pyshell.command.exception import commandException
+from pyshell.command.exception import engineInterruptionException
+from pyshell.command.exception import executionException
+from pyshell.command.exception import executionInitException
+from pyshell.system.variable import VarParameter
+from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
+from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
+from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.exception import CORE_ERROR
+from pyshell.utils.exception import CORE_WARNING
+from pyshell.utils.exception import DefaultPyshellException
+from pyshell.utils.exception import ListOfException
+from pyshell.utils.exception import ProcedureStackableException
 from pyshell.utils.parsing import Parser
 from pyshell.utils.printing import printException
 from pyshell.utils.solving import Solver
-from pyshell.system.variable import VarParameter
-import threading
 
 # execute return engine and lastException to the calling procedure
 #   engine to retrieve any output
 #   exception, to check granularity and eventually stop the execution
 
 
-def execute(string, parameterContainer, processName=None, processArg=None):
+def execute(string, parameter_container, process_name=None, process_arg=None):
     # add external parameters at the end of the command
-    if hasattr(processArg, "__iter__"):
-        string += " " + ' '.join(str(x) for x in processArg)
-    elif type(processArg) == str or type(processArg) == unicode:
-        string += " "+processArg
-    elif processArg is not None:
+    if hasattr(process_arg, "__iter__"):
+        string += " " + ' '.join(str(x) for x in process_arg)
+    elif type(process_arg) == str or type(process_arg) == unicode:
+        string += " "+process_arg
+    elif process_arg is not None:
         raise DefaultPyshellException("unknown type or process args, expect a "
                                       "list or a string, got '" +
-                                      type(processArg)+"'",
+                                      type(process_arg)+"'",
                                       CORE_ERROR)
 
     # # parsing # #
@@ -75,54 +78,54 @@ def execute(string, parameterContainer, processName=None, processArg=None):
 
     if parser.isToRunInBackground():
         t = threading.Thread(None, _execute, None, (parser,
-                                                    parameterContainer,
-                                                    processName,))
+                                                    parameter_container,
+                                                    process_name,))
         t.start()
-        parameterContainer.variable.setParameter("!",
-                                                 VarParameter(str(t.ident)),
-                                                 localParam=True)
+        parameter_container.variable.setParameter("!",
+                                                  VarParameter(str(t.ident)),
+                                                  localParam=True)
 
         # not possible to retrieve exception or engine, it is another thread
         return None, None
     else:
-        return _execute(parser, parameterContainer, processName)
+        return _execute(parser, parameter_container, process_name)
 
 
-def _generateSuffix(parameterContainer,
-                    commandNameList=None,
+def _generateSuffix(parameter_container,
+                    command_name_list=None,
                     engine=None,
-                    processName=None):
+                    process_name=None):
 
-    # TODO processName then commandNameList should appear first if not None
+    # TODO process_name then command_name_list should appear first if not None
 
     # print if in debug ?
-    param = parameterContainer.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                    perfectMatch=True)
-    showAdvancedResult = (param is not None and param.getSelectedValue() > 0)
+    param = parameter_container.context.getParameter(DEBUG_ENVIRONMENT_NAME,
+                                                     perfectMatch=True)
+    show_advanced_result = (param is not None and param.getSelectedValue() > 0)
 
-    if not showAdvancedResult:
+    if not show_advanced_result:
         # is is a shell execution ?
-        param = parameterContainer.context.getParameter(CONTEXT_EXECUTION_KEY,
-                                                        perfectMatch=True)
-        showAdvancedResult = (param is None or
-                              param.getSelectedValue() !=
-                              CONTEXT_EXECUTION_SHELL)
+        param = parameter_container.context.getParameter(CONTEXT_EXECUTION_KEY,
+                                                         perfectMatch=True)
+        show_advanced_result = (param is None or
+                                param.getSelectedValue() !=
+                                CONTEXT_EXECUTION_SHELL)
 
-    if showAdvancedResult or \
-       not parameterContainer.isMainThread() or \
-       parameterContainer.getCurrentId()[1] > 0:
-        threadId, levelId = parameterContainer.getCurrentId()
+    if (show_advanced_result or
+       not parameter_container.isMainThread() or
+       parameter_container.getCurrentId()[1] > 0):
+        threadId, levelId = parameter_container.getCurrentId()
         message = " (threadId="+str(threadId)+", level="+str(levelId)
 
-        if processName is not None:
-            message += ", process='"+str(processName)+"'"
+        if process_name is not None:
+            message += ", process='"+str(process_name)+"'"
 
-        if commandNameList is not None and \
-           engine is not None and \
-           not engine.stack.isEmpty():
-            commandIndex = engine.stack.cmdIndexOnTop()
-            message += ", command='%s'" % \
-                " ".join(commandNameList[commandIndex])
+        if (command_name_list is not None and
+           engine is not None and
+           not engine.stack.isEmpty()):
+            command_index = engine.stack.cmdIndexOnTop()
+            message += (", command='%s'" %
+                        " ".join(command_name_list[command_index]))
 
         message += ")"
 
@@ -130,20 +133,20 @@ def _generateSuffix(parameterContainer,
     return None
 
 
-def _execute(parser, parameterContainer, processName=None):
+def _execute(parser, parameter_container, process_name=None):
 
     # # solving then execute # #
     ex = None
     engine = None
-    commandNameList = None
+    command_name_list = None
     try:
         # solve command, variable, and dashed parameters
-        env = parameterContainer.environment
+        env = parameter_container.environment
         mltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
-        rawCommandList, rawArgList, mappedArgs, commandNameList = \
-            Solver().solve(parser, mltries, parameterContainer.variable)
+        rawCommandList, rawArgList, mappedArgs, command_name_list = \
+            Solver().solve(parser, mltries, parameter_container.variable)
         # clone command/procedure to manage concurrency state
-        newRawCommandList = []
+        new_raw_command_list = []
         for i in xrange(0, len(rawCommandList)):
             c = rawCommandList[i].clone()
 
@@ -151,16 +154,16 @@ def _execute(parser, parameterContainer, processName=None):
             if len(c) == 0:
                 raise DefaultPyshellException("Command '%s' is empty, not "
                                               "possible to execute" %
-                                              " ".join(commandNameList[i]),
+                                              " ".join(command_name_list[i]),
                                               CORE_WARNING)
 
-            newRawCommandList.append(c)
+            new_raw_command_list.append(c)
 
         # prepare an engine
-        engine = engineV3(newRawCommandList,
+        engine = engineV3(new_raw_command_list,
                           rawArgList,
                           mappedArgs,
-                          parameterContainer)
+                          parameter_container)
 
         # execute
         engine.execute()
@@ -168,29 +171,32 @@ def _execute(parser, parameterContainer, processName=None):
     except executionInitException as ex:
         printException(ex,
                        prefix="Fail to init an execution object: ",
-                       suffix=_generateSuffix(parameterContainer,
-                                              commandNameList=commandNameList,
-                                              engine=engine,
-                                              processName=processName))
+                       suffix=_generateSuffix(
+                          parameter_container,
+                          command_name_list=command_name_list,
+                          engine=engine,
+                          process_name=process_name))
     except executionException as ex:
         printException(ex,
                        prefix="Fail to execute: ",
-                       suffix=_generateSuffix(parameterContainer,
-                                              commandNameList=commandNameList,
-                                              engine=engine,
-                                              processName=processName))
+                       suffix=_generateSuffix(
+                          parameter_container,
+                          command_name_list=command_name_list,
+                          engine=engine,
+                          process_name=process_name))
     except commandException as ex:
         printException(ex,
                        prefix="Error in command method: ",
-                       suffix=_generateSuffix(parameterContainer,
-                                              commandNameList=commandNameList,
-                                              engine=engine,
-                                              processName=processName))
+                       suffix=_generateSuffix(
+                          parameter_container,
+                          command_name_list=command_name_list,
+                          engine=engine,
+                          process_name=process_name))
     except engineInterruptionException as ex:
-        suffix = _generateSuffix(parameterContainer,
-                                 commandNameList=commandNameList,
+        suffix = _generateSuffix(parameter_container,
+                                 command_name_list=command_name_list,
                                  engine=engine,
-                                 processName=processName)
+                                 process_name=process_name)
         if ex.abnormal:
             printException(ex,
                            prefix="Abnormal execution abort, reason: ",
@@ -202,26 +208,29 @@ def _execute(parser, parameterContainer, processName=None):
     except argException as ex:
         printException(ex,
                        prefix="Error while parsing argument: ",
-                       suffix=_generateSuffix(parameterContainer,
-                                              commandNameList=commandNameList,
-                                              engine=engine,
-                                              processName=processName))
+                       suffix=_generateSuffix(
+                          parameter_container,
+                          command_name_list=command_name_list,
+                          engine=engine,
+                          process_name=process_name))
     except ListOfException as ex:
         printException(ex,
                        prefix="List of exception(s): ",
-                       suffix=_generateSuffix(parameterContainer,
-                                              commandNameList=commandNameList,
-                                              engine=engine,
-                                              processName=processName))
+                       suffix=_generateSuffix(
+                          parameter_container,
+                          command_name_list=command_name_list,
+                          engine=engine,
+                          process_name=process_name))
     except ProcedureStackableException as ex:
         # nothing to do here, the exception will be managed
         # in the parent procedure
         pass
     except Exception as ex:
         printException(ex,
-                       suffix=_generateSuffix(parameterContainer,
-                                              commandNameList=commandNameList,
-                                              engine=engine,
-                                              processName=processName))
+                       suffix=_generateSuffix(
+                          parameter_container,
+                          command_name_list=command_name_list,
+                          engine=engine,
+                          process_name=process_name))
 
     return ex, engine

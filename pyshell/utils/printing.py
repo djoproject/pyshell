@@ -16,23 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import threading
-import re
 import os
+import re
+import threading
 import traceback
 
-from pyshell.utils.valuable import Valuable, DefaultValuable
-from pyshell.utils.exception import NOTICE, WARNING, PyshellException, \
-                                    ListOfException
-from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL, \
-                                    CONTEXT_COLORATION_DARK, \
-                                    CONTEXT_COLORATION_LIGHT, \
-                                    CONTEXT_EXECUTION_KEY, \
-                                    ENVIRONMENT_TAB_SIZE_KEY, \
-                                    CONTEXT_COLORATION_KEY, \
-                                    DEBUG_ENVIRONMENT_NAME
 from pyshell.system.container import ParameterContainer
 from pyshell.system.parameter import ParameterManager
+from pyshell.utils.constants import CONTEXT_COLORATION_DARK
+from pyshell.utils.constants import CONTEXT_COLORATION_KEY
+from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
+from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
+from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
+from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
+from pyshell.utils.exception import ListOfException
+from pyshell.utils.exception import NOTICE
+from pyshell.utils.exception import PyshellException
+from pyshell.utils.exception import WARNING
+from pyshell.utils.valuable import DefaultValuable
+from pyshell.utils.valuable import Valuable
 
 _EMPTYSTRING = ""
 
@@ -79,7 +82,7 @@ class Printer(object):
     def __exit__(self, type, value, traceback):
         return Printer._printerLock.__exit__(type, value, traceback)
 
-    def setREPLFunction(self, fun):
+    def setReplFunction(self, fun):
         if not hasattr(fun, "__call__"):
             raise Exception("("+self.__class__.__name__+") setREPLFunction, "
                             "invalid repl function, must be a callable object")
@@ -168,27 +171,27 @@ class Printer(object):
 
         # remove ansi annotation if not in shell mode or if stdout is
         # redirected to a file
-        if not self.isInShell() or \
-           (not self.isDarkBackGround() and not self.isLightBackGround()) or \
-           not (os.fstat(0) == os.fstat(1)):
+        if (not self.isInShell() or
+           (not self.isDarkBackGround() and not self.isLightBackGround()) or
+           not (os.fstat(0) == os.fstat(1))):
             out = ANSI_ESCAPE.sub('', str(out))
 
         out = self.indentString(out)
 
         with Printer._printerLock:
-            if self.isInShell() and self.isPromptShowed() and \
-               self.replWriteFunction is not None:
+            if (self.isInShell() and self.isPromptShowed() and
+               self.replWriteFunction is not None):
                 self.replWriteFunction(out)
             else:
-                print(out)
+                print(out)  # noqa
 
-    def indentListOfToken(self, tokenList):
-        if len(tokenList) == 0:
+    def indentListOfToken(self, token_list):
+        if len(token_list) == 0:
             return ()
 
         to_ret = []
 
-        for token in tokenList:
+        for token in token_list:
             to_ret.append(self.indentString(str(token)))
 
         return to_ret
@@ -360,7 +363,7 @@ def getPrinterFromExceptionSeverity(severity):  # TODO test it
 
 def formatException(exception,
                     prefix=None,
-                    noStackTraceInCaseOfDebug=True,
+                    no_stack_trace_in_case_of_debug=True,
                     suffix=None):
     if exception is None:
         return _EMPTYSTRING
@@ -373,7 +376,7 @@ def formatException(exception,
                 return _EMPTYSTRING
 
             toprint = ""
-            printFun = printer.formatRed
+            print_fun = printer.formatRed
 
             if prefix is None:
                 space = _EMPTYSTRING
@@ -390,7 +393,9 @@ def formatException(exception,
 
             for e in exception.exceptions:
                 toprint += space
-                toprint += formatException(e, noStackTraceInCaseOfDebug=False)
+                toprint += formatException(
+                    e,
+                    no_stack_trace_in_case_of_debug=False)
                 toprint += "\n"
 
             # remove last \n
@@ -399,7 +404,7 @@ def formatException(exception,
             if prefix is None:
                 prefix = _EMPTYSTRING
 
-            printFun = getPrinterFromExceptionSeverity(exception.severity)
+            print_fun = getPrinterFromExceptionSeverity(exception.severity)
             toprint = ""
 
             if prefix is not None:
@@ -410,7 +415,7 @@ def formatException(exception,
             if suffix is not None:
                 toprint += suffix
 
-            toprint = printFun(toprint)
+            toprint = print_fun(toprint)
     else:
         toprint = ""
 
@@ -423,12 +428,12 @@ def formatException(exception,
             toprint += suffix
 
         toprint = printer.formatRed(toprint)
-        printFun = printer.formatRed
+        print_fun = printer.formatRed
 
-    if printer.isDebugEnabled() and noStackTraceInCaseOfDebug:
+    if printer.isDebugEnabled() and no_stack_trace_in_case_of_debug:
         stacktrace = traceback.format_exc()
         if stacktrace is not None:
-            toprint += printFun("\n\n"+stacktrace)
+            toprint += print_fun("\n\n"+stacktrace)
 
     return toprint
 

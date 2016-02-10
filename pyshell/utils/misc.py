@@ -16,15 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import fcntl
 import os
 import struct
-import fcntl
 import termios
 
 from pyshell.utils.exception import DefaultPyshellException, SYSTEM_WARNING
 
 
-def ioctl_GWINSZ(fd):
+def ioctlGwinsz(fd):
     try:
         cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
     except:
@@ -33,11 +33,11 @@ def ioctl_GWINSZ(fd):
 
 
 def getTerminalSize():
-    cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+    cr = ioctlGwinsz(0) or ioctlGwinsz(1) or ioctlGwinsz(2)
     if not cr:
         try:
             fd = os.open(os.ctermid(), os.O_RDONLY)
-            cr = ioctl_GWINSZ(fd)
+            cr = ioctlGwinsz(fd)
 
             os.close(fd)
         except:
@@ -50,40 +50,40 @@ def getTerminalSize():
     return int(cr[1]), int(cr[0])
 
 
-def raiseIfInvalidKeyList(keyList, exceptionClass, packageName, methName):
-    # TODO test if a simple string could be a valid keyList,
+def raiseIfInvalidKeyList(key_list, exception_class, package_name, meth_name):
+    # TODO test if a simple string could be a valid key_list,
     # it shouldn't be the case
 
-    if not hasattr(keyList, "__iter__"):
-        raise exceptionClass("("+packageName+") "+methName+", list of string "
-                             "is not iterable")
+    if not hasattr(key_list, "__iter__"):
+        raise exception_class("("+package_name+") "+meth_name+", list of "
+                              "string is not iterable")
 
-    for key in keyList:
+    for key in key_list:
         if type(key) != str and type(key) != unicode:
-            raise exceptionClass("("+packageName+") "+methName+", only string "
-                                 "or unicode key are allowed")
+            raise exception_class("("+package_name+") "+meth_name+", only "
+                                  "string or unicode key are allowed")
 
         # trim key
         key = key.strip()
 
         if len(key) == 0:
-            raise exceptionClass("("+packageName+") "+methName+", empty key "
-                                 "is not allowed")
+            raise exception_class("("+package_name+") "+meth_name+", empty "
+                                  "key is not allowed")
 
-    return keyList
+    return key_list
 
 
-def createParentDirectory(filePath):
-    if not os.path.exists(os.path.dirname(filePath)):
+def createParentDirectory(file_path):
+    if not os.path.exists(os.path.dirname(file_path)):
         try:
-            os.makedirs(os.path.dirname(filePath))
+            os.makedirs(os.path.dirname(file_path))
         except os.error as ose:
             raise DefaultPyshellException("fail to create directory tree '" +
-                                          os.path.dirname(filePath)+"', " +
+                                          os.path.dirname(file_path)+"', " +
                                           str(ose),
                                           SYSTEM_WARNING)
 
-    elif not os.path.isdir(os.path.dirname(filePath)):
-        raise DefaultPyshellException("'"+os.path.dirname(filePath)+"' is not "
-                                      "a directory, nothing will be saved",
+    elif not os.path.isdir(os.path.dirname(file_path)):
+        raise DefaultPyshellException("'"+os.path.dirname(file_path)+"' is not"
+                                      " a directory, nothing will be saved",
                                       SYSTEM_WARNING)

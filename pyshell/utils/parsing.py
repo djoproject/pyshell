@@ -16,7 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import DefaultPyshellException, PARSE_ERROR
+from pyshell.utils.exception import DefaultPyshellException
+from pyshell.utils.exception import PARSE_ERROR
 
 # BNF GRAMMAR OF A COMMAND
 #
@@ -90,8 +91,8 @@ class Parser(list):
 
                 index = len(self.currentCommand) - 1
 
-                if index in self.argSpotted and \
-                   (' ' in self.currentToken or len(self.currentToken) == 1):
+                if (index in self.argSpotted and
+                   (' ' in self.currentToken or len(self.currentToken) == 1)):
                     self.argSpotted.remove(index)
 
                 elif index in self.paramSpotted:
@@ -165,10 +166,10 @@ class Parser(list):
         self._pushCommandInList()
 
         # compute runInBackground
-        if self.lastBackground is not None and \
-           len(self)-1 == self.lastBackground[0] and \
-           len(self[-1][0])-1 == self.lastBackground[1] and \
-           len(self[-1][0][-1])-1 == self.lastBackground[2]:
+        if (self.lastBackground is not None and
+           len(self)-1 == self.lastBackground[0] and
+           len(self[-1][0])-1 == self.lastBackground[1] and
+           len(self[-1][0][-1])-1 == self.lastBackground[2]):
             self.runInBackground = True
             if len(self[-1][0][-1]) == 1:
                 if len(self[-1][0]) == 1:
@@ -191,10 +192,10 @@ class Parser(list):
         return self.parsed
 
     def __hash__(self):  # TODO test
-        hashString = ""
+        hash_string = ""
         for currentCommand, argSpotted, paramSpotted in self:
-            hashString += str(hash(currentCommand)) + \
-                          str(hash(argSpotted)) + \
-                          str(hash(paramSpotted))
+            hash_string += (str(hash(currentCommand)) +
+                            str(hash(argSpotted)) +
+                            str(hash(paramSpotted)))
 
-        return hash(hashString)
+        return hash(hash_string)

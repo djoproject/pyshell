@@ -23,38 +23,38 @@ class CryptographicKey(object):
     KEYTYPE_HEXA = 0
     KEYTYPE_BIT = 1
 
-    def __init__(self, keyString):
+    def __init__(self, key_string):
         # is it a string ?
-        if type(keyString) != str and type(keyString) != unicode:
+        if type(key_string) != str and type(key_string) != unicode:
             raise KeyStoreException("("+self.__class__.__name__+") __init__, "
                                     "invalid key string, expected a string, "
-                                    "got '"+str(type(keyString))+"'")
+                                    "got '"+str(type(key_string))+"'")
 
-        keyString = keyString.lower()
+        key_string = key_string.lower()
 
         # find base
-        if keyString.startswith("0x"):
+        if key_string.startswith("0x"):
             try:
-                int(keyString, 16)
+                int(key_string, 16)
             except ValueError as ve:
                 raise KeyStoreException("("+self.__class__.__name__+") "
                                         "__init__, invalid hexa string, start"
                                         " with 0x but is not valid: "+str(ve))
 
             self.keyType = CryptographicKey.KEYTYPE_HEXA
-            self.key = keyString[2:]
+            self.key = key_string[2:]
 
-            tempKeySize = float(len(keyString) - 2)
-            tempKeySize /= 2
-            self.keySize = int(tempKeySize)
+            temp_key_size = float(len(key_string) - 2)
+            temp_key_size /= 2
+            self.keySize = int(temp_key_size)
 
-            if tempKeySize > int(tempKeySize):
+            if temp_key_size > int(temp_key_size):
                 self.keySize += 1
                 self.key = "0"+self.key
 
-        elif keyString.startswith("0b"):
+        elif key_string.startswith("0b"):
             try:
-                int(keyString, 2)
+                int(key_string, 2)
             except ValueError as ve:
                 raise KeyStoreException("("+self.__class__.__name__+") "
                                         "__init__, invalid binary string, "
@@ -62,12 +62,12 @@ class CryptographicKey(object):
                                         str(ve))
 
             self.keyType = CryptographicKey.KEYTYPE_BIT
-            self.key = keyString[2:]
+            self.key = key_string[2:]
             self.keySize = len(self.key)
         else:
             raise KeyStoreException("("+self.__class__.__name__+") __init__, "
                                     "invalid key string, must start with 0x or"
-                                    " 0b, got '"+keyString+"'")
+                                    " 0b, got '"+key_string+"'")
 
     def __str__(self):
         if self.keyType == CryptographicKey.KEYTYPE_HEXA:
@@ -77,42 +77,42 @@ class CryptographicKey(object):
 
     def __repr__(self):
         if self.keyType == CryptographicKey.KEYTYPE_HEXA:
-            return "0x"+self.key+" ( HexaKey, size="+str(self.keySize) + \
-                   " byte(s))"
+            return ("0x"+self.key+" ( HexaKey, size="+str(self.keySize) +
+                    " byte(s))")
         else:
-            return "0b"+self.key+" ( BinaryKey, size="+str(self.keySize) + \
-                   " bit(s))"
+            return ("0b"+self.key+" ( BinaryKey, size="+str(self.keySize) +
+                    " bit(s))")
 
-    def getKey(self, start, end=None, paddingEnable=True):
+    def getKey(self, start, end=None, padding_enable=True):
         if end is not None and end < start:
             return ()
 
         # part to extract from key
         if start >= self.keySize:
-            if end is None or not paddingEnable:
+            if end is None or not padding_enable:
                 return ()
 
-            keyPart = []
+            key_part = []
         else:
             limit = self.keySize
             if end is not None and end <= self.keySize:
                 limit = end
 
-            keyPart = []
+            key_part = []
             if self.keyType == CryptographicKey.KEYTYPE_HEXA:
                 # for b in self.key[start*2:limit*2]:
                 for index in range(start*2, limit*2, 2):
-                    keyPart.append(int(self.key[index:index+2], 16))
+                    key_part.append(int(self.key[index:index+2], 16))
             else:
                 for b in self.key[start:limit]:
-                    keyPart.append(int(b, 2))
+                    key_part.append(int(b, 2))
         # padding part
-        if paddingEnable and end is not None and end > self.keySize:
-            paddingLength = end - self.keySize
-            if paddingLength > 0:
-                keyPart.extend([0] * paddingLength)
+        if padding_enable and end is not None and end > self.keySize:
+            padding_length = end - self.keySize
+            if padding_length > 0:
+                key_part.extend([0] * padding_length)
 
-        return keyPart
+        return key_part
 
     def getKeyType(self):
         return self.keyType

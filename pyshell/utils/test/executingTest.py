@@ -143,25 +143,25 @@ class ExecutingTest(unittest.TestCase):
         self.mltries.insert( ("plap",) ,self.m)
                         
     ### execute test ###
-    def test_execute1(self):#with processArg iterable
+    def test_execute1(self):#with process_arg iterable
         self.assertEqual(RESULT, None)
-        lastException, engine = execute("plop", self.params, processArg=(1,2,3,))
+        lastException, engine = execute("plop", self.params, process_arg=(1,2,3,))
         self.assertEqual(lastException, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
     
-    def test_execute2(self):#with processArg as string
+    def test_execute2(self):#with process_arg as string
         self.assertEqual(RESULT, None)
-        lastException, engine = execute("plop", self.params, processArg="1 2 3")
+        lastException, engine = execute("plop", self.params, process_arg="1 2 3")
         self.assertEqual(lastException, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
         
-    def test_execute3(self):#with processArg as something else
+    def test_execute3(self):#with process_arg as something else
         self.assertEqual(RESULT, None)
-        self.assertRaises(Exception, execute, "plop", self.params, processArg=object())
+        self.assertRaises(Exception, execute, "plop", self.params, process_arg=object())
         self.assertEqual(RESULT,None)
         
     def test_execute4(self):#with parser parsed
@@ -221,7 +221,7 @@ class ExecutingTest(unittest.TestCase):
         
     def test_execute9(self):#test with an empty command
         self.assertEqual(RESULT, None)
-        self.assertRaises(Exception, execute, "plap", self.params, processArg=object())
+        self.assertRaises(Exception, execute, "plap", self.params, process_arg=object())
         self.assertEqual(RESULT,None)
         
     def test_execute10(self):#check if commands are correctly cloned        

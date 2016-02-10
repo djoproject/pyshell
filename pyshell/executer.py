@@ -311,7 +311,7 @@ class CommandExecuter():
     def _initPrinter(self):
         # # prepare the printing system # #
         printer = Printer.getInstance()
-        printer.setREPLFunction(self.printAsynchronousOnShellV2)
+        printer.setReplFunction(self.printAsynchronousOnShellV2)
         printer.setPromptShowedContext(self.promptWaitingValuable)
         printer.setParameters(self.params)
 
