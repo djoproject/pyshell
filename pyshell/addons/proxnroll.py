@@ -46,8 +46,8 @@ from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerSetTempPrefix
 from pyshell.loader.command import registerStopHelpTraversalAt
 from pyshell.loader.dependancies import registerDependOnAddon
-from pyshell.utils.postProcess import printBytesAsString
-from pyshell.utils.postProcess import printStringCharResult
+from pyshell.utils.postprocess import printBytesAsString
+from pyshell.utils.postprocess import printStringCharResult
 from pyshell.utils.printing import printShell
 
 
@@ -100,29 +100,31 @@ def test(datas, expected=0, delay=0):
 
 @shellMethod(
     datas=listArgChecker(IntegerArgChecker(0, 255)),
-    protocolType=tokenValueArgChecker(ApduBuilder.protocolType),
-    timeoutType=tokenValueArgChecker(ApduBuilder.timeout))
+    protocol_type=tokenValueArgChecker(ApduBuilder.protocol_type),
+    timeout_type=tokenValueArgChecker(ApduBuilder.timeout))
 def encapsulateStandard(datas,
-                        protocolType="ISO14443_TCL",
-                        timeoutType="Default"):
-    return ApduBuilder.encapsulate(datas, protocolType, timeoutType)
+                        protocol_type="ISO14443_TCL",
+                        timeout_type="Default"):
+    return ApduBuilder.encapsulate(datas, protocol_type, timeout_type)
 
 
 @shellMethod(
     datas=listArgChecker(IntegerArgChecker(0, 255)),
-    protocolType=tokenValueArgChecker(ApduBuilder.redirection),
-    timeoutType=tokenValueArgChecker(ApduBuilder.timeout))
+    protocol_type=tokenValueArgChecker(ApduBuilder.redirection),
+    timeout_type=tokenValueArgChecker(ApduBuilder.timeout))
 def encapsulateRedirection(datas,
-                           protocolType="MainSlot",
-                           timeoutType="Default"):
-    return ApduBuilder.encapsulate(datas, protocolType, timeoutType)
+                           protocol_type="MainSlot",
+                           timeout_type="Default"):
+    return ApduBuilder.encapsulate(datas, protocol_type, timeout_type)
 
 
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0, 255)),
-             protocolType=tokenValueArgChecker(ApduBuilder.lastByte),
-             timeoutType=tokenValueArgChecker(ApduBuilder.timeout))
-def encapsulatePartial(datas, protocolType="complete", timeoutType="Default"):
-    return ApduBuilder.encapsulate(datas, protocolType, timeoutType)
+             protocol_type=tokenValueArgChecker(ApduBuilder.lastByte),
+             timeout_type=tokenValueArgChecker(ApduBuilder.timeout))
+def encapsulatePartial(datas,
+                       protocol_type="complete",
+                       timeout_type="Default"):
+    return ApduBuilder.encapsulate(datas, protocol_type, timeout_type)
 
 
 @shellMethod(speed=booleanValueArgChecker("9600", "115200"))
@@ -149,35 +151,35 @@ def setDisable(disable="next"):
         return ApduBuilder.slotControlDisableEveryTCL
 
 
-@shellMethod(KeyIndex=IntegerArgChecker(0, 15),
-             Key=keyStoreTranslatorArgChecker(6),
-             isTypeA=booleanValueArgChecker("a", "b"),
-             InVolatile=booleanValueArgChecker("volatile", "notvolatile"))
-def mifareLoadKey(KeyIndex, Key, isTypeA="a", InVolatile="volatile"):
-    return ApduBuilder.loadKey(KeyIndex, Key, isTypeA, InVolatile)
+@shellMethod(key_index=IntegerArgChecker(0, 15),
+             key=keyStoreTranslatorArgChecker(6),
+             is_type_a=booleanValueArgChecker("a", "b"),
+             in_volatile=booleanValueArgChecker("volatile", "notvolatile"))
+def mifareLoadKey(key_index, key, is_type_a="a", in_volatile="volatile"):
+    return ApduBuilder.loadKey(key_index, key, is_type_a, in_volatile)
 
 
-@shellMethod(blockNumber=IntegerArgChecker(0, 0xff),
-             KeyIndex=IntegerArgChecker(0, 15),
-             isTypeA=booleanValueArgChecker("a", "b"),
-             InVolatile=booleanValueArgChecker("volatile", "notvolatile"))
-def mifareAuthenticate(blockNumber, KeyIndex, isTypeA="a",
-                       InVolatile="volatile"):
+@shellMethod(block_number=IntegerArgChecker(0, 0xff),
+             key_index=IntegerArgChecker(0, 15),
+             is_type_a=booleanValueArgChecker("a", "b"),
+             in_volatile=booleanValueArgChecker("volatile", "notvolatile"))
+def mifareAuthenticate(block_number, key_index, is_type_a="a",
+                       in_volatile="volatile"):
     return ApduBuilder.generalAuthenticate(
-        blockNumber, KeyIndex, isTypeA, InVolatile)
+        block_number, key_index, is_type_a, in_volatile)
 
 
-@shellMethod(blockNumber=IntegerArgChecker(0, 0xff),
-             Key=keyStoreTranslatorArgChecker(6))
-def mifareRead(blockNumber=0, Key=None):
-    return ApduBuilder.mifareClassicRead(blockNumber, Key)
+@shellMethod(block_number=IntegerArgChecker(0, 0xff),
+             key=keyStoreTranslatorArgChecker(6))
+def mifareRead(block_number=0, key=None):
+    return ApduBuilder.mifareClassicRead(block_number, key)
 
 
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0, 255)),
-             blockNumber=IntegerArgChecker(0, 0xff),
-             Key=keyStoreTranslatorArgChecker(6))
-def mifareUpdate(datas, blockNumber=0, Key=None):
-    return ApduBuilder.mifareClassifWrite(blockNumber, Key, datas)
+             block_number=IntegerArgChecker(0, 0xff),
+             key=keyStoreTranslatorArgChecker(6))
+def mifareUpdate(datas, block_number=0, key=None):
+    return ApduBuilder.mifareClassifWrite(block_number, key, datas)
 
 
 @shellMethod(datas=listArgChecker(IntegerArgChecker(0, 255), 3))

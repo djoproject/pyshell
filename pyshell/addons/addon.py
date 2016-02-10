@@ -40,8 +40,8 @@ from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
 from pyshell.utils.constants import STATE_LOADED
 from pyshell.utils.constants import STATE_UNLOADED
 from pyshell.utils.exception import ListOfException
-from pyshell.utils.postProcess import listResultHandler
-from pyshell.utils.postProcess import printColumn
+from pyshell.utils.postprocess import listResultHandler
+from pyshell.utils.postprocess import printColumn
 from pyshell.utils.printing import formatBolt
 from pyshell.utils.printing import formatException
 from pyshell.utils.printing import formatGreen
@@ -148,31 +148,31 @@ def listAddonFun(addon_dico):
 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             subAddon=stringArgChecker(),
+             sub_addon=stringArgChecker(),
              parameters=completeEnvironmentChecker())
-def unloadAddon(name, parameters, subAddon=None):
+def unloadAddon(name, parameters, sub_addon=None):
     "unload an addon"
 
     addon = _tryToGetAddonFromParameters(parameters, name)
-    addon.unload(parameters, subAddon)
+    addon.unload(parameters, sub_addon)
     notice(str(name) + " unloaded !")
 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             subAddon=stringArgChecker(),
+             sub_addon=stringArgChecker(),
              parameters=completeEnvironmentChecker())
-def reloadAddon(name, parameters, subAddon=None):
+def reloadAddon(name, parameters, sub_addon=None):
     "reload an addon from memory"
 
     addon = _tryToGetAddonFromParameters(parameters, name)
-    addon.reload(parameters, subAddon)
+    addon.reload(parameters, sub_addon)
     notice(str(name) + " reloaded !")
 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             subAddon=stringArgChecker(),
+             sub_addon=stringArgChecker(),
              parameters=completeEnvironmentChecker())
-def loadAddonFun(name, parameters, subAddon=None):
+def loadAddonFun(name, parameters, sub_addon=None):
     "load an addon"
 
     # get addon list
@@ -183,15 +183,15 @@ def loadAddonFun(name, parameters, subAddon=None):
 
     # load and register
     addon_dico[name] = loader
-    loader.load(parameters, subAddon)
+    loader.load(parameters, sub_addon)
 
     notice(name + " loaded !")
 
 
 @shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             subAddon=stringArgChecker(),
+             sub_addon=stringArgChecker(),
              parameters=completeEnvironmentChecker())
-def hardReload(name, parameters, subAddon=None):
+def hardReload(name, parameters, sub_addon=None):
     "reload an addon from file"
 
     # get addon list and addon
@@ -199,14 +199,14 @@ def hardReload(name, parameters, subAddon=None):
     addon = _tryToGetAddonFromDico(addon_dico, name)
 
     # unload addon
-    addon.unload(parameters, subAddon)
+    addon.unload(parameters, sub_addon)
 
     # load addon from file
     loader = _tryToImportLoaderFromFile(name)
 
     # load and register
     addon_dico[name] = loader
-    loader.load(parameters, subAddon)
+    loader.load(parameters, sub_addon)
 
     notice(name + " hard reloaded !")
 
@@ -232,9 +232,9 @@ def getAddonInformation(name, addon_dico, tabsize, ):
     lines.append(formatBolt("Addon") + " '" + str(name) + "'")
 
     # each sub addon
-    for subAddonName, (subloaders, status, ) in addon.profileList.items():
+    for sub_addon_name, (subloaders, status, ) in addon.profileList.items():
         # current status
-        lines.append(tab+formatBolt("Sub addon")+" '"+str(subAddonName) +
+        lines.append(tab+formatBolt("Sub addon")+" '"+str(sub_addon_name) +
                      "': "+_formatState(status,
                                         formatGreen,
                                         formatOrange,
@@ -268,9 +268,9 @@ def getAddonInformation(name, addon_dico, tabsize, ):
 
                     if (hasattr(loader.lastException, "stackTrace") and
                        loader.lastException is not None):
-                        lastExceptionSplitted = \
+                        last_exception_splitted = \
                             loader.lastException.split("\n")
-                        for string in lastExceptionSplitted:
+                        for string in last_exception_splitted:
                             lines.append(tab * 3 + string)
             else:
                 lines.append(tab*2+formatBolt("Loader")+" '"+str(name) +
@@ -281,78 +281,78 @@ def getAddonInformation(name, addon_dico, tabsize, ):
 
 @shellMethod(
     name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    subLoaderName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    subAddon=stringArgChecker(),
+    sub_loader_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+    sub_addon=stringArgChecker(),
     parameters=completeEnvironmentChecker())
-def subLoaderReload(name, subLoaderName, parameters, subAddon=None):
+def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
     "reload a profile of an addon from memory"
 
     # addon name exist ?
     addon = _tryToGetAddonFromParameters(parameters, name)
 
-    if subAddon is None:
-        subAddon = DEFAULT_PROFILE_NAME
+    if sub_addon is None:
+        sub_addon = DEFAULT_PROFILE_NAME
 
-    # subaddon exist ?
-    if subAddon not in addon.profileList:
-        raise Exception("Unknown sub addon '" + str(subAddon) + "'")
+    # sub_addon exist ?
+    if sub_addon not in addon.profileList:
+        raise Exception("Unknown sub addon '" + str(sub_addon) + "'")
 
-    loaderDictionnary, status = addon.profileList[subAddon]
+    loaderDictionnary, status = addon.profileList[sub_addon]
 
     # subloader exist ?
-    if subLoaderName not in loaderDictionnary:
-        raise Exception("Unknown sub loader '" + str(subLoaderName) + "'")
+    if sub_loader_name not in loaderDictionnary:
+        raise Exception("Unknown sub loader '" + str(sub_loader_name) + "'")
 
-    loader = loaderDictionnary[subLoaderName]
+    loader = loaderDictionnary[sub_loader_name]
 
     # reload subloader
     try:
-        loader.reload(parameters, subAddon)
+        loader.reload(parameters, sub_addon)
     except Exception as ex:
         loader.lastException = ex
         loader.lastException.stackTrace = traceback.format_exc()
         raise ex
 
-    notice("sub loader '" + str(subLoaderName) + "' reloaded !")
+    notice("sub loader '" + str(sub_loader_name) + "' reloaded !")
 
 
 @shellMethod(
-    addonName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addonListOnStartUp=environmentParameterChecker(
+    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=environmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
-def addOnStartUp(addonName, addonListOnStartUp):
+def addOnStartUp(addon_name, addon_list_on_start_up):
     "add an addon loading on startup"
 
     # package exist ?
-    _tryToImportLoaderFromFile(addonName)
+    _tryToImportLoaderFromFile(addon_name)
 
-    addonList = addonListOnStartUp.getValue()
+    addon_list = addon_list_on_start_up.getValue()
 
-    if addonName not in addonList:
-        addonList.append(addonName)
-        addonListOnStartUp.setValue(addonList)
+    if addon_name not in addon_list:
+        addon_list.append(addon_name)
+        addon_list_on_start_up.setValue(addon_list)
 
 
 @shellMethod(
-    addonName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addonListOnStartUp=environmentParameterChecker(
+    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=environmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
-def removeOnStartUp(addonName, addonListOnStartUp):
+def removeOnStartUp(addon_name, addon_list_on_start_up):
     "remove an addon loading from startup"
 
-    addonList = addonListOnStartUp.getValue()
+    addon_list = addon_list_on_start_up.getValue()
 
-    if addonName in addonList:
-        addonList.remove(addonName)
-        addonListOnStartUp.setValue(addonList)
+    if addon_name in addon_list:
+        addon_list.remove(addon_name)
+        addon_list_on_start_up.setValue(addon_list)
 
 
-@shellMethod(addonListOnStartUp=environmentParameterChecker(
+@shellMethod(addon_list_on_start_up=environmentParameterChecker(
     ENVIRONMENT_ADDON_TO_LOAD_KEY))
-def listOnStartUp(addonListOnStartUp):
+def listOnStartUp(addon_list_on_start_up):
     "list addon enabled on startup"
 
-    addons = addonListOnStartUp.getValue()
+    addons = addon_list_on_start_up.getValue()
 
     if len(addons) == 0:
         return ()
@@ -366,74 +366,74 @@ def listOnStartUp(addonListOnStartUp):
 
 
 @shellMethod(
-    addonName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addonListOnStartUp=environmentParameterChecker(
+    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=environmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
-def downAddonInList(addonName, addonListOnStartUp):
+def downAddonInList(addon_name, addon_list_on_start_up):
     "reduce the loading priority at startup for an addon"
 
-    addonList = addonListOnStartUp.getValue()
+    addon_list = addon_list_on_start_up.getValue()
 
-    if addonName not in addonList:
-        raise Exception("unknown addon name '" + str(addonName) + "'")
+    if addon_name not in addon_list:
+        raise Exception("unknown addon name '" + str(addon_name) + "'")
 
-    position = addonList.index(addonName)
-    addonList.remove(addonName)
-    addonList.insert(position + 1, addonName)
+    position = addon_list.index(addon_name)
+    addon_list.remove(addon_name)
+    addon_list.insert(position + 1, addon_name)
 
 
 @shellMethod(
-    addonName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addonListOnStartUp=environmentParameterChecker(
+    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=environmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
-def upAddonInList(addonName, addonListOnStartUp):
+def upAddonInList(addon_name, addon_list_on_start_up):
     "increase the loading priority at startup for an addon"
 
-    addonList = addonListOnStartUp.getValue()
+    addon_list = addon_list_on_start_up.getValue()
 
-    if addonName not in addonList:
-        raise Exception("unknown addon name '" + str(addonName) + "'")
+    if addon_name not in addon_list:
+        raise Exception("unknown addon name '" + str(addon_name) + "'")
 
-    position = addonList.index(addonName)
-    addonList.remove(addonName)
-    addonList.insert(max(position - 1, 0), addonName)
+    position = addon_list.index(addon_name)
+    addon_list.remove(addon_name)
+    addon_list.insert(max(position - 1, 0), addon_name)
 
 
 @shellMethod(
-    addonName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
     position=defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-    addonListOnStartUp=environmentParameterChecker(
+    addon_list_on_start_up=environmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
-def setAddonPositionInList(addonName, position, addonListOnStartUp):
+def setAddonPositionInList(addon_name, position, addon_list_on_start_up):
     "set the loading position at startup for an addon"
 
-    addonList = addonListOnStartUp.getValue()
+    addon_list = addon_list_on_start_up.getValue()
 
-    if addonName not in addonList:
-        raise Exception("unknown addon name '" + str(addonName) + "'")
+    if addon_name not in addon_list:
+        raise Exception("unknown addon name '" + str(addon_name) + "'")
 
-    addonList.remove(addonName)
-    addonList.insert(max(position, 0), addonName)
+    addon_list.remove(addon_name)
+    addon_list.insert(max(position, 0), addon_name)
 
 
 @shellMethod(
-    addonListOnStartUp=environmentParameterChecker(
+    addon_list_on_start_up=environmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY),
     params=defaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def loadAddonOnStartUp(addonListOnStartUp, params):
+def loadAddonOnStartUp(addon_list_on_start_up, params):
 
-    addonList = addonListOnStartUp.getValue()
+    addon_list = addon_list_on_start_up.getValue()
 
-    errorList = ListOfException()
-    for addonName in addonList:
+    error_list = ListOfException()
+    for addon_name in addon_list:
         try:
-            loadAddonFun(addonName, params)
+            loadAddonFun(addon_name, params)
         except Exception as ex:
             # TODO the information about the failing addon is lost here...
-            errorList.addException(ex)
+            error_list.addException(ex)
 
-    if errorList.isThrowable():
-        raise errorList
+    if error_list.isThrowable():
+        raise error_list
 
 # TODO load all
 

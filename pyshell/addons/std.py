@@ -53,8 +53,8 @@ from pyshell.utils.exception import USER_ERROR
 from pyshell.utils.exception import USER_WARNING
 from pyshell.utils.exception import WARNING
 from pyshell.utils.misc import createParentDirectory
-from pyshell.utils.postProcess import listFlatResultHandler
-from pyshell.utils.postProcess import listResultHandler
+from pyshell.utils.postprocess import listFlatResultHandler
+from pyshell.utils.postprocess import listResultHandler
 
 from tries.exception import triesException
 
@@ -114,7 +114,7 @@ def usageFun(args, mltries):
     "print the usage of a fonction"
 
     try:
-        searchResult = mltries.getValue().advancedSearch(args, False)
+        search_result = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
         raise DefaultPyshellException(
             "failed to find the command '" +
@@ -122,33 +122,33 @@ def usageFun(args, mltries):
             "', reason: " +
             str(te))
 
-    if searchResult.isAmbiguous():
-        tokenIndex = len(searchResult.existingPath) - 1
-        tries = searchResult.existingPath[tokenIndex][1].localTries
-        keylist = tries.getKeyList(args[tokenIndex])
+    if search_result.isAmbiguous():
+        token_index = len(search_result.existingPath) - 1
+        tries = search_result.existingPath[token_index][1].localTries
+        keylist = tries.getKeyList(args[token_index])
 
         raise DefaultPyshellException("ambiguity on command '" +
                                       " ".join(args) +
                                       "', token '" +
-                                      str(args[tokenIndex]) +
+                                      str(args[token_index]) +
                                       "', possible value: " +
                                       ", ".join(keylist), USER_WARNING)
 
-    if not searchResult.isPathFound():
-        tokenNotFound = searchResult.getNotFoundTokenList()
+    if not search_result.isPathFound():
+        token_not_found = search_result.getNotFoundTokenList()
         raise DefaultPyshellException(
             "command not found, unknown token '" +
-            tokenNotFound[0] +
+            token_not_found[0] +
             "'",
             USER_ERROR)
 
-    if not searchResult.isAvalueOnTheLastTokenFound():
+    if not search_result.isAvalueOnTheLastTokenFound():
         raise DefaultPyshellException("incomplete command call, no usage "
                                       "information available, try to complete "
                                       "the command name",
                                       USER_WARNING)
 
-    cmd = searchResult.getLastTokenFoundValue()
+    cmd = search_result.getLastTokenFoundValue()
 
     # TODO the command name has been removed, need to add complete command
     # path + usage
@@ -167,43 +167,43 @@ def helpFun(mltries, args=None):
     # little hack to be able to get help about for a function who has another
     # function as suffix
     if len(args) > 0:
-        fullArgs = args[:]
+        full_args = args[:]
         suffix = args[-1]
         args = args[:-1]
     else:
         suffix = None
-        fullArgs = None
+        full_args = None
 
     # manage ambiguity cases
-    if fullArgs is not None:
-        advancedResult = mltries.getValue().advancedSearch(fullArgs, False)
-        ambiguityOnLastToken = False
-        if advancedResult.isAmbiguous():
-            tokenIndex = len(advancedResult.existingPath) - 1
-            tries = advancedResult.existingPath[tokenIndex][1].localTries
-            keylist = tries.getKeyList(fullArgs[tokenIndex])
+    if full_args is not None:
+        advanced_result = mltries.getValue().advancedSearch(full_args, False)
+        ambiguity_on_last_token = False
+        if advanced_result.isAmbiguous():
+            token_index = len(advanced_result.existingPath) - 1
+            tries = advanced_result.existingPath[token_index][1].localTries
+            keylist = tries.getKeyList(full_args[token_index])
 
             # don't care about ambiguity on last token
-            ambiguityOnLastToken = tokenIndex == len(fullArgs) - 1
-            if not ambiguityOnLastToken:
+            ambiguity_on_last_token = token_index == len(full_args) - 1
+            if not ambiguity_on_last_token:
                 # if ambiguity occurs on an intermediate key, stop the search
                 raise DefaultPyshellException(
                     "Ambiguous value on key index <" +
-                    str(tokenIndex) +
+                    str(token_index) +
                     ">, possible value: " +
                     ", ".join(keylist),
                     USER_WARNING)
 
         # manage not found case
-        if not ambiguityOnLastToken and not advancedResult.isPathFound():
-            notFoundToken = advancedResult.getNotFoundTokenList()
+        if not ambiguity_on_last_token and not advanced_result.isPathFound():
+            not_found_token = advanced_result.getNotFoundTokenList()
             excmsg = ("unkwnon token " +
-                      str(advancedResult.getTokenFoundCount()) +
-                      ": '"+notFoundToken[0]+"'")
+                      str(advanced_result.getTokenFoundCount()) +
+                      ": '"+not_found_token[0]+"'")
             raise DefaultPyshellException(excmsg, USER_ERROR)
 
     found = []
-    stringKeys = []
+    string_keys = []
     # cmd with stop traversal, this will retrieve every tuple path/value
     dic = mltries.getValue().buildDictionnary(
         args,
@@ -211,8 +211,8 @@ def helpFun(mltries, args=None):
         addPrexix=True,
         onlyPerfectMatch=False)
     for k in dic.keys():
-        # if (fullArgs is None and len(k) < len(args)) or
-        # (fullArgs is not None and len(k) < len(fullArgs)):
+        # if (full_args is None and len(k) < len(args)) or
+        # (full_args is not None and len(k) < len(full_args)):
         #    continue
 
         # the last corresponding token in k must start with the last token of
@@ -231,7 +231,7 @@ def helpFun(mltries, args=None):
             line += ": " + hmess
 
         found.append((k, hmess,))
-        stringKeys.append(line)
+        string_keys.append(line)
 
     # cmd without stop traversal (parent category only)
     dic2 = mltries.getValue().buildDictionnary(
@@ -242,8 +242,8 @@ def helpFun(mltries, args=None):
         if k in dic:
             continue
 
-        # if (fullArgs is None and len(k) < len(args))
-        #   or (fullArgs is not None and len(k) < len(fullArgs)):
+        # if (full_args is None and len(k) < len(args))
+        #   or (full_args is not None and len(k) < len(full_args)):
         #    continue
 
         # the last corresponding token in k must start with the last token of
@@ -276,10 +276,10 @@ def helpFun(mltries, args=None):
                 # if the disabled string token is in the args to print, it is
                 # equivalent to enabled
                 equiv = False
-                if fullArgs is not None and len(fullArgs) >= len(k[0:i]):
+                if full_args is not None and len(full_args) >= len(k[0:i]):
                     equiv = True
-                    for j in range(0, min(len(fullArgs), len(k))):
-                        if not k[j].startswith(fullArgs[j]):
+                    for j in range(0, min(len(full_args), len(k))):
+                        if not k[j].startswith(full_args[j]):
                             equiv = False
 
                 # if the args are not a prefix for every corresponding key, is
@@ -301,14 +301,14 @@ def helpFun(mltries, args=None):
                     line += ": " + hmess
 
                 found.append((k, hmess,))
-                stringKeys.append(line)
+                string_keys.append(line)
 
     # build the "real" help
     if len(stop) == 0:
         if len(found) == 0:
-            if len(fullArgs) > 0:
+            if len(full_args) > 0:
                 raise DefaultPyshellException(
-                    "unkwnon token 0: '" + fullArgs[0] + "'", USER_ERROR)
+                    "unkwnon token 0: '" + full_args[0] + "'", USER_ERROR)
             else:
                 raise DefaultPyshellException("no help available", WARNING)
 
@@ -332,48 +332,50 @@ def helpFun(mltries, args=None):
         if len(subChild) > 3:
             string += ",..."
 
-        stringKeys.append(string + "}")
+        string_keys.append(string + "}")
 
-    return sorted(stringKeys)
+    return sorted(string_keys)
 
 
 @shellMethod(start=IntegerArgChecker(),
              stop=IntegerArgChecker(),
              step=IntegerArgChecker(),
-             multiOutput=booleanValueArgChecker())
-def generator(start=0, stop=100, step=1, multiOutput=True):
+             multi_output=booleanValueArgChecker())
+def generator(start=0, stop=100, step=1, multi_output=True):
     "generate a list of integer"
-    if multiOutput:
+    if multi_output:
         return MultiOutput(range(start, stop, step))
     else:
         return range(start, stop, step)
 
 
 @shellMethod(
-    useHistory=environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
-    historyFile=environmentParameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY))
-def historyLoad(useHistory, historyFile):
+    use_history=environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+    history_file=environmentParameterChecker(
+        ENVIRONMENT_HISTORY_FILE_NAME_KEY))
+def historyLoad(use_history, history_file):
     "save readline history"
 
-    if not useHistory.getValue():
+    if not use_history.getValue():
         return
 
     try:
-        readline.read_history_file(historyFile.getValue())
+        readline.read_history_file(history_file.getValue())
     except IOError:
         pass
 
 
 @shellMethod(
-    useHistory=environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
-    historyFile=environmentParameterChecker(ENVIRONMENT_HISTORY_FILE_NAME_KEY))
-def historySave(useHistory, historyFile):
+    use_history=environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+    history_file=environmentParameterChecker(
+        ENVIRONMENT_HISTORY_FILE_NAME_KEY))
+def historySave(use_history, history_file):
     "load readline history"
 
-    if not useHistory.getValue():
+    if not use_history.getValue():
         return
 
-    path = historyFile.getValue()
+    path = history_file.getValue()
     createParentDirectory(path)
     readline.write_history_file(path)
 

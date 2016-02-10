@@ -42,10 +42,10 @@ from pyshell.utils.constants import PARAMETER_NAME
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.misc import createParentDirectory
 from pyshell.utils.parsing import escapeString
-from pyshell.utils.postProcess import listFlatResultHandler
-from pyshell.utils.postProcess import listResultHandler
-from pyshell.utils.postProcess import printColumn
-from pyshell.utils.postProcess import printColumnWithouHeader
+from pyshell.utils.postprocess import listFlatResultHandler
+from pyshell.utils.postprocess import listResultHandler
+from pyshell.utils.postprocess import printColumn
+from pyshell.utils.postprocess import printColumnWithouHeader
 from pyshell.utils.printing import formatBolt
 from pyshell.utils.printing import formatOrange
 
@@ -92,73 +92,73 @@ CONTEXT_GET_PROPERTIES.update(ENVIRONMENT_GET_PROPERTIES)
 
 def getParameter(key,
                  parameters,
-                 attributeType,
-                 startWithLocal=True,
-                 exploreOtherLevel=True,
-                 perfectMatch=False):
-    if not hasattr(parameters, attributeType):
-        raise Exception("Unknow parameter type '" + str(attributeType) + "'")
+                 attribute_type,
+                 start_with_local=True,
+                 explore_other_level=True,
+                 perfect_match=False):
+    if not hasattr(parameters, attribute_type):
+        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
 
-    container = getattr(parameters, attributeType)
+    container = getattr(parameters, attribute_type)
     param = container.getParameter(key,
-                                   perfectMatch=perfectMatch,
-                                   localParam=startWithLocal,
-                                   exploreOtherLevel=exploreOtherLevel)
+                                   perfectMatch=perfect_match,
+                                   localParam=start_with_local,
+                                   exploreOtherLevel=explore_other_level)
 
     if param is None:
-        raise Exception("Unknow parameter of type '"+str(attributeType) +
+        raise Exception("Unknow parameter of type '"+str(attribute_type) +
                         "' with key '"+str(key)+"'")
 
     return param
 
 
 def setProperties(key,
-                  propertyInfo,
-                  propertyValue,
+                  property_info,
+                  property_value,
                   parameters,
-                  attributeType,
-                  startWithLocal=True,
-                  exploreOtherLevel=True,
-                  perfectMatch=False):
+                  attribute_type,
+                  start_with_local=True,
+                  explore_other_level=True,
+                  perfect_match=False):
 
-    propertyName, propertyChecker = propertyInfo
+    property_name, propertyChecker = property_info
     param = getParameter(key,
                          parameters,
-                         attributeType,
-                         startWithLocal,
-                         exploreOtherLevel,
-                         perfectMatch)
+                         attribute_type,
+                         start_with_local,
+                         explore_other_level,
+                         perfect_match)
 
     # TODO does not work for index and defaultIndex
-    meth = getattr(param.settings, propertyName)
+    meth = getattr(param.settings, property_name)
 
     if meth is None:
         # TODO the list is not complete for context
-        raise Exception("Unknown property '"+str(propertyName)+"', one of "
+        raise Exception("Unknown property '"+str(property_name)+"', one of "
                         "these was expected: readonly/removable/transient/"
                         "index_transient")
 
-    meth(propertyChecker.getValue(propertyValue, "value", 0))
+    meth(propertyChecker.getValue(property_value, "value", 0))
 
 
 def getProperties(key,
-                  propertyName,
+                  property_name,
                   parameters,
-                  attributeType,
-                  startWithLocal=True,
-                  exploreOtherLevel=True,
-                  perfectMatch=False):
+                  attribute_type,
+                  start_with_local=True,
+                  explore_other_level=True,
+                  perfect_match=False):
     param = getParameter(key,
                          parameters,
-                         attributeType,
-                         startWithLocal,
-                         exploreOtherLevel,
-                         perfectMatch)
+                         attribute_type,
+                         start_with_local,
+                         explore_other_level,
+                         perfect_match)
 
-    meth = getattr(param, propertyName)
+    meth = getattr(param, property_name)
 
     if meth is None:
-        raise Exception("Unknown property '"+str(propertyName)+"', one of "
+        raise Exception("Unknown property '"+str(property_name)+"', one of "
                         "these was expected: readonly/removable/transient/"
                         "index_transient")
 
@@ -167,16 +167,16 @@ def getProperties(key,
 
 def listProperties(key,
                    parameters,
-                   attributeType,
-                   startWithLocal=True,
-                   exploreOtherLevel=True,
-                   perfectMatch=False):
+                   attribute_type,
+                   start_with_local=True,
+                   explore_other_level=True,
+                   perfect_match=False):
     param = getParameter(key,
                          parameters,
-                         attributeType,
-                         startWithLocal,
-                         exploreOtherLevel,
-                         perfectMatch)
+                         attribute_type,
+                         start_with_local,
+                         explore_other_level,
+                         perfect_match)
     prop = list(param.settings.getProperties())
     prop.insert(0, (formatBolt("Key"), formatBolt("Value")))
     return prop
@@ -184,33 +184,33 @@ def listProperties(key,
 
 def removeParameter(key,
                     parameters,
-                    attributeType,
-                    startWithLocal=True,
-                    exploreOtherLevel=True):
-    if not hasattr(parameters, attributeType):
-        raise Exception("Unknow parameter type '" + str(attributeType) + "'")
+                    attribute_type,
+                    start_with_local=True,
+                    explore_other_level=True):
+    if not hasattr(parameters, attribute_type):
+        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
 
-    container = getattr(parameters, attributeType)
+    container = getattr(parameters, attribute_type)
 
     if not container.hasParameter(key,
                                   perfectMatch=True,
-                                  localParam=startWithLocal,
-                                  exploreOtherLevel=exploreOtherLevel):
+                                  localParam=start_with_local,
+                                  exploreOtherLevel=explore_other_level):
         return  # no job to do
 
     container.unsetParameter(
         key,
-        localParam=startWithLocal,
-        exploreOtherLevel=exploreOtherLevel)
+        localParam=start_with_local,
+        exploreOtherLevel=explore_other_level)
 
 
 def _listGeneric(parameters,
-                 attributeType,
+                 attribute_type,
                  key,
-                 formatValueFun,
-                 getTitleFun,
-                 startWithLocal=True,
-                 exploreOtherLevel=True):
+                 format_value_fun,
+                 get_title_fun,
+                 start_with_local=True,
+                 explore_other_level=True):
     # TODO re-apply a width limit on the printing, too big value will show a
     # really big print on the terminal
     #   use it in printing ?
@@ -221,79 +221,77 @@ def _listGeneric(parameters,
     #       or script ? without output redirection
 
     # TODO try to display if global or local
-    #   don't print that column if exploreOtherLevel == false
+    #   don't print that column if explore_other_level == false
 
     #   for context and env, use the boolean lockEnabled
     #       but for the var ?
 
-    if not hasattr(parameters, attributeType):
-        raise Exception("Unknow parameter type '" + str(attributeType) + "'")
+    if not hasattr(parameters, attribute_type):
+        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
 
-    container = getattr(parameters, attributeType)
+    container = getattr(parameters, attribute_type)
 
     if key is None:
         key = ""
 
     # retrieve all value from corresponding mltries
-    dico = container.buildDictionnary(key, startWithLocal, exploreOtherLevel)
+    dico = container.buildDictionnary(key,
+                                      start_with_local,
+                                      explore_other_level)
 
-    toRet = []
+    to_ret = []
     for subk, subv in dico.items():
-        toRet.append(formatValueFun(subk, subv, formatOrange))
+        to_ret.append(format_value_fun(subk, subv, formatOrange))
 
-    if len(toRet) == 0:
+    if len(to_ret) == 0:
         return [("No item available",)]
 
-    toRet.insert(0, getTitleFun(formatBolt))
-    return toRet
+    to_ret.insert(0, get_title_fun(formatBolt))
+    return to_ret
 
 
-def _parameterRowFormating(key, paramItem, valueFormatingFun):
+def _parameterRowFormating(key, param_item, value_formating_fun):
 
-    if paramItem.isAListType():
-        value = ', '.join(str(x) for x in paramItem.getValue())
+    if param_item.isAListType():
+        value = ', '.join(str(x) for x in param_item.getValue())
     else:
-        value = str(paramItem.getValue())
+        value = str(param_item.getValue())
 
-    return ("  " + key, valueFormatingFun(value), )
+    return ("  " + key, value_formating_fun(value), )
 
 
-def _parameterGetTitle(titleFormatingFun):
-    return (" " + titleFormatingFun("Name"), titleFormatingFun("Value"), )
+def _parameterGetTitle(title_formating_fun):
+    return (" "+title_formating_fun("Name"), title_formating_fun("Value"),)
 
 
 @shellMethod(
     parameters=defaultArgs.getCompleteEnvironmentChecker(),
     key=stringArgChecker())
 def listParameter(parameters, key=None):
-    toPrint = []
+    to_print = []
     for subcontainername in parameters.parameterManagerList:
         if not hasattr(parameters, subcontainername):
-            raise Exception(
-                "Unknow parameter type '" +
-                str(subcontainername) +
-                "'")
+            raise Exception("Unknow parameter type '"+str(subcontainername) +
+                            "'")
 
-        toPrint.append(formatBolt(subcontainername.upper()))
-        toPrint.extend(
-            _listGeneric(
-                parameters,
-                subcontainername,
-                key,
-                _parameterRowFormating,
-                _parameterGetTitle))
+        to_print.append(formatBolt(subcontainername.upper()))
+        to_print.extend(_listGeneric(parameters,
+                                     subcontainername,
+                                     key,
+                                     _parameterRowFormating,
+                                     _parameterGetTitle))
 
-    return toPrint
+    return to_print
 
 
 @shellMethod(
-    filePath=environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
+    file_path=environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
     parameters=defaultArgs.getCompleteEnvironmentChecker())
-def loadParameter(filePath, parameters):
+def loadParameter(file_path, parameters):
     "load parameters from the settings file"
 
-    if os.path.exists(filePath.getValue()):
-        afile = ProcedureFromFile(filePath.getValue())
+    if os.path.exists(file_path.getValue()):
+        afile = ProcedureFromFile(file_path.getValue())
         afile.neverStopIfErrorOccured()
         # TODO yeaah, never stop execution BUT there is a problem
         # if a parameter creation trigger an exception, the "set properties"
@@ -305,13 +303,13 @@ def loadParameter(filePath, parameters):
 
         afile.execute(parameters=parameters)
     else:
-        saveParameter(filePath, parameters)
+        saveParameter(file_path, parameters)
 
 
 @shellMethod(
-    filePath=environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
+    file_path=environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
     parameters=defaultArgs.getCompleteEnvironmentChecker())
-def saveParameter(filePath, parameters):
+def saveParameter(file_path, parameters):
     "save not transient parameters to the settings file"
 
     # TODO is there something to save ?
@@ -320,12 +318,12 @@ def saveParameter(filePath, parameters):
     # SOLUTION2 historized parameters
     # store old value, when it has been change and by what
 
-    filePath = filePath.getValue()
+    file_path = file_path.getValue()
 
     # create directory if needed
-    createParentDirectory(filePath)
+    createParentDirectory(file_path)
 
-    with open(filePath, 'wb') as configfile:
+    with open(file_path, 'wb') as configfile:
         for subcontainername in parameters.parameterManagerList:
             container = getattr(parameters, subcontainername)
             dico = container.buildDictionnary("",
@@ -342,16 +340,16 @@ def saveParameter(filePath, parameters):
                     configfile.write(subcontainername+" create " +
                                      parameter.typ.checker.getTypeName() +
                                      " "+key+" "+values +
-                                     " -noCreationIfExist true"
-                                     " -localVar false\n")
+                                     " -no_creation_if_exist true"
+                                     " -local_var false\n")
                 else:
                     configfile.write(subcontainername +
                                      " create "+parameter.typ.getTypeName() +
                                      " "+key+" " +
                                      escapeString(str(parameter.getValue())) +
-                                     " -isList false"
-                                     " -noCreationIfExist true"
-                                     " -localVar false\n")
+                                     " -is_list false"
+                                     " -no_creation_if_exist true"
+                                     " -local_var false\n")
 
                 properties = parameter.settings.getProperties()
 
@@ -381,7 +379,7 @@ def saveParameter(filePath, parameters):
                                          str(parameter.getValue()) +
                                          "\n")
 
-                    readOnlyValue = False
+                    read_only_value = False
                     settings = parameter.settings
                     for propName, propValue in settings.getProperties():
                         # TODO skip transient properties, no need to be
@@ -389,7 +387,7 @@ def saveParameter(filePath, parameters):
 
                         # readonly should always be written on last
                         if propName.lower() == "readonly":
-                            readOnlyValue = propValue
+                            read_only_value = propValue
                             continue
 
                         configfile.write(subcontainername+" properties set " +
@@ -397,35 +395,36 @@ def saveParameter(filePath, parameters):
                                          "\n")
                     # TODO don't disable again if already disabled
                     configfile.write(subcontainername+" properties set " +
-                                     key+" readOnly "+str(readOnlyValue) +
+                                     key+" readOnly "+str(read_only_value) +
                                      "\n")
                 configfile.write("\n")
 
 
-def _createValuesFun(valueType,
+def _createValuesFun(value_type,
                      key,
                      values,
-                     classDef,
-                     attributeType,
-                     noCreationIfExist,
+                     class_def,
+                     attribute_type,
+                     no_creation_if_exist,
                      parameters,
-                     listEnabled,
-                     localParam=True):
-    if not hasattr(parameters, attributeType):
-        raise Exception("Unknow parameter type '" + str(attributeType) + "'")
+                     list_enabled,
+                     local_param=True):
+    if not hasattr(parameters, attribute_type):
+        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
 
-    container = getattr(parameters, attributeType)
+    container = getattr(parameters, attribute_type)
 
     # build checker
-    if listEnabled:
-        checker = listArgChecker(valueType(), 1)
+    if list_enabled:
+        checker = listArgChecker(value_type(), 1)
     else:
-        checker = valueType()
+        checker = value_type()
 
-    if container.hasParameter(key,
-                              perfectMatch=True,
-                              localParam=localParam,
-                              exploreOtherLevel=False) and noCreationIfExist:
+    if (container.hasParameter(key,
+                               perfectMatch=True,
+                               localParam=local_param,
+                               exploreOtherLevel=False) and
+       no_creation_if_exist):
         return
         # no need to manage readonly or removable setting here, it will be
         # checked in setParameter
@@ -433,8 +432,8 @@ def _createValuesFun(valueType,
     # check value
     value = checker.getValue(values,
                              None,
-                             str(attributeType).title()+" "+key)
-    container.setParameter(key, classDef(value, checker))
+                             str(attribute_type).title()+" "+key)
+    container.setParameter(key, class_def(value, checker))
 
 # ################################### env management###########################
 
@@ -442,209 +441,212 @@ def _createValuesFun(valueType,
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance()),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def subtractEnvironmentValuesFun(key,
                                  values,
                                  parameters,
-                                 startWithLocal=True,
-                                 exploreOtherLevel=True):
+                                 start_with_local=True,
+                                 explore_other_level=True):
     "remove some elements from an environment parameter"
     param = getParameter(key,
                          parameters,
                          ENVIRONMENT_ATTRIBUTE_NAME,
-                         startWithLocal,
-                         exploreOtherLevel)
+                         start_with_local,
+                         explore_other_level)
     param.removeValues(values)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def removeEnvironmentContextValues(key,
                                    parameters,
-                                   startWithLocal=True,
-                                   exploreOtherLevel=True):
+                                   start_with_local=True,
+                                   explore_other_level=True):
     "remove an environment parameter"
     removeParameter(key,
                     parameters,
                     ENVIRONMENT_ATTRIBUTE_NAME,
-                    startWithLocal,
-                    exploreOtherLevel)
+                    start_with_local,
+                    explore_other_level)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def getEnvironmentValues(key,
                          parameters,
-                         startWithLocal=True,
-                         exploreOtherLevel=True):
+                         start_with_local=True,
+                         explore_other_level=True):
     "get an environment parameter value"
     return getParameter(key,
                         parameters,
                         ENVIRONMENT_ATTRIBUTE_NAME,
-                        startWithLocal,
-                        exploreOtherLevel).getValue()
+                        start_with_local,
+                        explore_other_level).getValue()
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance(), 1),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def setEnvironmentValuesFun(key,
                             values,
                             parameters,
-                            startWithLocal=True,
-                            exploreOtherLevel=True):
+                            start_with_local=True,
+                            explore_other_level=True):
     "set an environment parameter value"
 
-    envParam = getParameter(key,
-                            parameters,
-                            ENVIRONMENT_ATTRIBUTE_NAME,
-                            startWithLocal,
-                            exploreOtherLevel)
+    env_param = getParameter(key,
+                             parameters,
+                             ENVIRONMENT_ATTRIBUTE_NAME,
+                             start_with_local,
+                             explore_other_level)
 
-    if envParam.isAListType():
-        envParam.setValue(values)
+    if env_param.isAListType():
+        env_param.setValue(values)
     else:
-        envParam.setValue(values[0])
+        env_param.setValue(values[0])
 
 
-@shellMethod(valueType=tokenValueArgChecker(AVAILABLE_TYPE),
+@shellMethod(value_type=tokenValueArgChecker(AVAILABLE_TYPE),
              key=defaultArgs.getStringArgCheckerInstance(),
              value=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             isList=booleanValueArgChecker(),
-             noCreationIfExist=booleanValueArgChecker(),
+             is_list=booleanValueArgChecker(),
+             no_creation_if_exist=booleanValueArgChecker(),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             localVar=booleanValueArgChecker())
-def createEnvironmentValueFun(valueType,
+             local_var=booleanValueArgChecker())
+def createEnvironmentValueFun(value_type,
                               key,
                               value,
-                              isList=True,
-                              noCreationIfExist=False,
+                              is_list=True,
+                              no_creation_if_exist=False,
                               parameters=None,
-                              localVar=True):
+                              local_var=True):
     "create an environment parameter value"
-    _createValuesFun(valueType,
+    _createValuesFun(value_type,
                      key,
                      value,
                      EnvironmentParameter,
                      ENVIRONMENT_ATTRIBUTE_NAME,
-                     noCreationIfExist,
+                     no_creation_if_exist,
                      parameters,
-                     isList,
-                     localVar)
+                     is_list,
+                     local_var)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance()),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def addEnvironmentValuesFun(key,
                             values,
                             parameters,
-                            startWithLocal=True,
-                            exploreOtherLevel=True):
+                            start_with_local=True,
+                            explore_other_level=True):
     "add values to an environment parameter list"
     param = getParameter(key,
                          parameters,
                          ENVIRONMENT_ATTRIBUTE_NAME,
-                         startWithLocal,
-                         exploreOtherLevel)
+                         start_with_local,
+                         explore_other_level)
     param.addValues(values)
 
 
-def _envRowFormating(key, envItem, valueFormatingFun):
-    if envItem.isAListType():
+def _envRowFormating(key, env_item, value_formating_fun):
+    if env_item.isAListType():
         return (key,
                 "true",
-                valueFormatingFun(
-                    ', '.join(str(x) for x in envItem.getValue())),)
+                value_formating_fun(
+                    ', '.join(str(x) for x in env_item.getValue())),)
     else:
-        return (key, "false", valueFormatingFun(str(envItem.getValue())),)
+        return (key, "false", value_formating_fun(str(env_item.getValue())),)
 
 
-def _envGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Name"),
-            titleFormatingFun("IsList"),
-            titleFormatingFun("Value(s)"),)
+def _envGetTitle(title_formating_fun):
+    return (title_formating_fun("Name"),
+            title_formating_fun("is_list"),
+            title_formating_fun("Value(s)"),)
 
 
 @shellMethod(parameter=defaultArgs.getCompleteEnvironmentChecker(),
              key=stringArgChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
-def listEnvs(parameter, key=None, startWithLocal=True, exploreOtherLevel=True):
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
+def listEnvs(parameter,
+             key=None,
+             start_with_local=True,
+             explore_other_level=True):
     "list every existing contexts"
     return _listGeneric(parameter,
                         ENVIRONMENT_ATTRIBUTE_NAME,
                         key,
                         _envRowFormating,
                         _envGetTitle,
-                        startWithLocal,
-                        exploreOtherLevel)
+                        start_with_local,
+                        explore_other_level)
 
 
 @shellMethod(key=stringArgChecker(),
-             propertyName=tokenValueArgChecker(ENVIRONMENT_SET_PROPERTIES),
-             propertyValue=defaultArgs.getbooleanValueArgCheckerInstance(),
+             property_name=tokenValueArgChecker(ENVIRONMENT_SET_PROPERTIES),
+             property_value=defaultArgs.getbooleanValueArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def setEnvironmentProperties(key,
-                             propertyName,
-                             propertyValue,
+                             property_name,
+                             property_value,
                              parameter,
-                             startWithLocal=True,
-                             exploreOtherLevel=True):
+                             start_with_local=True,
+                             explore_other_level=True):
     "set environment property"
     setProperties(key,
-                  propertyName,
-                  propertyValue,
+                  property_name,
+                  property_value,
                   parameter,
                   ENVIRONMENT_ATTRIBUTE_NAME,
-                  startWithLocal,
-                  exploreOtherLevel)
+                  start_with_local,
+                  explore_other_level)
 
 
 @shellMethod(key=stringArgChecker(),
-             propertyName=tokenValueArgChecker(ENVIRONMENT_GET_PROPERTIES),
+             property_name=tokenValueArgChecker(ENVIRONMENT_GET_PROPERTIES),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def getEnvironmentProperties(key,
-                             propertyName,
+                             property_name,
                              parameter,
-                             startWithLocal=True,
-                             exploreOtherLevel=True):
+                             start_with_local=True,
+                             explore_other_level=True):
     "get environment property"
     return getProperties(key,
-                         propertyName,
+                         property_name,
                          parameter,
                          ENVIRONMENT_ATTRIBUTE_NAME,
-                         startWithLocal,
-                         exploreOtherLevel)
+                         start_with_local,
+                         explore_other_level)
 
 
 @shellMethod(key=stringArgChecker(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def listEnvironmentProperties(key,
                               parameter,
-                              startWithLocal=True,
-                              exploreOtherLevel=True):
+                              start_with_local=True,
+                              explore_other_level=True):
     "list every properties from a specific environment object"
     return listProperties(key,
                           parameter,
                           ENVIRONMENT_ATTRIBUTE_NAME,
-                          startWithLocal,
-                          exploreOtherLevel)
+                          start_with_local,
+                          explore_other_level)
 
 # ################################### context management ######################
 
@@ -652,268 +654,268 @@ def listEnvironmentProperties(key,
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance()),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def subtractContextValuesFun(key,
                              values,
                              parameters,
-                             startWithLocal=True,
-                             exploreOtherLevel=True):
+                             start_with_local=True,
+                             explore_other_level=True):
     "remove some elements from a context parameter"
     param = getParameter(key,
                          parameters,
                          CONTEXT_ATTRIBUTE_NAME,
-                         startWithLocal,
-                         exploreOtherLevel)
+                         start_with_local,
+                         explore_other_level)
     param.removeValues(values)
 
 
-@shellMethod(valueType=tokenValueArgChecker(AVAILABLE_TYPE),
+@shellMethod(value_type=tokenValueArgChecker(AVAILABLE_TYPE),
              key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             noCreationIfExist=booleanValueArgChecker(),
+             no_creation_if_exist=booleanValueArgChecker(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             localVar=booleanValueArgChecker())
-def createContextValuesFun(valueType,
+             local_var=booleanValueArgChecker())
+def createContextValuesFun(value_type,
                            key,
                            values,
-                           noCreationIfExist=False,
+                           no_creation_if_exist=False,
                            parameter=None,
-                           localVar=True):
+                           local_var=True):
     "create a context parameter value list"
-    _createValuesFun(valueType,
+    _createValuesFun(value_type,
                      key,
                      values,
                      ContextParameter,
                      CONTEXT_ATTRIBUTE_NAME,
-                     noCreationIfExist,
+                     no_creation_if_exist,
                      parameter,
                      True,
-                     localVar)
+                     local_var)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def removeContextValues(key,
                         parameter,
-                        startWithLocal=True,
-                        exploreOtherLevel=True):
+                        start_with_local=True,
+                        explore_other_level=True):
     "remove a context parameter"
     removeParameter(key,
                     parameter,
                     CONTEXT_ATTRIBUTE_NAME,
-                    startWithLocal,
-                    exploreOtherLevel)
+                    start_with_local,
+                    explore_other_level)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def getContextValues(key,
                      parameter,
-                     startWithLocal=True,
-                     exploreOtherLevel=True):
+                     start_with_local=True,
+                     explore_other_level=True):
     "get a context parameter value"
     return getParameter(key,
                         parameter,
                         CONTEXT_ATTRIBUTE_NAME,
-                        startWithLocal, exploreOtherLevel).getValue()
+                        start_with_local, explore_other_level).getValue()
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance(), 1),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def setContextValuesFun(key,
                         values,
                         parameter,
-                        startWithLocal=True,
-                        exploreOtherLevel=True):
+                        start_with_local=True,
+                        explore_other_level=True):
     "set a context parameter value"
     getParameter(key,
                  parameter,
                  CONTEXT_ATTRIBUTE_NAME,
-                 startWithLocal,
-                 exploreOtherLevel).setValue(values)
+                 start_with_local,
+                 explore_other_level).setValue(values)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance()),
              parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def addContextValuesFun(key,
                         values,
                         parameters,
-                        startWithLocal=True,
-                        exploreOtherLevel=True):
+                        start_with_local=True,
+                        explore_other_level=True):
     "add values to a context parameter list"
     param = getParameter(key,
                          parameters,
                          CONTEXT_ATTRIBUTE_NAME,
-                         startWithLocal,
-                         exploreOtherLevel)
+                         start_with_local,
+                         explore_other_level)
     param.addValues(values)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              value=defaultArgs.getArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def selectValue(key,
                 value,
                 parameter,
-                startWithLocal=True,
-                exploreOtherLevel=True):
+                start_with_local=True,
+                explore_other_level=True):
     "select the value for the current context"
     getParameter(key,
                  parameter,
                  CONTEXT_ATTRIBUTE_NAME,
-                 startWithLocal,
-                 exploreOtherLevel).settings.setIndexValue(value)
+                 start_with_local,
+                 explore_other_level).settings.setIndexValue(value)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              index=defaultArgs.getIntegerArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def selectValueIndex(key,
                      index,
                      parameter,
-                     startWithLocal=True,
-                     exploreOtherLevel=True):
+                     start_with_local=True,
+                     explore_other_level=True):
     "select the value index for the current context"
     getParameter(key,
                  parameter,
                  CONTEXT_ATTRIBUTE_NAME,
-                 startWithLocal,
-                 exploreOtherLevel).settings.setIndex(index)
+                 start_with_local,
+                 explore_other_level).settings.setIndex(index)
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def getSelectedContextValue(key,
                             parameter,
-                            startWithLocal=True,
-                            exploreOtherLevel=True):
+                            start_with_local=True,
+                            explore_other_level=True):
     "get the selected value for the current context"
     return getParameter(key,
                         parameter,
                         CONTEXT_ATTRIBUTE_NAME,
-                        startWithLocal,
-                        exploreOtherLevel).getSelectedValue()
+                        start_with_local,
+                        explore_other_level).getSelectedValue()
 
 
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def getSelectedContextIndex(key,
                             parameter,
-                            startWithLocal=True,
-                            exploreOtherLevel=True):
+                            start_with_local=True,
+                            explore_other_level=True):
     "get the selected value index for the current context"
     return getParameter(key,
                         parameter,
                         CONTEXT_ATTRIBUTE_NAME,
-                        startWithLocal,
-                        exploreOtherLevel).settings.getIndex()
+                        start_with_local,
+                        explore_other_level).settings.getIndex()
 
 
-def _conRowFormating(key, conItem, valueFormatingFun):
+def _conRowFormating(key, con_item, value_formating_fun):
     return (key,
-            str(conItem.settings.getIndex()),
-            valueFormatingFun(str(conItem.getSelectedValue())),
-            ', '.join(str(x) for x in conItem.getValue()),)
+            str(con_item.settings.getIndex()),
+            value_formating_fun(str(con_item.getSelectedValue())),
+            ', '.join(str(x) for x in con_item.getValue()),)
 
 
-def _conGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Name"),
-            titleFormatingFun("Index"),
-            titleFormatingFun("Value"),
-            titleFormatingFun("Values"), )
+def _conGetTitle(title_formating_fun):
+    return (title_formating_fun("Name"),
+            title_formating_fun("Index"),
+            title_formating_fun("Value"),
+            title_formating_fun("Values"), )
 
 
 @shellMethod(parameter=defaultArgs.getCompleteEnvironmentChecker(),
              key=stringArgChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def listContexts(parameter,
                  key=None,
-                 startWithLocal=True,
-                 exploreOtherLevel=True):
+                 start_with_local=True,
+                 explore_other_level=True):
     "list every existing contexts"
     return _listGeneric(parameter,
                         CONTEXT_ATTRIBUTE_NAME, key,
                         _conRowFormating,
                         _conGetTitle,
-                        startWithLocal,
-                        exploreOtherLevel)
+                        start_with_local,
+                        explore_other_level)
 
 
 @shellMethod(key=stringArgChecker(),
-             propertyName=tokenValueArgChecker(CONTEXT_SET_PROPERTIES),
-             propertyValue=defaultArgs.getArgCheckerInstance(),
+             property_name=tokenValueArgChecker(CONTEXT_SET_PROPERTIES),
+             property_value=defaultArgs.getArgCheckerInstance(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def setContextProperties(key,
-                         propertyName,
-                         propertyValue,
+                         property_name,
+                         property_value,
                          parameter,
-                         startWithLocal=True,
-                         exploreOtherLevel=True):
+                         start_with_local=True,
+                         explore_other_level=True):
     "set a context property"
     setProperties(key,
-                  propertyName,
-                  propertyValue,
+                  property_name,
+                  property_value,
                   parameter,
                   CONTEXT_ATTRIBUTE_NAME,
-                  startWithLocal,
-                  exploreOtherLevel)
+                  start_with_local,
+                  explore_other_level)
 
 
 @shellMethod(key=stringArgChecker(),
-             propertyName=tokenValueArgChecker(CONTEXT_GET_PROPERTIES),
+             property_name=tokenValueArgChecker(CONTEXT_GET_PROPERTIES),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def getContextProperties(key,
-                         propertyName,
+                         property_name,
                          parameter,
-                         startWithLocal=True,
-                         exploreOtherLevel=True):
+                         start_with_local=True,
+                         explore_other_level=True):
     "get a context property"
     return getProperties(key,
-                         propertyName,
+                         property_name,
                          parameter,
                          CONTEXT_ATTRIBUTE_NAME,
-                         startWithLocal,
-                         exploreOtherLevel)
+                         start_with_local,
+                         explore_other_level)
 
 
 @shellMethod(key=stringArgChecker(),
              parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
 def listContextProperties(key,
                           parameter,
-                          startWithLocal=True,
-                          exploreOtherLevel=True):
+                          start_with_local=True,
+                          explore_other_level=True):
     "list every properties of a specific context object"
     return listProperties(key,
                           parameter,
                           CONTEXT_ATTRIBUTE_NAME,
-                          startWithLocal,
-                          exploreOtherLevel)
+                          start_with_local,
+                          explore_other_level)
 
 # ################################### var management ##########################
 
@@ -923,23 +925,23 @@ def listContextProperties(key,
 @shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
              values=listArgChecker(defaultArgs.getArgCheckerInstance()),
              engine=defaultArgs.getEngineChecker(),
-             startWithLocal=booleanValueArgChecker(),
-             exploreOtherLevel=booleanValueArgChecker())
-def pre_addValues(key, values, engine=None,
-                  startWithLocal=True, exploreOtherLevel=True):
+             start_with_local=booleanValueArgChecker(),
+             explore_other_level=booleanValueArgChecker())
+def preAddValues(key, values, engine=None,
+                 start_with_local=True, explore_other_level=True):
 
     cmd = engine.getCurrentCommand()
     cmd.dynamicParameter["key"] = key
     cmd.dynamicParameter["disabled"] = False
-    cmd.dynamicParameter["startWithLocal"] = startWithLocal
-    cmd.dynamicParameter["exploreOtherLevel"] = exploreOtherLevel
+    cmd.dynamicParameter["start_with_local"] = start_with_local
+    cmd.dynamicParameter["explore_other_level"] = explore_other_level
 
     return values
 
 
 @shellMethod(values=listArgChecker(defaultArgs.getArgCheckerInstance()),
              engine=defaultArgs.getEngineChecker())
-def pro_addValues(values, engine):
+def proAddValues(values, engine):
 
     # if no previous command, default behaviour
     if not engine.hasPreviousCommand():
@@ -947,14 +949,14 @@ def pro_addValues(values, engine):
 
     # if not, clone this command and add it at the end of cmd list
     cmd = engine.getCurrentCommand()
-    cmdClone = cmd.clone()
-    engine.addCommand(cmdClone, convertProcessToPreProcess=True)
+    cmd_clone = cmd.clone()
+    engine.addCommand(cmd_clone, convertProcessToPreProcess=True)
 
     for k, v in cmd.dynamicParameter.items():
-        cmdClone.dynamicParameter[k] = v
+        cmd_clone.dynamicParameter[k] = v
 
     cmd.dynamicParameter["disabled"] = True
-    cmdClone.dynamicParameter["disabled"] = True
+    cmd_clone.dynamicParameter["disabled"] = True
 
     # TODO execute previous
 
@@ -965,7 +967,7 @@ def pro_addValues(values, engine):
     values=listArgChecker(defaultArgs.getArgCheckerInstance()),
     parameters=defaultArgs.getCompleteEnvironmentChecker(),
     engine=defaultArgs.getEngineChecker())
-def post_addValues(values, parameters=None, engine=None):
+def postAddValues(values, parameters=None, engine=None):
     "add values to a var"
 
     cmd = engine.getCurrentCommand()
@@ -977,17 +979,17 @@ def post_addValues(values, parameters=None, engine=None):
 
     if parameters.variable.hasParameter(
           key,
-          cmd.dynamicParameter["startWithLocal"],
-          cmd.dynamicParameter["exploreOtherLevel"]):
+          cmd.dynamicParameter["start_with_local"],
+          cmd.dynamicParameter["explore_other_level"]):
         param = getParameter(key,
                              parameters,
                              VARIABLE_ATTRIBUTE_NAME,
-                             cmd.dynamicParameter["startWithLocal"],
-                             cmd.dynamicParameter["exploreOtherLevel"])
+                             cmd.dynamicParameter["start_with_local"],
+                             cmd.dynamicParameter["explore_other_level"])
         param.addValues(values)
     else:
         parameters.variable.setParameter(key, VarParameter(
-            values), cmd.dynamicParameter["startWithLocal"])
+            values), cmd.dynamicParameter["start_with_local"])
 
     return values
 
@@ -999,17 +1001,17 @@ def post_addValues(values, parameters=None, engine=None):
     values=listArgChecker(
          defaultArgs.getArgCheckerInstance()),
     parameters=defaultArgs.getCompleteEnvironmentChecker(),
-    startWithLocal=booleanValueArgChecker(),
-    exploreOtherLevel=booleanValueArgChecker())
+    start_with_local=booleanValueArgChecker(),
+    explore_other_level=booleanValueArgChecker())
 def subtractValuesVar(key, values, parameters=None,
-                      startWithLocal=True, exploreOtherLevel=True):
+                      start_with_local=True, explore_other_level=True):
     "remove existing value from a variable, remove first occurence met"
     param = getParameter(
         key,
         parameters,
         VARIABLE_ATTRIBUTE_NAME,
-        startWithLocal,
-        exploreOtherLevel)
+        start_with_local,
+        explore_other_level)
     param.removeValues(values)
 
 
@@ -1018,61 +1020,64 @@ def subtractValuesVar(key, values, parameters=None,
     values=listArgChecker(
          defaultArgs.getArgCheckerInstance()),
     parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    localVar=booleanValueArgChecker())
-def setVar(key, values, parameter, localVar=True):
+    local_var=booleanValueArgChecker())
+def setVar(key, values, parameter, local_var=True):
     "assign a value to a variable"
-    parameter.variable.setParameter(key, VarParameter(values), localVar)
+    parameter.variable.setParameter(key, VarParameter(values), local_var)
 
 
 @shellMethod(
     key=defaultArgs.getStringArgCheckerInstance(),
     parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    startWithLocal=booleanValueArgChecker(),
-    exploreOtherLevel=booleanValueArgChecker())
-def getVar(key, parameter, startWithLocal=True, exploreOtherLevel=True):
+    start_with_local=booleanValueArgChecker(),
+    explore_other_level=booleanValueArgChecker())
+def getVar(key, parameter, start_with_local=True, explore_other_level=True):
     "get the value of a variable"
     return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME,
-                        startWithLocal, exploreOtherLevel).getValue()
+                        start_with_local, explore_other_level).getValue()
 
 
 @shellMethod(
     key=defaultArgs.getStringArgCheckerInstance(),
     parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    startWithLocal=booleanValueArgChecker(),
-    exploreOtherLevel=booleanValueArgChecker())
-def unsetVar(key, parameter, startWithLocal=True, exploreOtherLevel=True):
+    start_with_local=booleanValueArgChecker(),
+    explore_other_level=booleanValueArgChecker())
+def unsetVar(key, parameter, start_with_local=True, explore_other_level=True):
     "unset a variable, no error if does not exist"
     removeParameter(
         key,
         parameter,
         VARIABLE_ATTRIBUTE_NAME,
-        startWithLocal,
-        exploreOtherLevel)
+        start_with_local,
+        explore_other_level)
 
 
-def _varRowFormating(key, varItem, valueFormatingFun):
-    return (key, valueFormatingFun(', '.join(str(x)
-                                             for x in varItem.getValue())), )
+def _varRowFormating(key, var_item, value_formating_fun):
+    return (key, value_formating_fun(', '.join(str(x)
+                                               for x in var_item.getValue())),)
 
 
-def _varGetTitle(titleFormatingFun):
-    return (titleFormatingFun("Name"), titleFormatingFun("Values"), )
+def _varGetTitle(title_formating_fun):
+    return (title_formating_fun("Name"), title_formating_fun("Values"), )
 
 
 @shellMethod(
     parameter=defaultArgs.getCompleteEnvironmentChecker(),
     key=stringArgChecker(),
-    startWithLocal=booleanValueArgChecker(),
-    exploreOtherLevel=booleanValueArgChecker())
-def listVars(parameter, key=None, startWithLocal=True, exploreOtherLevel=True):
+    start_with_local=booleanValueArgChecker(),
+    explore_other_level=booleanValueArgChecker())
+def listVars(parameter,
+             key=None,
+             start_with_local=True,
+             explore_other_level=True):
     "list every existing variables"
     return _listGeneric(parameter,
                         VARIABLE_ATTRIBUTE_NAME,
                         key,
                         _varRowFormating,
                         _varGetTitle,
-                        startWithLocal,
-                        exploreOtherLevel)
+                        start_with_local,
+                        explore_other_level)
 
 # ################################### REGISTER SECTION ########################
 
@@ -1083,8 +1088,8 @@ registerCommand(("create",), post=setVar)  # compatibility issue
 registerCommand(("get",), pre=getVar, pro=listResultHandler)
 registerCommand(("unset",), pro=unsetVar)
 registerCommand(("list",), pre=listVars, pro=printColumn)
-registerCommand(("add",), pre=pre_addValues,
-                pro=pro_addValues, post=post_addValues)
+registerCommand(("add",), pre=preAddValues,
+                pro=proAddValues, post=postAddValues)
 registerCommand(("subtract",), post=subtractValuesVar)
 registerStopHelpTraversalAt()
 

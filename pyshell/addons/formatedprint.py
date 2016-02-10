@@ -40,11 +40,11 @@ from pyshell.utils.printing import warning
 
 
 @shellMethod(
-    varLists=listArgChecker(
+    var_lists=listArgChecker(
         defaultInstanceArgChecker.getStringArgCheckerInstance()),
     parameters=defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-    bytePerLine=IntegerArgChecker(4))
-def compareByteList(varLists, bytePerLine=4, parameters=None):
+    byte_per_line=IntegerArgChecker(4))
+def compareByteList(var_lists, byte_per_line=4, parameters=None):
     # TODO
     #   it is possible to inject something else than byte in the list,
     #   check them
@@ -58,189 +58,190 @@ def compareByteList(varLists, bytePerLine=4, parameters=None):
     #       coloration must occured on bit not on whole byte
     #       convert each byte list to binary stream
 
-    if len(varLists) == 0:
+    if len(var_lists) == 0:
         return
 
-    byteListChecker = listArgChecker(IntegerArgChecker(0, 255))
+    byte_list_checker = listArgChecker(IntegerArgChecker(0, 255))
 
-    varListsValues = {}
-    for i in range(0, len(varLists)):
-        varKey = varLists[i]
-        var = parameters.getParameter(varKey).getValue()
+    var_lists_values = {}
+    for i in range(0, len(var_lists)):
+        var_key = var_lists[i]
+        var = parameters.getParameter(var_key).getValue()
         if var is None:
             raise DefaultPyshellException(
-                "unknown variable '" + str(varKey) + "'", )
+                "unknown variable '" + str(var_key) + "'", )
 
-        varListsValues[varKey] = byteListChecker.getValue(var, i, varKey)
+        var_lists_values[var_key] = byte_list_checker.getValue(var, i, var_key)
 
     # get the size of the bigger list of byte
-    maxSize = 0
-    for varName, varList in varListsValues.items():
-        maxSize = max(maxSize, len(varList))
+    max_size = 0
+    for var_name, var_list in var_lists_values.items():
+        max_size = max(max_size, len(var_list))
 
     # get the number of line
-    lineCount = int(maxSize / bytePerLine)
+    line_count = int(max_size / byte_per_line)
 
-    if (maxSize % bytePerLine) > 0:
-        lineCount += 1
+    if (max_size % byte_per_line) > 0:
+        line_count += 1
 
-    idColumnSize = int(log(lineCount, 10)) + 1
-    idLine = 0
+    id_column_size = int(log(line_count, 10)) + 1
+    id_line = 0
 
     # compute line width
     # an hexa number is printed with two number and one space
     # a first pipe
     # then a space
     # the final pipe is not in the calculus
-    columnSize = 3 * bytePerLine + 2
-    lineParts = ["| "] * len(varListsValues)
+    column_size = 3 * byte_per_line + 2
+    line_parts = ["| "] * len(var_lists_values)
 
-    titleColumn = " " * (idColumnSize + 1)
+    title_column = " " * (id_column_size + 1)
 
-    for varName, varList in varListsValues.items():
-        titleColumn += ("| "+varName[0:columnSize-2] +
-                        " "*(columnSize-len(varName)-2))
+    for var_name, var_list in var_lists_values.items():
+        title_column += ("| "+var_name[0:column_size-2] +
+                         " "*(column_size-len(var_name)-2))
 
-    printShell(titleColumn + "|")
-    for i in range(0, maxSize):
+    printShell(title_column + "|")
+    for i in range(0, max_size):
 
-        commonBytesHight = {}
-        maxKeyHigh = None
-        maxValueHigh = 0
+        common_bytes_hight = {}
+        max_key_high = None
+        max_value_high = 0
 
-        commonBytesLow = {}
-        maxKeyLow = None
-        maxValueLow = 0
+        common_bytes_low = {}
+        max_key_low = None
+        max_value_low = 0
 
-        for varName, varListValue in varListsValues.items():
-            if i >= len(varListValue):
+        for var_name, var_listValue in var_lists_values.items():
+            if i >= len(var_listValue):
                 continue
 
-            hight = int(varListValue[i]) & 0xF0
-            low = int(varListValue[i]) & 0x0F
+            hight = int(var_listValue[i]) & 0xF0
+            low = int(var_listValue[i]) & 0x0F
 
-            if hight not in commonBytesHight:
-                commonBytesHight[hight] = 1
+            if hight not in common_bytes_hight:
+                common_bytes_hight[hight] = 1
 
-                if maxKeyHigh is None:
-                    maxKeyHigh = hight
-                    maxValueHigh = 1
+                if max_key_high is None:
+                    max_key_high = hight
+                    max_value_high = 1
             else:
-                commonBytesHight[hight] += 1
+                common_bytes_hight[hight] += 1
 
-                if commonBytesHight[hight] > maxValueHigh:
-                    maxKeyHigh = hight
-                    maxValueHigh = commonBytesHight[hight]
+                if common_bytes_hight[hight] > max_value_high:
+                    max_key_high = hight
+                    max_value_high = common_bytes_hight[hight]
 
-            if low not in commonBytesLow:
-                commonBytesLow[low] = 1
+            if low not in common_bytes_low:
+                common_bytes_low[low] = 1
 
-                if maxKeyLow is None:
-                    maxKeyLow = low
-                    maxValueLow = 1
+                if max_key_low is None:
+                    max_key_low = low
+                    max_value_low = 1
             else:
-                commonBytesLow[low] += 1
+                common_bytes_low[low] += 1
 
-                if commonBytesLow[low] > maxValueLow:
-                    maxKeyLow = low
-                    maxValueLow = commonBytesLow[low]
+                if common_bytes_low[low] > max_value_low:
+                    max_key_low = low
+                    max_value_low = common_bytes_low[low]
 
         j = -1
-        for varName, varListValue in varListsValues.items():
+        for var_name, var_listValue in var_lists_values.items():
             j += 1
             # high
-            if len(commonBytesHight) == 1:
-                if i >= len(varListValue):
-                    lineParts[j] += formatOrange("xx ")
+            if len(common_bytes_hight) == 1:
+                if i >= len(var_listValue):
+                    line_parts[j] += formatOrange("xx ")
                     continue
 
-                lineParts[j] += "%x" % ((int(varListValue[i]) & 0xF0) >> 4)
+                line_parts[j] += "%x" % ((int(var_listValue[i]) & 0xF0) >> 4)
 
-            elif len(commonBytesHight) == len(varListValue):
-                if i >= len(varListValue):
-                    lineParts[j] += formatOrange("xx ")
+            elif len(common_bytes_hight) == len(var_listValue):
+                if i >= len(var_listValue):
+                    line_parts[j] += formatOrange("xx ")
                     continue
 
-                value = (int(varListValue[i]) & 0xF0) >> 4
-                lineParts[j] += formatRed("%x" % value)
+                value = (int(var_listValue[i]) & 0xF0) >> 4
+                line_parts[j] += formatRed("%x" % value)
             else:
-                if i >= len(varListValue):
-                    lineParts[j] += formatOrange("xx ")
+                if i >= len(var_listValue):
+                    line_parts[j] += formatOrange("xx ")
                     continue
 
-                if varListValue[i] == maxKeyHigh:
-                    value = (int(varListValue[i]) & 0xF0) >> 4
-                    lineParts[j] += "%x" % value
+                if var_listValue[i] == max_key_high:
+                    value = (int(var_listValue[i]) & 0xF0) >> 4
+                    line_parts[j] += "%x" % value
                 else:
-                    value = (int(varListValue[i]) & 0xF0) >> 4
-                    lineParts[j] += formatRed("%x" % value)
+                    value = (int(var_listValue[i]) & 0xF0) >> 4
+                    line_parts[j] += formatRed("%x" % value)
 
             # low
-            if len(commonBytesLow) == 1:
-                lineParts[j] += "%x " % (int(varListValue[i]) & 0x0F)
+            if len(common_bytes_low) == 1:
+                line_parts[j] += "%x " % (int(var_listValue[i]) & 0x0F)
 
-            elif len(commonBytesLow) == len(varListValue):
-                value = int(varListValue[i]) & 0x0F
-                lineParts[j] += formatRed("%x " % value)
+            elif len(common_bytes_low) == len(var_listValue):
+                value = int(var_listValue[i]) & 0x0F
+                line_parts[j] += formatRed("%x " % value)
             else:
-                if varListValue[i] == maxKeyLow:
-                    value = int(varListValue[i]) & 0x0F
-                    lineParts[j] += "%x " % value
+                if var_listValue[i] == max_key_low:
+                    value = int(var_listValue[i]) & 0x0F
+                    line_parts[j] += "%x " % value
                 else:
-                    value = int(varListValue[i]) & 0x0F
-                    lineParts[j] += formatRed("%x " % value)
+                    value = int(var_listValue[i]) & 0x0F
+                    line_parts[j] += formatRed("%x " % value)
 
         # new line
-        if (i + 1) % (bytePerLine) == 0:
-            finalLine = ""
-            for linePart in lineParts:
-                finalLine += linePart
+        if (i + 1) % (byte_per_line) == 0:
+            final_line = ""
+            for linePart in line_parts:
+                final_line += linePart
 
-            finalLine += "|"
+            final_line += "|"
 
-            idLineStr = str(idLine)
-            idLineStr = " " * \
-                (idColumnSize - len(idLineStr) - 1) + idLineStr + " "
-            printShell(idLineStr + finalLine)
-            idLine += 1
-            lineParts = ["| "] * len(varListsValues)
+            id_line_str = str(id_line)
+            id_line_str = " " * \
+                (id_column_size - len(id_line_str) - 1) + id_line_str + " "
+            printShell(id_line_str + final_line)
+            id_line += 1
+            line_parts = ["| "] * len(var_lists_values)
 
     # we do not finish on a complete line, add padding
-    if (i + 1) % (bytePerLine) != 0:
-        finalLine = ""
-        for linePart in lineParts:
-            finalLine += linePart + " " * (columnSize - strLength(linePart))
+    if (i + 1) % (byte_per_line) != 0:
+        final_line = ""
+        for linePart in line_parts:
+            final_line += linePart + " " * (column_size - strLength(linePart))
 
-        finalLine += "|"
+        final_line += "|"
 
-        idLineStr = str(idLine)
-        idLineStr = " " * (idColumnSize - len(idLineStr) - 1) + idLineStr + " "
-        printShell(idLineStr + finalLine)
+        id_line_str = str(id_line)
+        id_line_str = (" "*(id_column_size - len(id_line_str) - 1) +
+                       id_line_str+" ")
+        printShell(id_line_str + final_line)
 
 
 @shellMethod(bytelist=listArgChecker(IntegerArgChecker(0, 255)),
-             bytePerLine=IntegerArgChecker(4, 16))
-def printByteTable(bytelist, bytePerLine=4):
+             byte_per_line=IntegerArgChecker(4, 16))
+def printByteTable(bytelist, byte_per_line=4):
     if len(bytelist) == 0:
         warning("empty list of byte")
 
-    byteColumnSize = 3 * bytePerLine
-    asciiColumnSize = bytePerLine + 2
-    decimalColumnSize = 4 * bytePerLine + 1
+    bytecolumn_size = 3 * byte_per_line
+    asciicolumn_size = byte_per_line + 2
+    decimalcolumn_size = 4 * byte_per_line + 1
 
     # print header line
-    printShell("Hex"+" "*(byteColumnSize-3)+"|"+" Char " +
-               " "*(asciiColumnSize-6)+"|"+" Dec"+" "*(decimalColumnSize-4) +
+    printShell("Hex"+" "*(bytecolumn_size-3)+"|"+" Char " +
+               " "*(asciicolumn_size-6)+"|"+" Dec"+" "*(decimalcolumn_size-4) +
                "|"+" Bin")
 
-    for i in range(0, len(bytelist), bytePerLine):
+    for i in range(0, len(bytelist), byte_per_line):
         hexa = ""
         ascii = ""
-        intString = ""
-        binString = ""
-        subByteList = bytelist[i:i + bytePerLine]
+        int_string = ""
+        bin_string = ""
+        sub_byte_list = bytelist[i:i + byte_per_line]
 
-        for h in subByteList:
+        for h in sub_byte_list:
 
             tmp = "%x" % h
             while len(tmp) < 2:
@@ -257,16 +258,17 @@ def printByteTable(bytelist, bytePerLine=4):
             while len(tmp) < 3:
                 tmp = "0" + tmp
 
-            intString += tmp + " "
+            int_string += tmp + " "
 
             tmp = bin(h)[2:]
             while len(tmp) < 8:
                 tmp = "0" + tmp
-            binString += tmp + " "
+            bin_string += tmp + " "
 
-        printShell(hexa+" "*(byteColumnSize-len(hexa))+"| "+ascii +
-                   " "*(asciiColumnSize-len(subByteList)-1)+"| "+intString +
-                   " "*(decimalColumnSize-len(intString)-1)+"| "+binString)
+        printShell(hexa+" "*(bytecolumn_size-len(hexa))+"| "+ascii +
+                   " "*(asciicolumn_size-len(sub_byte_list)-1)+"| " +
+                   int_string +
+                   " "*(decimalcolumn_size-len(int_string)-1)+"| "+bin_string)
 
 registerSetGlobalPrefix(("printing", ))
 registerStopHelpTraversalAt()

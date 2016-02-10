@@ -34,8 +34,8 @@ from pyshell.utils.constants import KEYSTORE_SECTION_NAME
 from pyshell.utils.exception import KeyStoreLoadingException
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.misc import createParentDirectory
-from pyshell.utils.postProcess import listFlatResultHandler
-from pyshell.utils.postProcess import printColumn
+from pyshell.utils.postprocess import listFlatResultHandler
+from pyshell.utils.postprocess import printColumn
 from pyshell.utils.printing import formatBolt
 from pyshell.utils.printing import formatGreen
 
@@ -52,139 +52,139 @@ else:
 # # DECLARATION PART # #
 
 
-@shellMethod(keyName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             keyInstance=defaultInstanceArgChecker.getKeyChecker(),
-             keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME),
+@shellMethod(key_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             key_instance=defaultInstanceArgChecker.getKeyChecker(),
+             key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME),
              transient=booleanValueArgChecker())
-def setKey(keyName, keyInstance, keyStore=None, transient=False):
+def setKey(key_name, key_instance, key_store=None, transient=False):
     "set a key"
-    keyInstance.setTransient(transient)
-    keyStore.getValue().setKeyInstance(keyName, keyInstance)
+    key_instance.setTransient(transient)
+    key_store.getValue().setkey_instance(key_name, key_instance)
 
 
 @shellMethod(key=defaultInstanceArgChecker.getKeyTranslatorChecker(),
              start=IntegerArgChecker(),
              end=IntegerArgChecker(),
-             keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME))
-def getKey(key, start=0, end=None, keyStore=None):
+             key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+def getKey(key, start=0, end=None, key_store=None):
     "get a key"
     return key.getKey(start, end)
 
 
-@shellMethod(keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME))
-def listKey(keyStore):
-    "list available key in the keystore"
+@shellMethod(key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+def listKey(key_store):
+    "list available key in the key_store"
 
-    keyStore = keyStore.getValue()
-    toRet = []
+    key_store = key_store.getValue()
+    to_ret = []
 
-    for k in keyStore.getKeyList():
-        key = keyStore.getKey(k)
-        toRet.append((k,
+    for k in key_store.getKeyList():
+        key = key_store.getKey(k)
+        to_ret.append((k,
                       key.getTypeString(),
                       str(key.getKeySize()),
                       formatGreen(str(key)),))
 
-    if len(toRet) == 0:
+    if len(to_ret) == 0:
         return [("No key available",)]
 
-    toRet.insert(0,
-                 (formatBolt("Key name"),
-                  formatBolt("Type"),
-                  formatBolt("Size"),
-                  formatBolt("Value"),
-                  ))
-    return toRet
+    to_ret.insert(0,
+                  (formatBolt("Key name"),
+                   formatBolt("Type"),
+                   formatBolt("Size"),
+                   formatBolt("Value"),
+                   ))
+    return to_ret
 
 
-@shellMethod(keyName=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME))
-def unsetKey(keyName, keyStore=None):
-    "remove a key from the keystore"
-    keyStore.getValue().unsetKey(keyName)
+@shellMethod(key_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
+             key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+def unsetKey(key_name, key_store=None):
+    "remove a key from the key_store"
+    key_store.getValue().unsetKey(key_name)
 
 
-@shellMethod(keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME))
-def cleanKeyStore(keyStore=None):
-    "remove every keys from the keystore"
-    keyStore.getValue().removeAll()
+@shellMethod(key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+def cleanKeyStore(key_store=None):
+    "remove every keys from the key_store"
+    key_store.getValue().removeAll()
 
 
 @shellMethod(
-    filePath=environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
-    useKeyStore=environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-    keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME))
-def saveKeyStore(filePath, useKeyStore, keyStore=None):
-    "save keystore from file"
+    file_path=environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
+    usekey_store=environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
+    key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+def saveKeyStore(file_path, usekey_store, key_store=None):
+    "save key_store from file"
 
-    if not useKeyStore.getValue():
+    if not usekey_store.getValue():
         return
 
-    filePath = filePath.getValue()
-    keyStore = keyStore.getValue()
+    file_path = file_path.getValue()
+    key_store = key_store.getValue()
 
     config = ConfigParser.RawConfigParser()
     config.add_section(KEYSTORE_SECTION_NAME)
 
-    keyCount = 0
-    for k, v in keyStore.tries.getKeyValue().items():
+    key_count = 0
+    for k, v in key_store.tries.getKeyValue().items():
         if v.transient:
             continue
 
         config.set(KEYSTORE_SECTION_NAME, k, str(v))
-        keyCount += 1
+        key_count += 1
 
-    if keyCount == 0 and not os.path.exists(filePath):
+    if key_count == 0 and not os.path.exists(file_path):
         return
 
     # create config directory
-    createParentDirectory(filePath)
+    createParentDirectory(file_path)
 
     # save key store
-    with open(filePath, 'wb') as configfile:
+    with open(file_path, 'wb') as configfile:
         config.write(configfile)
 
 
 @shellMethod(
-    filePath=environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
-    useKeyStore=environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-    keyStore=environmentParameterChecker(KEYSTORE_SECTION_NAME))
-def loadKeyStore(filePath, useKeyStore, keyStore=None):
-    "load keystore from file"
+    file_path=environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
+    usekey_store=environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
+    key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+def loadKeyStore(file_path, usekey_store, key_store=None):
+    "load key_store from file"
 
-    if not useKeyStore.getValue():
+    if not usekey_store.getValue():
         return
 
-    filePath = filePath.getValue()
-    keyStore = keyStore.getValue()
+    file_path = file_path.getValue()
+    key_store = key_store.getValue()
 
-    # if no file, no load, no keystore file, loading not possible but no error
-    if not os.path.exists(filePath):
+    # if no file, no load, no key_store file, loading not possible but no error
+    if not os.path.exists(file_path):
         return
 
-    # try to load the keystore
+    # try to load the key_store
     config = ConfigParser.RawConfigParser()
     try:
-        config.read(filePath)
+        config.read(file_path)
     except Exception as ex:
-        excmsg = ("(KeyStore) load, fail to read parameter file '" +
-                  str(filePath)+"' : "+str(ex))
+        excmsg = ("(key_store) load, fail to read parameter file '" +
+                  str(file_path)+"' : "+str(ex))
         raise KeyStoreLoadingException(excmsg)
 
     # main section available ?
     if not config.has_section(KEYSTORE_SECTION_NAME):
-        excmsg = ("(KeyStore) load, config file '"+str(filePath) +
-                  "' is valid but does not hold keystore section")
+        excmsg = ("(key_store) load, config file '"+str(file_path) +
+                  "' is valid but does not hold key_store section")
         raise KeyStoreLoadingException(excmsg)
 
     exceptions = ListOfException()
-    for keyName in config.options(KEYSTORE_SECTION_NAME):
+    for key_name in config.options(KEYSTORE_SECTION_NAME):
         try:
-            keyStore.setKey(keyName,
-                            config.get(KEYSTORE_SECTION_NAME, keyName),
-                            False)
+            key_store.setKey(key_name,
+                             config.get(KEYSTORE_SECTION_NAME, key_name),
+                             False)
         except Exception as ex:
-            excmsg = ("(KeyStore) load, fail to load key '"+str(keyName) +
+            excmsg = ("(key_store) load, fail to load key '"+str(key_name) +
                       "' : "+str(ex))
             exceptions.append(KeyStoreLoadingException(excmsg))
 
@@ -199,7 +199,7 @@ def setTransient(key, state):
 
 # # REGISTER PART # #
 
-# TODO where do come from all the keystore variable, need to load them ?
+# TODO where do come from all the key_store variable, need to load them ?
 
 registerSetGlobalPrefix(("key", ))
 registerCommand(("set",), post=setKey)
