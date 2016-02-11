@@ -16,15 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# # internal modules # #
-from pyshell.arg.argchecker import ArgChecker, defaultInstanceArgChecker, \
-                                   listArgChecker
-from pyshell.utils.exception import ParameterException
+from threading import Lock
+
+from pyshell.arg.argchecker import ArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker
+from pyshell.arg.argchecker import listArgChecker
 from pyshell.system.parameter import Parameter, ParameterManager
 from pyshell.system.settings import GlobalSettings
+from pyshell.utils.exception import ParameterException
 
-# # external modules # #
-from threading import Lock
 
 _defaultArgChecker = defaultInstanceArgChecker.getArgCheckerInstance()
 DEFAULT_CHECKER = listArgChecker(_defaultArgChecker)
@@ -36,21 +36,21 @@ class EnvironmentParameterManager(ParameterManager):
 
 
 def _lockSorter(param1, param2):
-    return param1.getLockID() - param2.getLockID()
+    return param1.getLockId() - param2.getLockId()
 
 
 class ParametersLocker(object):
-    def __init__(self, parametersList):
-        self.parametersList = sorted(parametersList, cmp=_lockSorter)
+    def __init__(self, parameters_list):
+        self.parameters_list = sorted(parameters_list, cmp=_lockSorter)
 
     def __enter__(self):
-        for param in self.parametersList:
+        for param in self.parameters_list:
             param.getLock().acquire(True)  # blocking=True
 
         return self
 
     def __exit__(self, type, value, traceback):
-        for param in self.parametersList:
+        for param in self.parameters_list:
             param.getLock().release()
 
 
@@ -88,7 +88,7 @@ class EnvironmentParameter(Parameter):
         self._initLock()
         return self.lock
 
-    def getLockID(self):
+    def getLockId(self):
         self._initLock()
         return self.lockID
 

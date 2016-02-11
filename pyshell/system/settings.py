@@ -16,14 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.constants import EMPTY_STRING, SYSTEM_VIRTUAL_LOADER
-from pyshell.utils.exception import ParameterException
-
 import collections
+
+from pyshell.utils.constants import EMPTY_STRING
+from pyshell.utils.constants import SYSTEM_VIRTUAL_LOADER
+from pyshell.utils.exception import ParameterException
 
 
 class Settings(object):
-    def __init__(self, readOnly=False, removable=True):
+    def __init__(self, read_only=False, removable=True):
         pass
 
     def setTransient(self, state):
@@ -47,7 +48,7 @@ class Settings(object):
     def isFantom(self):
         return False
 
-    def addLoader(self, loaderSignature):
+    def addLoader(self, loader_signature):
         pass
 
     def mergeFromPreviousSettings(self, parameter):
@@ -64,18 +65,18 @@ class Settings(object):
     def __hash__(self):
         return hash(self.getProperties())
 
-    def clone(self, From=None):
-        if From is None:
+    def clone(self, parent=None):
+        if parent is None:
             return Settings()
 
-        return From
+        return parent
 
 
 class LocalSettings(Settings):
-    def __init__(self, readOnly=False, removable=True):
-        self.readOnly = False
+    def __init__(self, read_only=False, removable=True):
+        self.read_only = False
         self.setRemovable(removable)
-        self.setReadOnly(readOnly)
+        self.setReadOnly(read_only)
 
     def setReadOnly(self, state):
         if type(state) != bool:
@@ -83,24 +84,25 @@ class LocalSettings(Settings):
                                      " bool type as state, got '" +
                                      str(type(state))+"'")
 
-        self.readOnly = state
+        self.read_only = state
 
     def isReadOnly(self):
-        return self.readOnly
+        return self.read_only
 
-    def _raiseIfReadOnly(self, className=None, methName=None):
+    def _raiseIfReadOnly(self, class_name=None, meth_name=None):
         if self.isReadOnly():
-            if methName is not None:
-                methName = str(methName)+", "
+            if meth_name is not None:
+                meth_name = str(meth_name)+", "
             else:
-                methName = EMPTY_STRING
+                meth_name = EMPTY_STRING
 
-            if className is not None:
-                className = "("+str(className)+") "
+            if class_name is not None:
+                class_name = "("+str(class_name)+") "
             else:
-                className = EMPTY_STRING
+                class_name = EMPTY_STRING
 
-            raise ParameterException(className+methName+"read only parameter")
+            excmsg = class_name+meth_name+"read only parameter"
+            raise ParameterException(excmsg)
 
     def setRemovable(self, state):
         self._raiseIfReadOnly(self.__class__.__name__, "setRemovable")
@@ -115,26 +117,26 @@ class LocalSettings(Settings):
     def isRemovable(self):
         return self.removable
 
-    def clone(self, From=None):
-        if From is None:
+    def clone(self, parent=None):
+        if parent is None:
             return LocalSettings(self.isReadOnly(), self.isRemovable())
         else:
-            readOnly = self.isReadOnly()
-            From.setReadOnly(False)
-            From.setRemovable(self.isRemovable())
-            From.setReadOnly(readOnly)
+            read_only = self.isReadOnly()
+            parent.setReadOnly(False)
+            parent.setRemovable(self.isRemovable())
+            parent.setReadOnly(read_only)
 
-        return Settings.clone(self, From)
+        return Settings.clone(self, parent)
 
 
 class GlobalSettings(LocalSettings):
-    def __init__(self, readOnly=False, removable=True, transient=False):
+    def __init__(self, read_only=False, removable=True, transient=False):
         LocalSettings.__init__(self, False, removable)
 
         self.setTransient(transient)
         self.loaderSet = {}
         self.startingHash = None
-        self.setReadOnly(readOnly)
+        self.setReadOnly(read_only)
 
     def setTransient(self, state):
         self._raiseIfReadOnly(self.__class__.__name__, "setTransient")
@@ -149,32 +151,34 @@ class GlobalSettings(LocalSettings):
     def isTransient(self):
         return self.transient
 
-    def setLoaderState(self, loaderSignature, loaderState):
+    def setLoaderState(self, loader_signature, loader_state):
         # loaderState must be hashable
-        if not isinstance(loaderSignature, collections.Hashable):
+        if not isinstance(loader_signature, collections.Hashable):
             raise ParameterException("(GlobalSettings) setLoaderState, "
-                                     "loaderSignature has to be hashable")
+                                     "loader_signature has to be hashable")
 
-        self.loaderSet[loaderSignature] = loaderState
-        return loaderState
+        self.loaderSet[loader_signature] = loader_state
+        return loader_state
 
-    def getLoaderState(self, loaderSignature):
-        return self.loaderSet[loaderSignature]
+    def getLoaderState(self, loader_signature):
+        return self.loaderSet[loader_signature]
 
-    def hasLoaderState(self, loaderSignature):
-        return loaderSignature in self.loaderSet
+    def hasLoaderState(self, loader_signature):
+        return loader_signature in self.loaderSet
 
-    def hashForLoader(self, loaderSignature=None):
-        if loaderSignature is None:
+    def hashForLoader(self, loader_signature=None):
+        if loader_signature is None:
             SYSTEM_VIRTUAL_LOADER
 
-        if loaderSignature is not SYSTEM_VIRTUAL_LOADER:
-            return hash(self.loaderSet[loaderSignature])
+        if loader_signature is not SYSTEM_VIRTUAL_LOADER:
+            return hash(self.loaderSet[loader_signature])
 
         if SYSTEM_VIRTUAL_LOADER not in self.loaderSet:
             return hash(self)
 
-        return hash(str(hash(self))+str(hash(self.loaderSet[loaderSignature])))
+        self_hash = str(hash(self))
+        loader_set_hash = str(hash(self.loaderSet[loader_signature]))
+        return hash(self_hash+loader_set_hash)
 
     def getLoaders(self):
         return self.loaderSet.keys()
@@ -202,17 +206,17 @@ class GlobalSettings(LocalSettings):
                                      "got '"+str(type(settings))+"'")
 
         # manage loader
-        otherLoaders = settings.getLoaderSet()
+        other_loaders = settings.getLoaderSet()
         if self.loaderSet is None:
-            if otherLoaders is not None:
-                self.loaderSet = set(otherLoaders)
-        elif otherLoaders is not None:
-            self.loaderSet = self.loaderSet.union(otherLoaders)
+            if other_loaders is not None:
+                self.loaderSet = set(other_loaders)
+        elif other_loaders is not None:
+            self.loaderSet = self.loaderSet.union(other_loaders)
 
         # manage origin
         self.startingHash = settings.startingHash
 
-    def setStartingPoint(self, hashi, origin, originProfile=None):
+    def setStartingPoint(self, hashi, origin, origin_profile=None):
         if self.startingHash is not None:
             raise ParameterException("(GlobalSettings) setStartingPoint, a "
                                      "starting point was already defined for "
@@ -225,19 +229,19 @@ class GlobalSettings(LocalSettings):
 
     # XXX stop removing here ###############################################
 
-    def clone(self, From=None):
-        if From is None:
-            From = GlobalSettings(self.isReadOnly(),
-                                  self.isRemovable(),
-                                  self.isTransient())
+    def clone(self, parent=None):
+        if parent is None:
+            parent = GlobalSettings(self.isReadOnly(),
+                                    self.isRemovable(),
+                                    self.isTransient())
         else:
-            readOnly = self.isReadOnly()
-            From.setReadOnly(False)
-            From.setTransient(self.isTransient())
-            From.setReadOnly(readOnly)
+            read_only = self.isReadOnly()
+            parent.setReadOnly(False)
+            parent.setTransient(self.isTransient())
+            parent.setReadOnly(read_only)
 
         # TODO clone loader state
         #   if no clone method, use copy tools
         #       simple or deep copy ?
 
-        return LocalSettings.clone(self, From)
+        return LocalSettings.clone(self, parent)

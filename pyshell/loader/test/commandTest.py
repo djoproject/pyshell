@@ -591,7 +591,7 @@ class CommandLoaderTest(unittest.TestCase):
         self.params = ParameterContainer()
         self.params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME, EnvironmentParameterManager(self.params))
         self.mltries = multiLevelTries()
-        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY, EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance(), settings=GlobalSettings(transient=True,readOnly=True, removable=False)), localParam = False)
+        self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY, EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance(), settings=GlobalSettings(transient=True,read_only=True, removable=False)), local_param = False)
         
     def tearDown(self):
         pass

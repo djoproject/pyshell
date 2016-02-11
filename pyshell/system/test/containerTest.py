@@ -50,8 +50,8 @@ class ExceptionTest(unittest.TestCase):
         
     def test_threadInfo4(self):
         ti = _ThreadInfo()
-        self.assertTrue(hasattr(ti, "originProfile"))
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertTrue(hasattr(ti, "origin_profile"))
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         
     def test_threadInfo5(self):
         ti = _ThreadInfo()
@@ -148,29 +148,29 @@ class ExceptionTest(unittest.TestCase):
         #entering level 0
         pc.pushVariableLevelForThisThread("process")
         ti = pc.getThreadInfo()
-        pc.plop.setParameter("toto", "plop", localParam = True)
-        self.assertTrue(pc.plop.hasParameter("toto", localParam = True, exploreOtherLevel=True))
+        pc.plop.setParameter("toto", "plop", local_param = True)
+        self.assertTrue(pc.plop.hasParameter("toto", local_param = True, explore_other_level=True))
         self.assertEqual(ti.procedureStack, ["process"])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
         #exiting level 0, so go to -1
         pc.popVariableLevelForThisThread()
         ti = pc.getThreadInfo()
-        self.assertFalse(pc.plop.hasParameter("toto", localParam = True, exploreOtherLevel=True)) #not the same level, the parameter does not exist
+        self.assertFalse(pc.plop.hasParameter("toto", local_param = True, explore_other_level=True)) #not the same level, the parameter does not exist
         self.assertEqual(ti.procedureStack, [])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 0)
         
         #entering level 0 again
         pc.pushVariableLevelForThisThread("process2")
         ti = pc.getThreadInfo()
-        self.assertFalse(pc.plop.hasParameter("toto", localParam = True, exploreOtherLevel=True)) #same level, but the parameter has been flushed on pop, so doesn't exist anymore
+        self.assertFalse(pc.plop.hasParameter("toto", local_param = True, explore_other_level=True)) #same level, but the parameter has been flushed on pop, so doesn't exist anymore
         self.assertEqual(ti.procedureStack, ["process2"])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
     def test_ParameterContainer5(self): #getThreadInfo, it does not exist
@@ -178,7 +178,7 @@ class ExceptionTest(unittest.TestCase):
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, [])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 0)
         
     def test_ParameterContainer6(self): #getThreadInfo, it exists
@@ -190,7 +190,7 @@ class ExceptionTest(unittest.TestCase):
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, ["plop"])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
     def test_ParameterContainer7(self): #push
@@ -203,7 +203,7 @@ class ExceptionTest(unittest.TestCase):
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, ["lpopProcess"])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 1)
         
     def test_ParameterContainer8(self): #push
@@ -221,7 +221,7 @@ class ExceptionTest(unittest.TestCase):
         ti = pc.getThreadInfo()
         self.assertEqual(ti.procedureStack, ["lpopProcess","lpopProcess1","lpopProcess2","lpopProcess3","lpopProcess4","lpopProcess5"])
         self.assertEqual(ti.origin, SYSTEM_VIRTUAL_LOADER)
-        self.assertEqual(ti.originProfile, DEFAULT_PROFILE_NAME)
+        self.assertEqual(ti.origin_profile, DEFAULT_PROFILE_NAME)
         self.assertEqual(len(ti.procedureStack), 6)
         
     def test_ParameterContainer9(self): #pop, empty threadInfo

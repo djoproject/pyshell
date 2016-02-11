@@ -107,7 +107,7 @@ class Printer(object):
 
     def isDarkBackGround(self):
         param = self.params.context.getParameter(CONTEXT_COLORATION_KEY,
-                                                 perfectMatch=True)
+                                                 perfect_match=True)
         if param is not None:
             return param.getSelectedValue() == CONTEXT_COLORATION_DARK
 
@@ -115,7 +115,7 @@ class Printer(object):
 
     def isLightBackGround(self):
         param = self.params.context.getParameter(CONTEXT_COLORATION_KEY,
-                                                 perfectMatch=True)
+                                                 perfect_match=True)
         if param is not None:
             return param.getSelectedValue() == CONTEXT_COLORATION_LIGHT
 
@@ -123,7 +123,7 @@ class Printer(object):
 
     def isInShell(self):
         param = self.params.context.getParameter(CONTEXT_EXECUTION_KEY,
-                                                 perfectMatch=True)
+                                                 perfect_match=True)
         if param is not None:
             return param.getSelectedValue() == CONTEXT_EXECUTION_SHELL
 
@@ -134,7 +134,7 @@ class Printer(object):
 
     def isDebugEnabled(self):
         param = self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                 perfectMatch=True)
+                                                 perfect_match=True)
         if param is not None:
             return param.getSelectedValue() > 0
 
@@ -142,7 +142,7 @@ class Printer(object):
 
     def getDebugLevel(self):
         param = self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                 perfectMatch=True)
+                                                 perfect_match=True)
         if param is not None:
             return param.getSelectedValue()
 
@@ -150,7 +150,7 @@ class Printer(object):
 
     def getSpacingSize(self):
         param = self.params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY,
-                                                     perfectMatch=True)
+                                                     perfect_match=True)
         if param is not None:
             return param.getValue()
 

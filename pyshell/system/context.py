@@ -16,12 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import defaultInstanceArgChecker, listArgChecker
-from pyshell.utils.exception import ParameterException
-from pyshell.utils.valuable import SelectableValuable
+from pyshell.arg.argchecker import defaultInstanceArgChecker
+from pyshell.arg.argchecker import listArgChecker
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.parameter import ParameterManager
-from pyshell.system.settings import GlobalSettings, LocalSettings, Settings
+from pyshell.system.settings import GlobalSettings
+from pyshell.system.settings import LocalSettings
+from pyshell.system.settings import Settings
+from pyshell.utils.exception import ParameterException
+from pyshell.utils.valuable import SelectableValuable
 
 _defaultArgChecker = defaultInstanceArgChecker.getArgCheckerInstance()
 CONTEXT_DEFAULT_CHECKER = listArgChecker(_defaultArgChecker)
@@ -41,7 +44,7 @@ def _convertToSetList(orig):
 
 class ContextSettings(Settings):
     def __init__(self):
-        self.defaultIndex = 0
+        self.default_index = 0
         self.index = 0
         self.context = None
 
@@ -81,8 +84,8 @@ class ContextSettings(Settings):
 
         # old index is no more valid, try defaultIndex
         # default index is still valid ?
-        self.tryToSetDefaultIndex(self.defaultIndex)
-        self.index = self.defaultIndex
+        self.tryToSetDefaultIndex(self.default_index)
+        self.index = self.default_index
 
     def setIndexValue(self, value):
         checker = self.context.typ.checker
@@ -96,31 +99,31 @@ class ContextSettings(Settings):
     def getIndex(self):
         return self.index
 
-    def setDefaultIndex(self, defaultIndex):
+    def setDefaultIndex(self, default_index):
         self._raiseIfReadOnly(self.__class__.__name__, "setDefaultIndex")
 
         try:
-            self.context.value[defaultIndex]
+            self.context.value[default_index]
         except IndexError:
             raise ParameterException("(ContextSettings) setDefaultIndex, "
                                      "invalid index value, a value between 0 "
                                      "and "+str(len(self.context.value))+" was"
-                                     " expected, got "+str(defaultIndex))
+                                     " expected, got "+str(default_index))
         except TypeError:
             raise ParameterException("(ContextSettings) setDefaultIndex, "
                                      "invalid index value, a value between 0 "
                                      "and "+str(len(self.context.value))+" was"
-                                     " expected, got "+str(defaultIndex))
+                                     " expected, got "+str(default_index))
 
-        self.defaultIndex = defaultIndex
+        self.default_index = default_index
 
-    def tryToSetDefaultIndex(self, defaultIndex):
+    def tryToSetDefaultIndex(self, default_index):
         self._raiseIfReadOnly(self.__class__.__name__, "tryToSetDefaultIndex")
 
         # try new default index
         try:
-            self.context.value[defaultIndex]
-            self.defaultIndex = defaultIndex
+            self.context.value[default_index]
+            self.default_index = default_index
             return
         except IndexError:
             pass
@@ -129,20 +132,20 @@ class ContextSettings(Settings):
 
         # try old default index, is it still valid ?
         try:
-            self.context.value[self.defaultIndex]
+            self.context.value[self.default_index]
             return  # no update on the object
         except IndexError:
             pass
 
         # if old default index is invalid, set default as 0, there is always
         # at least one element in context, index 0 will always be valid
-        self.defaultIndex = 0
+        self.default_index = 0
 
     def getDefaultIndex(self):
-        return self.defaultIndex
+        return self.default_index
 
     def reset(self):
-        self.index = self.defaultIndex
+        self.index = self.default_index
 
     def setTransientIndex(self, state):
         pass
@@ -160,42 +163,43 @@ class ContextSettings(Settings):
 
         return tuple(prop)
 
-    def clone(self, From=None):
-        if From is None:
-            From = ContextSettings()
+    def clone(self, parent=None):
+        if parent is None:
+            parent = ContextSettings()
 
-        return From
+        return parent
 
 
 class LocalContextSettings(LocalSettings, ContextSettings):
     getProperties = ContextSettings.getProperties
 
-    def __init__(self, readOnly=False, removable=True):
+    def __init__(self, read_only=False, removable=True):
         ContextSettings.__init__(self)
-        LocalSettings.__init__(self, readOnly, removable)
+        LocalSettings.__init__(self, read_only, removable)
 
-    def clone(self, From=None):
-        if From is None:
-            From = LocalContextSettings(self.isReadOnly(), self.isRemovable())
+    def clone(self, parent=None):
+        if parent is None:
+            parent = LocalContextSettings(self.isReadOnly(),
+                                          self.isRemovable())
 
-        ContextSettings.clone(self, From)
+        ContextSettings.clone(self, parent)
 
-        return LocalSettings.clone(self, From)
+        return LocalSettings.clone(self, parent)
 
 
 class GlobalContextSettings(GlobalSettings, ContextSettings):
     getProperties = ContextSettings.getProperties
 
     def __init__(self,
-                 readOnly=False,
+                 read_only=False,
                  removable=True,
                  transient=False,
-                 transientIndex=False):
+                 transient_index=False):
         ContextSettings.__init__(self)
         GlobalSettings.__init__(self, False, removable, transient)
-        self.setTransientIndex(transientIndex)
+        self.setTransientIndex(transient_index)
 
-        if readOnly:
+        if read_only:
             self.setReadOnly(True)
 
     def setTransientIndex(self, state):
@@ -206,26 +210,26 @@ class GlobalContextSettings(GlobalSettings, ContextSettings):
                                      "setTransientIndex, expected a bool type "
                                      "as state, got '"+str(type(state))+"'")
 
-        self.transientIndex = state
+        self.transient_index = state
 
     def isTransientIndex(self):
-        return self.transientIndex
+        return self.transient_index
 
-    def clone(self, From=None):
-        if From is None:
-            From = GlobalContextSettings(self.isReadOnly(),
-                                         self.isRemovable(),
-                                         self.isTransient(),
-                                         self.isTransientIndex())
+    def clone(self, parent=None):
+        if parent is None:
+            parent = GlobalContextSettings(self.isReadOnly(),
+                                           self.isRemovable(),
+                                           self.isTransient(),
+                                           self.isTransientIndex())
         else:
-            readOnly = self.isReadOnly()
-            From.setReadOnly(False)
-            From.setTransientIndex(self.isTransientIndex())
-            From.setReadOnly(readOnly)
+            read_only = self.isReadOnly()
+            parent.setReadOnly(False)
+            parent.setTransientIndex(self.isTransientIndex())
+            parent.setReadOnly(read_only)
 
-        ContextSettings.clone(self, From)
+        ContextSettings.clone(self, parent)
 
-        return GlobalSettings.clone(self, From)
+        return GlobalSettings.clone(self, parent)
 
 
 class ContextParameter(EnvironmentParameter, SelectableValuable):
@@ -238,7 +242,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
                  typ=None,
                  settings=None,
                  index=0,
-                 defaultIndex=0):
+                 default_index=0):
 
         # check arg checker
         if typ is None:
@@ -271,13 +275,13 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         settings.context = self
         EnvironmentParameter.__init__(self, value, typ, settings)
 
-        # set index and defaultIndex
-        if defaultIndex != 0 or index != 0:
-            readOnly = self.settings.isReadOnly()
+        # set index and default_index
+        if default_index != 0 or index != 0:
+            read_only = self.settings.isReadOnly()
             self.settings.setReadOnly(False)
-            self.settings.tryToSetDefaultIndex(defaultIndex)
+            self.settings.tryToSetDefaultIndex(default_index)
             self.settings.tryToSetIndex(index)
-            self.settings.setReadOnly(readOnly)
+            self.settings.setReadOnly(read_only)
 
     def setValue(self, value):
         EnvironmentParameter.setValue(self, value)
@@ -294,23 +298,23 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
 
         values = _convertToSetList(values)
 
-        newValues = []
+        new_values = []
         for v in values:
             if v in self.value:
-                newValues.append(v)
+                new_values.append(v)
 
-        if len(newValues) == 0:
+        if len(new_values) == 0:
             return
 
         # must stay at least one item in list
-        if (len(self.value) - len(newValues)) == 0:
+        if (len(self.value) - len(new_values)) == 0:
             raise ParameterException("(ContextParameter) removeValues, can "
                                      "remove all the value in this context, "
                                      "at least one value must stay in the "
                                      "list")
 
         # remove
-        EnvironmentParameter.removeValues(self, newValues)
+        EnvironmentParameter.removeValues(self, new_values)
 
         # recompute index if needed
         self.settings.tryToSetDefaultIndex(self.settings.getDefaultIndex())
@@ -331,32 +335,32 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         if isinstance(self.settings, GlobalContextSettings):
             return
 
-        defaultIndex = self.settings.getDefaultIndex()
+        default_index = self.settings.getDefaultIndex()
         index = self.settings.getIndex()
-        readOnly = self.settings.isReadOnly()
+        read_only = self.settings.isReadOnly()
         removable = self.settings.isRemovable()
-        self.settings = GlobalContextSettings(readOnly=False,
+        self.settings = GlobalContextSettings(read_only=False,
                                               removable=removable)
         self.settings.context = self
-        self.settings.tryToSetDefaultIndex(defaultIndex)
+        self.settings.tryToSetDefaultIndex(default_index)
         self.settings.tryToSetIndex(index)
 
-        if readOnly:
+        if read_only:
             self.settings.setReadOnly(True)
 
     def enableLocal(self):
         if isinstance(self.settings, LocalContextSettings):
             return
 
-        defaultIndex = self.settings.getDefaultIndex()
+        default_index = self.settings.getDefaultIndex()
         index = self.settings.getIndex()
-        readOnly = self.settings.isReadOnly()
+        read_only = self.settings.isReadOnly()
         removable = self.settings.isRemovable()
-        self.settings = LocalContextSettings(readOnly=False,
+        self.settings = LocalContextSettings(read_only=False,
                                              removable=removable)
         self.settings.context = self
-        self.settings.tryToSetDefaultIndex(defaultIndex)
+        self.settings.tryToSetDefaultIndex(default_index)
         self.settings.tryToSetIndex(index)
 
-        if readOnly:
+        if read_only:
             self.settings.setReadOnly(True)

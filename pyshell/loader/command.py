@@ -165,7 +165,7 @@ class CommandLoader(AbstractLoader):
         AbstractLoader.load(self, parameterManager, profile)
         env = parameterManager.environment
         param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                 perfectMatch=True)
+                                 perfect_match=True)
 
         if param is None:
             raise LoadException("(CommandLoader) load, fail to load command "
@@ -248,7 +248,7 @@ class CommandLoader(AbstractLoader):
         AbstractLoader.unload(self, parameterManager, profile)
         env = parameterManager.environment
         param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                 perfectMatch=True)
+                                 perfect_match=True)
 
         if param is None:
             raise LoadException("(CommandLoader) unload, fail to load command "

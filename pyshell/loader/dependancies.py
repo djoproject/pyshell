@@ -63,7 +63,7 @@ class DependanciesLoader(AbstractLoader):
             return
 
         param = parameterManager.environment.getParameter(ADDONLIST_KEY,
-                                                          perfectMatch=True)
+                                                          perfect_match=True)
         if param is None:
             raise LoadException("(DependanciesLoader) load, no addon list "
                                 "defined")

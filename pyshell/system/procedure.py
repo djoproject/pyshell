@@ -16,31 +16,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import DefaultPyshellException, \
-    PyshellException, ERROR, ParameterException, ProcedureStackableException
-from pyshell.utils.executing import execute
-from pyshell.command.command import UniCommand, MultiCommand
-from pyshell.command.exception import engineInterruptionException
-from pyshell.arg.decorator import shellMethod
-from pyshell.arg.argchecker import ArgChecker, listArgChecker, \
-    defaultInstanceArgChecker
-from pyshell.utils.parsing import Parser
-from pyshell.system.variable import VarParameter
-from pyshell.system.settings import GlobalSettings
-from pyshell.utils.printing import warning, getPrinterFromExceptionSeverity, \
-    printShell
-
 import sys
+
+from pyshell.arg.argchecker import ArgChecker
+from pyshell.arg.argchecker import defaultInstanceArgChecker
+from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.decorator import shellMethod
+from pyshell.command.command import MultiCommand
+from pyshell.command.command import UniCommand
+from pyshell.command.exception import engineInterruptionException
+from pyshell.system.settings import GlobalSettings
+from pyshell.system.variable import VarParameter
+from pyshell.utils.exception import DefaultPyshellException
+from pyshell.utils.exception import ERROR
+from pyshell.utils.exception import ParameterException
+from pyshell.utils.exception import ProcedureStackableException
+from pyshell.utils.exception import PyshellException
+from pyshell.utils.executing import execute
+from pyshell.utils.parsing import Parser
+from pyshell.utils.printing import getPrinterFromExceptionSeverity
+from pyshell.utils.printing import printShell
+from pyshell.utils.printing import warning
 
 
 # TODO will be deleted with procedureInList class
-def getAbsoluteIndex(index, listSize):
+def getAbsoluteIndex(index, list_size):
     "convert any positive or negative index into an absolute positive one"
 
     if index >= 0:
         return index
 
-    index = listSize + index
+    index = list_size + index
 
     # because python list.insert works like that, a value can be inserted with
     # a negativ value out of bound but some other function like update does not
@@ -83,22 +89,22 @@ class Procedure(UniCommand):
         parameters.variable.setParameter(
             "*",  # all in one string
             VarParameter(' '.join(str(x) for x in args)),
-            localParam=True)
+            local_param=True)
         parameters.variable.setParameter(
             "#",  # arg count
-            VarParameter(len(args)), localParam=True)
+            VarParameter(len(args)), local_param=True)
         parameters.variable.setParameter(
-            "@", VarParameter(args), localParam=True)  # all args
+            "@", VarParameter(args), local_param=True)  # all args
         parameters.variable.setParameter(
             "?",  # value from last command
-            VarParameter(()), localParam=True)
+            VarParameter(()), local_param=True)
         parameters.variable.setParameter(
             "!",  # last pid started in background
-            VarParameter(()), localParam=True)
+            VarParameter(()), local_param=True)
         parameters.variable.setParameter(
             "$",  # current process id
             VarParameter(parameters.getCurrentId()),
-            localParam=True)
+            local_param=True)
 
     def enableOnPreProcess(self):
         del self[:]
@@ -119,7 +125,7 @@ class Procedure(UniCommand):
     def _internalProcess(self, args, parameters):
         parameters.pushVariableLevelForThisThread(self)
 
-        threadID, level = parameters.getCurrentId()
+        thread_id, level = parameters.getCurrentId()
 
         if level == 0 and self.errorGranularity is not None:
             warning("WARN: execution of the procedure " + str(self.name) +
@@ -156,8 +162,10 @@ class Procedure(UniCommand):
                         self.interruptReason) + "'", abnormal=True)
 
         lastException, engine = execute(cmd, parameters, name)
-        param = parameters.variable.getParameter(
-            "?", perfectMatch=True, localParam=True, exploreOtherLevel=False)
+        param = parameters.variable.getParameter("?",
+                                                 perfect_match=True,
+                                                 local_param=True,
+                                                 explore_other_level=False)
 
         if lastException is not None:
             # set empty the variable "?"
@@ -179,16 +187,16 @@ class Procedure(UniCommand):
                     severity, lastException)
                 exception.procedureStack.append((cmd, name,))
 
-                threadID, level = param.getCurrentId()
+                thread_id, level = param.getCurrentId()
                 if level == 0:
-                    self._printProcedureStack(exception, threadID, 0)
+                    self._printProcedureStack(exception, thread_id, 0)
 
                 raise exception
 
             if isinstance(lastException, ProcedureStackableException):
-                threadID, level = param.getCurrentId()
+                thread_id, level = param.getCurrentId()
                 lastException.procedureStack.append((cmd, name,))
-                self._printProcedureStack(lastException, threadID, level)
+                self._printProcedureStack(lastException, thread_id, level)
 
         else:
             if engine is not None and engine.getLastResult(
@@ -199,20 +207,22 @@ class Procedure(UniCommand):
 
         return lastException, engine
 
-    def _printProcedureStack(self, stackException, threadID, currentLevel):
-        if len(stackException.procedureStack) == 0:
+    def _printProcedureStack(self, stack_exception, thread_id, current_level):
+        # TODO no usage of thread_id ?
+
+        if len(stack_exception.procedureStack) == 0:
             return
 
-        toPrint = ""
-        for i in range(0, len(stackException.procedureStack)):
-            cmd, name = stackException.procedureStack[
-                len(stackException.procedureStack) - i - 1]
-            toPrint += (i * " ") + str(name) + " : " + str(cmd) + \
-                "(level=" + str(currentLevel + i) + ")\n"
+        to_print = ""
+        for i in range(0, len(stack_exception.procedureStack)):
+            cmd, name = stack_exception.procedureStack[
+                len(stack_exception.procedureStack) - i - 1]
+            to_print += (i * " ") + str(name) + " : " + str(cmd) + \
+                "(level=" + str(current_level + i) + ")\n"
 
-        toPrint = toPrint[:-1]
-        colorFun = getPrinterFromExceptionSeverity(stackException.severity)
-        printShell(colorFun(toPrint))
+        to_print = to_print[:-1]
+        color_fun = getPrinterFromExceptionSeverity(stack_exception.severity)
+        printShell(color_fun(to_print))
 
     # get/set method
 
@@ -245,12 +255,12 @@ class Procedure(UniCommand):
     def getErrorGranularity(self):
         return self.errorGranularity
 
-    def clone(self, From=None):
-        if From is None:
-            From = Procedure(self.name, settings=self.settings.clone())
+    def clone(self, parent=None):
+        if parent is None:
+            parent = Procedure(self.name, settings=self.settings.clone())
 
-        From.errorGranularity = self.errorGranularity
-        return UniCommand.clone(self, From)
+        parent.errorGranularity = self.errorGranularity
+        return UniCommand.clone(self, parent)
 
     def __hash__(self):
         return hash(self.settings)
@@ -335,10 +345,10 @@ class ProcedureFromList(Procedure):
 
         self.nextCommandIndex = value
 
-    def setCommand(self, index, commandStringList):
+    def setCommand(self, index, command_string_list):
         self._checkAccess("setCommand", (index,), False)
 
-        parser = Parser(commandStringList)
+        parser = Parser(command_string_list)
         parser.parse()
 
         if len(parser) == 0:
@@ -349,16 +359,16 @@ class ProcedureFromList(Procedure):
         index = getAbsoluteIndex(index, len(self.stringCmdList))
 
         if index >= len(self.stringCmdList):
-            self.stringCmdList.append([commandStringList])
+            self.stringCmdList.append([command_string_list])
             return len(self.stringCmdList) - 1
         else:
-            self.stringCmdList[index] = [commandStringList]
+            self.stringCmdList[index] = [command_string_list]
 
         return index
 
-    def addCommand(self, commandString):
+    def addCommand(self, command_string):
         self._checkAccess("addCommand")
-        parser = Parser(commandString)
+        parser = Parser(command_string)
         parser.parse()
 
         if len(parser) == 0:
@@ -380,33 +390,33 @@ class ProcedureFromList(Procedure):
         except IndexError:
             pass  # do nothing
 
-    def moveCommand(self, fromIndex, toIndex):
-        self._checkAccess("moveCommand", (fromIndex, toIndex,))
-        fromIndex = getAbsoluteIndex(fromIndex, len(self.stringCmdList))
-        toIndex = getAbsoluteIndex(toIndex, len(self.stringCmdList))
+    def moveCommand(self, from_index, to_index):
+        self._checkAccess("moveCommand", (from_index, to_index,))
+        from_index = getAbsoluteIndex(from_index, len(self.stringCmdList))
+        to_index = getAbsoluteIndex(to_index, len(self.stringCmdList))
 
-        if fromIndex == toIndex:
+        if from_index == to_index:
             return
 
         # manage the case when we try to insert after the existing index
-        if fromIndex < toIndex:
-            toIndex -= 1
+        if from_index < to_index:
+            to_index -= 1
 
-        self.stringCmdList.insert(toIndex, self.stringCmdList.pop(fromIndex))
+        self.stringCmdList.insert(to_index, self.stringCmdList.pop(from_index))
 
-    def _checkAccess(self, methName, indexToCheck=(),
-                     raiseIfOutOfBound=True):
+    def _checkAccess(self, meth_name, index_to_check=(),
+                     raise_if_out_of_bound=True):
         if self.settings.isReadOnly():
-            raise ParameterException("(Procedure) " + methName + ", this "
+            raise ParameterException("(Procedure) " + meth_name + ", this "
                                      "procedure is readonly, can not do any "
                                      "update on its content")
 
-        for index in indexToCheck:
+        for index in index_to_check:
             # check validity
             try:
                 self.stringCmdList[index]
             except IndexError:
-                if raiseIfOutOfBound:
+                if raise_if_out_of_bound:
                     if len(self.stringCmdList) == 0:
                         message = "Command list is empty"
                     elif len(self.stringCmdList) == 1:
@@ -417,7 +427,7 @@ class ProcedureFromList(Procedure):
 
                     raise ParameterException(
                         "(Procedure) " +
-                        methName +
+                        meth_name +
                         ", index out of bound. " +
                         message +
                         ", got '" +
@@ -425,7 +435,7 @@ class ProcedureFromList(Procedure):
                         "'")
             except TypeError as te:
                 raise ParameterException(
-                    "(Procedure) " + methName + ", invalid index: " + str(te))
+                    "(Procedure) " + meth_name + ", invalid index: " + str(te))
 
             # make absolute index
             index = getAbsoluteIndex(index, len(self.stringCmdList))
@@ -442,7 +452,7 @@ class ProcedureFromList(Procedure):
 
                 raise ParameterException(
                     "(Procedure) " +
-                    methName +
+                    meth_name +
                     ", invalid index. " +
                     message +
                     ", got '" +
@@ -455,14 +465,14 @@ class ProcedureFromList(Procedure):
     def downCommand(self, index):
         self.moveCommand(index, index + 1)
 
-    def clone(self, From=None):
-        if From is None:
-            From = ProcedureFromList(self.name)
+    def clone(self, parent=None):
+        if parent is None:
+            parent = ProcedureFromList(self.name)
 
-        From.stringCmdList = self.stringCmdList[:]
-        From.lockedTo = self.lockedTo
+        parent.stringCmdList = self.stringCmdList[:]
+        parent.lockedTo = self.lockedTo
 
-        return Procedure.clone(self, From)
+        return Procedure.clone(self, parent)
 
     def __hash__(self):
         pass  # TODO
@@ -473,16 +483,17 @@ class ProcedureFromList(Procedure):
 
 class ProcedureFromFile(Procedure):
 
-    def __init__(self, filePath, settings=None):
-        Procedure.__init__(self, "execute " + str(filePath), settings)
-        self.setFilePath(filePath)
+    def __init__(self, file_path, settings=None):
+        Procedure.__init__(self, "execute " + str(file_path), settings)
+        self.file_path = None
+        self.setFilePath(file_path)
 
     def getFilePath(self):
-        return self.filePath
+        return self.file_path
 
-    def setFilePath(self, filePath):
+    def setFilePath(self, file_path):
         # TODO readOnly, path validity, ...
-        self.filePath = filePath
+        self.file_path = file_path
 
     def execute(self, parameters):
         # make a copy of the current procedure
@@ -490,11 +501,11 @@ class ProcedureFromFile(Procedure):
 
         # for cmd in self.stringCmdList:
         index = 1
-        with open(self.filePath) as f:
+        with open(self.file_path) as f:
             for line in f:
-                executionName = self.name + " (line: " + str(index) + ")"
+                execution_name = self.name + " (line: " + str(index) + ")"
                 lastException, engine = self._innerExecute(line,
-                                                           executionName,
+                                                           execution_name,
                                                            parameters)
                 index += 1
 
@@ -504,13 +515,13 @@ class ProcedureFromFile(Procedure):
 
         return engine.getLastResult()
 
-    def clone(self, From=None):
-        if From is None:
-            From = ProcedureFromFile(self.filePath)
+    def clone(self, parent=None):
+        if parent is None:
+            parent = ProcedureFromFile(self.file_path)
 
-        return Procedure.clone(self, From)
+        return Procedure.clone(self, parent)
 
     def __hash__(self):
-        procedureStringHash = str(hash(Procedure.__hash__(self)))
-        filePathStringHash = str(hash(self.filePath))
-        return hash(procedureStringHash + filePathStringHash)
+        procedure_string_hash = str(hash(Procedure.__hash__(self)))
+        file_path_string_hash = str(hash(self.file_path))
+        return hash(procedure_string_hash + file_path_string_hash)

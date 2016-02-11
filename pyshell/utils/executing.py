@@ -83,7 +83,7 @@ def execute(string, parameter_container, process_name=None, process_arg=None):
         t.start()
         parameter_container.variable.setParameter("!",
                                                   VarParameter(str(t.ident)),
-                                                  localParam=True)
+                                                  local_param=True)
 
         # not possible to retrieve exception or engine, it is another thread
         return None, None
@@ -100,13 +100,13 @@ def _generateSuffix(parameter_container,
 
     # print if in debug ?
     param = parameter_container.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                     perfectMatch=True)
+                                                     perfect_match=True)
     show_advanced_result = (param is not None and param.getSelectedValue() > 0)
 
     if not show_advanced_result:
         # is is a shell execution ?
         param = parameter_container.context.getParameter(CONTEXT_EXECUTION_KEY,
-                                                         perfectMatch=True)
+                                                         perfect_match=True)
         show_advanced_result = (param is None or
                                 param.getSelectedValue() !=
                                 CONTEXT_EXECUTION_SHELL)

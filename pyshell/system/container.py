@@ -16,23 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.constants import DEFAULT_PROFILE_NAME, SYSTEM_VIRTUAL_LOADER
+from threading import current_thread
+
+from pyshell.utils.constants import DEFAULT_PROFILE_NAME
+from pyshell.utils.constants import SYSTEM_VIRTUAL_LOADER
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.flushable import Flushable
-
-from threading import current_thread
 
 
 class _ThreadInfo(object):
     def __init__(self):
         self.procedureStack = []
         self.origin = SYSTEM_VIRTUAL_LOADER
-        self.originProfile = DEFAULT_PROFILE_NAME
+        self.origin_profile = DEFAULT_PROFILE_NAME
 
     def canBeDeleted(self):
         return len(self.procedureStack) == 0 and \
             self.origin == SYSTEM_VIRTUAL_LOADER and \
-            self.originProfile == DEFAULT_PROFILE_NAME
+            self.origin_profile == DEFAULT_PROFILE_NAME
 
 
 class AbstractParameterContainer(object):
@@ -42,28 +43,28 @@ class AbstractParameterContainer(object):
     def getOrigin(self):
         pass  # TO OVERRIDE
 
-    def setOrigin(self, origin, originProfile=None):
+    def setOrigin(self, origin, origin_profile=None):
         pass  # TO OVERRIDE
 
 
 class DummyParameterContainer(AbstractParameterContainer):
     def __init__(self):
         self.origin = SYSTEM_VIRTUAL_LOADER
-        self.originProfile = DEFAULT_PROFILE_NAME
+        self.origin_profile = DEFAULT_PROFILE_NAME
 
     def getCurrentId(self):
         return current_thread().ident, None
 
     def getOrigin(self):
-        return self.origin, self.originProfile
+        return self.origin, self.origin_profile
 
-    def setOrigin(self, origin, originProfile=None):
+    def setOrigin(self, origin, origin_profile=None):
         self.origin = origin
 
-        if originProfile is None:
-            self.originProfile = DEFAULT_PROFILE_NAME
+        if origin_profile is None:
+            self.origin_profile = DEFAULT_PROFILE_NAME
         else:
-            self.originProfile = originProfile
+            self.origin_profile = origin_profile
 
 
 DEFAULT_DUMMY_PARAMETER_CONTAINER = DummyParameterContainer()
@@ -149,26 +150,26 @@ class ParameterContainer(AbstractParameterContainer):
             return SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME
 
         info = self.getThreadInfo()  # only get, never create thread info
-        return info.origin, info.originProfile
+        return info.origin, info.origin_profile
 
-    def setOrigin(self, origin, originProfile=None):
+    def setOrigin(self, origin, origin_profile=None):
 
-        if originProfile is None:
-            originProfile = DEFAULT_PROFILE_NAME
+        if origin_profile is None:
+            origin_profile = DEFAULT_PROFILE_NAME
 
         if origin == SYSTEM_VIRTUAL_LOADER and \
-           originProfile == DEFAULT_PROFILE_NAME:
+           origin_profile == DEFAULT_PROFILE_NAME:
             # no need to store origin if not registered and new origin is
             # SYSTEM_VIRTUAL_LOADER, because for unregistered,
             # the default origin is ORIGIN_PROCESS
             if current_thread().ident in self.threadInfo:
                 info = self.getThreadInfo()
                 info.origin = SYSTEM_VIRTUAL_LOADER
-                info.originProfile = DEFAULT_PROFILE_NAME
+                info.origin_profile = DEFAULT_PROFILE_NAME
 
                 if info.canBeDeleted():
                     del self.threadInfo[current_thread().ident]
         else:
             info = self.getThreadInfo()
             info.origin = origin
-            info.originProfile = originProfile
+            info.origin_profile = origin_profile

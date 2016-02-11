@@ -36,7 +36,7 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(hash(s), self.setHash)
     
     def test_settings2(self):
-        s = Settings(readOnly = False, removable = False)
+        s = Settings(read_only = False, removable = False)
         
         self.assertFalse(s.isReadOnly())
         self.assertTrue(s.isRemovable())
@@ -45,7 +45,7 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(hash(s), self.setHash)
     
     def test_settings3(self):
-        s = Settings(readOnly = True, removable = True)
+        s = Settings(read_only = True, removable = True)
         
         self.assertFalse(s.isReadOnly())
         self.assertTrue(s.isRemovable())
@@ -110,12 +110,12 @@ class SettingsTest(unittest.TestCase):
         self.assertFalse(ls.isReadOnly())
         
     def test_localSettings2(self):
-        ls = LocalSettings(readOnly = True, removable = True)
+        ls = LocalSettings(read_only = True, removable = True)
         self.assertTrue(ls.isRemovable())
         self.assertTrue(ls.isReadOnly())
         
     def test_localSettings3(self):
-        ls = LocalSettings(readOnly = False, removable = False)
+        ls = LocalSettings(read_only = False, removable = False)
         self.assertFalse(ls.isRemovable())
         self.assertFalse(ls.isReadOnly())
         
@@ -134,7 +134,7 @@ class SettingsTest(unittest.TestCase):
         self.assertRaises(ParameterException, ls.setRemovable,"plop")
         
     def test_localSettings7(self):
-        ls = LocalSettings(readOnly = True)
+        ls = LocalSettings(read_only = True)
         self.assertRaises(ParameterException, ls.setRemovable,True)
         
     def test_localSettings8(self):
@@ -152,15 +152,15 @@ class SettingsTest(unittest.TestCase):
         self.assertRaises(ParameterException, ls.setReadOnly,"plop")
         
     def test_localSettings11(self):
-        ls = LocalSettings(readOnly = True)
+        ls = LocalSettings(read_only = True)
         self.assertRaises(ParameterException, ls._raiseIfReadOnly)
     
     def test_localSettings12(self):
-        ls = LocalSettings(readOnly = True)
+        ls = LocalSettings(read_only = True)
         self.assertRaises(ParameterException, ls._raiseIfReadOnly, "plop")
     
     def test_localSettings13(self):
-        ls = LocalSettings(readOnly = True)
+        ls = LocalSettings(read_only = True)
         self.assertRaises(ParameterException, ls._raiseIfReadOnly, "plop", "plip")
     
     ## GlobalSettings ##
@@ -172,13 +172,13 @@ class SettingsTest(unittest.TestCase):
         self.assertFalse(gs.isTransient())
         
     def test_globalSettings2(self):
-        gs = GlobalSettings(readOnly = False, removable = False, transient = False)
+        gs = GlobalSettings(read_only = False, removable = False, transient = False)
         self.assertFalse(gs.isReadOnly())
         self.assertFalse(gs.isRemovable())
         self.assertFalse(gs.isTransient())
         
     def test_globalSettings3(self):
-        gs = GlobalSettings(readOnly = True, removable = True, transient = True)
+        gs = GlobalSettings(read_only = True, removable = True, transient = True)
         self.assertTrue(gs.isReadOnly())
         self.assertTrue(gs.isRemovable())
         self.assertTrue(gs.isTransient())
@@ -198,7 +198,7 @@ class SettingsTest(unittest.TestCase):
         self.assertRaises(ParameterException, gs.setTransient,"plop")
         
     def test_globalSettings7(self):
-        gs = GlobalSettings(readOnly = True)
+        gs = GlobalSettings(read_only = True)
         self.assertRaises(ParameterException, gs.setTransient,True)
     
     def test_globalSettings8(self):

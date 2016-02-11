@@ -101,9 +101,9 @@ def getParameter(key,
 
     container = getattr(parameters, attribute_type)
     param = container.getParameter(key,
-                                   perfectMatch=perfect_match,
-                                   localParam=start_with_local,
-                                   exploreOtherLevel=explore_other_level)
+                                   perfect_match=perfect_match,
+                                   local_param=start_with_local,
+                                   explore_other_level=explore_other_level)
 
     if param is None:
         raise Exception("Unknow parameter of type '"+str(attribute_type) +
@@ -193,15 +193,15 @@ def removeParameter(key,
     container = getattr(parameters, attribute_type)
 
     if not container.hasParameter(key,
-                                  perfectMatch=True,
-                                  localParam=start_with_local,
-                                  exploreOtherLevel=explore_other_level):
+                                  perfect_match=True,
+                                  local_param=start_with_local,
+                                  explore_other_level=explore_other_level):
         return  # no job to do
 
     container.unsetParameter(
         key,
-        localParam=start_with_local,
-        exploreOtherLevel=explore_other_level)
+        local_param=start_with_local,
+        explore_other_level=explore_other_level)
 
 
 def _listGeneric(parameters,
@@ -327,8 +327,8 @@ def saveParameter(file_path, parameters):
         for subcontainername in parameters.parameterManagerList:
             container = getattr(parameters, subcontainername)
             dico = container.buildDictionnary("",
-                                              localParam=False,
-                                              exploreOtherLevel=False)
+                                              local_param=False,
+                                              explore_other_level=False)
 
             for key, parameter in dico.items():
                 if parameter.settings.isTransient():
@@ -421,9 +421,9 @@ def _createValuesFun(value_type,
         checker = value_type()
 
     if (container.hasParameter(key,
-                               perfectMatch=True,
-                               localParam=local_param,
-                               exploreOtherLevel=False) and
+                               perfect_match=True,
+                               local_param=local_param,
+                               explore_other_level=False) and
        no_creation_if_exist):
         return
         # no need to manage readonly or removable setting here, it will be

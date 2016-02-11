@@ -16,9 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.environment import EnvironmentParameter, DEFAULT_CHECKER
+from pyshell.system.environment import DEFAULT_CHECKER
+from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.parameter import ParameterManager
-from pyshell.system.settings import LocalSettings, GlobalSettings, Settings
+from pyshell.system.settings import GlobalSettings
+from pyshell.system.settings import LocalSettings
+from pyshell.system.settings import Settings
 from pyshell.utils.constants import EMPTY_STRING
 
 
@@ -48,11 +51,11 @@ class VariableGlobalSettings(GlobalSettings, VariableSettings):
 
     def __init__(self, transient=False):
         GlobalSettings.__init__(self,
-                                readOnly=False,
+                                read_only=False,
                                 removable=True,
                                 transient=transient)
 
-    def addLoader(self, loaderSignature):
+    def addLoader(self, loader_signature):
         pass
 
 

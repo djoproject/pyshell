@@ -80,9 +80,9 @@ class ParameterAbstractLoader(AbstractLoader):
                        attributeName,
                        listOfExceptions):
         envObject = container.getParameter(keyName,
-                                           perfectMatch=True,
+                                           perfect_match=True,
                                            startWithLocal=False,
-                                           exploreOtherLevel=False)
+                                           explore_other_level=False)
         if envObject is None:
             le = LoadException("(ParamaterLoader) addValueTo, fail to add "
                                "value '"+str(valueToRemove)+"' to '" +
@@ -102,9 +102,9 @@ class ParameterAbstractLoader(AbstractLoader):
                     attributeName,
                     listOfExceptions):
         envObject = container.getParameter(keyName,
-                                           perfectMatch=True,
+                                           perfect_match=True,
                                            startWithLocal=False,
-                                           exploreOtherLevel=False)
+                                           explore_other_level=False)
         if envObject is None:
             le = LoadException("(ParamaterLoader) addValueTo, fail to add "
                                "value '"+str(valueToAdd)+"' to '" +
@@ -128,9 +128,9 @@ class ParameterAbstractLoader(AbstractLoader):
                       listOfExceptions):
         # still exist ?
         envItem = container.getParameter(keyName,
-                                         perfectMatch=True,
+                                         perfect_match=True,
                                          startWithLocal=False,
-                                         exploreOtherLevel=False)
+                                         explore_other_level=False)
         if envItem is None:
             le = LoadException("(ParamaterLoader) unsetValueTo, fail to unset "
                                "value with key '"+str(keyName)+"': key does "
@@ -148,7 +148,7 @@ class ParameterAbstractLoader(AbstractLoader):
             try:
                 container.unsetParameter(keyName,
                                          startWithLocal=False,
-                                         exploreOtherLevel=False)
+                                         explore_other_level=False)
             except ParameterException as pe:
                 le = LoadException("(ParamaterLoader) unsetValueTo, fail to "
                                    "unset value with key '"+str(keyName) +
@@ -164,9 +164,9 @@ class ParameterAbstractLoader(AbstractLoader):
                     attributeName,
                     listOfExceptions):
         param = container.getParameter(keyName,
-                                       perfectMatch=True,
+                                       perfect_match=True,
                                        startWithLocal=False,
-                                       exploreOtherLevel=False)
+                                       explore_other_level=False)
         exist = param is not None
         oldValue = None
         if exist:
@@ -180,7 +180,7 @@ class ParameterAbstractLoader(AbstractLoader):
 
                 return
         try:
-            container.setParameter(keyName, value, localParam=False)
+            container.setParameter(keyName, value, local_param=False)
             self.valueToUnset.append((exist,
                                       oldValue,
                                       keyName,

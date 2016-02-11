@@ -143,7 +143,7 @@ class CommandExecuter():
         self.promptWaitingValuable = SimpleValuable(False)
 
         defaultGlobalSetting = GlobalSettings(transient=False,
-                                              readOnly=False,
+                                              read_only=False,
                                               removable=False)
 
         defaultStringArgChecker = defaultInstanceArgChecker.\
@@ -162,41 +162,41 @@ class CommandExecuter():
                                                             writtable=None,
                                                             isFile=True),
                                      settings=GlobalSettings(transient=True,
-                                                             readOnly=False,
+                                                             read_only=False,
                                                              removable=False))
         env.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT,
                                      typ=defaultStringArgChecker,
                                      settings=defaultGlobalSetting.clone())
         env.setParameter(ENVIRONMENT_PROMPT_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value=TAB_SIZE,
                                      typ=IntegerArgChecker(0),
                                      settings=defaultGlobalSetting.clone())
         env.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value=multiLevelTries(),
                                      typ=defaultArgChecker,
                                      settings=GlobalSettings(transient=True,
-                                                             readOnly=True,
+                                                             read_only=True,
                                                              removable=False))
         env.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT,
                                      typ=defaultBooleanArgChecker,
                                      settings=defaultGlobalSetting.clone())
         env.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE,
                                      typ=filePathArgChecker(exist=None,
@@ -206,14 +206,14 @@ class CommandExecuter():
                                      settings=defaultGlobalSetting.clone())
         env.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE,
                                      typ=defaultBooleanArgChecker,
                                      settings=defaultGlobalSetting.clone())
         env.setParameter(ENVIRONMENT_USE_HISTORY_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         typ = listArgChecker(defaultStringArgChecker)
         param = EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT,
@@ -221,76 +221,76 @@ class CommandExecuter():
                                      settings=defaultGlobalSetting.clone())
         env.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         param = EnvironmentParameter(value={},
                                      typ=defaultArgChecker,
                                      settings=GlobalSettings(transient=True,
-                                                             readOnly=True,
+                                                             read_only=True,
                                                              removable=False))
         env.setParameter(ADDONLIST_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         defaultContextSetting = GlobalContextSettings(removable=False,
-                                                      readOnly=True,
+                                                      read_only=True,
                                                       transient=False,
-                                                      transientIndex=False)
+                                                      transient_index=False)
 
         param = ContextParameter(value=tuple(range(0, 5)),
                                  typ=defaultIntegerArgChecker,
-                                 defaultIndex=0,
+                                 default_index=0,
                                  index=1,
                                  settings=defaultContextSetting.clone())
         con.setParameter(DEBUG_ENVIRONMENT_NAME,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         settings = GlobalContextSettings(removable=False,
-                                         readOnly=True,
+                                         read_only=True,
                                          transient=True,
-                                         transientIndex=True)
+                                         transient_index=True)
         values = (CONTEXT_EXECUTION_SHELL,
                   CONTEXT_EXECUTION_SCRIPT,
                   CONTEXT_EXECUTION_DAEMON,)
         param = ContextParameter(value=values,
                                  typ=defaultStringArgChecker,
-                                 defaultIndex=0,
+                                 default_index=0,
                                  settings=settings)
         con.setParameter(CONTEXT_EXECUTION_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         values = (CONTEXT_COLORATION_LIGHT,
                   CONTEXT_COLORATION_DARK,
                   CONTEXT_COLORATION_NONE,)
         param = ContextParameter(value=values,
                                  typ=defaultStringArgChecker,
-                                 defaultIndex=0,
+                                 default_index=0,
                                  settings=defaultContextSetting.clone())
         con.setParameter(CONTEXT_COLORATION_KEY,
                          param,
-                         localParam=False)
+                         local_param=False)
 
         # mapped outside argument
         if outsideArgs is not None:
             # all in one string
             argsString = VarParameter(' '.join(str(x) for x in outsideArgs))
-            var.setParameter("*", argsString, localParam=False)
+            var.setParameter("*", argsString, local_param=False)
             argsString.settings.setTransient(True)
 
             # arg count
             argCount = VarParameter(len(outsideArgs))
-            var.setParameter("#", argCount, localParam=False)
+            var.setParameter("#", argCount, local_param=False)
             argCount.settings.setTransient(True)
 
             # all args
             allArgs = VarParameter(outsideArgs)
-            var.setParameter("@", allArgs, localParam=False)
+            var.setParameter("@", allArgs, local_param=False)
             allArgs.settings.setTransient(True)
             # last pid started in background
             # TODO var = self.params.variable.setParameter("!",
-            #            VarParameter(outsideArgs), localParam = False)
+            #            VarParameter(outsideArgs), local_param = False)
             # var.settings.setTransient(True)
 
         # current process id
@@ -298,14 +298,14 @@ class CommandExecuter():
         currentIdVar = VarParameter(self.params.getCurrentId())
         var = self.params.variable.setParameter("$",
                                                 currentIdVar,
-                                                localParam=False)
+                                                local_param=False)
         var.settings.setTransient(True)
 
         # value from last command
         # TODO remove me as soon as shell will be in its self procedure
         var = self.params.variable.setParameter("?",
                                                 VarParameter(()),
-                                                localParam=True)
+                                                local_param=True)
         var.settings.setTransient(True)
 
     def _initPrinter(self):
@@ -319,9 +319,9 @@ class CommandExecuter():
         # # prepare atStartUp # #
         env = self.params.environment
         mltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                   perfectMatch=True).getValue()
+                                   perfect_match=True).getValue()
         _atstartup = ProcedureFromList(EVENT__ON_STARTUP,
-                                       settings=GlobalSettings(readOnly=False,
+                                       settings=GlobalSettings(read_only=False,
                                                                removable=False,
                                                                transient=True))
         _atstartup.neverStopIfErrorOccured()
@@ -342,7 +342,7 @@ class CommandExecuter():
                        stopTraversalAtThisNode=True)
 
         atstartup = ProcedureFromList(EVENT_ON_STARTUP,
-                                      settings=GlobalSettings(readOnly=False,
+                                      settings=GlobalSettings(read_only=False,
                                                               removable=False,
                                                               transient=True))
         atstartup.neverStopIfErrorOccured()
@@ -355,11 +355,11 @@ class CommandExecuter():
     def _initExitEvent(self):
         env = self.params.environment
         mltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                   perfectMatch=True).getValue()
+                                   perfect_match=True).getValue()
 
         # # prepare atExit # #
         atExit = ProcedureFromList(EVENT_AT_EXIT,
-                                   settings=GlobalSettings(readOnly=False,
+                                   settings=GlobalSettings(read_only=False,
                                                            removable=False,
                                                            transient=True))
         atExit.neverStopIfErrorOccured()
@@ -392,7 +392,7 @@ class CommandExecuter():
 
         context = self.params.context
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
-                                         perfectMatch=True)
+                                         perfect_match=True)
         exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
 
         # mainloop
@@ -402,7 +402,7 @@ class CommandExecuter():
             try:
                 env = self.params.environment
                 cmd = raw_input(env.getParameter(ENVIRONMENT_PROMPT_KEY,
-                                                 perfectMatch=True).getValue())
+                                                 perfect_match=True).getValue())
             except SyntaxError as se:
                 error(se, "syntax error")
                 continue
@@ -419,7 +419,7 @@ class CommandExecuter():
     def printAsynchronousOnShellV2(self, message):
         env = self.params.environment
         prompt = env.getParameter(ENVIRONMENT_PROMPT_KEY,
-                                  perfectMatch=True).getValue()
+                                  perfect_match=True).getValue()
         # this is needed because after an input,
         # the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or \
@@ -448,7 +448,7 @@ class CommandExecuter():
         parser.parse()
         env = self.params.environment
         ltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                  perfectMatch=True).getValue()
+                                  perfect_match=True).getValue()
         try:
             # # special case, empty line # #
                 # only print root tokens
@@ -520,7 +520,7 @@ class CommandExecuter():
         except Exception as ex:
             context = self.params.context
             debug_level = context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                               perfectMatch=True)
+                                               perfect_match=True)
             if debug_level.getSelectedValue() > 0:
                 printException(ex)
 
@@ -545,7 +545,7 @@ class CommandExecuter():
     def executeFile(self, filename, granularity=None):
         context = self.params.context
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
-                                         perfectMatch=True)
+                                         perfect_match=True)
         exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         afile = ProcedureFromFile(filename)
         afile.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(granularity)
