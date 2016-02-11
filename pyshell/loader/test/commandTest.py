@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.loader.command import _local_getAndInitCallerModule, _check_boolean, registerSetGlobalPrefix, registerSetTempPrefix, registerResetTempPrefix, registerAnInstanciatedCommand, registerCommand, registerAndCreateEmptyMultiCommand, registerStopHelpTraversalAt, CommandLoader
+from pyshell.loader.command import _localGetAndInitCallerModule, _checkBoolean, registerSetGlobalPrefix, registerSetTempPrefix, registerResetTempPrefix, registerAnInstanciatedCommand, registerCommand, registerAndCreateEmptyMultiCommand, registerStopHelpTraversalAt, CommandLoader
 from pyshell.loader.utils import GlobalLoader
 from pyshell.utils.exception  import ListOfException
 from pyshell.loader.exception import LoadException, RegisterException
@@ -30,7 +30,7 @@ from tries import multiLevelTries
 from pyshell.arg.argchecker     import defaultInstanceArgChecker
 
 def loader(profile=None):
-    return _local_getAndInitCallerModule(profile)
+    return _localGetAndInitCallerModule(profile)
 
 def prePro():
     pass
@@ -56,11 +56,11 @@ class RegisterCommandTest(unittest.TestCase):
     def postTest(self, profile):
         self.assertTrue("_loaders" in globals())
         self.assertIsInstance(_loaders, GlobalLoader)
-        self.assertTrue(hasattr(_loaders, "profileList"))
-        self.assertIs(type(_loaders.profileList), dict)
-        self.assertIn(profile, _loaders.profileList)
+        self.assertTrue(hasattr(_loaders, "profile_list"))
+        self.assertIs(type(_loaders.profile_list), dict)
+        self.assertIn(profile, _loaders.profile_list)
         
-        profileTuple = _loaders.profileList[profile]
+        profileTuple = _loaders.profile_list[profile]
         self.assertIs(type(profileTuple), tuple)
         self.assertEqual(len(profileTuple), 2)
         
@@ -73,9 +73,9 @@ class RegisterCommandTest(unittest.TestCase):
         self.assertIsInstance(l, CommandLoader)
         return l
     
-    ## _local_getAndInitCallerModule ##
+    ## _localGetAndInitCallerModule ##
     
-    def test_local_getAndInitCallerModule1(self):#_local_getAndInitCallerModule with None profile
+    def test_localGetAndInitCallerModule1(self):#_localGetAndInitCallerModule with None profile
         global _loaders
         self.assertFalse("_loaders" in globals())
         a = loader()
@@ -85,7 +85,7 @@ class RegisterCommandTest(unittest.TestCase):
         self.assertIs(a,b)
         self.assertIsInstance(a,CommandLoader)
         
-    def test_local_getAndInitCallerModule2(self):#_local_getAndInitCallerModule withouth None profile
+    def test_localGetAndInitCallerModule2(self):#_localGetAndInitCallerModule withouth None profile
         global _loaders
         self.assertFalse("_loaders" in globals())
         a = loader("plop")
@@ -98,29 +98,29 @@ class RegisterCommandTest(unittest.TestCase):
         self.assertIsInstance(a,CommandLoader)
         self.assertIsInstance(c,CommandLoader)
         
-    def test_check_boolean(self): #with valid bool
-        _check_boolean(True, "plop", "meth")
-        _check_boolean(False, "plop", "meth")
+    def test_checkBoolean(self): #with valid bool
+        _checkBoolean(True, "plop", "meth")
+        _checkBoolean(False, "plop", "meth")
 
-    def test_check_boolean(self): #with unvalid bool
-        self.assertRaises(RegisterException, _check_boolean, object(), "plop", "meth")
+    def test_checkBoolean(self): #with unvalid bool
+        self.assertRaises(RegisterException, _checkBoolean, object(), "plop", "meth")
 
     ## registering ##
     
-    def test_registerSetGlobalPrefix1(self):#registerSetGlobalPrefix with invalid keyList, with profile None
+    def test_registerSetGlobalPrefix1(self):#registerSetGlobalPrefix with invalid key_list, with profile None
         self.assertRaises(RegisterException, registerSetGlobalPrefix, object(), None)
 
-    def test_registerSetGlobalPrefix2(self):#registerSetGlobalPrefix with invalid keyList, with profile not None
+    def test_registerSetGlobalPrefix2(self):#registerSetGlobalPrefix with invalid key_list, with profile not None
         self.assertRaises(RegisterException, registerSetGlobalPrefix, object(), "None")
         
-    def test_registerSetGlobalPrefix3(self):#registerSetGlobalPrefix with valid keyList, with profile None
+    def test_registerSetGlobalPrefix3(self):#registerSetGlobalPrefix with valid key_list, with profile None
         self.preTest()
         registerSetGlobalPrefix(("plop", "plip",), None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l, "prefix"))
         self.assertEqual(l.prefix, ("plop", "plip",))
         
-    def test_registerSetGlobalPrefix4(self):#registerSetGlobalPrefix with valid keyList, with profile not None
+    def test_registerSetGlobalPrefix4(self):#registerSetGlobalPrefix with valid key_list, with profile not None
         self.preTest()
         registerSetGlobalPrefix(("plop", "plip",), "None")
         l = self.postTest("None")
@@ -128,26 +128,26 @@ class RegisterCommandTest(unittest.TestCase):
         self.assertEqual(l.prefix, ("plop", "plip",))
         
     
-    def test_registerSetTempPrefix1(self):#registerSetTempPrefix with invalid keyList, with profile None
+    def test_registerSetTempPrefix1(self):#registerSetTempPrefix with invalid key_list, with profile None
         self.preTest()
-        self.assertRaises(RegisterException, registerSetTempPrefix,keyList=object(), profile = None)
+        self.assertRaises(RegisterException, registerSetTempPrefix,key_list=object(), profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerSetTempPrefix2(self):#registerSetTempPrefix with invalid keyList, with profile not None
+    def test_registerSetTempPrefix2(self):#registerSetTempPrefix with invalid key_list, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException, registerSetTempPrefix,keyList=object(), profile = "None")
+        self.assertRaises(RegisterException, registerSetTempPrefix,key_list=object(), profile = "None")
         self.assertFalse("_loaders" in globals())
         
-    def test_registerSetTempPrefix3(self):#registerSetTempPrefix with valid keyList, with profile None
+    def test_registerSetTempPrefix3(self):#registerSetTempPrefix with valid key_list, with profile None
         self.preTest()
-        registerSetTempPrefix(keyList=("tutu","toto",), profile = None)
+        registerSetTempPrefix(key_list=("tutu","toto",), profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"TempPrefix"))
         self.assertEqual(l.TempPrefix, ("tutu","toto",))
         
-    def test_registerSetTempPrefix4(self):#registerSetTempPrefix with valid keyList, with profile not None
+    def test_registerSetTempPrefix4(self):#registerSetTempPrefix with valid key_list, with profile not None
         self.preTest()
-        registerSetTempPrefix(keyList=("tutu","toto",), profile = "None")
+        registerSetTempPrefix(key_list=("tutu","toto",), profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"TempPrefix"))
         self.assertEqual(l.TempPrefix, ("tutu","toto",))
@@ -155,7 +155,7 @@ class RegisterCommandTest(unittest.TestCase):
     
     def test_registerResetTempPrefix1(self):#registerResetTempPrefix with temp prefix set, with profile None
         self.preTest()
-        registerSetTempPrefix(keyList=("tutu","toto",), profile = None)
+        registerSetTempPrefix(key_list=("tutu","toto",), profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"TempPrefix"))
         self.assertEqual(l.TempPrefix, ("tutu","toto",))
@@ -164,7 +164,7 @@ class RegisterCommandTest(unittest.TestCase):
         
     def test_registerResetTempPrefix2(self):#registerResetTempPrefix with temp prefix set, with profile not None
         self.preTest()
-        registerSetTempPrefix(keyList=("tutu","toto",), profile = "None")
+        registerSetTempPrefix(key_list=("tutu","toto",), profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"TempPrefix"))
         self.assertEqual(l.TempPrefix, ("tutu","toto",))
@@ -188,29 +188,29 @@ class RegisterCommandTest(unittest.TestCase):
     
     def test_registerAnInstanciatedCommand1(self):#registerAnInstanciatedCommand with invalid command type, with profile None
         self.preTest()
-        self.assertRaises(RegisterException, registerAnInstanciatedCommand,keyList=("plop",), cmd="tutu", raiseIfExist=True, override=False, profile = None)
+        self.assertRaises(RegisterException, registerAnInstanciatedCommand,key_list=("plop",), cmd="tutu", raise_if_exist=True, override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
     def test_registerAnInstanciatedCommand2(self):#registerAnInstanciatedCommand with invalid command type, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException, registerAnInstanciatedCommand,keyList=("plop",), cmd="tutu", raiseIfExist=True, override=False, profile = "None")
+        self.assertRaises(RegisterException, registerAnInstanciatedCommand,key_list=("plop",), cmd="tutu", raise_if_exist=True, override=False, profile = "None")
         self.assertFalse("_loaders" in globals())
         
-    def test_registerAnInstanciatedCommand3(self):#registerAnInstanciatedCommand with invalid keyList, with profile None
+    def test_registerAnInstanciatedCommand3(self):#registerAnInstanciatedCommand with invalid key_list, with profile None
         self.preTest()
-        self.assertRaises(RegisterException, registerAnInstanciatedCommand,keyList=object(), cmd=MultiCommand(), raiseIfExist=True, override=False, profile = None)
+        self.assertRaises(RegisterException, registerAnInstanciatedCommand,key_list=object(), cmd=MultiCommand(), raise_if_exist=True, override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerAnInstanciatedCommand4(self):#registerAnInstanciatedCommand with invalid keyList, with profile not None
+    def test_registerAnInstanciatedCommand4(self):#registerAnInstanciatedCommand with invalid key_list, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException, registerAnInstanciatedCommand,keyList=object(), cmd=MultiCommand(), raiseIfExist=True, override=False, profile = "None")
+        self.assertRaises(RegisterException, registerAnInstanciatedCommand,key_list=object(), cmd=MultiCommand(), raise_if_exist=True, override=False, profile = "None")
         self.assertFalse("_loaders" in globals())
         
     def test_registerAnInstanciatedCommand5(self):#registerAnInstanciatedCommand with valid args, with profile None
         self.preTest()
         key = ("plop", "plip",)
         mc = MultiCommand()
-        registerAnInstanciatedCommand(keyList=key, cmd=mc, raiseIfExist=True, override=False, profile = None)
+        registerAnInstanciatedCommand(key_list=key, cmd=mc, raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -221,7 +221,7 @@ class RegisterCommandTest(unittest.TestCase):
         self.preTest()
         key = ("plop", "plip",)
         mc = MultiCommand()
-        registerAnInstanciatedCommand(keyList=key, cmd=mc, raiseIfExist=True, override=False, profile = "None")
+        registerAnInstanciatedCommand(key_list=key, cmd=mc, raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -233,7 +233,7 @@ class RegisterCommandTest(unittest.TestCase):
         key = ("plup","plop", "plip",)
         mc = MultiCommand()
         registerSetTempPrefix( ("plup",) )
-        registerAnInstanciatedCommand(keyList=("plop", "plip",), cmd=mc, raiseIfExist=True, override=False, profile = None)
+        registerAnInstanciatedCommand(key_list=("plop", "plip",), cmd=mc, raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -245,7 +245,7 @@ class RegisterCommandTest(unittest.TestCase):
         key = ("plup","plop", "plip",)
         mc = MultiCommand()
         registerSetTempPrefix( ("plup",) , profile = "None")
-        registerAnInstanciatedCommand(keyList=("plop", "plip",), cmd=mc, raiseIfExist=True, override=False, profile = "None")
+        registerAnInstanciatedCommand(key_list=("plop", "plip",), cmd=mc, raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -257,7 +257,7 @@ class RegisterCommandTest(unittest.TestCase):
         key = ("plop", "plip",)
         mc = MultiCommand()
         registerSetGlobalPrefix( ("plup",) , profile = None)
-        registerAnInstanciatedCommand(keyList=key, cmd=mc, raiseIfExist=True, override=False, profile = None)
+        registerAnInstanciatedCommand(key_list=key, cmd=mc, raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -271,7 +271,7 @@ class RegisterCommandTest(unittest.TestCase):
         key = ("plop", "plip",)
         mc = MultiCommand()
         registerSetGlobalPrefix( ("plup",) , profile = "None")
-        registerAnInstanciatedCommand(keyList=key, cmd=mc, raiseIfExist=True, override=False, profile = "None")
+        registerAnInstanciatedCommand(key_list=key, cmd=mc, raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -280,53 +280,53 @@ class RegisterCommandTest(unittest.TestCase):
         self.assertTrue(hasattr(l, "prefix"))
         self.assertEqual(l.prefix, ("plup",))
         
-    def test_registerAnInstanciatedCommand11(self):#registerAnInstanciatedCommand test raiseIfExist/override valid, with profile None
+    def test_registerAnInstanciatedCommand11(self):#registerAnInstanciatedCommand test raise_if_exist/override valid, with profile None
         self.preTest()
         key = ("plop", "plip",)
         mc = MultiCommand()
-        registerAnInstanciatedCommand(keyList=key, cmd=mc, raiseIfExist=True, override=True, profile = None)
+        registerAnInstanciatedCommand(key_list=key, cmd=mc, raise_if_exist=True, override=True, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (mc, True, True,))
         
-    def test_registerAnInstanciatedCommand12(self):#registerAnInstanciatedCommand test raiseIfExist/override valid, with profile not None
+    def test_registerAnInstanciatedCommand12(self):#registerAnInstanciatedCommand test raise_if_exist/override valid, with profile not None
         self.preTest()
         key = ("plop", "plip",)
         mc = MultiCommand()
-        registerAnInstanciatedCommand(keyList=key, cmd=mc, raiseIfExist=False, override=False, profile = "None")
+        registerAnInstanciatedCommand(key_list=key, cmd=mc, raise_if_exist=False, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (mc, False, False,))
         
-    def test_registerAnInstanciatedCommand13(self):#registerAnInstanciatedCommand test raiseIfExist/override not valid, with profile None
+    def test_registerAnInstanciatedCommand13(self):#registerAnInstanciatedCommand test raise_if_exist/override not valid, with profile None
         self.preTest()
-        self.assertRaises(RegisterException,registerAnInstanciatedCommand,keyList=("plop", "plip",), cmd=MultiCommand(), raiseIfExist=object(), override=False, profile = None)
+        self.assertRaises(RegisterException,registerAnInstanciatedCommand,key_list=("plop", "plip",), cmd=MultiCommand(), raise_if_exist=object(), override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerAnInstanciatedCommand14(self):#registerAnInstanciatedCommand test raiseIfExist/override not valid, with profile not None
+    def test_registerAnInstanciatedCommand14(self):#registerAnInstanciatedCommand test raise_if_exist/override not valid, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException,registerAnInstanciatedCommand,keyList=("plop", "plip",), cmd=MultiCommand(), raiseIfExist=False, override=object(), profile = "None")
+        self.assertRaises(RegisterException,registerAnInstanciatedCommand,key_list=("plop", "plip",), cmd=MultiCommand(), raise_if_exist=False, override=object(), profile = "None")
         self.assertFalse("_loaders" in globals())
         
 
-    def test_registerCommand1(self):#registerCommand with invalid keyList, with profile None
+    def test_registerCommand1(self):#registerCommand with invalid key_list, with profile None
         self.preTest()
-        self.assertRaises(RegisterException, registerCommand,keyList=object(), pre=None,pro=proPro,post=None, raiseIfExist=True, override=False, profile = None)
+        self.assertRaises(RegisterException, registerCommand,key_list=object(), pre=None,pro=proPro,post=None, raise_if_exist=True, override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerCommand2(self):#registerCommand with invalid keyList, with profile not None
+    def test_registerCommand2(self):#registerCommand with invalid key_list, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException, registerCommand,keyList=object(), pre=None,pro=proPro,post=None, raiseIfExist=True, override=False, profile = "None")
+        self.assertRaises(RegisterException, registerCommand,key_list=object(), pre=None,pro=proPro,post=None, raise_if_exist=True, override=False, profile = "None")
         self.assertFalse("_loaders" in globals())
                 
     def test_registerCommand5(self):#registerCommand test pre/pro/post, with profile None
         self.preTest()
         key = ("plip",)
-        c = registerCommand(keyList=key, pre=prePro,pro=proPro,post=postPro, raiseIfExist=True, override=False, profile = None)
+        c = registerCommand(key_list=key, pre=prePro,pro=proPro,post=postPro, raise_if_exist=True, override=False, profile = None)
         self.postTest(DEFAULT_PROFILE_NAME)
 
         self.assertIsInstance(c, MultiCommand)
@@ -340,7 +340,7 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCommand6(self):#registerCommand test pre/pro/post, with profile not None
         self.preTest()
         key = ("plip",)
-        c = registerCommand(keyList=key, pre=prePro,pro=proPro,post=postPro, raiseIfExist=True, override=False, profile = "None")
+        c = registerCommand(key_list=key, pre=prePro,pro=proPro,post=postPro, raise_if_exist=True, override=False, profile = "None")
         self.postTest("None")
 
         self.assertIsInstance(c, MultiCommand)
@@ -354,8 +354,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCommand9(self):#registerCommand with valid args and registerSetTempPrefix, with profile None
         self.preTest()
         key = ("plup","plop","plip",)
-        registerSetTempPrefix(keyList=("plup","plop",), profile = None)
-        c = registerCommand(keyList=("plip",), pre=None,pro=proPro,post=None, raiseIfExist=True, override=False, profile = None)
+        registerSetTempPrefix(key_list=("plup","plop",), profile = None)
+        c = registerCommand(key_list=("plip",), pre=None,pro=proPro,post=None, raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -365,8 +365,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCommand10(self):#registerCommand with valid args and registerSetTempPrefix, with profile not None
         self.preTest()
         key = ("plup","plop","plip",)
-        registerSetTempPrefix(keyList=("plup","plop",), profile = "None")
-        c = registerCommand(keyList=("plip",), pre=None,pro=proPro,post=None, raiseIfExist=True, override=False, profile = "None")
+        registerSetTempPrefix(key_list=("plup","plop",), profile = "None")
+        c = registerCommand(key_list=("plip",), pre=None,pro=proPro,post=None, raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -376,8 +376,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCommand11(self):#registerCommand with valid args and registerSetGlobalPrefix, with profile None
         self.preTest()
         key = ("plip",)
-        registerSetGlobalPrefix(keyList=("plup","plop",), profile = None)
-        c = registerCommand(keyList=key, pre=None,pro=proPro,post=None, raiseIfExist=True, override=False, profile = None)
+        registerSetGlobalPrefix(key_list=("plup","plop",), profile = None)
+        c = registerCommand(key_list=key, pre=None,pro=proPro,post=None, raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         
         self.assertTrue(hasattr(l,"cmdDict"))
@@ -388,8 +388,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCommand12(self):#registerCommand with valid args and registerSetGlobalPrefix, with profile not None
         self.preTest()
         key = ("plip",)
-        registerSetGlobalPrefix(keyList=("plup","plop",), profile = "None")
-        c = registerCommand(keyList=key, pre=None,pro=proPro,post=None, raiseIfExist=True, override=False, profile = "None")
+        registerSetGlobalPrefix(key_list=("plup","plop",), profile = "None")
+        c = registerCommand(key_list=key, pre=None,pro=proPro,post=None, raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         
         self.assertTrue(hasattr(l,"cmdDict"))
@@ -397,54 +397,54 @@ class RegisterCommandTest(unittest.TestCase):
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (c, True, False,))
         
-    def test_registerCommand13(self):#registerCommand test raiseIfExist/override valid, with profile None
+    def test_registerCommand13(self):#registerCommand test raise_if_exist/override valid, with profile None
         self.preTest()
         key = ("plup","plop","plip",)
-        c = registerCommand(keyList=key, pre=None,pro=proPro,post=None, raiseIfExist=True, override=True, profile = None)
+        c = registerCommand(key_list=key, pre=None,pro=proPro,post=None, raise_if_exist=True, override=True, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (c, True, True,))
 
-    def test_registerCommand14(self):#registerCommand test raiseIfExist/override valid, with profile not None
+    def test_registerCommand14(self):#registerCommand test raise_if_exist/override valid, with profile not None
         self.preTest()
         key = ("plup","plop","plip",)
-        c = registerCommand(keyList=key, pre=None,pro=proPro,post=None, raiseIfExist=False, override=False, profile = "None")
+        c = registerCommand(key_list=key, pre=None,pro=proPro,post=None, raise_if_exist=False, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (c, False, False,))
         
-    def test_registerCommand15(self):#registerCommand test raiseIfExist/override not valid, with profile None
+    def test_registerCommand15(self):#registerCommand test raise_if_exist/override not valid, with profile None
         self.preTest()
         key = ("plup","plop","plip",)
-        c = self.assertRaises(RegisterException,registerCommand,keyList=key, pre=None,pro=proPro,post=None, raiseIfExist=object(), override=False, profile = None)
+        c = self.assertRaises(RegisterException,registerCommand,key_list=key, pre=None,pro=proPro,post=None, raise_if_exist=object(), override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerCommand16(self):#registerCommand test raiseIfExist/override not valid, with profile not None
+    def test_registerCommand16(self):#registerCommand test raise_if_exist/override not valid, with profile not None
         self.preTest()
         key = ("plup","plop","plip",)
-        c = self.assertRaises(RegisterException,registerCommand,keyList=key, pre=None,pro=proPro,post=None, raiseIfExist=True, override=object(), profile = "None")
+        c = self.assertRaises(RegisterException,registerCommand,key_list=key, pre=None,pro=proPro,post=None, raise_if_exist=True, override=object(), profile = "None")
         self.assertFalse("_loaders" in globals())
         
     
-    def test_registerCreateMultiCommand1(self):#registerCreateMultiCommand with invalid keyList, with profile None
+    def test_registerCreateMultiCommand1(self):#registerCreateMultiCommand with invalid key_list, with profile None
         self.preTest()
-        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,keyList=object(),raiseIfExist=True, override=False, profile = None)
+        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,key_list=object(),raise_if_exist=True, override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerCreateMultiCommand2(self):#registerCreateMultiCommand with invalid keyList, with profile not None
+    def test_registerCreateMultiCommand2(self):#registerCreateMultiCommand with invalid key_list, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,keyList=object(),raiseIfExist=True, override=False, profile = "None")
+        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,key_list=object(),raise_if_exist=True, override=False, profile = "None")
         self.assertFalse("_loaders" in globals())
         
     def test_registerCreateMultiCommand7(self):#registerCreateMultiCommand with valid args and registerSetTempPrefix, with profile None
         self.preTest()
         key = ("plup","plop","plip",)
-        registerSetTempPrefix(keyList=("plup","plop",), profile = None)
-        mc = registerAndCreateEmptyMultiCommand(keyList=("plip",),raiseIfExist=True, override=False, profile = None)
+        registerSetTempPrefix(key_list=("plup","plop",), profile = None)
+        mc = registerAndCreateEmptyMultiCommand(key_list=("plip",),raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -454,8 +454,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCreateMultiCommand8(self):#registerCreateMultiCommand with valid args and registerSetTempPrefix, with profile not None
         self.preTest()
         key = ("plup","plop","plip",)
-        registerSetTempPrefix(keyList=("plup","plop",), profile = "None")
-        mc = registerAndCreateEmptyMultiCommand(keyList=("plip",),raiseIfExist=True, override=False, profile = "None")
+        registerSetTempPrefix(key_list=("plup","plop",), profile = "None")
+        mc = registerAndCreateEmptyMultiCommand(key_list=("plip",),raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -465,8 +465,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCreateMultiCommand9(self):#registerCreateMultiCommand with valid args and registerSetGlobalPrefix, with profile None
         self.preTest()
         key = ("plip",)
-        registerSetGlobalPrefix(keyList=("plup","plop",), profile = None)
-        mc = registerAndCreateEmptyMultiCommand(keyList=key,raiseIfExist=True, override=False, profile = None)
+        registerSetGlobalPrefix(key_list=("plup","plop",), profile = None)
+        mc = registerAndCreateEmptyMultiCommand(key_list=key,raise_if_exist=True, override=False, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
@@ -476,59 +476,59 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerCreateMultiCommand10(self):#registerCreateMultiCommand with valid args and registerSetGlobalPrefix, with profile not None
         self.preTest()
         key = ("plip",)
-        registerSetGlobalPrefix(keyList=("plup","plop",), profile = "None")
-        mc = registerAndCreateEmptyMultiCommand(keyList=key,raiseIfExist=True, override=False, profile = "None")
+        registerSetGlobalPrefix(key_list=("plup","plop",), profile = "None")
+        mc = registerAndCreateEmptyMultiCommand(key_list=key,raise_if_exist=True, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (mc, True, False,))
         
-    def test_registerCreateMultiCommand11(self):#registerCreateMultiCommand test raiseIfExist/override valid, with profile None
+    def test_registerCreateMultiCommand11(self):#registerCreateMultiCommand test raise_if_exist/override valid, with profile None
         self.preTest()
         key = ("plip",)
-        mc = registerAndCreateEmptyMultiCommand(keyList=key,raiseIfExist=True, override=True, profile = None)
+        mc = registerAndCreateEmptyMultiCommand(key_list=key,raise_if_exist=True, override=True, profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (mc, True, True,))
         
-    def test_registerCreateMultiCommand12(self):#registerCreateMultiCommand test raiseIfExist/override valid, with profile not None
+    def test_registerCreateMultiCommand12(self):#registerCreateMultiCommand test raise_if_exist/override valid, with profile not None
         self.preTest()
         key = ("plip",)
-        mc = registerAndCreateEmptyMultiCommand(keyList=key,raiseIfExist=False, override=False, profile = "None")
+        mc = registerAndCreateEmptyMultiCommand(key_list=key,raise_if_exist=False, override=False, profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"cmdDict"))
         self.assertIs(type(l.cmdDict), dict)
         self.assertIn(key, l.cmdDict)
         self.assertEqual(l.cmdDict[key], (mc, False, False,))
         
-    def test_registerCreateMultiCommand13(self):#registerCreateMultiCommand test raiseIfExist/override not valid, with profile None
+    def test_registerCreateMultiCommand13(self):#registerCreateMultiCommand test raise_if_exist/override not valid, with profile None
         self.preTest()
-        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,keyList=("plip",),raiseIfExist=object(), override=False, profile = None)
+        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,key_list=("plip",),raise_if_exist=object(), override=False, profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerCreateMultiCommand14(self):#registerCreateMultiCommand test raiseIfExist/override not valid, with profile not None
+    def test_registerCreateMultiCommand14(self):#registerCreateMultiCommand test raise_if_exist/override not valid, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,keyList=("plip",),raiseIfExist=True, override=object(), profile = "None")
+        self.assertRaises(RegisterException,registerAndCreateEmptyMultiCommand,key_list=("plip",),raise_if_exist=True, override=object(), profile = "None")
         self.assertFalse("_loaders" in globals())
         
     
-    def test_registerStopHelpTraversalAt1(self):#registerStopHelpTraversalAt with invalid keyList, with profile None
+    def test_registerStopHelpTraversalAt1(self):#registerStopHelpTraversalAt with invalid key_list, with profile None
         self.preTest()
-        self.assertRaises(RegisterException,registerStopHelpTraversalAt,keyList=object(),profile = None)
+        self.assertRaises(RegisterException,registerStopHelpTraversalAt,key_list=object(),profile = None)
         self.assertFalse("_loaders" in globals())
         
-    def test_registerStopHelpTraversalAt2(self):#registerStopHelpTraversalAt with invalid keyList, with profile not None
+    def test_registerStopHelpTraversalAt2(self):#registerStopHelpTraversalAt with invalid key_list, with profile not None
         self.preTest()
-        self.assertRaises(RegisterException,registerStopHelpTraversalAt,keyList=object(),profile = "None")
+        self.assertRaises(RegisterException,registerStopHelpTraversalAt,key_list=object(),profile = "None")
         self.assertFalse("_loaders" in globals())
         
     def test_registerStopHelpTraversalAt3(self):#registerStopHelpTraversalAt with valid args and NO predefined prefix, with profile None
         self.preTest()
         key = ("kikoo","lol",)
-        registerStopHelpTraversalAt(keyList=key,profile = None)
+        registerStopHelpTraversalAt(key_list=key,profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"stoplist"))
         self.assertIs(type(l.stoplist), set)
@@ -537,7 +537,7 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerStopHelpTraversalAt4(self):#registerStopHelpTraversalAt with valid args and NO predefined prefix, with profile not None
         self.preTest()
         key = ("kikoo","lol",)
-        registerStopHelpTraversalAt(keyList=key,profile = "None")
+        registerStopHelpTraversalAt(key_list=key,profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"stoplist"))
         self.assertIs(type(l.stoplist), set)
@@ -546,8 +546,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerStopHelpTraversalAt5(self):#registerStopHelpTraversalAt with valid args and registerSetTempPrefix, with profile None
         self.preTest()
         key = ("plup","kikoo","lol",)
-        registerSetTempPrefix(keyList=("plup",), profile = None)
-        registerStopHelpTraversalAt(keyList=("kikoo","lol",),profile = None)
+        registerSetTempPrefix(key_list=("plup",), profile = None)
+        registerStopHelpTraversalAt(key_list=("kikoo","lol",),profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"stoplist"))
         self.assertIs(type(l.stoplist), set)
@@ -556,8 +556,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerStopHelpTraversalAt6(self):#registerStopHelpTraversalAt with valid args and registerSetTempPrefix, with profile not None
         self.preTest()
         key = ("plup","kikoo","lol",)
-        registerSetTempPrefix(keyList=("plup",), profile = "None")
-        registerStopHelpTraversalAt(keyList=("kikoo","lol",),profile = "None")
+        registerSetTempPrefix(key_list=("plup",), profile = "None")
+        registerStopHelpTraversalAt(key_list=("kikoo","lol",),profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"stoplist"))
         self.assertIs(type(l.stoplist), set)
@@ -566,8 +566,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerStopHelpTraversalAt7(self):#registerStopHelpTraversalAt with valid args and registerSetGlobalPrefix, with profile None
         self.preTest()
         key = ("kikoo","lol",)
-        registerSetGlobalPrefix(keyList=("plup",), profile = None)
-        registerStopHelpTraversalAt(keyList=key,profile = None)
+        registerSetGlobalPrefix(key_list=("plup",), profile = None)
+        registerStopHelpTraversalAt(key_list=key,profile = None)
         l = self.postTest(DEFAULT_PROFILE_NAME)
         self.assertTrue(hasattr(l,"stoplist"))
         self.assertIs(type(l.stoplist), set)
@@ -576,8 +576,8 @@ class RegisterCommandTest(unittest.TestCase):
     def test_registerStopHelpTraversalAt8(self):#registerStopHelpTraversalAt with valid args and registerSetGlobalPrefix, with profile not None
         self.preTest()
         key = ("kikoo","lol",)
-        registerSetGlobalPrefix(keyList=("plup",), profile = "None")
-        registerStopHelpTraversalAt(keyList=key,profile = "None")
+        registerSetGlobalPrefix(key_list=("plup",), profile = "None")
+        registerStopHelpTraversalAt(key_list=key,profile = "None")
         l = self.postTest("None")
         self.assertTrue(hasattr(l,"stoplist"))
         self.assertIs(type(l.stoplist), set)
@@ -601,23 +601,23 @@ class CommandLoaderTest(unittest.TestCase):
   
     def test_CommandLoader_addCmd1(self):#addCmd, with temp prefix
         self.cl.TempPrefix = ("plop",)
-        mc = self.cl.addCmd( ("plip",), MultiCommand(), raiseIfExist=True, override=False)
+        mc = self.cl.addCmd( ("plip",), MultiCommand(), raise_if_exist=True, override=False)
         self.assertIn( ("plop","plip",), self.cl.cmdDict )
         self.assertEqual( self.cl.cmdDict[("plop","plip",)], (mc,True,False,) )
         
     def test_CommandLoader_addCmd2(self):#addCmd, whithout temp prefix
         self.cl.TempPrefix = None
-        mc = self.cl.addCmd( ("plip",), MultiCommand(), raiseIfExist=True, override=False)
+        mc = self.cl.addCmd( ("plip",), MultiCommand(), raise_if_exist=True, override=False)
         self.assertIn( ("plip",), self.cl.cmdDict )
         self.assertEqual( self.cl.cmdDict[("plip",)], (mc,True,False,) )
         
-    def test_CommandLoader_addCmd3(self):#addCmd, test raiseIfExist/override valid
-        mc = self.cl.addCmd( ("plip",), MultiCommand(), raiseIfExist=True, override=True)
+    def test_CommandLoader_addCmd3(self):#addCmd, test raise_if_exist/override valid
+        mc = self.cl.addCmd( ("plip",), MultiCommand(), raise_if_exist=True, override=True)
         self.assertIn( ("plip",), self.cl.cmdDict )
         self.assertEqual( self.cl.cmdDict[("plip",)], (mc,True,True,) )
         
-    def test_CommandLoader_addCmd4(self):#addCmd, test raiseIfExist/override not valid
-        mc = self.cl.addCmd( ("plip",), MultiCommand(), raiseIfExist=False, override=False)
+    def test_CommandLoader_addCmd4(self):#addCmd, test raise_if_exist/override not valid
+        mc = self.cl.addCmd( ("plip",), MultiCommand(), raise_if_exist=False, override=False)
         self.assertIn( ("plip",), self.cl.cmdDict )
         self.assertEqual( self.cl.cmdDict[("plip",)], (mc,False,False,) )
                 
@@ -626,34 +626,34 @@ class CommandLoaderTest(unittest.TestCase):
         params = ParameterContainer()
         params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME, EnvironmentParameterManager(params))
 
-        self.assertRaises(LoadException, self.cl.load, parameterManager=params, profile = None)
+        self.assertRaises(LoadException, self.cl.load, parameter_manager=params, profile = None)
         
     def test_CommandLoader_load2(self):#load, execute without command and without stopTraversal, no global prefix
-        self.cl.load(parameterManager=self.params, profile = None)
+        self.cl.load(parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load3(self):#load, execute without command and without stopTraversal, global prefix defined
         self.cl.prefix = ("toto",)
-        self.cl.load(parameterManager=self.params, profile = None)
+        self.cl.load(parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load4(self):#load, try to insert an existing command, no global prefix
         key = ("plop","plip",)
         self.mltries.insert( key, object() )
-        self.cl.addCmd( key, MultiCommand(), raiseIfExist=True, override=False)
+        self.cl.addCmd( key, MultiCommand(), raise_if_exist=True, override=False)
         
-        self.assertRaises(ListOfException, self.cl.load, parameterManager=self.params, profile = None)
+        self.assertRaises(ListOfException, self.cl.load, parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load5(self):#load, try to insert an existing command, global prefix defined 
         self.cl.prefix = ("toto",)
         key = ("plop","plip",)
         self.mltries.insert( ("toto","plop","plip",), object() )
-        uc = self.cl.addCmd( ("plop","plip",), UniCommand(process=proPro), raiseIfExist=True, override=False)
+        uc = self.cl.addCmd( ("plop","plip",), UniCommand(process=proPro), raise_if_exist=True, override=False)
         
-        self.assertRaises(ListOfException, self.cl.load, parameterManager=self.params, profile = None)
+        self.assertRaises(ListOfException, self.cl.load, parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load6(self):#load, insert a not existing command, no global prefix
         key = ("plop","plip",)
-        uc = self.cl.addCmd( key, UniCommand(process=proPro), raiseIfExist=True, override=False)
-        self.cl.load(parameterManager=self.params, profile = None)
+        uc = self.cl.addCmd( key, UniCommand(process=proPro), raise_if_exist=True, override=False)
+        self.cl.load(parameter_manager=self.params, profile = None)
         searchResult = self.mltries.searchNode(key, True)
         
         self.assertTrue(searchResult is not None and searchResult.isValueFound())
@@ -661,8 +661,8 @@ class CommandLoaderTest(unittest.TestCase):
         
     def test_CommandLoader_load7(self):#load, insert a not existing command, global prefix defined
         self.cl.prefix = ("toto",)
-        uc = self.cl.addCmd( ("plop","plip",), UniCommand(process=proPro), raiseIfExist=True, override=False)
-        self.cl.load(parameterManager=self.params, profile = None)
+        uc = self.cl.addCmd( ("plop","plip",), UniCommand(process=proPro), raise_if_exist=True, override=False)
+        self.cl.load(parameter_manager=self.params, profile = None)
         searchResult = self.mltries.searchNode(("toto","plop","plip",), True)
         
         self.assertTrue(searchResult is not None and searchResult.isValueFound())
@@ -670,19 +670,19 @@ class CommandLoaderTest(unittest.TestCase):
         
     def test_CommandLoader_load8(self):#load, stopTraversal with command that does not exist, no global prefix
         self.cl.stoplist.add( ("toto",) )
-        self.assertRaises(ListOfException, self.cl.load, parameterManager=self.params, profile = None)
+        self.assertRaises(ListOfException, self.cl.load, parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load9(self):#load, stopTraversal with command that does not exist, global prefix defined
         self.cl.prefix = ("plop",)
         self.cl.stoplist.add( ("toto",) )
-        self.assertRaises(ListOfException, self.cl.load, parameterManager=self.params, profile = None)
+        self.assertRaises(ListOfException, self.cl.load, parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load10(self):#load, stopTraversal, command exist, no global prefix
         key = ("toto","plop","plip",)
         self.mltries.insert( key, object() )
         self.cl.stoplist.add( key)
         self.assertFalse(self.mltries.isStopTraversal(key))
-        self.cl.load(parameterManager=self.params, profile = None)
+        self.cl.load(parameter_manager=self.params, profile = None)
         self.assertTrue(self.mltries.isStopTraversal(key))
         
     def test_CommandLoader_load11(self):#load, stopTraversal, command exist, global prefix defined
@@ -691,14 +691,14 @@ class CommandLoaderTest(unittest.TestCase):
         self.mltries.insert( key, object() )
         self.cl.stoplist.add( ("plop","plip",))
         self.assertFalse(self.mltries.isStopTraversal(key))
-        self.cl.load(parameterManager=self.params, profile = None)
+        self.cl.load(parameter_manager=self.params, profile = None)
         self.assertTrue(self.mltries.isStopTraversal(key))
         
     def test_CommandLoader_load12(self):#load, cmd exist, not raise if exist + not override
         key = ("toto","plop","plip",)
         self.mltries.insert( key, object() )
-        uc = self.cl.addCmd( key, UniCommand(process=proPro), raiseIfExist=False, override=False)
-        self.cl.load(parameterManager=self.params, profile = None)
+        uc = self.cl.addCmd( key, UniCommand(process=proPro), raise_if_exist=False, override=False)
+        self.cl.load(parameter_manager=self.params, profile = None)
         
         searchResult = self.mltries.searchNode(key, True)
         self.assertTrue(searchResult is not None and searchResult.isValueFound())
@@ -707,40 +707,40 @@ class CommandLoaderTest(unittest.TestCase):
     def test_CommandLoader_load13(self):#load, cmd exist, raise if exist + not override
         key = ("toto","plop","plip",)
         self.mltries.insert( key, object() )
-        uc = self.cl.addCmd( key, UniCommand(process=proPro), raiseIfExist=True, override=False)
-        self.assertRaises(ListOfException, self.cl.load, parameterManager=self.params, profile = None)
+        uc = self.cl.addCmd( key, UniCommand(process=proPro), raise_if_exist=True, override=False)
+        self.assertRaises(ListOfException, self.cl.load, parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_load14(self):#load, cmd exist, not raise if exist + override
         key = ("toto","plop","plip",)
         self.mltries.insert( key, object() )
-        uc = self.cl.addCmd( key, UniCommand(process=proPro), raiseIfExist=False, override=True)
-        self.cl.load(parameterManager=self.params, profile = None)
+        uc = self.cl.addCmd( key, UniCommand(process=proPro), raise_if_exist=False, override=True)
+        self.cl.load(parameter_manager=self.params, profile = None)
         
         searchResult = self.mltries.searchNode(key, True)
         self.assertTrue(searchResult is not None and searchResult.isValueFound())
         self.assertIs(uc, searchResult.getValue())
     
     def test_CommandLoader_load15(self):#load, try to load an empty command
-        self.cl.addCmd( ("plop","plip",), MultiCommand(), raiseIfExist=True, override=False)
-        self.assertRaises(ListOfException, self.cl.load, parameterManager=self.params, profile = None)
+        self.cl.addCmd( ("plop","plip",), MultiCommand(), raise_if_exist=True, override=False)
+        self.assertRaises(ListOfException, self.cl.load, parameter_manager=self.params, profile = None)
         
 
     def test_CommandLoader_unload1(self):#unload, ENVIRONMENT_LEVEL_TRIES_KEY does not exist
         params = ParameterContainer()
         params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME, EnvironmentParameterManager(params))
 
-        self.assertRaises(LoadException, self.cl.unload, parameterManager=params, profile = None)
+        self.assertRaises(LoadException, self.cl.unload, parameter_manager=params, profile = None)
     
     def test_CommandLoader_unload2(self):#unload, nothing to do
         self.cl.loadedCommand = []
         self.cl.loadedStopTraversal = []
-        self.cl.unload( parameterManager=self.params, profile = None)
+        self.cl.unload( parameter_manager=self.params, profile = None)
     
     def test_CommandLoader_unload3(self):#unload, command does not exist
         self.cl.loadedCommand = []
         self.cl.loadedStopTraversal = []
         self.cl.loadedCommand.append(("toto","plop","plip",) )
-        self.assertRaises(ListOfException, self.cl.unload, parameterManager=self.params, profile = None)
+        self.assertRaises(ListOfException, self.cl.unload, parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_unload4(self):#unload, command exists
         key = ("toto","plop","plip",)
@@ -749,7 +749,7 @@ class CommandLoaderTest(unittest.TestCase):
         self.cl.loadedCommand.append(key)
         self.mltries.insert( key, object() )
         
-        self.cl.unload( parameterManager=self.params, profile = None)
+        self.cl.unload( parameter_manager=self.params, profile = None)
         
         searchResult = self.mltries.searchNode(key, True)
         
@@ -759,7 +759,7 @@ class CommandLoaderTest(unittest.TestCase):
         self.cl.loadedCommand = []
         self.cl.loadedStopTraversal = []
         self.cl.loadedStopTraversal.append(("toto","plop","plip",) )
-        self.cl.unload( parameterManager=self.params, profile = None)
+        self.cl.unload( parameter_manager=self.params, profile = None)
         
     def test_CommandLoader_unload6(self):#unload, stopTraversal, path exists
         key = ("toto","plop","plip",)
@@ -769,7 +769,7 @@ class CommandLoaderTest(unittest.TestCase):
         self.mltries.insert( key, object() )
         self.mltries.setStopTraversal(key,True)
     
-        self.cl.unload( parameterManager=self.params, profile = None)
+        self.cl.unload( parameter_manager=self.params, profile = None)
     
         self.assertFalse(self.mltries.isStopTraversal(key))
                 

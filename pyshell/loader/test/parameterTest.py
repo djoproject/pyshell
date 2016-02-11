@@ -17,7 +17,7 @@
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from pyshell.loader.parameter import _local_getAndInitCallerModule, registerAddValues, registerSet, ParameterAbstractLoader
+from pyshell.loader.parameter import _localGetAndInitCallerModule, registerAddValues, registerSet, ParameterAbstractLoader
 
 class ParameterTest(unittest.TestCase):
     def setUp(self):

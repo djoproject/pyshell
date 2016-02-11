@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import DefaultPyshellException, USER_ERROR, \
-                                    PARSE_WARNING
+from pyshell.utils.exception import DefaultPyshellException
+from pyshell.utils.exception import PARSE_WARNING
+from pyshell.utils.exception import USER_ERROR
 
 
 class RegisterException(DefaultPyshellException):

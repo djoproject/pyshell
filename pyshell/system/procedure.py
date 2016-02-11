@@ -161,30 +161,30 @@ class Procedure(UniCommand):
                     "this process has been interrupted, reason: '" + str(
                         self.interruptReason) + "'", abnormal=True)
 
-        lastException, engine = execute(cmd, parameters, name)
+        last_exception, engine = execute(cmd, parameters, name)
         param = parameters.variable.getParameter("?",
                                                  perfect_match=True,
                                                  local_param=True,
                                                  explore_other_level=False)
 
-        if lastException is not None:
+        if last_exception is not None:
             # set empty the variable "?"
             param.setValue(())
 
             # manage exception
-            if isinstance(lastException, PyshellException):
-                severity = lastException.severity
+            if isinstance(last_exception, PyshellException):
+                severity = last_exception.severity
             else:
                 severity = ERROR
 
             if self.errorGranularity is not None and \
                severity <= self.errorGranularity:
-                if isinstance(lastException, ProcedureStackableException):
-                    lastException.append((cmd, name,))
-                    raise lastException
+                if isinstance(last_exception, ProcedureStackableException):
+                    last_exception.append((cmd, name,))
+                    raise last_exception
 
                 exception = ProcedureStackableException(
-                    severity, lastException)
+                    severity, last_exception)
                 exception.procedureStack.append((cmd, name,))
 
                 thread_id, level = param.getCurrentId()
@@ -193,10 +193,10 @@ class Procedure(UniCommand):
 
                 raise exception
 
-            if isinstance(lastException, ProcedureStackableException):
+            if isinstance(last_exception, ProcedureStackableException):
                 thread_id, level = param.getCurrentId()
-                lastException.procedureStack.append((cmd, name,))
-                self._printProcedureStack(lastException, thread_id, level)
+                last_exception.procedureStack.append((cmd, name,))
+                self._printProcedureStack(last_exception, thread_id, level)
 
         else:
             if engine is not None and engine.getLastResult(
@@ -205,7 +205,7 @@ class Procedure(UniCommand):
             else:
                 param.setValue(())
 
-        return lastException, engine
+        return last_exception, engine
 
     def _printProcedureStack(self, stack_exception, thread_id, current_level):
         # TODO no usage of thread_id ?
@@ -310,7 +310,7 @@ class ProcedureFromList(Procedure):
         # for cmd in self.stringCmdList:
         i = 0
         while i < len(self.stringCmdList):
-            lastException, engine = self._innerExecute(self.stringCmdList[i],
+            last_exception, engine = self._innerExecute(self.stringCmdList[i],
                                                        self.name +
                                                        " (index: " + str(i) +
                                                        ")",
@@ -504,7 +504,7 @@ class ProcedureFromFile(Procedure):
         with open(self.file_path) as f:
             for line in f:
                 execution_name = self.name + " (line: " + str(index) + ")"
-                lastException, engine = self._innerExecute(line,
+                last_exception, engine = self._innerExecute(line,
                                                            execution_name,
                                                            parameters)
                 index += 1

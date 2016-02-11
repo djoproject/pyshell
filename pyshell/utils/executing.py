@@ -38,7 +38,7 @@ from pyshell.utils.parsing import Parser
 from pyshell.utils.printing import printException
 from pyshell.utils.solving import Solver
 
-# execute return engine and lastException to the calling procedure
+# execute return engine and last_exception to the calling procedure
 #   engine to retrieve any output
 #   exception, to check granularity and eventually stop the execution
 

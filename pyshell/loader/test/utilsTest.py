@@ -30,14 +30,14 @@ class SubAbstractLoader(AbstractLoader):
     pass
     
 class SubAbstractLoaderWithError(AbstractLoader):
-    def load(self, parameterManager, profile=None):
+    def load(self, parameter_manager, profile=None):
         raise Exception("errroooorrr !")
         
 class SubAbstractUnloaderWithError(AbstractLoader):
-    def unload(self, parameterManager, profile=None):
+    def unload(self, parameter_manager, profile=None):
         raise Exception("errroooorrr !")
         
-    def reload(self, parameterManager, profile=None):
+    def reload(self, parameter_manager, profile=None):
         raise Exception("errroooorrr !")
 
 class UtilsTest(unittest.TestCase):
@@ -114,25 +114,25 @@ class UtilsTest(unittest.TestCase):
         l2 = gl.getOrCreateLoader("GlobalLoaderGetLoader1", SubAbstractLoader, profile = "plop")
         self.assertIs(l1,l2)
     
-    def test_GlobalLoaderGetLoader2(self):#profile is not None, loaderName does not exist, classDefinition is anything
+    def test_GlobalLoaderGetLoader2(self):#profile is not None, loaderName does not exist, class_definition is anything
         gl = GlobalLoader()
         self.assertRaises(RegisterException, gl.getOrCreateLoader, "GlobalLoaderGetLoader2", 42, profile = "plop")
     
-    def test_GlobalLoaderGetLoader3(self):#profile is not None, loaderName does not exist, classDefinition is AbstractLoader
+    def test_GlobalLoaderGetLoader3(self):#profile is not None, loaderName does not exist, class_definition is AbstractLoader
         gl = GlobalLoader()
         self.assertRaises(RegisterException, gl.getOrCreateLoader, "GlobalLoaderGetLoader3", AbstractLoader, profile = "plop")
     
-    def test_GlobalLoaderGetLoader4(self):#profile is not None, loaderName does not exist, classDefinition is a class definition that does not inherit from AbstractLoader
+    def test_GlobalLoaderGetLoader4(self):#profile is not None, loaderName does not exist, class_definition is a class definition that does not inherit from AbstractLoader
         gl = GlobalLoader()
         self.assertRaises(RegisterException, gl.getOrCreateLoader, "GlobalLoaderGetLoader4", object, profile = "plop")
     
-    def test_GlobalLoaderGetLoader5(self):#profile is not None, loaderName does not exist, classDefinition is valid, profile already exist for another loaderName
+    def test_GlobalLoaderGetLoader5(self):#profile is not None, loaderName does not exist, class_definition is valid, profile already exist for another loaderName
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderGetLoader5a", SubAbstractLoader, profile = "plop")
         l2 = gl.getOrCreateLoader("GlobalLoaderGetLoader5b", SubAbstractLoader, profile = "plop")
         self.assertIsNot(l1,l2)
     
-    def test_GlobalLoaderGetLoader6(self):#profile is not None, loaderName does not exist, classDefinition is valid, profile does not exist for another loaderName
+    def test_GlobalLoaderGetLoader6(self):#profile is not None, loaderName does not exist, class_definition is valid, profile does not exist for another loaderName
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderGetLoader6", SubAbstractLoader, profile = "plop")
         self.assertIsNot(l1,None)
@@ -143,85 +143,85 @@ class UtilsTest(unittest.TestCase):
         l2 = gl.getOrCreateLoader("GlobalLoaderGetLoader7", SubAbstractLoader, profile = None)
         self.assertIs(l1,l2)
     
-    def test_GlobalLoaderGetLoader8(self):#profile is None, loaderName does not exist, classDefinition is anything
+    def test_GlobalLoaderGetLoader8(self):#profile is None, loaderName does not exist, class_definition is anything
         gl = GlobalLoader()
         self.assertRaises(RegisterException, gl.getOrCreateLoader, "GlobalLoaderGetLoader8", 42, profile = None)
     
-    def test_GlobalLoaderGetLoader9(self):#profile is None, loaderName does not exist, classDefinition is AbstractLoader
+    def test_GlobalLoaderGetLoader9(self):#profile is None, loaderName does not exist, class_definition is AbstractLoader
         gl = GlobalLoader()
         self.assertRaises(RegisterException, gl.getOrCreateLoader, "GlobalLoaderGetLoader9", AbstractLoader, profile = None)
     
-    def test_GlobalLoaderGetLoader10(self):#profile is None, loaderName does not exist, classDefinition is a class definition that does not inherit from AbstractLoader
+    def test_GlobalLoaderGetLoader10(self):#profile is None, loaderName does not exist, class_definition is a class definition that does not inherit from AbstractLoader
         gl = GlobalLoader()
         self.assertRaises(RegisterException, gl.getOrCreateLoader, "GlobalLoaderGetLoader10", object, profile = None)
     
-    def test_GlobalLoaderGetLoader11(self):#profile is None, loaderName does not exist, classDefinition is valid, profile already exist for another loaderName
+    def test_GlobalLoaderGetLoader11(self):#profile is None, loaderName does not exist, class_definition is valid, profile already exist for another loaderName
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderGetLoader11a", SubAbstractLoader, profile = None)
         l2 = gl.getOrCreateLoader("GlobalLoaderGetLoader11b", SubAbstractLoader, profile = None)
         self.assertIsNot(l1,l2)
     
-    def test_GlobalLoaderGetLoader12(self):#profile is None, loaderName does not exist, classDefinition is valid, profile does not exist for another loaderName
+    def test_GlobalLoaderGetLoader12(self):#profile is None, loaderName does not exist, class_definition is valid, profile does not exist for another loaderName
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderGetLoader12", SubAbstractLoader, profile = None)
         self.assertIsNot(l1,None)
         
     ## _innerLoad ##
-    def test_GlobalLoader_innerLoad1(self):#profile is not None, profile is not in profileList
+    def test_GlobalLoader_innerLoad1(self):#profile is not None, profile is not in profile_list
         gl = GlobalLoader()
-        self.assertIs(gl._innerLoad(methodName="kill", parameterManager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate"),None)
+        self.assertIs(gl._innerLoad(methodName="kill", parameter_manager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate"),None)
         
-    #def test_GlobalLoader_innerLoad2(self):#profile is not None, profile is in profileList, profile in invalid state
+    #def test_GlobalLoader_innerLoad2(self):#profile is not None, profile is in profile_list, profile in invalid state
     #    gl = GlobalLoader()
     #    l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad2", SubAbstractLoader, profile = "TOTO")
-    #    self.assertRaises(LoadException, gl._innerLoad, methodName="kill", parameterManager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
+    #    self.assertRaises(LoadException, gl._innerLoad, methodName="kill", parameter_manager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
         
-    def test_GlobalLoader_innerLoad3(self):#profile is not None, profile is in profileList,profile in valid state, unknown method name
+    def test_GlobalLoader_innerLoad3(self):#profile is not None, profile is in profile_list,profile in valid state, unknown method name
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad3", SubAbstractLoader, profile = "TOTO")
-        self.assertRaises(AttributeError, gl._innerLoad, methodName="kill", parameterManager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
+        self.assertRaises(AttributeError, gl._innerLoad, methodName="kill", parameter_manager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
         
-    def test_GlobalLoader_innerLoad4(self):#profile is not None, profile is in profileList,profile in valid state, known method name, with error production
+    def test_GlobalLoader_innerLoad4(self):#profile is not None, profile is in profile_list,profile in valid state, known method name, with error production
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad4", SubAbstractLoaderWithError, profile = "TOTO")
-        self.assertRaises(ListOfException, gl._innerLoad, methodName="load", parameterManager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
-        self.assertEqual(gl.lastUpdatedProfile[0], "TOTO")
-        self.assertEqual(gl.lastUpdatedProfile[1], "estate")
+        self.assertRaises(ListOfException, gl._innerLoad, methodName="load", parameter_manager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
+        self.assertEqual(gl.last_updated_profile[0], "TOTO")
+        self.assertEqual(gl.last_updated_profile[1], "estate")
         
-    def test_GlobalLoader_innerLoad5(self):#profile is not None, profile is in profileList,profile in valid state, known method name, without error production
+    def test_GlobalLoader_innerLoad5(self):#profile is not None, profile is in profile_list,profile in valid state, known method name, without error production
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad5", SubAbstractLoader, profile = "TOTO")
-        gl._innerLoad(methodName="load", parameterManager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
-        self.assertEqual(gl.lastUpdatedProfile[0], "TOTO")
-        self.assertEqual(gl.lastUpdatedProfile[1], "nstate")
+        gl._innerLoad(methodName="load", parameter_manager=None, profile = "TOTO", nextState="nstate",nextStateIfError="estate")
+        self.assertEqual(gl.last_updated_profile[0], "TOTO")
+        self.assertEqual(gl.last_updated_profile[1], "nstate")
         
-    def test_GlobalLoader_innerLoad6(self):#profile is None, profile is not in profileList
+    def test_GlobalLoader_innerLoad6(self):#profile is None, profile is not in profile_list
         gl = GlobalLoader()
-        self.assertIs(gl._innerLoad(methodName="kill", parameterManager=None, profile = None, nextState="nstate",nextStateIfError="estate"),None)
+        self.assertIs(gl._innerLoad(methodName="kill", parameter_manager=None, profile = None, nextState="nstate",nextStateIfError="estate"),None)
         
-    #def test_GlobalLoader_innerLoad7(self):#profile is None, profile is in profileList, profile in invalid state
+    #def test_GlobalLoader_innerLoad7(self):#profile is None, profile is in profile_list, profile in invalid state
     #    gl = GlobalLoader()
     #    l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad7", SubAbstractLoader, profile = None)
-    #    self.assertRaises(LoadException, gl._innerLoad, methodName="kill", parameterManager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
+    #    self.assertRaises(LoadException, gl._innerLoad, methodName="kill", parameter_manager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
         
-    def test_GlobalLoader_innerLoad8(self):#profile is None, profile is in profileList,profile in valid state, unknown method name
+    def test_GlobalLoader_innerLoad8(self):#profile is None, profile is in profile_list,profile in valid state, unknown method name
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad8", SubAbstractLoader, profile = None)
-        self.assertRaises(AttributeError, gl._innerLoad, methodName="kill", parameterManager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
+        self.assertRaises(AttributeError, gl._innerLoad, methodName="kill", parameter_manager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
         
-    def test_GlobalLoader_innerLoad9(self):#profile is None, profile is in profileList,profile in valid state, known method name, with error production
+    def test_GlobalLoader_innerLoad9(self):#profile is None, profile is in profile_list,profile in valid state, known method name, with error production
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad9", SubAbstractLoaderWithError, profile = None)
-        self.assertRaises(ListOfException, gl._innerLoad, methodName="load", parameterManager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], "estate")
+        self.assertRaises(ListOfException, gl._innerLoad, methodName="load", parameter_manager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], "estate")
         
-    def test_GlobalLoader_innerLoad10(self):#profile is None, profile is in profileList,profile in valid state, known method name, without error production   
+    def test_GlobalLoader_innerLoad10(self):#profile is None, profile is in profile_list,profile in valid state, known method name, without error production   
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoader_innerLoad10", SubAbstractLoader, profile = None)
-        gl._innerLoad(methodName="load", parameterManager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], "nstate")
+        gl._innerLoad(methodName="load", parameter_manager=None, profile = DEFAULT_PROFILE_NAME, nextState="nstate",nextStateIfError="estate")
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], "nstate")
                        
                     
     ## load ##
@@ -229,22 +229,22 @@ class UtilsTest(unittest.TestCase):
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
         gl.load(None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_LOADED)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_LOADED)
     
     def test_GlobalLoaderLoad2(self):#valid load with error
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad2", SubAbstractLoaderWithError)
         self.assertRaises(ListOfException, gl.load,None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_LOADED_E)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_LOADED_E)
     
     def test_GlobalLoaderLoad3(self):#invalid load
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad3", SubAbstractLoader)
         gl.load(None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_LOADED)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_LOADED)
         self.assertRaises(LoadException,gl.load,None)
         
     ## unload ##
@@ -253,24 +253,24 @@ class UtilsTest(unittest.TestCase):
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
         gl.load(None)
         gl.unload(None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_UNLOADED)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_UNLOADED)
     
     def test_GlobalLoaderUnload5(self):#valid unload with error
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractUnloaderWithError)
         gl.load(None)
         self.assertRaises(ListOfException, gl.unload,None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_UNLOADED_E)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_UNLOADED_E)
     
     def test_GlobalLoaderUnload6(self):#invalid unload
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
         gl.load(None)
         gl.unload(None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_UNLOADED)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_UNLOADED)
         self.assertRaises(LoadException,gl.unload,None)
         
     ## reload ##
@@ -279,16 +279,16 @@ class UtilsTest(unittest.TestCase):
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
         gl.load(None)
         gl.reload(None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_LOADED)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_LOADED)
     
     def test_GlobalLoaderReload8(self):#valid reload with error
         gl = GlobalLoader()
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractUnloaderWithError)
         gl.load(None)
         self.assertRaises(ListOfException, gl.reload,None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_LOADED_E)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_LOADED_E)
 
     
     def test_GlobalLoaderReload9(self):#invalid reload
@@ -296,8 +296,8 @@ class UtilsTest(unittest.TestCase):
         l1 = gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
         gl.load(None)
         gl.unload(None)
-        self.assertEqual(gl.lastUpdatedProfile[0], DEFAULT_PROFILE_NAME)
-        self.assertEqual(gl.lastUpdatedProfile[1], STATE_UNLOADED)
+        self.assertEqual(gl.last_updated_profile[0], DEFAULT_PROFILE_NAME)
+        self.assertEqual(gl.last_updated_profile[1], STATE_UNLOADED)
         self.assertRaises(LoadException,gl.reload,None)
     
         

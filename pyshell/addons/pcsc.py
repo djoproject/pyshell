@@ -576,49 +576,49 @@ def monitorData(enable):
 # # register ENVIRONMENT # #
 
 registerSetEnvironment(
-    envKey="pcsc_autoload",
+    env_key="pcsc_autoload",
     env=EnvironmentParameter(
         value=True,
         typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
         transient=False, readonly=False, removable=False),
-    noErrorIfKeyExist=True,
+    no_error_if_key_exist=True,
     override=False)
 
 registerSetEnvironment(
-    envKey="pcsc_contextready",
+    env_key="pcsc_contextready",
     env=EnvironmentParameter(
         value=False,
         typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
         transient=True, readonly=False, removable=False),
-    noErrorIfKeyExist=True,
+    no_error_if_key_exist=True,
     override=True)
 
 registerSetEnvironment(
-    envKey="pcsc_autoconnect",
+    env_key="pcsc_autoconnect",
     env=EnvironmentParameter(
         value=False,
         typ=defaultInstanceArgChecker.getbooleanValueArgCheckerInstance(),
         transient=False, readonly=False, removable=False),
-    noErrorIfKeyExist=True,
+    no_error_if_key_exist=True,
     override=False)
 
 registerSetEnvironment(
-    envKey="pcsc_card_list",
+    env_key="pcsc_card_list",
     env=EnvironmentParameter(
         value=[],
         typ=listArgChecker(
             defaultInstanceArgChecker.getArgCheckerInstance()),
         transient=True, readonly=False, removable=False),
-    noErrorIfKeyExist=True,
+    no_error_if_key_exist=True,
     override=True)
 
 registerSetEnvironment(
-    envKey="pcsc_connexionlist",
+    env_key="pcsc_connexionlist",
     env=EnvironmentParameter(
         value=[],
         typ=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()),
         transient=True, readonly=False, removable=False),
-    noErrorIfKeyExist=True,
+    no_error_if_key_exist=True,
     override=True)
 
 # # register METHOD # #

@@ -40,182 +40,190 @@
 
 import inspect
 import traceback
-from pyshell.loader.exception import RegisterException, LoadException
+
+from pyshell.loader.exception import LoadException
+from pyshell.loader.exception import RegisterException
+from pyshell.utils.constants import DEFAULT_PROFILE_NAME
+from pyshell.utils.constants import STATE_LOADED
+from pyshell.utils.constants import STATE_LOADED_E
+from pyshell.utils.constants import STATE_UNLOADED
+from pyshell.utils.constants import STATE_UNLOADED_E
 from pyshell.utils.exception import ListOfException
-from pyshell.utils.constants import DEFAULT_PROFILE_NAME, STATE_LOADED, \
-                                    STATE_LOADED_E, STATE_UNLOADED, \
-                                    STATE_UNLOADED_E
 
 
-def getAndInitCallerModule(callerLoaderKey,
-                           callerLoaderClassDefinition,
+def getAndInitCallerModule(caller_loader_key,
+                           caller_loader_class_definition,
                            profile=None,
-                           moduleLevel=3):
-    frm = inspect.stack()[moduleLevel]
+                           module_level=3):
+    frm = inspect.stack()[module_level]
     mod = inspect.getmodule(frm[0])
 
     if hasattr(mod, "_loaders"):
         # must be an instance of GlobalLoader
         if not isinstance(mod._loaders, GlobalLoader):
-            raise RegisterException("(loader) getAndInitCallerModule, the "
-                                    "stored loader in the module '"+str(mod) +
-                                    "' is not an instance of GlobalLoader, get"
-                                    " '"+str(type(mod._loaders))+"'")
+            excmsg = ("(loader) getAndInitCallerModule, the stored loader in"
+                      " the module '"+str(mod)+"' is not an instance of "
+                      "GlobalLoader, get '"+str(type(mod._loaders))+"'")
+            raise RegisterException(excmsg)
     else:
         setattr(mod, "_loaders", GlobalLoader())  # init loaders dictionnary
 
-    return mod._loaders.getOrCreateLoader(callerLoaderKey,
-                                          callerLoaderClassDefinition,
+    return mod._loaders.getOrCreateLoader(caller_loader_key,
+                                          caller_loader_class_definition,
                                           profile)
 
 
 class AbstractLoader(object):
     def __init__(self):
-        self.lastException = None
+        self.last_exception = None
 
-    def load(self, parameterManager, profile=None):
+    def load(self, parameter_manager, profile=None):
         pass  # TO OVERRIDE
 
-    def unload(self, parameterManager, profile=None):
+    def unload(self, parameter_manager, profile=None):
         pass  # TO OVERRIDE
 
-    def reload(self, parameterManager, profile=None):
-        self.unload(parameterManager, profile)
-        self.load(parameterManager, profile)
+    def reload(self, parameter_manager, profile=None):
+        self.unload(parameter_manager, profile)
+        self.load(parameter_manager, profile)
         # CAN BE OVERRIDEN TOO
 
 
 class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)
-        self.profileList = {}
-        self.lastUpdatedProfile = None
+        self.profile_list = {}
+        self.last_updated_profile = None
 
-    def getOrCreateLoader(self, loaderName, classDefinition, profile=None):
+    def getOrCreateLoader(self, loader_name, class_definition, profile=None):
         if profile is None:
             profile = DEFAULT_PROFILE_NAME
 
-        if profile in self.profileList and \
-           loaderName in self.profileList[profile]:
-            return self.profileList[profile][loaderName]
+        if (profile in self.profile_list and
+           loader_name in self.profile_list[profile]):
+            return self.profile_list[profile][loader_name]
 
         # the loader does not exist, need to create it
         try:
             # need a child class of AbstractLoader
-            if not issubclass(classDefinition, AbstractLoader) or \
-               classDefinition.__name__ == "AbstractLoader":
-                raise RegisterException("(GlobalLoader) getOrCreateLoader, try"
-                                        " to create a loader with an unallowed"
-                                        " class '"+str(classDefinition) +
-                                        "', must be a class definition "
-                                        "inheriting from AbstractLoader")
+            if (not issubclass(class_definition, AbstractLoader) or
+               class_definition.__name__ == "AbstractLoader"):
+                excmsg = ("(GlobalLoader) getOrCreateLoader, try to create a "
+                          "loader with an unallowed class '" +
+                          str(class_definition)+"', must be a class definition"
+                          " inheriting from AbstractLoader")
+                raise RegisterException(excmsg)
 
         # raise by issubclass if one of the two argument
         # is not a class definition
         except TypeError:
-            raise RegisterException("(GlobalLoader) getOrCreateLoader, "
-                                    "expected a class definition, got '" +
-                                    str(classDefinition)+"', must be a class "
-                                    "definition inheriting from "
-                                    "AbstractLoader")
+            excmsg = ("(GlobalLoader) getOrCreateLoader, expected a class "
+                      "definition, got '"+str(class_definition)+"', must be a"
+                      " class definition inheriting from AbstractLoader")
+            raise RegisterException(excmsg)
 
-        if profile not in self.profileList:
-            self.profileList[profile] = {}
+        if profile not in self.profile_list:
+            self.profile_list[profile] = {}
 
-        loader = classDefinition()
-        self.profileList[profile][loaderName] = loader
+        loader = class_definition()
+        self.profile_list[profile][loader_name] = loader
 
         return loader
 
     def _innerLoad(self,
-                   methodName,
-                   parameterManager,
+                   method_name,
+                   parameter_manager,
                    profile,
-                   nextState,
-                   nextStateIfError):
+                   next_state,
+                   next_state_if_error):
         exceptions = ListOfException()
 
         # no loader available for this profile
-        if profile not in self.profileList:
+        if profile not in self.profile_list:
             return
 
-        loaders = self.profileList[profile]
+        loaders = self.profile_list[profile]
 
-        for loaderName, loader in loaders.items():
+        for loader_name, loader in loaders.items():
             # no need to test if attribute exist, it is supposed to call
             # load/unload or reload and loader is suppose to be an
             # AbstractLoader
-            meth_toCall = getattr(loader, methodName)
+            meth_to_call = getattr(loader, method_name)
 
             try:
-                meth_toCall(parameterManager, profile)
-                loader.lastException = None
+                meth_to_call(parameter_manager, profile)
+                loader.last_exception = None
             except Exception as ex:
                 # TODO is it used somewhere ? will be overwrite on reload if
                 # error on unload and on load
-                loader.lastException = ex
+                loader.last_exception = ex
                 exceptions.addException(ex)
-                loader.lastException.stackTrace = traceback.format_exc()
+                loader.last_exception.stackTrace = traceback.format_exc()
 
         if exceptions.isThrowable():
-            self.lastUpdatedProfile = (profile, nextStateIfError,)
+            self.last_updated_profile = (profile, next_state_if_error,)
             raise exceptions
 
-        self.lastUpdatedProfile = (profile, nextState,)
+        self.last_updated_profile = (profile, next_state,)
 
     _loadAllowedState = (STATE_UNLOADED, STATE_UNLOADED_E,)
     _unloadAllowedState = (STATE_LOADED, STATE_LOADED_E,)
 
-    def load(self, parameterManager, profile=None):
+    def load(self, parameter_manager, profile=None):
         if profile is None:
             profile = DEFAULT_PROFILE_NAME
 
-        if self.lastUpdatedProfile is not None and \
-           self.lastUpdatedProfile[1] not in GlobalLoader._loadAllowedState:
-            if profile == self.lastUpdatedProfile[0]:
-                raise LoadException("(GlobalLoader) 'load', profile '" +
-                                    str(profile)+"' is already loaded")
+        if (self.last_updated_profile is not None and
+           self.last_updated_profile[1] not in GlobalLoader._loadAllowedState):
+            if profile == self.last_updated_profile[0]:
+                excmsg = ("(GlobalLoader) 'load', profile '"+str(profile)+"' "
+                          "is already loaded")
+                raise LoadException(excmsg)
             else:
-                raise LoadException("(GlobalLoader) 'load', profile '" +
-                                    str(profile)+"' is not loaded but an other"
-                                    " profile '" +
-                                    str(self.lastUpdatedProfile[0]) +
-                                    "' is already loaded")
+                excmsg = ("(GlobalLoader) 'load', profile '"+str(profile)+"' "
+                          "is not loaded but an other profile '" +
+                          str(self.last_updated_profile[0])+"' is already "
+                          "loaded")
+                raise LoadException(excmsg)
 
         self._innerLoad("load",
-                        parameterManager=parameterManager,
+                        parameter_manager=parameter_manager,
                         profile=profile,
-                        nextState=STATE_LOADED,
-                        nextStateIfError=STATE_LOADED_E)
+                        next_state=STATE_LOADED,
+                        next_state_if_error=STATE_LOADED_E)
 
-    def unload(self, parameterManager, profile=None):
+    def unload(self, parameter_manager, profile=None):
         if profile is None:
             profile = DEFAULT_PROFILE_NAME
 
-        if self.lastUpdatedProfile is None or \
-           self.lastUpdatedProfile[0] != profile or \
-           self.lastUpdatedProfile[1] not in GlobalLoader._unloadAllowedState:
-            raise LoadException("(GlobalLoader) 'unload', profile '" +
-                                str(profile)+"' is not loaded")
+        allowed_state = GlobalLoader._unloadAllowedState
+        if (self.last_updated_profile is None or
+           self.last_updated_profile[0] != profile or
+           self.last_updated_profile[1] not in allowed_state):
+            excmsg = ("(GlobalLoader) 'unload', profile '"+str(profile)+"' is"
+                      " not loaded")
+            raise LoadException(excmsg)
 
         self._innerLoad("unload",
-                        parameterManager=parameterManager,
+                        parameter_manager=parameter_manager,
                         profile=profile,
-                        nextState=STATE_UNLOADED,
-                        nextStateIfError=STATE_UNLOADED_E)
+                        next_state=STATE_UNLOADED,
+                        next_state_if_error=STATE_UNLOADED_E)
 
-    def reload(self, parameterManager, profile=None):
+    def reload(self, parameter_manager, profile=None):
         if profile is None:
             profile = DEFAULT_PROFILE_NAME
 
-        if self.lastUpdatedProfile is None or \
-           self.lastUpdatedProfile[0] != profile or \
-           self.lastUpdatedProfile[1] not in GlobalLoader._unloadAllowedState:
-            raise LoadException("(GlobalLoader) 'reload', profile '" +
-                                str(profile)+"' is not loaded")
+        allowed_state = GlobalLoader._unloadAllowedState
+        if (self.last_updated_profile is None or
+           self.last_updated_profile[0] != profile or
+           self.last_updated_profile[1] not in allowed_state):
+            excmsg = ("(GlobalLoader) 'reload', profile '"+str(profile)+"' is"
+                      " not loaded")
+            raise LoadException(excmsg)
 
         self._innerLoad("reload",
-                        parameterManager=parameterManager,
+                        parameter_manager=parameter_manager,
                         profile=profile,
-                        nextState=STATE_LOADED,
-                        nextStateIfError=STATE_LOADED_E)
+                        next_state=STATE_LOADED,
+                        next_state_if_error=STATE_LOADED_E)

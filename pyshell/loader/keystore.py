@@ -16,23 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.parameter import registerSet, ParameterAbstractLoader
+from pyshell.loader.parameter import ParameterAbstractLoader
+from pyshell.loader.parameter import registerSet
 from pyshell.system.key import CryptographicKeyParameter
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
 
 
 def registerSetKey(key,
                    obj,
-                   noErrorIfKeyExist=False,
+                   no_error_if_key_exist=False,
                    override=False,
-                   subLoaderName=None):
+                   sub_loader_name=None):
     registerSet(key,
                 obj,
                 KeyLoader,
                 CryptographicKeyParameter,
-                noErrorIfKeyExist,
+                no_error_if_key_exist,
                 override,
-                subLoaderName)
+                sub_loader_name)
 
 
 class KeyLoader(ParameterAbstractLoader):

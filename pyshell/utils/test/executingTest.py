@@ -145,16 +145,16 @@ class ExecutingTest(unittest.TestCase):
     ### execute test ###
     def test_execute1(self):#with process_arg iterable
         self.assertEqual(RESULT, None)
-        lastException, engine = execute("plop", self.params, process_arg=(1,2,3,))
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute("plop", self.params, process_arg=(1,2,3,))
+        self.assertEqual(last_exception, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
     
     def test_execute2(self):#with process_arg as string
         self.assertEqual(RESULT, None)
-        lastException, engine = execute("plop", self.params, process_arg="1 2 3")
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute("plop", self.params, process_arg="1 2 3")
+        self.assertEqual(last_exception, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
@@ -167,8 +167,8 @@ class ExecutingTest(unittest.TestCase):
     def test_execute4(self):#with parser parsed
         p = Parser("plop 1 2 3")
         self.assertEqual(RESULT, None)
-        lastException, engine = execute(p, self.params)
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute(p, self.params)
+        self.assertEqual(last_exception, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
@@ -177,16 +177,16 @@ class ExecutingTest(unittest.TestCase):
         p = Parser("plop 1 2 3")
         p.parse()
         self.assertEqual(RESULT, None)
-        lastException, engine = execute(p, self.params)
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute(p, self.params)
+        self.assertEqual(last_exception, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
         
     def test_execute6(self):#with string as parser
         self.assertEqual(RESULT, None)
-        lastException, engine = execute("plop 1 2 3", self.params)
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute("plop 1 2 3", self.params)
+        self.assertEqual(last_exception, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
@@ -195,16 +195,16 @@ class ExecutingTest(unittest.TestCase):
         p = Parser("")
         p.parse()
         self.assertEqual(RESULT, None)
-        lastException, engine = execute(p, self.params)
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute(p, self.params)
+        self.assertEqual(last_exception, None)
         self.assertEqual(engine, None)
         self.assertEqual(RESULT,None)
         
         
     def test_execute8(self):#try in thread
         self.assertEqual(RESULT, None)
-        lastException, engine = execute("plop 1 2 3 &", self.params)
-        self.assertEqual(lastException, None)
+        last_exception, engine = execute("plop 1 2 3 &", self.params)
+        self.assertEqual(last_exception, None)
         self.assertEqual(engine, None)
         
         threadId = self.params.variable.getParameter("!").getValue()
@@ -237,9 +237,9 @@ class ExecutingTest(unittest.TestCase):
         self.assertEqual(RESULT, None)
         self.assertEqual(RESULT_BIS, None)
 
-        lastException, engine = execute("tutu aa bb cc", self.params)
+        last_exception, engine = execute("tutu aa bb cc", self.params)
 
-        self.assertEqual(lastException, None)
+        self.assertEqual(last_exception, None)
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT, ["aa", "bb", "cc",threading.current_thread().ident ])
         self.assertEqual(RESULT_BIS, None)
@@ -254,8 +254,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_1",) ,m)
 
-        lastException, engine = execute("test_1 aa bb cc", self.params)
-        self.assertIsInstance(lastException, executionInitException)
+        last_exception, engine = execute("test_1 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, executionInitException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Fail to init an execution object: test 1\n")
         n.flush()
@@ -267,8 +267,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_2",) ,m)
 
-        lastException, engine = execute("test_2 aa bb cc", self.params)
-        self.assertIsInstance(lastException, executionException)
+        last_exception, engine = execute("test_2 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, executionException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Fail to execute: test 2\n")
         n.flush()
@@ -280,8 +280,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_3",) ,m)
 
-        lastException, engine = execute("test_3 aa bb cc", self.params)
-        self.assertIsInstance(lastException, commandException)
+        last_exception, engine = execute("test_3 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, commandException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Error in command method: test 3\n")
         n.flush()
@@ -293,8 +293,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_4",) ,m)
 
-        lastException, engine = execute("test_4 aa bb cc", self.params)
-        self.assertIsInstance(lastException, engineInterruptionException)
+        last_exception, engine = execute("test_4 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, engineInterruptionException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Abnormal execution abort, reason: test 4\n")
         n.flush()
@@ -306,8 +306,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_5",) ,m)
 
-        lastException, engine = execute("test_5 aa bb cc", self.params)
-        self.assertIsInstance(lastException, engineInterruptionException)
+        last_exception, engine = execute("test_5 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, engineInterruptionException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Normal execution abort, reason: test 5\n")
         n.flush()
@@ -319,8 +319,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_6",) ,m)
 
-        lastException, engine = execute("test_6 aa bb cc", self.params)
-        self.assertIsInstance(lastException, argException)
+        last_exception, engine = execute("test_6 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, argException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Error while parsing argument: test 6\n")
         n.flush()
@@ -332,8 +332,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_7",) ,m)
 
-        lastException, engine = execute("test_7 aa bb cc", self.params)
-        self.assertIsInstance(lastException, ListOfException)
+        last_exception, engine = execute("test_7 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, ListOfException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "List of exception(s): \ntest 7\n")
         n.flush()
@@ -345,8 +345,8 @@ class ExecutingTest(unittest.TestCase):
 
         self.mltries.insert( ("test_8",) ,m)
 
-        lastException, engine = execute("test_8 aa bb cc", self.params)
-        self.assertIsInstance(lastException, Exception)
+        last_exception, engine = execute("test_8 aa bb cc", self.params)
+        self.assertIsInstance(last_exception, Exception)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "test 8\n")
         n.flush()

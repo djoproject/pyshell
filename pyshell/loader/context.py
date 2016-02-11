@@ -16,28 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.parameter import registerAddValues, registerSet, \
-                                     ParameterAbstractLoader
+from pyshell.loader.parameter import ParameterAbstractLoader
+from pyshell.loader.parameter import registerAddValues
+from pyshell.loader.parameter import registerSet
 from pyshell.system.context import ContextParameter
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
 
 
-def registerAddValuesToContext(contextKey, value, subLoaderName=None):
-    registerAddValues(contextKey, value, ContextLoader, subLoaderName)
+def registerAddValuesToContext(context_key, value, sub_loader_name=None):
+    registerAddValues(context_key, value, ContextLoader, sub_loader_name)
 
 
-def registerSetContext(contextKey,
+def registerSetContext(context_key,
                        context,
-                       noErrorIfKeyExist=False,
+                       no_error_if_key_exist=False,
                        override=False,
-                       subLoaderName=None):
-    registerSet(contextKey,
+                       sub_loader_name=None):
+    registerSet(context_key,
                 context,
                 ContextLoader,
                 ContextParameter,
-                noErrorIfKeyExist,
+                no_error_if_key_exist,
                 override,
-                subLoaderName)
+                sub_loader_name)
 
 
 class ContextLoader(ParameterAbstractLoader):

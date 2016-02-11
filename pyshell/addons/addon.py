@@ -123,7 +123,7 @@ def listAddonFun(addon_dico):
             local_addon.remove(name)
 
         # TODO could be None if not loader, manage it
-        profileName, profileState = loader.lastUpdatedProfile
+        profileName, profileState = loader.last_updated_profile
         l.append((name,
                   profileName,
                   _formatState(profileState,
@@ -232,7 +232,7 @@ def getAddonInformation(name, addon_dico, tabsize, ):
     lines.append(formatBolt("Addon") + " '" + str(name) + "'")
 
     # each sub addon
-    for sub_addon_name, (subloaders, status, ) in addon.profileList.items():
+    for sub_addon_name, (subloaders, status, ) in addon.profile_list.items():
         # current status
         lines.append(tab+formatBolt("Sub addon")+" '"+str(sub_addon_name) +
                      "': "+_formatState(status,
@@ -243,14 +243,14 @@ def getAddonInformation(name, addon_dico, tabsize, ):
         # loader in each subbadon
         for name, loader in subloaders.items():
             # print information error for each loader
-            if loader.lastException is not None:
-                if isinstance(loader.lastException, ListOfException):
+            if loader.last_exception is not None:
+                if isinstance(loader.last_exception, ListOfException):
                     formatedcount = formatRed(
-                        str(len(loader.lastException.exceptions)))
+                        str(len(loader.last_exception.exceptions)))
                     lines.append(tab*2+formatBolt("Loader")+" '"+str(name) +
                                  "' (error count = "+formatedcount+")")
 
-                    for exc in loader.lastException.exceptions:
+                    for exc in loader.last_exception.exceptions:
                         lines.append(tab * 5 + "*" + formatException(exc))
 
                 else:
@@ -264,12 +264,12 @@ def getAddonInformation(name, addon_dico, tabsize, ):
                         formatRed("1") +
                         ")")
                     lines.append(
-                        tab * 3 + formatRed(str(loader.lastException)))
+                        tab * 3 + formatRed(str(loader.last_exception)))
 
-                    if (hasattr(loader.lastException, "stackTrace") and
-                       loader.lastException is not None):
+                    if (hasattr(loader.last_exception, "stackTrace") and
+                       loader.last_exception is not None):
                         last_exception_splitted = \
-                            loader.lastException.split("\n")
+                            loader.last_exception.split("\n")
                         for string in last_exception_splitted:
                             lines.append(tab * 3 + string)
             else:
@@ -294,10 +294,10 @@ def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
         sub_addon = DEFAULT_PROFILE_NAME
 
     # sub_addon exist ?
-    if sub_addon not in addon.profileList:
+    if sub_addon not in addon.profile_list:
         raise Exception("Unknown sub addon '" + str(sub_addon) + "'")
 
-    loaderDictionnary, status = addon.profileList[sub_addon]
+    loaderDictionnary, status = addon.profile_list[sub_addon]
 
     # subloader exist ?
     if sub_loader_name not in loaderDictionnary:
@@ -309,8 +309,8 @@ def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
     try:
         loader.reload(parameters, sub_addon)
     except Exception as ex:
-        loader.lastException = ex
-        loader.lastException.stackTrace = traceback.format_exc()
+        loader.last_exception = ex
+        loader.last_exception.stackTrace = traceback.format_exc()
         raise ex
 
     notice("sub loader '" + str(sub_loader_name) + "' reloaded !")

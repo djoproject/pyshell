@@ -16,28 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.loader.parameter import registerAddValues, registerSet, \
-                                     ParameterAbstractLoader
+from pyshell.loader.parameter import ParameterAbstractLoader
+from pyshell.loader.parameter import registerAddValues
+from pyshell.loader.parameter import registerSet
 from pyshell.system.variable import VarParameter
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 
 
-def registerAddValuesToVariable(varKey, value, subLoaderName=None):
-    registerAddValues(varKey, value, VariableLoader, subLoaderName)
+def registerAddValuesToVariable(var_key, value, sub_loader_name=None):
+    registerAddValues(var_key, value, VariableLoader, sub_loader_name)
 
 
-def registerSetVariable(varKey,
+def registerSetVariable(var_key,
                         var,
-                        noErrorIfKeyExist=False,
+                        no_error_if_key_exist=False,
                         override=False,
-                        subLoaderName=None):
-    registerSet(varKey,
+                        sub_loader_name=None):
+    registerSet(var_key,
                 var,
                 VariableLoader,
                 VarParameter,
-                noErrorIfKeyExist,
+                no_error_if_key_exist,
                 override,
-                subLoaderName)
+                sub_loader_name)
 
 
 class VariableLoader(ParameterAbstractLoader):
