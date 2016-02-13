@@ -19,11 +19,11 @@
 import threading
 
 from pyshell.arg.exception import argException
-from pyshell.command.engine import engineV3
-from pyshell.command.exception import commandException
-from pyshell.command.exception import engineInterruptionException
-from pyshell.command.exception import executionException
-from pyshell.command.exception import executionInitException
+from pyshell.command.engine import EngineV3
+from pyshell.command.exception import CommandException
+from pyshell.command.exception import EngineInterruptionException
+from pyshell.command.exception import ExecutionException
+from pyshell.command.exception import ExecutionInitException
 from pyshell.system.variable import VarParameter
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
@@ -160,7 +160,7 @@ def _execute(parser, parameter_container, process_name=None):
             new_raw_command_list.append(c)
 
         # prepare an engine
-        engine = engineV3(new_raw_command_list,
+        engine = EngineV3(new_raw_command_list,
                           rawArgList,
                           mappedArgs,
                           parameter_container)
@@ -168,7 +168,7 @@ def _execute(parser, parameter_container, process_name=None):
         # execute
         engine.execute()
 
-    except executionInitException as ex:
+    except ExecutionInitException as ex:
         printException(ex,
                        prefix="Fail to init an execution object: ",
                        suffix=_generateSuffix(
@@ -176,7 +176,7 @@ def _execute(parser, parameter_container, process_name=None):
                           command_name_list=command_name_list,
                           engine=engine,
                           process_name=process_name))
-    except executionException as ex:
+    except ExecutionException as ex:
         printException(ex,
                        prefix="Fail to execute: ",
                        suffix=_generateSuffix(
@@ -184,7 +184,7 @@ def _execute(parser, parameter_container, process_name=None):
                           command_name_list=command_name_list,
                           engine=engine,
                           process_name=process_name))
-    except commandException as ex:
+    except CommandException as ex:
         printException(ex,
                        prefix="Error in command method: ",
                        suffix=_generateSuffix(
@@ -192,7 +192,7 @@ def _execute(parser, parameter_container, process_name=None):
                           command_name_list=command_name_list,
                           engine=engine,
                           process_name=process_name))
-    except engineInterruptionException as ex:
+    except EngineInterruptionException as ex:
         suffix = _generateSuffix(parameter_container,
                                  command_name_list=command_name_list,
                                  engine=engine,

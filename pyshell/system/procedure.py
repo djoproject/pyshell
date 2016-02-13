@@ -24,7 +24,7 @@ from pyshell.arg.argchecker import listArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
-from pyshell.command.exception import engineInterruptionException
+from pyshell.command.exception import EngineInterruptionException
 from pyshell.system.settings import GlobalSettings
 from pyshell.system.variable import VarParameter
 from pyshell.utils.exception import DefaultPyshellException
@@ -154,10 +154,10 @@ class Procedure(UniCommand):
     def _innerExecute(self, cmd, name, parameters):
         if self.interrupt:
             if self.interruptReason is None:
-                raise engineInterruptionException(
+                raise EngineInterruptionException(
                     "this process has been interrupted", abnormal=True)
             else:
-                raise engineInterruptionException(
+                raise EngineInterruptionException(
                     "this process has been interrupted, reason: '" + str(
                         self.interruptReason) + "'", abnormal=True)
 

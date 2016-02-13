@@ -16,50 +16,50 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.command.exception import executionException
+from pyshell.command.exception import ExecutionException
 
 
 def equalPath(path1, path2):
-    sameLength = True
+    same_length = True
     equals = True
 
     if len(path1) != len(path2):
-        sameLength = False
+        same_length = False
         equals = False
 
-    equalsCount = 0
-    path1IsHigher = None
+    equals_count = 0
+    path1_is_higher = None
     for i in range(0, min(len(path1), len(path2))):
         if path1[i] != path2[i]:
             equals = False
-            path1IsHigher = path1[i] > path2[i]
+            path1_is_higher = path1[i] > path2[i]
             break
 
-        equalsCount += 1
+        equals_count += 1
 
-    return equals, sameLength, equalsCount, path1IsHigher
+    return equals, same_length, equals_count, path1_is_higher
 
 
 def isAValidIndex(li,
                   index,
-                  cmdName=None,
-                  listName=None,
+                  cmd_name=None,
+                  list_name=None,
                   context="engine",
-                  ex=executionException):
+                  ex=ExecutionException):
     try:
         li[index]
     except IndexError:
-        if cmdName is not None:
-            cmdName += ", "
+        if cmd_name is not None:
+            cmd_name += ", "
         else:
-            cmdName = ""
+            cmd_name = ""
 
-        if listName is not None:
-            listName = " on list '"+listName+"'"
+        if list_name is not None:
+            list_name = " on list '"+list_name+"'"
         else:
-            listName = ""
+            list_name = ""
 
-        raise ex("("+context+") "+cmdName+"list index out of range"+listName)
+        raise ex("("+context+") "+cmd_name+"list index out of range"+list_name)
 
 
 def equalMap(map1, map2):
@@ -79,74 +79,74 @@ def equalMap(map1, map2):
     return False
 
 
-def isValidMap(emap, expectedLength):
+def isValidMap(emap, expected_length):
     if emap is None:
         return True
 
     if not isinstance(emap, list):
         return False
 
-    if len(emap) != expectedLength:
+    if len(emap) != expected_length:
         return False
 
-    falseCount = 0
+    false_count = 0
     for b in emap:
         if type(b) != bool:
             return False
 
         if not b:
-            falseCount += 1
+            false_count += 1
 
-    if falseCount == len(emap):
+    if false_count == len(emap):
         return False
 
     return True
 
 
 def raisIfInvalidMap(emap,
-                     expectedLength,
-                     cmdName=None,
+                     expected_length,
+                     cmd_name=None,
                      context="engine",
-                     ex=executionException):
-    if not isValidMap(emap, expectedLength):
-        if cmdName is not None:
-            cmdName += ", "
+                     ex=ExecutionException):
+    if not isValidMap(emap, expected_length):
+        if cmd_name is not None:
+            cmd_name += ", "
         else:
-            cmdName = ""
+            cmd_name = ""
 
-        raise ex("("+context+") "+cmdName+"list index out of range on "
+        raise ex("("+context+") "+cmd_name+"list index out of range on "
                  "enabling map")
 
 
-def raiseIfInvalidPath(cmdPath, cmdList, methName):
+def raiseIfInvalidPath(cmd_path, cmd_list, meth_name):
     # check command path
-    isAValidIndex(cmdList, len(cmdPath)-1, methName, "command list")
+    isAValidIndex(cmd_list, len(cmd_path)-1, meth_name, "command list")
 
     # check subindex
-    for i in xrange(0, len(cmdPath)):
-        isAValidIndex(cmdList[i], cmdPath[i], methName, "sub command list")
+    for i in xrange(0, len(cmd_path)):
+        isAValidIndex(cmd_list[i], cmd_path[i], meth_name, "sub command list")
 
 
-def getFirstEnabledIndexInEnablingMap(enablingMap,
+def getFirstEnabledIndexInEnablingMap(enabling_map,
                                       cmd,
                                       starting=0,
-                                      cmdName=None,
+                                      cmd_name=None,
                                       context="engine",
-                                      ex=executionException):
+                                      ex=ExecutionException):
     i = 0
-    if enablingMap is not None:
+    if enabling_map is not None:
         # there is at least one True item in list, otherwise
         # raisIfInvalidMap had raise an exception
-        for i in xrange(starting, len(enablingMap)):
-            if enablingMap[i] and not cmd.isdisabledCmd(i):
+        for i in xrange(starting, len(enabling_map)):
+            if enabling_map[i] and not cmd.isdisabledCmd(i):
                 return i
 
-        if cmdName is not None:
-            cmdName += ", "
+        if cmd_name is not None:
+            cmd_name += ", "
         else:
-            cmdName = ""
+            cmd_name = ""
 
-        raise ex("("+context+") "+cmdName+" no enabled index on this enabling "
-                 "map from "+str(starting)+" to the end")
+        raise ex("("+context+") "+cmd_name+" no enabled index on this enabling"
+                 " map from "+str(starting)+" to the end")
 
     return i

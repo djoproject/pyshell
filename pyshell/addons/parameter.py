@@ -931,10 +931,10 @@ def preAddValues(key, values, engine=None,
                  start_with_local=True, explore_other_level=True):
 
     cmd = engine.getCurrentCommand()
-    cmd.dynamicParameter["key"] = key
-    cmd.dynamicParameter["disabled"] = False
-    cmd.dynamicParameter["start_with_local"] = start_with_local
-    cmd.dynamicParameter["explore_other_level"] = explore_other_level
+    cmd.dynamic_parameter["key"] = key
+    cmd.dynamic_parameter["disabled"] = False
+    cmd.dynamic_parameter["start_with_local"] = start_with_local
+    cmd.dynamic_parameter["explore_other_level"] = explore_other_level
 
     return values
 
@@ -952,11 +952,11 @@ def proAddValues(values, engine):
     cmd_clone = cmd.clone()
     engine.addCommand(cmd_clone, convertProcessToPreProcess=True)
 
-    for k, v in cmd.dynamicParameter.items():
-        cmd_clone.dynamicParameter[k] = v
+    for k, v in cmd.dynamic_parameter.items():
+        cmd_clone.dynamic_parameter[k] = v
 
-    cmd.dynamicParameter["disabled"] = True
-    cmd_clone.dynamicParameter["disabled"] = True
+    cmd.dynamic_parameter["disabled"] = True
+    cmd_clone.dynamic_parameter["disabled"] = True
 
     # TODO execute previous
 
@@ -972,24 +972,24 @@ def postAddValues(values, parameters=None, engine=None):
 
     cmd = engine.getCurrentCommand()
 
-    if cmd.dynamicParameter["disabled"]:
+    if cmd.dynamic_parameter["disabled"]:
         return values
 
-    key = cmd.dynamicParameter["key"]
+    key = cmd.dynamic_parameter["key"]
 
     if parameters.variable.hasParameter(
           key,
-          cmd.dynamicParameter["start_with_local"],
-          cmd.dynamicParameter["explore_other_level"]):
+          cmd.dynamic_parameter["start_with_local"],
+          cmd.dynamic_parameter["explore_other_level"]):
         param = getParameter(key,
                              parameters,
                              VARIABLE_ATTRIBUTE_NAME,
-                             cmd.dynamicParameter["start_with_local"],
-                             cmd.dynamicParameter["explore_other_level"])
+                             cmd.dynamic_parameter["start_with_local"],
+                             cmd.dynamic_parameter["explore_other_level"])
         param.addValues(values)
     else:
         parameters.variable.setParameter(key, VarParameter(
-            values), cmd.dynamicParameter["start_with_local"])
+            values), cmd.dynamic_parameter["start_with_local"])
 
     return values
 

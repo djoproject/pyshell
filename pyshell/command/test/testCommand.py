@@ -23,125 +23,125 @@ from pyshell.command.exception import *
 class commandTest(unittest.TestCase):
     def setUp(self):
         pass
-        
+
 #test multicommand
     #init an empty one and check the args
     def testEmptyCommand(self):
         mc = MultiCommand()
-        self.assertTrue(mc.helpMessage is None)
-        
+        self.assertTrue(mc.help_message is None)
+
     #addProcess
     def testAddProcess(self):
         mc = MultiCommand()
         #add preProcess with/withou checker
-        self.assertRaises(commandException, mc.addProcess) #pre/pro/post process are None
-        
-        #test meth insertion and usagebuilder set
+        self.assertRaises(CommandException, mc.addProcess) #pre/pro/post process are None
+
+        #test meth insertion and usage_builder set
         def toto():
             "tata"
             pass
-        
+
         toto.checker = 52
         self.assertTrue(mc.addProcess(toto) is None)
-        self.assertTrue(mc.usageBuilder == 52) 
-        self.assertEqual(mc.helpMessage,"tata")
-        
+        self.assertTrue(mc.usage_builder == 52)
+        self.assertEqual(mc.help_message,"tata")
+
         toto.checker = 53
         self.assertTrue(mc.addProcess(None,toto) is None)
-        self.assertTrue(mc.usageBuilder == 52) #the usage builder is still the builder of the first command inserted
-        
+        self.assertTrue(mc.usage_builder == 52) #the usage builder is still the builder of the first command inserted
+
         toto.checker = 54
         self.assertTrue(mc.addProcess(None,None,toto) is None)
-        self.assertTrue(mc.usageBuilder == 52) #the usage builder is still the builder of the first command inserted
-        
+        self.assertTrue(mc.usage_builder == 52) #the usage builder is still the builder of the first command inserted
+
         mc = MultiCommand()
         mc.addProcess(None,None,toto)
-        self.assertTrue(mc.usageBuilder == 54)
-        
+        self.assertTrue(mc.usage_builder == 54)
+
         toto.checker = 52
         mc.addProcess(toto)
-        self.assertTrue(mc.usageBuilder == 54)
-        
+        self.assertTrue(mc.usage_builder == 54)
+
         toto.checker = 53
         mc.addProcess(None,toto)
-        self.assertTrue(mc.usageBuilder == 54)
-        
+        self.assertTrue(mc.usage_builder == 54)
+
         mc = MultiCommand()
         toto.checker = 53
         mc.addProcess(None,toto)
-        self.assertTrue(mc.usageBuilder == 53)
-        
+        self.assertTrue(mc.usage_builder == 53)
+
         mc.addProcess(None,None,toto)
-        self.assertTrue(mc.usageBuilder == 53)
-        
+        self.assertTrue(mc.usage_builder == 53)
+
         toto.checker = 52
         mc.addProcess(toto)
-        self.assertTrue(mc.usageBuilder == 53)
-        
+        self.assertTrue(mc.usage_builder == 53)
+
         #try to insert not callable object
-        self.assertRaises(commandException, mc.addProcess,1)
-        self.assertRaises(commandException, mc.addProcess,None,1)
-        self.assertRaises(commandException, mc.addProcess,None,None,1)
+        self.assertRaises(CommandException, mc.addProcess,1)
+        self.assertRaises(CommandException, mc.addProcess,None,1)
+        self.assertRaises(CommandException, mc.addProcess,None,None,1)
 
         #check the process length
         self.assertTrue(len(mc) == 3)
-        
+
         #check if the useArgs is set in the list
         for (c,u,e,) in mc:
             self.assertTrue(u)
-        
+
     #addStaticCommand
     def testStaticCommand(self):
         mc = MultiCommand()
         c = Command()
-        
+
         #try to insert anything but cmd instance
-        self.assertRaises(commandException,mc.addStaticCommand,23)
-        
+        self.assertRaises(CommandException,mc.addStaticCommand,23)
+
         #try to insert a valid cmd
         self.assertTrue(mc.addStaticCommand(c) is None)
-        
+
         #try to insert where there is a dynamic command in in
-        mc.dymamicCount = 1
-        self.assertRaises(commandException,mc.addStaticCommand,c)
-        
-        #check self.usageBuilder, and useArgs in the list
-        self.assertTrue(mc.usageBuilder == c.preProcess.checker)
-        
+        mc.dymamic_count = 1
+        self.assertRaises(CommandException,mc.addStaticCommand,c)
+
+        #check self.usage_builder, and useArgs in the list
+        self.assertTrue(mc.usage_builder == c.preProcess.checker)
+
     #usage
     def testUsage(self):
         mc = MultiCommand()
         c = Command()
-        
-        #test with and without self.usageBuilder
+
+        #test with and without self.usage_builder
         self.assertTrue(mc.usage() == "no args needed")
-        
+
         mc.addStaticCommand(c)
         self.assertEqual(mc.usage(),"`[args:(<any> ... <any>)]`")
-        
+
     #reset
     def testReset(self):
         mc = MultiCommand()
         c = Command()
-        
+
         #populate
         mc.addStaticCommand(c)
         mc.addDynamicCommand(c,True)
         mc.addDynamicCommand(c,True)
         mc.args = "toto"
-        mc.preCount = 1
-        mc.proCount = 2
-        mc.postCount = 3
-        
+        mc.pre_count = 1
+        mc.pro_count = 2
+        mc.post_count = 3
+
         #reset and test
-        finalCount = len(mc) - mc.dymamicCount
+        finalCount = len(mc) - mc.dymamic_count
         mc.reset()
         #self.assertTrue(mc.args is None)
-        self.assertTrue(mc.dymamicCount == 0)
-        self.assertTrue(len(mc.onlyOnceDict) == 0)
-        self.assertTrue(mc.preCount == mc.proCount == mc.postCount == 0)
+        self.assertTrue(mc.dymamic_count == 0)
+        self.assertTrue(len(mc.only_once_dict) == 0)
+        self.assertTrue(mc.pre_count == mc.pro_count == mc.post_count == 0)
         self.assertTrue(finalCount == len(mc))
-        
+
     #setArgs
     """def testArgs(self):
         mc = MultiCommand()
@@ -149,31 +149,31 @@ class commandTest(unittest.TestCase):
         mc.setArgs(42)
         self.assertTrue(isinstance(mc.args, MultiOutput))
         self.assertTrue(mc.args[0] == 42)
-        
+
         #try to add multioutput
         mo = MultiOutput([1,2,3])
         mc.setArgs(mo)
         self.assertTrue(isinstance(mc.args, MultiOutput))
         self.assertTrue(mc.args[0] == 1 and mc.args[1] == 2 and mc.args[2] == 3)
-    
+
     #flushArgs
     def testFlus(self):
         mc = MultiCommand()
         #set (anything/multioutput) then flush
         mc.setArgs(42)
         mc.flushArgs()
-        
+
         #it must always be None
         self.assertTrue(mc.args is None)"""
-    
+
     #addDynamicCommand
     def testAddDynamicCommand(self):
         mc = MultiCommand()
         c = Command()
-    
+
         #try to insert anything but command
-        self.assertRaises(commandException, mc.addDynamicCommand, 42)
-        
+        self.assertRaises(CommandException, mc.addDynamicCommand, 42)
+
         #try to insert the same command twice with onlyAddOnce=True
         mc.addDynamicCommand(c)
         self.assertTrue(len(mc) == 1)
@@ -181,19 +181,19 @@ class commandTest(unittest.TestCase):
         self.assertTrue(len(mc) == 1)
         mc.addDynamicCommand(c, False)#do the same with onlyAddOnce=False
         self.assertTrue(len(mc) == 2)
-        
+
         #check useArgs in the list
         for (c,u,e,) in mc:
             self.assertTrue(u)
-    
+
     #test unicommand class
     def testUniCommand(self):
         #test to create a basic empty one
-        self.assertRaises(commandException, UniCommand)
-        
+        self.assertRaises(CommandException, UniCommand)
+
         def toto():
             pass
-        
+
         #then with different kind of args
         self.assertTrue(UniCommand(toto) is not None )
         self.assertTrue(UniCommand(None, toto) is not None )
@@ -202,13 +202,13 @@ class commandTest(unittest.TestCase):
         #try to add another command
         uc = UniCommand(toto)
         self.assertTrue(len(uc) == 1)
-        
+
         uc.addProcess()
         self.assertTrue(len(uc) == 1)
-        
+
         uc.addStaticCommand(42)
         self.assertTrue(len(uc) == 1)
-    
+
     def test_EnableDisableCmd(self):
         def plop():
             pass

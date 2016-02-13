@@ -16,20 +16,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.command.exception import executionException
+from pyshell.command.exception import ExecutionException
 
 
-class engineStack(list):
-    def push(self, data, cmdPath, instructionType, cmdMap=None):
-        self.append((data, cmdPath, instructionType, cmdMap,))
+class EngineStack(list):
+    def push(self, data, cmd_path, instruction_type, cmd_map=None):
+        self.append((data, cmd_path, instruction_type, cmd_map,))
 
-    def raiseIfEmpty(self, methName=None):
+    def raiseIfEmpty(self, meth_name=None):
         if len(self) == 0:
-            if methName is None:
-                raise executionException("(engine) engineStack, no item on "
+            if meth_name is None:
+                raise ExecutionException("(engine) EngineStack, no item on "
                                          "the stack")
             else:
-                raise executionException("(engine) "+methName+", no item on "
+                raise ExecutionException("(engine) "+meth_name+", no item on "
                                          "the stack")
 
     # ## SIZE meth ## #
@@ -64,26 +64,26 @@ class engineStack(list):
     def item(self, index):
         return self[index]
 
-    def getCmd(self, index, cmdList):
-        return cmdList[len(self[index][1])-1]
+    def getCmd(self, index, cmd_list):
+        return cmd_list[len(self[index][1])-1]
 
-    def subCmdLength(self, index, cmdList):
-        return len(cmdList[len(self[index][1])-1])
+    def subCmdLength(self, index, cmd_list):
+        return len(cmd_list[len(self[index][1])-1])
 
     def subCmdIndex(self, index):
         return self[index][1][-1]
 
-    def setEnableMap(self, index, newMap):
+    def setEnableMap(self, index, new_map):
         current = self[index]
-        self[index] = (current[0], current[1], current[2], newMap,)
+        self[index] = (current[0], current[1], current[2], new_map,)
 
     def setPath(self, index, path):
         current = self[index]
         self[index] = (current[0], path, current[2], current[3],)
 
-    def setType(self, index, newType):
+    def setType(self, index, new_type):
         current = self[index]
-        self[index] = (current[0], current[1], newType, current[3],)
+        self[index] = (current[0], current[1], new_type, current[3],)
 
     # ## MISC meth ## #
 
@@ -114,29 +114,29 @@ class engineStack(list):
         if name not in ["data", "path", "type", "enablingMap", "cmdIndex",
                         "cmdLength", "item", "getCmd", "subCmdLength",
                         "subCmdIndex", "setEnableMap", "setPath", "setType"]:
-            raise executionException("(engineStack) __getattr__, try to get an"
+            raise ExecutionException("(EngineStack) __getattr__, try to get an"
                                      " unallowed or unexistant meth")
 
-        methToCall = object.__getattribute__(self, name)
+        meth_to_call = object.__getattribute__(self, name)
 
         def meth(*args):
             if index is None:
                 if len(args) > 0:
                     lindex = int(args[0])
-                    startIndex = 1
+                    start_index = 1
                 else:
                     # if index is not define, no need to do compute
                     # anything else
-                    return methToCall(*args)
+                    return meth_to_call(*args)
             else:
-                startIndex = 0
+                start_index = 0
                 lindex = index
 
             if sub is not None:
                 lindex = sub - lindex
 
             nargs = [lindex]
-            nargs.extend(args[startIndex:])
-            return methToCall(*nargs)
+            nargs.extend(args[start_index:])
+            return meth_to_call(*nargs)
 
         return meth

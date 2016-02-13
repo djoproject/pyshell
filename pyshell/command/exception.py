@@ -16,10 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import PyshellException, CORE_ERROR, CORE_WARNING
+from pyshell.utils.exception import CORE_ERROR
+from pyshell.utils.exception import CORE_WARNING
+from pyshell.utils.exception import PyshellException
 
 
-class executionInitException(PyshellException):
+class ExecutionInitException(PyshellException):
     def __init__(self, value):
         PyshellException.__init__(self, CORE_ERROR)
         self.value = value
@@ -28,7 +30,7 @@ class executionInitException(PyshellException):
         return str(self.value)
 
 
-class executionException(PyshellException):
+class ExecutionException(PyshellException):
     def __init__(self, value):
         PyshellException.__init__(self, CORE_ERROR)
         self.value = value
@@ -37,7 +39,7 @@ class executionException(PyshellException):
         return str(self.value)
 
 
-class commandException(PyshellException):
+class CommandException(PyshellException):
     def __init__(self, value):
         PyshellException.__init__(self, CORE_ERROR)
         self.value = value
@@ -46,7 +48,7 @@ class commandException(PyshellException):
         return str(self.value)
 
 
-class engineInterruptionException(PyshellException):
+class EngineInterruptionException(PyshellException):
     def __init__(self, value, abnormal=False):
         if abnormal:
             PyshellException.__init__(self, CORE_ERROR)

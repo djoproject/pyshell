@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.decorator import shellMethod, defaultMethod
-from pyshell.arg.argchecker import ArgChecker, listArgChecker
-from pyshell.command.exception import commandException
+from pyshell.arg.argchecker import ArgChecker
+from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.decorator import defaultMethod
+from pyshell.arg.decorator import shellMethod
+from pyshell.command.exception import CommandException
 from pyshell.command.utils import isAValidIndex
 
 
@@ -50,15 +52,15 @@ class Command(object):
     def reset(self):
         pass  # TO OVERRIDE if needed
 
-    def clone(self, From=None):
-        if From is None:
-            From = Command()
+    def clone(self, parent=None):
+        if parent is None:
+            parent = Command()
 
-        From.preProcess = self.preProcess
-        From.process = self.process
-        From.postProcess = self.postProcess
+        parent.preProcess = self.preProcess
+        parent.process = self.process
+        parent.postProcess = self.postProcess
 
-        return From
+        return parent
 
 
 #
@@ -67,115 +69,115 @@ class Command(object):
 class MultiCommand(list):
     def __init__(self):
         # message to show in the help context
-        self.helpMessage = None
+        self.help_message = None
 
         # which (pre/pro/post) process of the first command must be used to
         # create the usage.
-        self.usageBuilder = None
+        self.usage_builder = None
 
         # this dict is used to prevent the insertion of the an existing
         # dynamic sub command
-        self.onlyOnceDict = {}
-        self.dymamicCount = 0
+        self.only_once_dict = {}
+        self.dymamic_count = 0
 
-        self.preCount = self.proCount = self.postCount = 0
+        self.pre_count = self.pro_count = self.post_count = 0
 
-        self.dynamicParameter = {}
+        self.dynamic_parameter = {}
 
     def addProcess(self,
-                   preProcess=None,
+                   pre_process=None,
                    process=None,
-                   postProcess=None,
-                   useArgs=True):
+                   post_process=None,
+                   use_args=True):
         c = Command()
 
-        if preProcess == process == postProcess is None:
-            raise commandException("(MultiCommand) addProcess, at least one of"
+        if pre_process == process == post_process is None:
+            raise CommandException("(MultiCommand) addProcess, at least one of"
                                    " the three callable pre/pro/post object "
                                    "must be different of None")
 
-        if preProcess is not None:
+        if pre_process is not None:
             # preProcess must be callable
-            if not hasattr(preProcess, "__call__"):
-                raise commandException("(MultiCommand) addProcess, the given "
+            if not hasattr(pre_process, "__call__"):
+                raise CommandException("(MultiCommand) addProcess, the given "
                                        "preProcess is not a callable object")
 
             # set preProcess
-            c.preProcess = preProcess
+            c.preProcess = pre_process
 
             # check if this callable object has an usage builder
-            if self.usageBuilder is None and hasattr(preProcess, "checker"):
-                self.usageBuilder = preProcess.checker
+            if self.usage_builder is None and hasattr(pre_process, "checker"):
+                self.usage_builder = pre_process.checker
 
-            if self.helpMessage is None and \
-               hasattr(preProcess, "__doc__") and \
-               preProcess.__doc__ is not None and \
-               len(preProcess.__doc__) > 0:
-                self.helpMessage = preProcess.__doc__
+            if self.help_message is None and \
+               hasattr(pre_process, "__doc__") and \
+               pre_process.__doc__ is not None and \
+               len(pre_process.__doc__) > 0:
+                self.help_message = pre_process.__doc__
 
         if process is not None:
             # process must be callable
             if not hasattr(process, "__call__"):
-                raise commandException("(MultiCommand) addProcess, the given "
+                raise CommandException("(MultiCommand) addProcess, the given "
                                        "process is not a callable object")
 
             # set process
             c.process = process
 
             # check if this callable object has an usage builder
-            if self.usageBuilder is None and hasattr(process, "checker"):
-                self.usageBuilder = process.checker
+            if self.usage_builder is None and hasattr(process, "checker"):
+                self.usage_builder = process.checker
 
-            if self.helpMessage is None and hasattr(process, "__doc__") and \
+            if self.help_message is None and hasattr(process, "__doc__") and \
                process.__doc__ is not None and len(process.__doc__) > 0:
-                self.helpMessage = process.__doc__
+                self.help_message = process.__doc__
 
-        if postProcess is not None:
+        if post_process is not None:
             # postProcess must be callable
-            if not hasattr(postProcess, "__call__"):
-                raise commandException("(MultiCommand) addProcess, the given "
-                                       "postProcess is not a callable object")
+            if not hasattr(post_process, "__call__"):
+                raise CommandException("(MultiCommand) addProcess, the given "
+                                       "post_process is not a callable object")
 
             # set postProcess
-            c.postProcess = postProcess
+            c.postProcess = post_process
 
-            if self.usageBuilder is None and hasattr(postProcess, "checker"):
-                self.usageBuilder = postProcess.checker
+            if self.usage_builder is None and hasattr(post_process, "checker"):
+                self.usage_builder = post_process.checker
 
-            if self.helpMessage is None and \
-               hasattr(postProcess, "__doc__") and \
-               postProcess.__doc__ is not None and \
-               len(postProcess.__doc__) > 0:
-                self.helpMessage = postProcess.__doc__
+            if self.help_message is None and \
+               hasattr(post_process, "__doc__") and \
+               post_process.__doc__ is not None and \
+               len(post_process.__doc__) > 0:
+                self.help_message = post_process.__doc__
 
-        self.append((c, useArgs, True,))
+        self.append((c, use_args, True,))
 
-    def addStaticCommand(self, cmd, useArgs=True):
+    def addStaticCommand(self, cmd, use_args=True):
         # cmd must be an instance of Command
         if not isinstance(cmd, Command):
-            raise commandException("(MultiCommand) addStaticCommand, try to "
+            raise CommandException("(MultiCommand) addStaticCommand, try to "
                                    "insert a non command object")
 
         # can't add static if dynamic in the list
-        if self.dymamicCount > 0:
-            raise commandException("(MultiCommand) addStaticCommand, can't "
+        if self.dymamic_count > 0:
+            raise CommandException("(MultiCommand) addStaticCommand, can't "
                                    "insert static command while dynamic "
                                    "command are present, reset the "
                                    "MultiCommand then insert static command")
 
-        # if usageBuilder is not set, take the preprocess builder of the cmd
-        if self.usageBuilder is None and hasattr(cmd.preProcess, "checker"):
-            self.usageBuilder = cmd.preProcess.checker
+        # if usage_builder is not set, take the preprocess builder of the cmd
+        if self.usage_builder is None and hasattr(cmd.preProcess, "checker"):
+            self.usage_builder = cmd.preProcess.checker
 
         # build help message
-        if self.helpMessage is None and \
+        if self.help_message is None and \
            hasattr(cmd.preProcess, "__doc__") and \
            cmd.preProcess.__doc__ is not None and \
            len(cmd.preProcess.__doc__) > 0:
-            self.helpMessage = cmd.preProcess.__doc__
+            self.help_message = cmd.preProcess.__doc__
 
         # add the command
-        self.append((cmd, useArgs, True,))
+        self.append((cmd, use_args, True,))
 
     def usage(self):
         # TODO should not return the usage of one of the default
@@ -187,75 +189,77 @@ class MultiCommand(list):
         #           addDynamicCommand
         #       normaly no problem with addProcess
 
-        if self.usageBuilder is None:
+        if self.usage_builder is None:
             return "no args needed"
         else:
-            return "`"+self.usageBuilder.usage()+"`"
+            return "`"+self.usage_builder.usage()+"`"
 
     # TODO is it still usefull ? reset become deprecated because of
     # cloning, no?
     def reset(self):
         # remove dynamic command
-        del self[len(self)-self.dymamicCount:]
-        self.dymamicCount = 0
+        del self[len(self)-self.dymamic_count:]
+        self.dymamic_count = 0
 
-        # reset self.onlyOnceDict
-        self.onlyOnceDict = {}
+        # reset self.only_once_dict
+        self.only_once_dict = {}
 
         # reset counter
-        self.preCount = self.proCount = self.postCount = 0
+        self.pre_count = self.pro_count = self.post_count = 0
 
-        self.dynamicParameter = {}
+        self.dynamic_parameter = {}
 
         # reset every sub command
         for i in range(0, len(self)):
             c, a, e = self[i]
             # these counters are used to prevent an infinite execution of
             # the pre/pro/post process
-            c.preCount = 0
-            c.proCount = 0
-            c.postCount = 0
+            c.pre_count = 0
+            c.pro_count = 0
+            c.post_count = 0
             c.reset()
             self[i] = (c, a, True,)
 
-    def clone(self, From=None):
-        if From is None:
-            From = MultiCommand()
+    def clone(self, parent=None):
+        if parent is None:
+            parent = MultiCommand()
 
-        From.helpMessage = self.helpMessage
-        From.usageBuilder = self.usageBuilder
-        del From[:]
-        From.reset()
+        parent.help_message = self.help_message
+        parent.usage_builder = self.usage_builder
+        del parent[:]
+        parent.reset()
 
-        for i in range(0, len(self)-self.dymamicCount):
+        for i in range(0, len(self)-self.dymamic_count):
             c, a, e = self[i]
-            cmdClone = c.clone()
-            cmdClone.preCount = cmdClone.proCount = cmdClone.postCount = 0
-            cmdClone.reset()
-            From.append((cmdClone, a, e,))
+            cmd_clone = c.clone()
+            cmd_clone.pre_count = 0
+            cmd_clone.pro_count = 0
+            cmd_clone.post_count = 0
+            cmd_clone.reset()
+            parent.append((cmd_clone, a, e,))
 
-        return From
+        return parent
 
     def addDynamicCommand(self,
                           c,
-                          onlyAddOnce=True,
-                          useArgs=True,
+                          only_add_once=True,
+                          use_args=True,
                           enabled=True):
         # cmd must be an instance of Command
         if not isinstance(c, Command):
-            raise commandException("(MultiCommand) addDynamicCommand, try to "
+            raise CommandException("(MultiCommand) addDynamicCommand, try to "
                                    "insert a non command object")
 
         # check if the method already exist in the dynamic
         h = hash(c)
-        if onlyAddOnce and h in self.onlyOnceDict:
+        if only_add_once and h in self.only_once_dict:
             return
 
-        self.onlyOnceDict[h] = True
+        self.only_once_dict[h] = True
 
         # add the command
-        self.append((c, useArgs, enabled,))
-        self.dymamicCount += 1
+        self.append((c, use_args, enabled,))
+        self.dymamic_count += 1
 
     def enableCmd(self, index=0):
         isAValidIndex(self,
@@ -263,7 +267,7 @@ class MultiCommand(list):
                       "enableCmd",
                       "Command list",
                       "MultiCommand",
-                      commandException)
+                      CommandException)
         c, a, e = self[index]
         self[index] = (c, a, True,)
 
@@ -273,7 +277,7 @@ class MultiCommand(list):
                       "disableCmd",
                       "Command list",
                       "MultiCommand",
-                      commandException)
+                      CommandException)
         c, a, e = self[index]
         self[index] = (c, a, False,)
 
@@ -283,7 +287,7 @@ class MultiCommand(list):
                       "enableArgUsage",
                       "Command list",
                       "MultiCommand",
-                      commandException)
+                      CommandException)
         c, a, e = self[index]
         self[index] = (c, True, e,)
 
@@ -293,7 +297,7 @@ class MultiCommand(list):
                       "disableArgUsage",
                       "Command list",
                       "MultiCommand",
-                      commandException)
+                      CommandException)
         c, a, e = self[index]
         self[index] = (c, False, e,)
 
@@ -303,7 +307,7 @@ class MultiCommand(list):
                       "isdisabledCmd",
                       "Command list",
                       "MultiCommand",
-                      commandException)
+                      CommandException)
         c, a, e = self[index]
         return not e
 
@@ -313,7 +317,7 @@ class MultiCommand(list):
                       "isArgUsage",
                       "Command list",
                       "MultiCommand",
-                      commandException)
+                      CommandException)
         c, a, e = self[index]
         return a
 
@@ -322,23 +326,23 @@ class MultiCommand(list):
 # special command class, with only one command (the starting point)
 #
 class UniCommand(MultiCommand):
-    def __init__(self, preProcess=None, process=None, postProcess=None):
+    def __init__(self, pre_process=None, process=None, post_process=None):
         MultiCommand.__init__(self)
-        MultiCommand.addProcess(self, preProcess, process, postProcess)
+        MultiCommand.addProcess(self, pre_process, process, post_process)
 
     def addProcess(self,
-                   preProcess=None,
+                   pre_process=None,
                    process=None,
-                   postProcess=None,
-                   useArgs=True):
+                   post_process=None,
+                   use_args=True):
         pass  # block the procedure to add more commands
 
-    def addStaticCommand(self, cmd, useArgs=True):
+    def addStaticCommand(self, cmd, use_args=True):
         pass  # block the procedure to add more commands
 
-    def clone(self, From=None):
-        if From is None:
+    def clone(self, parent=None):
+        if parent is None:
             cmd, useArg, enabled = self[0]
-            From = UniCommand(cmd.preProcess, cmd.process, cmd.postProcess)
+            parent = UniCommand(cmd.preProcess, cmd.process, cmd.postProcess)
 
-        return MultiCommand.clone(self, From)
+        return MultiCommand.clone(self, parent)

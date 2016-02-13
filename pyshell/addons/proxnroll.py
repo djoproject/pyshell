@@ -40,7 +40,7 @@ from pyshell.arg.argchecker import keyStoreTranslatorArgChecker
 from pyshell.arg.argchecker import listArgChecker
 from pyshell.arg.argchecker import tokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.command.exception import engineInterruptionException
+from pyshell.command.exception import EngineInterruptionException
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerSetTempPrefix
@@ -73,7 +73,7 @@ def stopAsMainProcess(anything):
     # TODO in place of printing an error, print a description of the apdu
     # (class, ins, length, ...)
 
-    raise engineInterruptionException("A proxnroll command can not be directly"
+    raise EngineInterruptionException("A proxnroll command can not be directly"
                                       " executed, this command need to be "
                                       "piped into a transmit command",
                                       False)

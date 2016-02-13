@@ -23,7 +23,7 @@ from pyshell.arg.argchecker import defaultInstanceArgChecker
 from pyshell.arg.argchecker import listArgChecker
 from pyshell.arg.argchecker import tokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.command.exception import engineInterruptionException
+from pyshell.command.exception import EngineInterruptionException
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerSetTempPrefix
@@ -37,7 +37,7 @@ def stopAsMainProcess(anything):
 
     excmsg = ("An acr38 command can not be directly executed, this command "
               "need to be piped into a transmit command")
-    raise engineInterruptionException(excmsg, False)
+    raise EngineInterruptionException(excmsg, False)
 
 
 @shellMethod(card_type=tokenValueArgChecker(acr38uAPDUBuilder.SELECT_TYPE))

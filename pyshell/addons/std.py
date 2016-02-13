@@ -226,7 +226,7 @@ def helpFun(mltries, args=None):
             continue
 
         line = " ".join(k)
-        hmess = dic[k].helpMessage
+        hmess = dic[k].help_message
         if hmess is not None and len(hmess) > 0:
             line += ": " + hmess
 
@@ -296,7 +296,7 @@ def helpFun(mltries, args=None):
             # not disabled because in the path
             if i == (len(k) - 1):
                 line = " ".join(k)
-                hmess = dic2[k].helpMessage
+                hmess = dic2[k].help_message
                 if hmess is not None and len(hmess) > 0:
                     line += ": " + hmess
 

@@ -74,14 +74,14 @@ class EngineUtilsTest(unittest.TestCase):
             self.assertTrue((not equals) and sameLength and equalsCount == (i-1) and (path1IsHigher))
 
     def test_isAValidIndex(self):
-        self.assertRaises(executionException,isAValidIndex,[],43)
-        self.assertRaises(executionException,isAValidIndex,[],-25)
-        self.assertRaises(executionException,isAValidIndex,[],0)
+        self.assertRaises(ExecutionException,isAValidIndex,[],43)
+        self.assertRaises(ExecutionException,isAValidIndex,[],-25)
+        self.assertRaises(ExecutionException,isAValidIndex,[],0)
 
-        self.assertRaises(executionException,isAValidIndex,[1,2,3,4,5],43)
-        self.assertRaises(executionException,isAValidIndex,[1,2,3,4,5],-25)
-        self.assertRaises(executionException,isAValidIndex,[1,2,3,4,5],5)
-        self.assertRaises(executionException,isAValidIndex,[1,2,3,4,5],-6)
+        self.assertRaises(ExecutionException,isAValidIndex,[1,2,3,4,5],43)
+        self.assertRaises(ExecutionException,isAValidIndex,[1,2,3,4,5],-25)
+        self.assertRaises(ExecutionException,isAValidIndex,[1,2,3,4,5],5)
+        self.assertRaises(ExecutionException,isAValidIndex,[1,2,3,4,5],-6)
         isAValidIndex([1,2,3,4,5], 4)
         isAValidIndex([1,2,3,4,5], -5)
         isAValidIndex([1,2,3,4,5], 0)

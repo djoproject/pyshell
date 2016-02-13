@@ -31,7 +31,7 @@ from pyshell.arg.argchecker     import defaultInstanceArgChecker,listArgChecker,
 from pyshell.utils.parsing      import Parser
 from pyshell.arg.exception      import *
 from pyshell.command.exception  import *
-from pyshell.command.engine     import engineV3
+from pyshell.command.engine     import EngineV3
 from pyshell.utils.test.printingTest import NewOutput
 from time import sleep
 
@@ -54,31 +54,31 @@ def tutu_meth(param):
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc1(param):
-    raise executionInitException("test 1")
+    raise ExecutionInitException("test 1")
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc2(param):
-    raise executionException("test 2")
+    raise ExecutionException("test 2")
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc3(param):
-    raise commandException("test 3")
+    raise CommandException("test 3")
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc4(param):
-    e = engineInterruptionException("test 4")
+    e = EngineInterruptionException("test 4")
     e.abnormal = True
     raise e
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc5(param):
-    e = engineInterruptionException("test 5")
+    e = EngineInterruptionException("test 5")
     e.abnormal = False
     raise e
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc6(param):
-    raise argException("test 6") 
+    raise argException("test 6")
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc7(param):
@@ -88,12 +88,12 @@ def raiseExc7(param):
 
 @shellMethod(param=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
 def raiseExc8(param):
-    raise Exception("test 8")  
+    raise Exception("test 8")
 
 class ExecutingTest(unittest.TestCase):
     def setUp(self):
         global RESULT, RESULT_BIS
-        
+
         self.params = ParameterContainer()
         self.params.registerParameterManager("environment", EnvironmentParameterManager(self.params))
         self.params.registerParameterManager("context", ContextParameterManager(self.params))
@@ -105,32 +105,32 @@ class ExecutingTest(unittest.TestCase):
         self.debugContext.settings.setTransientIndex(False)
         self.debugContext.settings.setRemovable(False)
         self.debugContext.settings.setReadOnly(True)
-        
+
         self.shellContext = ContextParameter(value=(CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_SCRIPT, CONTEXT_EXECUTION_DAEMON,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance())
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY, self.shellContext, local_param = False)
         self.shellContext.settings.setTransient(True)
         self.shellContext.settings.setTransientIndex(True)
         self.shellContext.settings.setRemovable(False)
         self.shellContext.settings.setReadOnly(True)
-        
+
         self.backgroundContext = ContextParameter(value=(CONTEXT_COLORATION_LIGHT,CONTEXT_COLORATION_DARK,CONTEXT_COLORATION_NONE,), typ=defaultInstanceArgChecker.getStringArgCheckerInstance())
         self.params.context.setParameter(CONTEXT_COLORATION_KEY, self.backgroundContext, local_param = False)
         self.backgroundContext.settings.setTransient(False)
         self.backgroundContext.settings.setTransientIndex(False)
         self.backgroundContext.settings.setRemovable(False)
         self.backgroundContext.settings.setReadOnly(True)
-        
+
         self.spacingContext = EnvironmentParameter(value=5, typ=IntegerArgChecker(0))
         self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY, self.spacingContext, local_param = False)
         self.spacingContext.settings.setTransient(False)
         self.spacingContext.settings.setRemovable(False)
         self.spacingContext.settings.setReadOnly(False)
-        
+
         self.mltries = multiLevelTries()
-        
+
         m = UniCommand(plop_meth)
         self.mltries.insert( ("plop",) ,m)
-        
+
         param = self.params.environment.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,       EnvironmentParameter(value=self.mltries, typ=defaultInstanceArgChecker.getArgCheckerInstance()), local_param = False)
         param.settings.setTransient(True)
         param.settings.setRemovable(False)
@@ -138,10 +138,10 @@ class ExecutingTest(unittest.TestCase):
 
         RESULT = None
         RESULT_BIS = None
-        
+
         self.m = MultiCommand()
         self.mltries.insert( ("plap",) ,self.m)
-                        
+
     ### execute test ###
     def test_execute1(self):#with process_arg iterable
         self.assertEqual(RESULT, None)
@@ -150,7 +150,7 @@ class ExecutingTest(unittest.TestCase):
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
-    
+
     def test_execute2(self):#with process_arg as string
         self.assertEqual(RESULT, None)
         last_exception, engine = execute("plop", self.params, process_arg="1 2 3")
@@ -158,12 +158,12 @@ class ExecutingTest(unittest.TestCase):
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
-        
+
     def test_execute3(self):#with process_arg as something else
         self.assertEqual(RESULT, None)
         self.assertRaises(Exception, execute, "plop", self.params, process_arg=object())
         self.assertEqual(RESULT,None)
-        
+
     def test_execute4(self):#with parser parsed
         p = Parser("plop 1 2 3")
         self.assertEqual(RESULT, None)
@@ -172,7 +172,7 @@ class ExecutingTest(unittest.TestCase):
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
-        
+
     def test_execute5(self):#with parser not parsed
         p = Parser("plop 1 2 3")
         p.parse()
@@ -182,7 +182,7 @@ class ExecutingTest(unittest.TestCase):
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
-        
+
     def test_execute6(self):#with string as parser
         self.assertEqual(RESULT, None)
         last_exception, engine = execute("plop 1 2 3", self.params)
@@ -190,7 +190,7 @@ class ExecutingTest(unittest.TestCase):
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT,["1","2","3",threading.current_thread().ident])
         self.assertEqual(engine.getLastResult(),[["1","2","3",threading.current_thread().ident]])
-        
+
     def test_execute7(self):#with empty parser
         p = Parser("")
         p.parse()
@@ -199,32 +199,32 @@ class ExecutingTest(unittest.TestCase):
         self.assertEqual(last_exception, None)
         self.assertEqual(engine, None)
         self.assertEqual(RESULT,None)
-        
-        
+
+
     def test_execute8(self):#try in thread
         self.assertEqual(RESULT, None)
         last_exception, engine = execute("plop 1 2 3 &", self.params)
         self.assertEqual(last_exception, None)
         self.assertEqual(engine, None)
-        
+
         threadId = self.params.variable.getParameter("!").getValue()
-        
+
         for t in threading.enumerate():
             if t.ident == threadId[0]:
                 t.join(4)
                 break
         sleep(0.1)
-        
+
         self.assertNotEqual(RESULT,None)
         self.assertEqual(len(RESULT),4)
         self.assertNotEqual(RESULT[3],threading.current_thread().ident)
-        
+
     def test_execute9(self):#test with an empty command
         self.assertEqual(RESULT, None)
         self.assertRaises(Exception, execute, "plap", self.params, process_arg=object())
         self.assertEqual(RESULT,None)
-        
-    def test_execute10(self):#check if commands are correctly cloned        
+
+    def test_execute10(self):#check if commands are correctly cloned
         m = MultiCommand()
         m.addProcess(process=plop_meth)
 
@@ -243,10 +243,10 @@ class ExecutingTest(unittest.TestCase):
         self.assertNotEqual(engine, None)
         self.assertEqual(RESULT, ["aa", "bb", "cc",threading.current_thread().ident ])
         self.assertEqual(RESULT_BIS, None)
-        
+
     def test_execute11(self):#raise every exception
         #IDEA create a command that raise a defined exception, and call it
-    
+
         n = NewOutput()
 
         m = MultiCommand()
@@ -255,7 +255,7 @@ class ExecutingTest(unittest.TestCase):
         self.mltries.insert( ("test_1",) ,m)
 
         last_exception, engine = execute("test_1 aa bb cc", self.params)
-        self.assertIsInstance(last_exception, executionInitException)
+        self.assertIsInstance(last_exception, ExecutionInitException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Fail to init an execution object: test 1\n")
         n.flush()
@@ -268,7 +268,7 @@ class ExecutingTest(unittest.TestCase):
         self.mltries.insert( ("test_2",) ,m)
 
         last_exception, engine = execute("test_2 aa bb cc", self.params)
-        self.assertIsInstance(last_exception, executionException)
+        self.assertIsInstance(last_exception, ExecutionException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Fail to execute: test 2\n")
         n.flush()
@@ -281,7 +281,7 @@ class ExecutingTest(unittest.TestCase):
         self.mltries.insert( ("test_3",) ,m)
 
         last_exception, engine = execute("test_3 aa bb cc", self.params)
-        self.assertIsInstance(last_exception, commandException)
+        self.assertIsInstance(last_exception, CommandException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Error in command method: test 3\n")
         n.flush()
@@ -294,7 +294,7 @@ class ExecutingTest(unittest.TestCase):
         self.mltries.insert( ("test_4",) ,m)
 
         last_exception, engine = execute("test_4 aa bb cc", self.params)
-        self.assertIsInstance(last_exception, engineInterruptionException)
+        self.assertIsInstance(last_exception, EngineInterruptionException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Abnormal execution abort, reason: test 4\n")
         n.flush()
@@ -307,7 +307,7 @@ class ExecutingTest(unittest.TestCase):
         self.mltries.insert( ("test_5",) ,m)
 
         last_exception, engine = execute("test_5 aa bb cc", self.params)
-        self.assertIsInstance(last_exception, engineInterruptionException)
+        self.assertIsInstance(last_exception, EngineInterruptionException)
         self.assertNotEqual(engine, None)
         self.assertEqual(n.lastOutPut, "Normal execution abort, reason: test 5\n")
         n.flush()
@@ -362,38 +362,38 @@ class ExecutingTest(unittest.TestCase):
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         self.debugContext.settings.setIndexValue(0)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
-        
+
     def test_generateSuffix2(self):#test outside shell context
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__"),None)
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
-        
+
     def test_generateSuffix3(self):#test with processName provided or not
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,None)," (threadId="+str(threading.current_thread().ident)+", level=-1)")
-        
+
     def test_generateSuffix5(self):#test without commandNameList
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        e = engineV3([UniCommand(plop_meth)], [["titi"]],["titi"] )
+        e = EngineV3([UniCommand(plop_meth)], [["titi"]],["titi"] )
         self.assertEqual(_generateSuffix(self.params,None,e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
-        
+
     def test_generateSuffix6(self):#test with None engine
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         self.assertEqual(_generateSuffix(self.params,(("plop",),),None,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
-        
+
     def test_generateSuffix7(self):#test with empty engine
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        e = engineV3([UniCommand(plop_meth)], [["titi"]],["titi"])
+        e = EngineV3([UniCommand(plop_meth)], [["titi"]],["titi"])
         del e.stack[:]
         self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__')")
-        
+
     def test_generateSuffix8(self):#test with valid engine and commandNameList
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        e = engineV3([UniCommand(plop_meth)], [["titi"]],["titi"])
+        e = EngineV3([UniCommand(plop_meth)], [["titi"]],["titi"])
         self.assertEqual(_generateSuffix(self.params,(("plop",),),e,"__process__")," (threadId="+str(threading.current_thread().ident)+", level=-1, process='__process__', command='plop')")
 
-        
+
 if __name__ == '__main__':
     unittest.main()
