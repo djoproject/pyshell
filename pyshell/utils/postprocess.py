@@ -16,16 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.utils.printing import printShell
 from pyshell.utils.printing import strLength
 
 
 @shellMethod(
-    result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+    result=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
 def listResultHandler(result):
     if len(result) == 0:
         return result
@@ -39,7 +39,7 @@ def listResultHandler(result):
 
 
 @shellMethod(
-    result=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+    result=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
 def listFlatResultHandler(result):
     if len(result) == 0:
         printShell("")
@@ -54,7 +54,7 @@ def listFlatResultHandler(result):
     return result
 
 
-@shellMethod(string=listArgChecker(IntegerArgChecker(0, 255)))
+@shellMethod(string=ListArgChecker(IntegerArgChecker(0, 255)))
 def printStringCharResult(string):
     s = ""
     for char in string:
@@ -64,7 +64,7 @@ def printStringCharResult(string):
     return string
 
 
-@shellMethod(byte_list=listArgChecker(IntegerArgChecker(0, 255)))
+@shellMethod(byte_list=ListArgChecker(IntegerArgChecker(0, 255)))
 def printBytesAsString(byte_list):
     if len(byte_list) == 0:
         printShell("")
@@ -79,10 +79,10 @@ def printBytesAsString(byte_list):
     return byte_list
 
 
-_defaultArgCheckerInstance = defaultInstanceArgChecker.getArgCheckerInstance()
+_defaultArgCheckerInstance = DefaultInstanceArgChecker.getArgCheckerInstance()
 
 
-@shellMethod(list_of_line=listArgChecker(_defaultArgCheckerInstance))
+@shellMethod(list_of_line=ListArgChecker(_defaultArgCheckerInstance))
 def printColumnWithouHeader(list_of_line):
     if len(list_of_line) == 0:
         return list_of_line
@@ -138,7 +138,7 @@ def printColumnWithouHeader(list_of_line):
     return list_of_line
 
 
-@shellMethod(list_of_line=listArgChecker(_defaultArgCheckerInstance))
+@shellMethod(list_of_line=ListArgChecker(_defaultArgCheckerInstance))
 def printColumn(list_of_line):
     if len(list_of_line) == 0:
         return list_of_line

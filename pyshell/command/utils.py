@@ -123,7 +123,7 @@ def raiseIfInvalidPath(cmd_path, cmd_list, meth_name):
     isAValidIndex(cmd_list, len(cmd_path)-1, meth_name, "command list")
 
     # check subindex
-    for i in xrange(0, len(cmd_path)):
+    for i in range(0, len(cmd_path)):
         isAValidIndex(cmd_list[i], cmd_path[i], meth_name, "sub command list")
 
 
@@ -137,7 +137,7 @@ def getFirstEnabledIndexInEnablingMap(enabling_map,
     if enabling_map is not None:
         # there is at least one True item in list, otherwise
         # raisIfInvalidMap had raise an exception
-        for i in xrange(starting, len(enabling_map)):
+        for i in range(starting, len(enabling_map)):
             if enabling_map[i] and not cmd.isdisabledCmd(i):
                 return i
 

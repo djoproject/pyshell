@@ -16,69 +16,73 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# system library
-import readline
-import sys
 import atexit
 import getopt
+import readline
+import sys
 from contextlib import contextmanager
 
-# tries library
 from tries import multiLevelTries
 from tries.exception import pathNotExistsTriesException
 
-# local library
-from pyshell.arg.argchecker import defaultInstanceArgChecker, \
-                                       listArgChecker, filePathArgChecker, \
-                                       IntegerArgChecker
 from pyshell.addons import addon
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME, \
-                                    CONTEXT_ATTRIBUTE_NAME, \
-                                    VARIABLE_ATTRIBUTE_NAME, \
-                                    KEY_ATTRIBUTE_NAME, \
-                                    ENVIRONMENT_PARAMETER_FILE_KEY, \
-                                    ENVIRONMENT_PROMPT_DEFAULT, \
-                                    ENVIRONMENT_PROMPT_KEY, \
-                                    TAB_SIZE, \
-                                    ENVIRONMENT_TAB_SIZE_KEY, \
-                                    ENVIRONMENT_LEVEL_TRIES_KEY, \
-                                    ENVIRONMENT_SAVE_KEYS_DEFAULT, \
-                                    ENVIRONMENT_SAVE_KEYS_KEY, \
-                                    ENVIRONMENT_HISTORY_FILE_NAME_VALUE, \
-                                    ENVIRONMENT_HISTORY_FILE_NAME_KEY, \
-                                    ENVIRONMENT_USE_HISTORY_VALUE, \
-                                    ENVIRONMENT_USE_HISTORY_KEY, \
-                                    ENVIRONMENT_ADDON_TO_LOAD_DEFAULT, \
-                                    ENVIRONMENT_ADDON_TO_LOAD_KEY, \
-                                    ADDONLIST_KEY, \
-                                    DEBUG_ENVIRONMENT_NAME, \
-                                    CONTEXT_EXECUTION_SHELL, \
-                                    CONTEXT_EXECUTION_SCRIPT, \
-                                    CONTEXT_EXECUTION_DAEMON, \
-                                    CONTEXT_EXECUTION_KEY, \
-                                    CONTEXT_COLORATION_LIGHT, \
-                                    CONTEXT_COLORATION_DARK, \
-                                    CONTEXT_COLORATION_NONE, \
-                                    CONTEXT_COLORATION_KEY, \
-                                    EVENT__ON_STARTUP, \
-                                    EVENT_ON_STARTUP, \
-                                    EVENT_AT_EXIT, \
-                                    DEFAULT_PARAMETER_FILE
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import FilePathArgChecker
+from pyshell.arg.argchecker import IntegerArgChecker
+from pyshell.arg.argchecker import ListArgChecker
+from pyshell.system.container import ParameterContainer
+from pyshell.system.context import ContextParameter
+from pyshell.system.context import ContextParameterManager
+from pyshell.system.context import GlobalContextSettings
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.system.key import CryptographicKeyParameterManager
+from pyshell.system.procedure import ProcedureFromFile
+from pyshell.system.procedure import ProcedureFromList
+from pyshell.system.settings import GlobalSettings
+from pyshell.system.variable import VarParameter
+from pyshell.system.variable import VariableParameterManager
+from pyshell.utils.constants import ADDONLIST_KEY
+from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
+from pyshell.utils.constants import CONTEXT_COLORATION_DARK
+from pyshell.utils.constants import CONTEXT_COLORATION_KEY
+from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
+from pyshell.utils.constants import CONTEXT_COLORATION_NONE
+from pyshell.utils.constants import CONTEXT_EXECUTION_DAEMON
+from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
+from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
+from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
+from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants import DEFAULT_PARAMETER_FILE
+from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_DEFAULT
+from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
+from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
+from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
+from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_VALUE
+from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.constants import ENVIRONMENT_PARAMETER_FILE_KEY
+from pyshell.utils.constants import ENVIRONMENT_PROMPT_DEFAULT
+from pyshell.utils.constants import ENVIRONMENT_PROMPT_KEY
+from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_DEFAULT
+from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_KEY
+from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
+from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
+from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_VALUE
+from pyshell.utils.constants import EVENT_AT_EXIT
+from pyshell.utils.constants import EVENT_ON_STARTUP
+from pyshell.utils.constants import EVENT__ON_STARTUP
+from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
+from pyshell.utils.constants import TAB_SIZE
+from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.executing import execute
 from pyshell.utils.misc import getTerminalSize
 from pyshell.utils.parsing import Parser
-from pyshell.utils.printing import Printer, warning, error, printException
+from pyshell.utils.printing import Printer
+from pyshell.utils.printing import error
+from pyshell.utils.printing import printException
+from pyshell.utils.printing import warning
 from pyshell.utils.valuable import SimpleValuable
-from pyshell.system.procedure import ProcedureFromList, ProcedureFromFile
-from pyshell.system.settings import GlobalSettings
-from pyshell.system.environment import EnvironmentParameter, \
-                                       EnvironmentParameterManager
-from pyshell.system.context import ContextParameter, ContextParameterManager, \
-                                   GlobalContextSettings
-from pyshell.system.variable import VarParameter, VariableParameterManager
-from pyshell.system.container import ParameterContainer
-from pyshell.system.key import CryptographicKeyParameterManager
 
 
 # TODO
@@ -97,20 +101,20 @@ from pyshell.system.key import CryptographicKeyParameterManager
 # TODO does not work if we import it in a python shell and try to
 # instanciate it without args
 class CommandExecuter():
-    def __init__(self, paramFile=None, outsideArgs=None):
-        self._initParams(paramFile, outsideArgs)
+    def __init__(self, param_file=None, outside_args=None):
+        self._initParams(param_file, outside_args)
         self._initPrinter()
 
         # load addon addon (if not loaded, can't do anything)
         loaded = False
-        with self.ExceptionManager("fail to load addon "
+        with self.exceptionManager("fail to load addon "
                                    "'pyshell.addons.addon'"):
             addon.loadAddonFun("pyshell.addons.addon", self.params)
             loaded = True
 
         if not loaded:
-            print("fail to load addon loader, can not do anything with "
-                  "the application without this loader")
+            print("fail to load addon loader, can not do anything with"  # noqa
+                  " the application without this loader")
             exit(-1)
 
         # TODO create default event here (see list of event in constant file)
@@ -121,7 +125,7 @@ class CommandExecuter():
         # # execute atStartUp # #
         execute(EVENT__ON_STARTUP, self.params, "__startup__")
 
-    def _initParams(self, paramFile, outsideArgs):
+    def _initParams(self, param_file, outside_args):
         # create param manager
         self.params = ParameterContainer()
 
@@ -142,25 +146,25 @@ class CommandExecuter():
         self.params.pushVariableLevelForThisThread()
         self.promptWaitingValuable = SimpleValuable(False)
 
-        defaultGlobalSetting = GlobalSettings(transient=False,
-                                              read_only=False,
-                                              removable=False)
+        default_global_setting = GlobalSettings(transient=False,
+                                                read_only=False,
+                                                removable=False)
 
-        defaultStringArgChecker = defaultInstanceArgChecker.\
+        default_string_arg_checker = DefaultInstanceArgChecker.\
             getStringArgCheckerInstance()
-        defaultArgChecker = defaultInstanceArgChecker.\
+        default_arg_checker = DefaultInstanceArgChecker.\
             getArgCheckerInstance()
-        defaultBooleanArgChecker = defaultInstanceArgChecker.\
-            getbooleanValueArgCheckerInstance()
-        defaultIntegerArgChecker = defaultInstanceArgChecker.\
+        default_boolean_arg_checker = DefaultInstanceArgChecker.\
+            getBooleanValueArgCheckerInstance()
+        default_integer_arg_checker = DefaultInstanceArgChecker.\
             getIntegerArgCheckerInstance()
 
         # # init original params # #
-        param = EnvironmentParameter(value=paramFile,
-                                     typ=filePathArgChecker(exist=None,
+        param = EnvironmentParameter(value=param_file,
+                                     typ=FilePathArgChecker(exist=None,
                                                             readable=True,
                                                             writtable=None,
-                                                            isFile=True),
+                                                            is_file=True),
                                      settings=GlobalSettings(transient=True,
                                                              read_only=False,
                                                              removable=False))
@@ -169,21 +173,21 @@ class CommandExecuter():
                          local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT,
-                                     typ=defaultStringArgChecker,
-                                     settings=defaultGlobalSetting.clone())
+                                     typ=default_string_arg_checker,
+                                     settings=default_global_setting.clone())
         env.setParameter(ENVIRONMENT_PROMPT_KEY,
                          param,
                          local_param=False)
 
         param = EnvironmentParameter(value=TAB_SIZE,
                                      typ=IntegerArgChecker(0),
-                                     settings=defaultGlobalSetting.clone())
+                                     settings=default_global_setting.clone())
         env.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
                          param,
                          local_param=False)
 
         param = EnvironmentParameter(value=multiLevelTries(),
-                                     typ=defaultArgChecker,
+                                     typ=default_arg_checker,
                                      settings=GlobalSettings(transient=True,
                                                              read_only=True,
                                                              removable=False))
@@ -192,39 +196,39 @@ class CommandExecuter():
                          local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT,
-                                     typ=defaultBooleanArgChecker,
-                                     settings=defaultGlobalSetting.clone())
+                                     typ=default_boolean_arg_checker,
+                                     settings=default_global_setting.clone())
         env.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,
                          param,
                          local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE,
-                                     typ=filePathArgChecker(exist=None,
+                                     typ=FilePathArgChecker(exist=None,
                                                             readable=True,
                                                             writtable=None,
-                                                            isFile=True),
-                                     settings=defaultGlobalSetting.clone())
+                                                            is_file=True),
+                                     settings=default_global_setting.clone())
         env.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
                          param,
                          local_param=False)
 
         param = EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE,
-                                     typ=defaultBooleanArgChecker,
-                                     settings=defaultGlobalSetting.clone())
+                                     typ=default_boolean_arg_checker,
+                                     settings=default_global_setting.clone())
         env.setParameter(ENVIRONMENT_USE_HISTORY_KEY,
                          param,
                          local_param=False)
 
-        typ = listArgChecker(defaultStringArgChecker)
+        typ = ListArgChecker(default_string_arg_checker)
         param = EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT,
                                      typ=typ,
-                                     settings=defaultGlobalSetting.clone())
+                                     settings=default_global_setting.clone())
         env.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
                          param,
                          local_param=False)
 
         param = EnvironmentParameter(value={},
-                                     typ=defaultArgChecker,
+                                     typ=default_arg_checker,
                                      settings=GlobalSettings(transient=True,
                                                              read_only=True,
                                                              removable=False))
@@ -232,16 +236,16 @@ class CommandExecuter():
                          param,
                          local_param=False)
 
-        defaultContextSetting = GlobalContextSettings(removable=False,
-                                                      read_only=True,
-                                                      transient=False,
-                                                      transient_index=False)
+        default_context_setting = GlobalContextSettings(removable=False,
+                                                        read_only=True,
+                                                        transient=False,
+                                                        transient_index=False)
 
         param = ContextParameter(value=tuple(range(0, 5)),
-                                 typ=defaultIntegerArgChecker,
+                                 typ=default_integer_arg_checker,
                                  default_index=0,
                                  index=1,
-                                 settings=defaultContextSetting.clone())
+                                 settings=default_context_setting.clone())
         con.setParameter(DEBUG_ENVIRONMENT_NAME,
                          param,
                          local_param=False)
@@ -254,7 +258,7 @@ class CommandExecuter():
                   CONTEXT_EXECUTION_SCRIPT,
                   CONTEXT_EXECUTION_DAEMON,)
         param = ContextParameter(value=values,
-                                 typ=defaultStringArgChecker,
+                                 typ=default_string_arg_checker,
                                  default_index=0,
                                  settings=settings)
         con.setParameter(CONTEXT_EXECUTION_KEY,
@@ -265,39 +269,39 @@ class CommandExecuter():
                   CONTEXT_COLORATION_DARK,
                   CONTEXT_COLORATION_NONE,)
         param = ContextParameter(value=values,
-                                 typ=defaultStringArgChecker,
+                                 typ=default_string_arg_checker,
                                  default_index=0,
-                                 settings=defaultContextSetting.clone())
+                                 settings=default_context_setting.clone())
         con.setParameter(CONTEXT_COLORATION_KEY,
                          param,
                          local_param=False)
 
         # mapped outside argument
-        if outsideArgs is not None:
+        if outside_args is not None:
             # all in one string
-            argsString = VarParameter(' '.join(str(x) for x in outsideArgs))
-            var.setParameter("*", argsString, local_param=False)
-            argsString.settings.setTransient(True)
+            args_string = VarParameter(' '.join(str(x) for x in outside_args))
+            var.setParameter("*", args_string, local_param=False)
+            args_string.settings.setTransient(True)
 
             # arg count
-            argCount = VarParameter(len(outsideArgs))
-            var.setParameter("#", argCount, local_param=False)
-            argCount.settings.setTransient(True)
+            arg_count = VarParameter(len(outside_args))
+            var.setParameter("#", arg_count, local_param=False)
+            arg_count.settings.setTransient(True)
 
             # all args
-            allArgs = VarParameter(outsideArgs)
-            var.setParameter("@", allArgs, local_param=False)
-            allArgs.settings.setTransient(True)
+            all_args = VarParameter(outside_args)
+            var.setParameter("@", all_args, local_param=False)
+            all_args.settings.setTransient(True)
             # last pid started in background
             # TODO var = self.params.variable.setParameter("!",
-            #            VarParameter(outsideArgs), local_param = False)
+            #            VarParameter(outside_args), local_param = False)
             # var.settings.setTransient(True)
 
         # current process id
         # TODO id is not enought, need level
-        currentIdVar = VarParameter(self.params.getCurrentId())
+        current_id_var = VarParameter(self.params.getCurrentId())
         var = self.params.variable.setParameter("$",
-                                                currentIdVar,
+                                                current_id_var,
                                                 local_param=False)
         var.settings.setTransient(True)
 
@@ -358,25 +362,25 @@ class CommandExecuter():
                                    perfect_match=True).getValue()
 
         # # prepare atExit # #
-        atExit = ProcedureFromList(EVENT_AT_EXIT,
-                                   settings=GlobalSettings(read_only=False,
-                                                           removable=False,
-                                                           transient=True))
-        atExit.neverStopIfErrorOccured()
+        at_exit = ProcedureFromList(EVENT_AT_EXIT,
+                                    settings=GlobalSettings(read_only=False,
+                                                            removable=False,
+                                                            transient=True))
+        at_exit.neverStopIfErrorOccured()
 
         # TODO need to have parameters addons parameter loaded before to save
-        atExit.addCommand("parameter save")
+        at_exit.addCommand("parameter save")
 
         # TODO load parameter addon but do not print any error if already
         # loaded, add a parameter to addon load
-        atExit.addCommand("history save")
-        # atExit.addCommand( "key save" )
+        at_exit.addCommand("history save")
+        # at_exit.addCommand( "key save" )
 
-        atExit.settings.setReadOnly(True)
-        mltries.insert((EVENT_AT_EXIT,), atExit, stopTraversalAtThisNode=True)
-        atexit.register(self.AtExit)
+        at_exit.settings.setReadOnly(True)
+        mltries.insert((EVENT_AT_EXIT,), at_exit, stopTraversalAtThisNode=True)
+        atexit.register(self.atExit)
 
-    def AtExit(self):
+    def atExit(self):
         # TODO provide args from outside
         execute(EVENT_AT_EXIT, self.params, "__atexit__")
 
@@ -401,8 +405,9 @@ class CommandExecuter():
             self.promptWaitingValuable.setValue(True)
             try:
                 env = self.params.environment
-                cmd = raw_input(env.getParameter(ENVIRONMENT_PROMPT_KEY,
-                                                 perfect_match=True).getValue())
+                prompt = env.getParameter(ENVIRONMENT_PROMPT_KEY,
+                                          perfect_match=True).getValue()
+                cmd = raw_input(prompt)
             except SyntaxError as se:
                 error(se, "syntax error")
                 continue
@@ -467,15 +472,15 @@ class CommandExecuter():
             fullline = parser[-1][0]
 
             # # manage ambiguity # #
-            advancedResult = ltries.advancedSearch(fullline, False)
-            if advancedResult.isAmbiguous():
-                tokenIndex = len(advancedResult.existingPath) - 1
+            advanced_result = ltries.advancedSearch(fullline, False)
+            if advanced_result.isAmbiguous():
+                token_index = len(advanced_result.existingPath) - 1
 
-                if tokenIndex != (len(fullline)-1):
+                if token_index != (len(fullline)-1):
                     return None   # ambiguity on an inner level
 
-                tries = advancedResult.existingPath[tokenIndex][1].localTries
-                keylist = tries.getKeyList(fullline[tokenIndex])
+                tries = advanced_result.existingPath[token_index][1].localTries
+                keylist = tries.getKeyList(fullline[token_index])
 
                 keys = []
                 for key in keylist:
@@ -491,7 +496,7 @@ class CommandExecuter():
                 keys = dic.keys()
 
             # build final result
-            finalKeys = []
+            final_keys = []
             for k in keys:
 
                 # special case to complete the last token if needed
@@ -502,20 +507,20 @@ class CommandExecuter():
                     if len(k) > len(fullline):
                         toappend += " "
 
-                    finalKeys.append(toappend)
+                    final_keys.append(toappend)
                     break
 
                 # normal case, the last token on the line is complete,
                 # only add its child tokens
-                finalKeys.append(" ".join(k[len(fullline):]))
+                final_keys.append(" ".join(k[len(fullline):]))
 
             # if no other choice than the current value, return the
             # current value
-            if "" in finalKeys and len(finalKeys) == 1:
+            if "" in final_keys and len(final_keys) == 1:
                 return (fullline[-1], None,)[index]
 
-            finalKeys.append(None)
-            return finalKeys[index]
+            final_keys.append(None)
+            return final_keys[index]
 
         except Exception as ex:
             context = self.params.context
@@ -527,7 +532,7 @@ class CommandExecuter():
         return None
 
     @contextmanager
-    def ExceptionManager(self, msg_prefix=None):
+    def exceptionManager(self, msg_prefix=None):
         try:
             yield
         except ListOfException as loe:
@@ -550,7 +555,7 @@ class CommandExecuter():
         afile = ProcedureFromFile(filename)
         afile.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(granularity)
 
-        with self.ExceptionManager("An error occured during the script "
+        with self.exceptionManager("An error occured during the script "
                                    "execution: "):
             afile.execute(args=(), parameters=self.params)
 
@@ -560,21 +565,17 @@ class CommandExecuter():
 
 
 def usage():
-    print("")
-    print("executer.py [-h -p <parameter file> -i <script file> -s]")
+    print("\nexecuter.py [-h -p <parameter file> -i <script file> -s]")  # noqa
 
 
 def help():
     usage()
-    print("")
-    print("Python Custom Shell Executer v1.0")
-    print("")
-    print("-h, --help:        print this help message")
-    print("-p, --parameter:   define a custom parameter file")
-    print("-s, --script:      define a script to execute")
-    print("-n, --no-exit:     start the shell after the script")
-    print("-g, --granularity: set the error granularity for file script")
-    print("")
+    print("\nPython Custom Shell Executer v1.0\n\n"  # noqa
+          "-h, --help:        print this help message\n"
+          "-p, --parameter:   define a custom parameter file\n"
+          "-s, --script:      define a script to execute\n"
+          "-n, --no-exit:     start the shell after the script\n"
+          "-g, --granularity: set the error granularity for file script\n")
 
 if __name__ == "__main__":
     # manage args
@@ -587,11 +588,10 @@ if __name__ == "__main__":
                                                               "granularity="])
     except getopt.GetoptError as err:
         # print help information and exit:
-        print(str(err))  # will print something like "option -a not recognized"
+        # will print something like "option -a not recognized"
+        print(str(err))  # noqa
         usage()
-        print("")
-        print("to get help: executer.py -h")
-        print("")
+        print("\nto get help: executer.py -h\n")  # noqa
         sys.exit(2)
 
     ParameterFile = None
@@ -613,11 +613,11 @@ if __name__ == "__main__":
             try:
                 Granularity = int(a)
             except ValueError as ve:
-                print("invalid value for granularity: "+str(ve))
+                print("invalid value for granularity: "+str(ve))  # noqa
                 usage()
                 exit(-1)
         else:
-            print("unknown parameter: "+str(o))
+            print("unknown parameter: "+str(o))  # noqa
 
     if ParameterFile is None:
         ParameterFile = DEFAULT_PARAMETER_FILE

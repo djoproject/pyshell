@@ -16,10 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.exception import PyshellException, USER_ERROR, ERROR
+from pyshell.utils.exception import ERROR
+from pyshell.utils.exception import PyshellException
+from pyshell.utils.exception import USER_ERROR
 
 
-class argException(PyshellException):
+class ArgException(PyshellException):
     def __init__(self, value, usage=""):
         PyshellException.__init__(self, USER_ERROR)
         self.value = value
@@ -29,7 +31,7 @@ class argException(PyshellException):
         return str(self.value)
 
 
-class argInitializationException(PyshellException):
+class ArgInitializationException(PyshellException):
     def __init__(self, value):
         PyshellException.__init__(self, ERROR)
         self.value = value
@@ -38,7 +40,7 @@ class argInitializationException(PyshellException):
         return str(self.value)
 
 
-class decoratorException(PyshellException):
+class DecoratorException(PyshellException):
     def __init__(self, value):
         PyshellException.__init__(self, ERROR)
         self.value = value

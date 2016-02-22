@@ -19,10 +19,10 @@
 import os
 import sys
 
+from pyshell.arg.argchecker import BooleanValueArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import EnvironmentParameterChecker
 from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import booleanValueArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import environmentParameterChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
@@ -52,26 +52,26 @@ else:
 # # DECLARATION PART # #
 
 
-@shellMethod(key_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             key_instance=defaultInstanceArgChecker.getKeyChecker(),
-             key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME),
-             transient=booleanValueArgChecker())
+@shellMethod(key_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             key_instance=DefaultInstanceArgChecker.getKeyChecker(),
+             key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME),
+             transient=BooleanValueArgChecker())
 def setKey(key_name, key_instance, key_store=None, transient=False):
     "set a key"
     key_instance.setTransient(transient)
     key_store.getValue().setkey_instance(key_name, key_instance)
 
 
-@shellMethod(key=defaultInstanceArgChecker.getKeyTranslatorChecker(),
+@shellMethod(key=DefaultInstanceArgChecker.getKeyTranslatorChecker(),
              start=IntegerArgChecker(),
              end=IntegerArgChecker(),
-             key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+             key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
 def getKey(key, start=0, end=None, key_store=None):
     "get a key"
     return key.getKey(start, end)
 
 
-@shellMethod(key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
 def listKey(key_store):
     "list available key in the key_store"
 
@@ -97,23 +97,23 @@ def listKey(key_store):
     return to_ret
 
 
-@shellMethod(key_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(key_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
 def unsetKey(key_name, key_store=None):
     "remove a key from the key_store"
     key_store.getValue().unsetKey(key_name)
 
 
-@shellMethod(key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
 def cleanKeyStore(key_store=None):
     "remove every keys from the key_store"
     key_store.getValue().removeAll()
 
 
 @shellMethod(
-    file_path=environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
-    usekey_store=environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-    key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+    file_path=EnvironmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
+    usekey_store=EnvironmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
+    key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
 def saveKeyStore(file_path, usekey_store, key_store=None):
     "save key_store from file"
 
@@ -146,9 +146,9 @@ def saveKeyStore(file_path, usekey_store, key_store=None):
 
 
 @shellMethod(
-    file_path=environmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
-    usekey_store=environmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-    key_store=environmentParameterChecker(KEYSTORE_SECTION_NAME))
+    file_path=EnvironmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
+    usekey_store=EnvironmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
+    key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
 def loadKeyStore(file_path, usekey_store, key_store=None):
     "load key_store from file"
 
@@ -192,8 +192,8 @@ def loadKeyStore(file_path, usekey_store, key_store=None):
         raise exceptions
 
 
-@shellMethod(key=defaultInstanceArgChecker.getKeyTranslatorChecker(),
-             state=booleanValueArgChecker())
+@shellMethod(key=DefaultInstanceArgChecker.getKeyTranslatorChecker(),
+             state=BooleanValueArgChecker())
 def setTransient(key, state):
     key.setTransient(state)
 

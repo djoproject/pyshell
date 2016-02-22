@@ -24,9 +24,9 @@
 
 from math import log
 
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
@@ -40,9 +40,9 @@ from pyshell.utils.printing import warning
 
 
 @shellMethod(
-    var_lists=listArgChecker(
-        defaultInstanceArgChecker.getStringArgCheckerInstance()),
-    parameters=defaultInstanceArgChecker.getCompleteEnvironmentChecker(),
+    var_lists=ListArgChecker(
+        DefaultInstanceArgChecker.getStringArgCheckerInstance()),
+    parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker(),
     byte_per_line=IntegerArgChecker(4))
 def compareByteList(var_lists, byte_per_line=4, parameters=None):
     # TODO
@@ -61,7 +61,7 @@ def compareByteList(var_lists, byte_per_line=4, parameters=None):
     if len(var_lists) == 0:
         return
 
-    byte_list_checker = listArgChecker(IntegerArgChecker(0, 255))
+    byte_list_checker = ListArgChecker(IntegerArgChecker(0, 255))
 
     var_lists_values = {}
     for i in range(0, len(var_lists)):
@@ -219,7 +219,7 @@ def compareByteList(var_lists, byte_per_line=4, parameters=None):
         printShell(id_line_str + final_line)
 
 
-@shellMethod(bytelist=listArgChecker(IntegerArgChecker(0, 255)),
+@shellMethod(bytelist=ListArgChecker(IntegerArgChecker(0, 255)),
              byte_per_line=IntegerArgChecker(4, 16))
 def printByteTable(bytelist, byte_per_line=4):
     if len(bytelist) == 0:

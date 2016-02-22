@@ -157,7 +157,7 @@ class Parser(list):
         if len(self.string) == 0:
             return
 
-        for i in xrange(0, len(self.string)):
+        for i in range(0, len(self.string)):
             char = self.string[i]
             self._parse(char)
 

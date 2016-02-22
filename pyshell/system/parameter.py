@@ -18,6 +18,8 @@
 
 from threading import Lock
 
+from tries import multiLevelTries
+
 from pyshell.system.container import AbstractParameterContainer
 from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER
 from pyshell.system.settings import GlobalSettings
@@ -26,8 +28,6 @@ from pyshell.utils.exception import ParameterException
 from pyshell.utils.flushable import Flushable
 from pyshell.utils.synchronized import synchronous
 from pyshell.utils.valuable import Valuable
-
-from tries import multiLevelTries
 
 
 def isAValidStringPath(string_path):
@@ -38,7 +38,7 @@ def isAValidStringPath(string_path):
     path = string_path.split(".")
     final_path = []
 
-    for index in xrange(0, len(path)):
+    for index in range(0, len(path)):
         if len(path[index]) == 0:
             continue
 
@@ -238,7 +238,7 @@ class ParameterManager(Flushable):
 
             # simple loop to explore the both statment of this condition
             # if needed, without ordering
-            for case in xrange(0, 2):
+            for case in range(0, 2):
                 if local_param:
                     key = self.parentContainer.getCurrentId()
                     if key in local_var:
@@ -277,7 +277,7 @@ class ParameterManager(Flushable):
 
             # simple loop to explore the both statment of this condition if
             # needed, without any order
-            for case in xrange(0, 2):
+            for case in range(0, 2):
                 if local_param:
                     key = self.parentContainer.getCurrentId()
 
@@ -314,7 +314,7 @@ class ParameterManager(Flushable):
 
             # simple loop to explore the both statment of this condition if
             # needed, without any order
-            for case in xrange(0, 2):
+            for case in range(0, 2):
                 if local_param:
                     key = self.parentContainer.getCurrentId()
 
@@ -377,7 +377,7 @@ class ParameterManager(Flushable):
                                       "removable")
                             raise ParameterException(excmsg)
 
-                        loader_set = global_var.settings.getLoaderSet()
+                        loader_set = global_var.settings.getLoaders()
                         if loader_set is not None and len(loader_set) > 0:
                             complete_path = " ".join(
                                 advanced_result.getFoundCompletePath())
@@ -443,7 +443,7 @@ class ParameterManager(Flushable):
 
             # simple loop to explore the both statment of this condition if
             # needed, without any order
-            for case in xrange(0, 2):
+            for case in range(0, 2):
                 if local_param_tmp:
                     if key is None:
                         key = self.parentContainer.getCurrentId()

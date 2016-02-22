@@ -16,16 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
 
-from pyshell.arg.exception import argInitializationException, argException
+from pyshell.arg.exception import ArgException
+from pyshell.arg.exception import ArgInitializationException
 
-if (sys.version_info[0] < 2 or
-   (sys.version_info[0] < 3 and sys.version_info[0] < 7)):
-    # TODO get from pipy, so the path will change
-    from pyshell.utils.ordereddict import OrderedDict
-else:
+try:
     from collections import OrderedDict
+except:
+    from pyshell.utils.ordereddict import OrderedDict
 
 
 # #############################################################################
@@ -35,10 +33,10 @@ class ArgsChecker():
     "abstract arg checker"
 
     #
-    # @argsList, une liste de string
+    # @args_list, une liste de string
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     #
-    def checkArgs(self, argsList, engine=None):
+    def checkArgs(self, args_list, engine=None):
         pass  # XXX to override
 
     def usage(self):
@@ -48,146 +46,148 @@ class ArgsChecker():
 class ArgFeeder(ArgsChecker):
 
     #
-    # @param argTypeList, une liste de tuple (Argname,ArgChecker)
+    # @param arg_type_list, une liste de tuple (Argname,ArgChecker)
     #
-    def __init__(self, argTypeList):
-        # take an ordered dict as argTypeList parameter
-        if (not isinstance(argTypeList, OrderedDict) and
-           (not isinstance(argTypeList, dict) or len(argTypeList) != 0)):
-            raise argInitializationException("(ArgFeeder) argTypeList must be "
-                                             "a valid instance of an ordered "
-                                             "dictionnary")
+    def __init__(self, arg_type_list):
+        # take an ordered dict as arg_type_list parameter
+        if (not isinstance(arg_type_list, OrderedDict) and
+           (not isinstance(arg_type_list, dict) or len(arg_type_list) != 0)):
+            raise ArgInitializationException("(ArgFeeder) arg_type_list must "
+                                             "be a valid instance of an "
+                                             "ordered dictionnary")
 
-        self.argTypeList = argTypeList
+        self.arg_type_list = arg_type_list
 
     def manageMappedArg(self, name, checker, args):
-        if checker.maximumSize is not None and len(args) > checker.maximumSize:
-            args = args[:checker.maximumSize]
+        if (checker.maximum_size is not None and
+           len(args) > checker.maximum_size):
+            args = args[:checker.maximum_size]
 
-        if checker.minimumSize is not None and len(args) < checker.minimumSize:
-            raise argException("(ArgFeeder) not enough data for the dash "
+        if (checker.minimum_size is not None and
+           len(args) < checker.minimum_size):
+            raise ArgException("(ArgFeeder) not enough data for the dash "
                                "mapped argument '"+name+"', expected at least"
-                               " '"+str(checker.minimumSize)+"', got '" +
+                               " '"+str(checker.minimum_size)+"', got '" +
                                str(len(args))+"'")
 
-        if checker.minimumSize == checker.maximumSize == 1:
+        if checker.minimum_size == checker.maximum_size == 1:
             args = args[0]
 
         return checker.getValue(args, None, name)
 
     #
-    # @argsList, une liste de n'importe quoi
+    # @args_list, une liste de n'importe quoi
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     #
-    def checkArgs(self, argsList, mappedArgs={}, engine=None):
-        if not hasattr(argsList, "__iter__"):
-            # argsList must be a string
-            # if type(argsList) != str and type(argsList) != unicode:
-            #    raise argException("(ArgFeeder) string list was expected,
-            #    got "+str(type(argsList)))
+    def checkArgs(self, args_list, mapped_args={}, engine=None):
+        if not hasattr(args_list, "__iter__"):
+            # args_list must be a string
+            # if type(args_list) != str and type(args_list) != unicode:
+            #    raise ArgException("(ArgFeeder) string list was expected,
+            #    got "+str(type(args_list)))
 
-            # argsList = [argsList]
-            argsList = (argsList,)
+            # args_list = [args_list]
+            args_list = (args_list,)
             # no need to check the other args, they will be checked into the
             # argcheckers
 
         ret = {}
-        argCheckerIndex = 0
-        dataIndex = 0
+        arg_checker_index = 0
+        data_index = 0
 
-        for (name, checker) in self.argTypeList.iteritems():
+        for (name, checker) in self.arg_type_list.items():
             # set the engine
             checker.setEngine(engine)
 
             # is it a mapped args ?
-            if name in mappedArgs:
+            if name in mapped_args:
                 ret[name] = self.manageMappedArg(name,
                                                  checker,
-                                                 mappedArgs[name])
-                argCheckerIndex += 1
+                                                 mapped_args[name])
+                arg_checker_index += 1
                 continue
 
             # is there a minimum limit
-            if checker.minimumSize is not None:
-                # is there at least minimumSize item in the data stream?
-                if len(argsList[dataIndex:]) < checker.minimumSize:
+            if checker.minimum_size is not None:
+                # is there at least minimum_size item in the data stream?
+                if len(args_list[data_index:]) < checker.minimum_size:
                     # no more string token, end of stream ?
-                    if len(argsList[dataIndex:]) == 0:
+                    if len(args_list[data_index:]) == 0:
                         # we will check if there is some default value
                         break
                     else:
                         # there are data but not enough
-                        raise argException("(ArgFeeder) not enough data for "
+                        raise ArgException("(ArgFeeder) not enough data for "
                                            "the argument '"+name+"'")
 
             # is there a maximum limit?
-            if checker.maximumSize is None:
+            if checker.maximum_size is None:
                 # No max limit, it consumes all remaining data
-                ret[name] = checker.getValue(argsList[dataIndex:],
-                                             dataIndex,
+                ret[name] = checker.getValue(args_list[data_index:],
+                                             data_index,
                                              name)
                 # will not stop the loop but will notify that every data has
                 # been consumed
-                dataIndex = len(argsList)
+                data_index = len(args_list)
             else:
                 # special case: checker only need one item? (most common case)
-                if (checker.minimumSize is not None and
-                   checker.minimumSize == checker.maximumSize == 1):
-                    maxIndex = dataIndex+checker.maximumSize
-                    value = argsList[dataIndex:maxIndex][0]
+                if (checker.minimum_size is not None and
+                   checker.minimum_size == checker.maximum_size == 1):
+                    max_index = data_index+checker.maximum_size
+                    value = args_list[data_index:max_index][0]
                 else:
-                    maxIndex = dataIndex+checker.maximumSize
-                    value = argsList[dataIndex:maxIndex]
+                    max_index = data_index+checker.maximum_size
+                    value = args_list[data_index:max_index]
 
-                ret[name] = checker.getValue(value, dataIndex, name)
-                dataIndex += checker.maximumSize
+                ret[name] = checker.getValue(value, data_index, name)
+                data_index += checker.maximum_size
 
-            argCheckerIndex += 1
+            arg_checker_index += 1
 
         # MORE THAN THE LAST ARG CHECKER HAVEN'T BEEN CONSUMED YET
-        items_list = list(self.argTypeList.items())
-        for i in range(argCheckerIndex, len(self.argTypeList)):
+        items_list = list(self.arg_type_list.items())
+        for i in range(arg_checker_index, len(self.arg_type_list)):
             (name, checker) = items_list[i]
             checker.setEngine(engine)
 
             # is it a mapped args ?
-            if name in mappedArgs:
+            if name in mapped_args:
                 ret[name] = self.manageMappedArg(name,
                                                  checker,
-                                                 mappedArgs[name])
+                                                 mapped_args[name])
                 continue
 
             # is there a default value ?
             if not checker.hasDefaultValue(name):
-                raise argException("(ArgFeeder) some arguments aren't "
+                raise ArgException("(ArgFeeder) some arguments aren't "
                                    "bounded, missing data : '"+name+"'")
 
             ret[name] = checker.getDefaultValue(name)
 
-        # don't care about unused data in argsList, if every parameter are
+        # don't care about unused data in args_list, if every parameter are
         # binded, we are happy :)
 
         return ret
 
     def usage(self):
-        if len(self.argTypeList) == 0:
+        if len(self.arg_type_list) == 0:
             return "no args needed"
 
         ret = ""
-        firstMandatory = False
-        for (name, checker) in self.argTypeList.iteritems():
-            if not checker.showInUsage:
+        first_mandatory = False
+        for (name, checker) in self.arg_type_list.items():
+            if not checker.show_in_usage:
                 continue
 
-            if checker.hasDefaultValue(name) and not firstMandatory:
+            if checker.hasDefaultValue(name) and not first_mandatory:
                 ret += "["
-                firstMandatory = True
+                first_mandatory = True
 
             ret += name+":"+checker.getUsage()+" "
 
         ret = ret.strip()
 
-        if firstMandatory:
+        if first_mandatory:
             ret += "]"
 
         return ret

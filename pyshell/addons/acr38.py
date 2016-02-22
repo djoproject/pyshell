@@ -18,10 +18,10 @@
 
 from apdu.readers.acr38u import acr38uAPDUBuilder
 
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import listArgChecker
-from pyshell.arg.argchecker import tokenValueArgChecker
+from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.argchecker import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import EngineInterruptionException
 from pyshell.loader.command import registerCommand
@@ -29,8 +29,8 @@ from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerSetTempPrefix
 
 
-@shellMethod(anything=listArgChecker(
-    defaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(anything=ListArgChecker(
+    DefaultInstanceArgChecker.getArgCheckerInstance()))
 def stopAsMainProcess(anything):
     # TODO in place of printing an error, print a description of the apdu
     # (class, ins, length, ...)
@@ -40,7 +40,7 @@ def stopAsMainProcess(anything):
     raise EngineInterruptionException(excmsg, False)
 
 
-@shellMethod(card_type=tokenValueArgChecker(acr38uAPDUBuilder.SELECT_TYPE))
+@shellMethod(card_type=TokenValueArgChecker(acr38uAPDUBuilder.SELECT_TYPE))
 def selectFun(card_type="AUTO"):
     return acr38uAPDUBuilder.selectType(card_type)
 
@@ -49,12 +49,12 @@ def selectFun(card_type="AUTO"):
 def readFun(address = 0, length = 0):
     return acr38uAPDUBuilder.read(address, length)
 
-@shellMethod(datas   = listArgChecker(IntegerArgChecker(0,255)),
+@shellMethod(datas   = ListArgChecker(IntegerArgChecker(0,255)),
              address = IntegerArgChecker(0,65535))
 def writeFun(datas, address=0):
     return acr38uAPDUBuilder.write(address, datas)
 
-@shellMethod(pin = listArgChecker(IntegerArgChecker(0,255),2,2))
+@shellMethod(pin = ListArgChecker(IntegerArgChecker(0,255),2,2))
 def checkPin(pin):
     return acr38uAPDUBuilder.checkPinCode(pin)"""
 
@@ -62,14 +62,14 @@ def checkPin(pin):
 # # I2C # #
 # TODO should be splited into 16k and 1024k ???
 
-@shellMethod(card_type=tokenValueArgChecker(
+@shellMethod(card_type=TokenValueArgChecker(
     {"I2C_1KTO16K": acr38uAPDUBuilder.TYPE_I2C_1KTO16K,
      "I2C_32KTO1024K": acr38uAPDUBuilder.TYPE_I2C_32KTO1024K}))
 def i2cSelect(card_type="I2C_1KTO16K"):
     return acr38uAPDUBuilder.selectType(card_type)
 
 
-@shellMethod(size=tokenValueArgChecker(acr38uAPDUBuilder.I2C_PAGE_SIZE))
+@shellMethod(size=TokenValueArgChecker(acr38uAPDUBuilder.I2C_PAGE_SIZE))
 def i2cSelectPageSize(size="8BYTES"):
     return acr38uAPDUBuilder.I2C_selectPageSize(size)
 
@@ -81,7 +81,7 @@ def i2cRead(adress=0, length=0):
 
 
 @shellMethod(adress=IntegerArgChecker(0, 0x1ffff),
-             datas=listArgChecker(IntegerArgChecker(0, 255)))
+             datas=ListArgChecker(IntegerArgChecker(0, 255)))
 def i2cWrite(datas, adress=0):
     return acr38uAPDUBuilder.write(adress, datas)
 

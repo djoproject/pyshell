@@ -59,6 +59,7 @@ class VariableGlobalSettings(GlobalSettings, VariableSettings):
         pass
 
 
+# TODO rename to VariableParameter
 class VarParameter(EnvironmentParameter):
     @staticmethod
     def getInitSettings():

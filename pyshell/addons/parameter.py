@@ -21,12 +21,12 @@
 
 import os
 
-from pyshell.arg.argchecker import booleanValueArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker as defaultArgs
-from pyshell.arg.argchecker import environmentParameterChecker
-from pyshell.arg.argchecker import listArgChecker
-from pyshell.arg.argchecker import stringArgChecker
-from pyshell.arg.argchecker import tokenValueArgChecker
+from pyshell.arg.argchecker import BooleanValueArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker as DefaultArgs
+from pyshell.arg.argchecker import EnvironmentParameterChecker
+from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.argchecker import StringArgChecker
+from pyshell.arg.argchecker import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetTempPrefix
@@ -52,28 +52,28 @@ from pyshell.utils.printing import formatOrange
 # # CONSTANT SECTION # #
 
 AVAILABLE_TYPE = {
-    "any":  defaultArgs.getArgCheckerInstance,
-    "string":  defaultArgs.getStringArgCheckerInstance,
-    "integer":  defaultArgs.getIntegerArgCheckerInstance,
-    "boolean":  defaultArgs.getbooleanValueArgCheckerInstance,
-    "float":  defaultArgs.getFloatTokenArgCheckerInstance,
-    "filePath":  defaultArgs.getFileChecker}
+    "any":  DefaultArgs.getArgCheckerInstance,
+    "string":  DefaultArgs.getStringArgCheckerInstance,
+    "integer":  DefaultArgs.getIntegerArgCheckerInstance,
+    "boolean":  DefaultArgs.getBooleanValueArgCheckerInstance,
+    "float":  DefaultArgs.getFloatTokenArgCheckerInstance,
+    "filePath":  DefaultArgs.getFileChecker}
 
 ENVIRONMENT_SET_PROPERTIES = {
     "readOnly": ("setReadOnly",
-                 defaultArgs.getbooleanValueArgCheckerInstance(),),
+                 DefaultArgs.getBooleanValueArgCheckerInstance(),),
     "removable": ("setRemovable",
-                  defaultArgs.getbooleanValueArgCheckerInstance(),),
+                  DefaultArgs.getBooleanValueArgCheckerInstance(),),
     "transient": ("setTransient",
-                  defaultArgs.getbooleanValueArgCheckerInstance(),)}
+                  DefaultArgs.getBooleanValueArgCheckerInstance(),)}
 
 CONTEXT_SET_PROPERTIES = {
     "transientIndex": ("setTransientIndex",
-                       defaultArgs.getbooleanValueArgCheckerInstance(),),
+                       DefaultArgs.getBooleanValueArgCheckerInstance(),),
     "defaultIndex": ("setDefaultIndex",
-                     defaultArgs.getIntegerArgCheckerInstance(),),
+                     DefaultArgs.getIntegerArgCheckerInstance(),),
     "index": ("setIndex",
-              defaultArgs.getIntegerArgCheckerInstance(),)}
+              DefaultArgs.getIntegerArgCheckerInstance(),)}
 CONTEXT_SET_PROPERTIES.update(ENVIRONMENT_SET_PROPERTIES)
 
 ENVIRONMENT_GET_PROPERTIES = {"readOnly": "isReadOnly",
@@ -265,8 +265,8 @@ def _parameterGetTitle(title_formating_fun):
 
 
 @shellMethod(
-    parameters=defaultArgs.getCompleteEnvironmentChecker(),
-    key=stringArgChecker())
+    parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+    key=StringArgChecker())
 def listParameter(parameters, key=None):
     to_print = []
     for subcontainername in parameters.parameterManagerList:
@@ -285,8 +285,8 @@ def listParameter(parameters, key=None):
 
 
 @shellMethod(
-    file_path=environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
-    parameters=defaultArgs.getCompleteEnvironmentChecker())
+    file_path=EnvironmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
+    parameters=DefaultArgs.getCompleteEnvironmentChecker())
 def loadParameter(file_path, parameters):
     "load parameters from the settings file"
 
@@ -307,8 +307,8 @@ def loadParameter(file_path, parameters):
 
 
 @shellMethod(
-    file_path=environmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
-    parameters=defaultArgs.getCompleteEnvironmentChecker())
+    file_path=EnvironmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
+    parameters=DefaultArgs.getCompleteEnvironmentChecker())
 def saveParameter(file_path, parameters):
     "save not transient parameters to the settings file"
 
@@ -416,7 +416,7 @@ def _createValuesFun(value_type,
 
     # build checker
     if list_enabled:
-        checker = listArgChecker(value_type(), 1)
+        checker = ListArgChecker(value_type(), 1)
     else:
         checker = value_type()
 
@@ -438,11 +438,11 @@ def _createValuesFun(value_type,
 # ################################### env management###########################
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def subtractEnvironmentValuesFun(key,
                                  values,
                                  parameters,
@@ -457,10 +457,10 @@ def subtractEnvironmentValuesFun(key,
     param.removeValues(values)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def removeEnvironmentContextValues(key,
                                    parameters,
                                    start_with_local=True,
@@ -473,10 +473,10 @@ def removeEnvironmentContextValues(key,
                     explore_other_level)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def getEnvironmentValues(key,
                          parameters,
                          start_with_local=True,
@@ -489,11 +489,11 @@ def getEnvironmentValues(key,
                         explore_other_level).getValue()
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance(), 1),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance(), 1),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def setEnvironmentValuesFun(key,
                             values,
                             parameters,
@@ -513,13 +513,13 @@ def setEnvironmentValuesFun(key,
         env_param.setValue(values[0])
 
 
-@shellMethod(value_type=tokenValueArgChecker(AVAILABLE_TYPE),
-             key=defaultArgs.getStringArgCheckerInstance(),
-             value=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             is_list=booleanValueArgChecker(),
-             no_creation_if_exist=booleanValueArgChecker(),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             local_var=booleanValueArgChecker())
+@shellMethod(value_type=TokenValueArgChecker(AVAILABLE_TYPE),
+             key=DefaultArgs.getStringArgCheckerInstance(),
+             value=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             is_list=BooleanValueArgChecker(),
+             no_creation_if_exist=BooleanValueArgChecker(),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             local_var=BooleanValueArgChecker())
 def createEnvironmentValueFun(value_type,
                               key,
                               value,
@@ -539,11 +539,11 @@ def createEnvironmentValueFun(value_type,
                      local_var)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def addEnvironmentValuesFun(key,
                             values,
                             parameters,
@@ -574,10 +574,10 @@ def _envGetTitle(title_formating_fun):
             title_formating_fun("Value(s)"),)
 
 
-@shellMethod(parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             key=stringArgChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             key=StringArgChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def listEnvs(parameter,
              key=None,
              start_with_local=True,
@@ -592,12 +592,12 @@ def listEnvs(parameter,
                         explore_other_level)
 
 
-@shellMethod(key=stringArgChecker(),
-             property_name=tokenValueArgChecker(ENVIRONMENT_SET_PROPERTIES),
-             property_value=defaultArgs.getbooleanValueArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=StringArgChecker(),
+             property_name=TokenValueArgChecker(ENVIRONMENT_SET_PROPERTIES),
+             property_value=DefaultArgs.getBooleanValueArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def setEnvironmentProperties(key,
                              property_name,
                              property_value,
@@ -614,11 +614,11 @@ def setEnvironmentProperties(key,
                   explore_other_level)
 
 
-@shellMethod(key=stringArgChecker(),
-             property_name=tokenValueArgChecker(ENVIRONMENT_GET_PROPERTIES),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=StringArgChecker(),
+             property_name=TokenValueArgChecker(ENVIRONMENT_GET_PROPERTIES),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def getEnvironmentProperties(key,
                              property_name,
                              parameter,
@@ -633,10 +633,10 @@ def getEnvironmentProperties(key,
                          explore_other_level)
 
 
-@shellMethod(key=stringArgChecker(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=StringArgChecker(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def listEnvironmentProperties(key,
                               parameter,
                               start_with_local=True,
@@ -651,11 +651,11 @@ def listEnvironmentProperties(key,
 # ################################### context management ######################
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def subtractContextValuesFun(key,
                              values,
                              parameters,
@@ -670,12 +670,12 @@ def subtractContextValuesFun(key,
     param.removeValues(values)
 
 
-@shellMethod(value_type=tokenValueArgChecker(AVAILABLE_TYPE),
-             key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             no_creation_if_exist=booleanValueArgChecker(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             local_var=booleanValueArgChecker())
+@shellMethod(value_type=TokenValueArgChecker(AVAILABLE_TYPE),
+             key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             no_creation_if_exist=BooleanValueArgChecker(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             local_var=BooleanValueArgChecker())
 def createContextValuesFun(value_type,
                            key,
                            values,
@@ -694,10 +694,10 @@ def createContextValuesFun(value_type,
                      local_var)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def removeContextValues(key,
                         parameter,
                         start_with_local=True,
@@ -710,10 +710,10 @@ def removeContextValues(key,
                     explore_other_level)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def getContextValues(key,
                      parameter,
                      start_with_local=True,
@@ -725,11 +725,11 @@ def getContextValues(key,
                         start_with_local, explore_other_level).getValue()
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance(), 1),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance(), 1),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def setContextValuesFun(key,
                         values,
                         parameter,
@@ -743,11 +743,11 @@ def setContextValuesFun(key,
                  explore_other_level).setValue(values)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             parameters=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def addContextValuesFun(key,
                         values,
                         parameters,
@@ -762,11 +762,11 @@ def addContextValuesFun(key,
     param.addValues(values)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             value=defaultArgs.getArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             value=DefaultArgs.getArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def selectValue(key,
                 value,
                 parameter,
@@ -780,11 +780,11 @@ def selectValue(key,
                  explore_other_level).settings.setIndexValue(value)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             index=defaultArgs.getIntegerArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             index=DefaultArgs.getIntegerArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def selectValueIndex(key,
                      index,
                      parameter,
@@ -798,10 +798,10 @@ def selectValueIndex(key,
                  explore_other_level).settings.setIndex(index)
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def getSelectedContextValue(key,
                             parameter,
                             start_with_local=True,
@@ -814,10 +814,10 @@ def getSelectedContextValue(key,
                         explore_other_level).getSelectedValue()
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def getSelectedContextIndex(key,
                             parameter,
                             start_with_local=True,
@@ -844,10 +844,10 @@ def _conGetTitle(title_formating_fun):
             title_formating_fun("Values"), )
 
 
-@shellMethod(parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             key=stringArgChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             key=StringArgChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def listContexts(parameter,
                  key=None,
                  start_with_local=True,
@@ -861,12 +861,12 @@ def listContexts(parameter,
                         explore_other_level)
 
 
-@shellMethod(key=stringArgChecker(),
-             property_name=tokenValueArgChecker(CONTEXT_SET_PROPERTIES),
-             property_value=defaultArgs.getArgCheckerInstance(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=StringArgChecker(),
+             property_name=TokenValueArgChecker(CONTEXT_SET_PROPERTIES),
+             property_value=DefaultArgs.getArgCheckerInstance(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def setContextProperties(key,
                          property_name,
                          property_value,
@@ -883,11 +883,11 @@ def setContextProperties(key,
                   explore_other_level)
 
 
-@shellMethod(key=stringArgChecker(),
-             property_name=tokenValueArgChecker(CONTEXT_GET_PROPERTIES),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=StringArgChecker(),
+             property_name=TokenValueArgChecker(CONTEXT_GET_PROPERTIES),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def getContextProperties(key,
                          property_name,
                          parameter,
@@ -902,10 +902,10 @@ def getContextProperties(key,
                          explore_other_level)
 
 
-@shellMethod(key=stringArgChecker(),
-             parameter=defaultArgs.getCompleteEnvironmentChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=StringArgChecker(),
+             parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def listContextProperties(key,
                           parameter,
                           start_with_local=True,
@@ -922,11 +922,11 @@ def listContextProperties(key,
 # beginning OF POC
 
 
-@shellMethod(key=defaultArgs.getStringArgCheckerInstance(),
-             values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             engine=defaultArgs.getEngineChecker(),
-             start_with_local=booleanValueArgChecker(),
-             explore_other_level=booleanValueArgChecker())
+@shellMethod(key=DefaultArgs.getStringArgCheckerInstance(),
+             values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             engine=DefaultArgs.getEngineChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_level=BooleanValueArgChecker())
 def preAddValues(key, values, engine=None,
                  start_with_local=True, explore_other_level=True):
 
@@ -939,8 +939,8 @@ def preAddValues(key, values, engine=None,
     return values
 
 
-@shellMethod(values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-             engine=defaultArgs.getEngineChecker())
+@shellMethod(values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+             engine=DefaultArgs.getEngineChecker())
 def proAddValues(values, engine):
 
     # if no previous command, default behaviour
@@ -964,9 +964,9 @@ def proAddValues(values, engine):
 
 
 @shellMethod(
-    values=listArgChecker(defaultArgs.getArgCheckerInstance()),
-    parameters=defaultArgs.getCompleteEnvironmentChecker(),
-    engine=defaultArgs.getEngineChecker())
+    values=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+    parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+    engine=DefaultArgs.getEngineChecker())
 def postAddValues(values, parameters=None, engine=None):
     "add values to a var"
 
@@ -997,12 +997,12 @@ def postAddValues(values, parameters=None, engine=None):
 
 
 @shellMethod(
-    key=defaultArgs.getStringArgCheckerInstance(),
-    values=listArgChecker(
-         defaultArgs.getArgCheckerInstance()),
-    parameters=defaultArgs.getCompleteEnvironmentChecker(),
-    start_with_local=booleanValueArgChecker(),
-    explore_other_level=booleanValueArgChecker())
+    key=DefaultArgs.getStringArgCheckerInstance(),
+    values=ListArgChecker(
+         DefaultArgs.getArgCheckerInstance()),
+    parameters=DefaultArgs.getCompleteEnvironmentChecker(),
+    start_with_local=BooleanValueArgChecker(),
+    explore_other_level=BooleanValueArgChecker())
 def subtractValuesVar(key, values, parameters=None,
                       start_with_local=True, explore_other_level=True):
     "remove existing value from a variable, remove first occurence met"
@@ -1016,21 +1016,21 @@ def subtractValuesVar(key, values, parameters=None,
 
 
 @shellMethod(
-    key=defaultArgs.getStringArgCheckerInstance(),
-    values=listArgChecker(
-         defaultArgs.getArgCheckerInstance()),
-    parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    local_var=booleanValueArgChecker())
+    key=DefaultArgs.getStringArgCheckerInstance(),
+    values=ListArgChecker(
+         DefaultArgs.getArgCheckerInstance()),
+    parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+    local_var=BooleanValueArgChecker())
 def setVar(key, values, parameter, local_var=True):
     "assign a value to a variable"
     parameter.variable.setParameter(key, VarParameter(values), local_var)
 
 
 @shellMethod(
-    key=defaultArgs.getStringArgCheckerInstance(),
-    parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    start_with_local=booleanValueArgChecker(),
-    explore_other_level=booleanValueArgChecker())
+    key=DefaultArgs.getStringArgCheckerInstance(),
+    parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+    start_with_local=BooleanValueArgChecker(),
+    explore_other_level=BooleanValueArgChecker())
 def getVar(key, parameter, start_with_local=True, explore_other_level=True):
     "get the value of a variable"
     return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME,
@@ -1038,10 +1038,10 @@ def getVar(key, parameter, start_with_local=True, explore_other_level=True):
 
 
 @shellMethod(
-    key=defaultArgs.getStringArgCheckerInstance(),
-    parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    start_with_local=booleanValueArgChecker(),
-    explore_other_level=booleanValueArgChecker())
+    key=DefaultArgs.getStringArgCheckerInstance(),
+    parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+    start_with_local=BooleanValueArgChecker(),
+    explore_other_level=BooleanValueArgChecker())
 def unsetVar(key, parameter, start_with_local=True, explore_other_level=True):
     "unset a variable, no error if does not exist"
     removeParameter(
@@ -1062,10 +1062,10 @@ def _varGetTitle(title_formating_fun):
 
 
 @shellMethod(
-    parameter=defaultArgs.getCompleteEnvironmentChecker(),
-    key=stringArgChecker(),
-    start_with_local=booleanValueArgChecker(),
-    explore_other_level=booleanValueArgChecker())
+    parameter=DefaultArgs.getCompleteEnvironmentChecker(),
+    key=StringArgChecker(),
+    start_with_local=BooleanValueArgChecker(),
+    explore_other_level=BooleanValueArgChecker())
 def listVars(parameter,
              key=None,
              start_with_local=True,

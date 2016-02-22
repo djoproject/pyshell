@@ -19,38 +19,36 @@
 # TODO
 #   use wraps https://docs.python.org/2/library/functools.html#functools.wraps
 
-from pyshell.arg.argchecker import ArgChecker, defaultValueChecker, \
-                                   defaultInstanceArgChecker
-from pyshell.arg.argfeeder import ArgFeeder
-from pyshell.arg.exception import decoratorException
-
 import inspect
 import types
-import sys
 
-if (sys.version_info[0] < 2 or
-   (sys.version_info[0] < 3 and sys.version_info[0] < 7)):
-    # TODO get from pipy, so the import path will change
-    from pyshell.utils.ordereddict import OrderedDict
-else:
+from pyshell.arg.argchecker import ArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import DefaultValueChecker
+from pyshell.arg.argfeeder import ArgFeeder
+from pyshell.arg.exception import DecoratorException
+
+try:
     from collections import OrderedDict
+except:
+    from pyshell.utils.ordereddict import OrderedDict
 
 
-class _C(object):
+class _Class(object):
 
     @staticmethod
-    def _m(self):
+    def _method(self):
         pass
 
-    staticMethType = type(_m)
-staticMethType = _C.staticMethType
+    staticMethType = type(_method)
+staticMethType = _Class.staticMethType
 
 # #############################################################################
 # #### UTIL FUNCTION ##########################################################
 # #############################################################################
 
 
-class funAnalyser(object):
+class FunAnalyser(object):
     def __init__(self, fun):
         # is a function ?
         # TODO manage every function case ? difference between python2
@@ -60,7 +58,7 @@ class funAnalyser(object):
            not isinstance(fun, types.InstanceType) and
            not isinstance(fun, types.ClassType) and
            not isinstance(fun, types.FunctionType)):
-            raise decoratorException("(funAnalyser) init faile, need a "
+            raise DecoratorException("(FunAnalyser) init faile, need a "
                                      "function instance, got '" +
                                      str(type(fun))+"'")
 
@@ -73,37 +71,37 @@ class funAnalyser(object):
         else:
             self.lendefault = len(self.inspect_result.defaults)
 
-    def has_default(self, argname):
+    def hasDefault(self, argname):
         # existing argument ?
         if argname not in self.inspect_result.args:
-            raise decoratorException("(decorator) unknonw argument '" +
+            raise DecoratorException("(decorator) unknonw argument '" +
                                      str(argname)+"' at function '" +
                                      self.fun.__name__+"'")
 
         return not ((self.inspect_result.args.index(argname) <
                     (len(self.inspect_result.args) - self.lendefault)))
 
-    def get_default(self, argname):
+    def getDefault(self, argname):
         # existing argument ?
         if argname not in self.inspect_result.args:
-            raise decoratorException("(decorator) unknonw argument '" +
+            raise DecoratorException("(decorator) unknonw argument '" +
                                      str(argname)+"' at function '" +
                                      self.fun.__name__+"'")
 
         index = self.inspect_result.args.index(argname)
         if not (index < (len(self.inspect_result.args) - self.lendefault)):
-            indexToReturn = (index -
-                             (len(self.inspect_result.args) -
-                              len(self.inspect_result.defaults)))
-            return self.inspect_result.defaults[indexToReturn]
+            index_to_return = (index -
+                               (len(self.inspect_result.args) -
+                                len(self.inspect_result.defaults)))
+            return self.inspect_result.defaults[index_to_return]
 
-        raise decoratorException("(decorator) no default value to the "
+        raise DecoratorException("(decorator) no default value to the "
                                  "argument '"+str(argname)+"' at function '" +
                                  self.fun.__name__+"'")
 
     def setCheckerDefault(self, argname, checker):
-        if self.has_default(argname):
-            checker.setDefaultValue(self.get_default(argname), argname)
+        if self.hasDefault(argname):
+            checker.setDefaultValue(self.getDefault(argname), argname)
 
         return checker
 
@@ -120,13 +118,13 @@ def defaultMethod(state=True):
     return decorator
 
 
-def shellMethod(**argList):
+def shellMethod(**arg_list):
     # no need to check collision key, it's a dictionary
 
     # check the checkers
-    for key, checker in argList.iteritems():
+    for key, checker in arg_list.items():
         if not isinstance(checker, ArgChecker):
-            raise decoratorException("(shellMethod decorator) the checker "
+            raise DecoratorException("(shellMethod decorator) the checker "
                                      "linked to the key '"+key+"' is not an "
                                      "instance of ArgChecker")
 
@@ -134,14 +132,14 @@ def shellMethod(**argList):
     def decorator(fun):
         # is there already a decorator ?
         if hasattr(fun, "checker"):
-            raise decoratorException("(decorator) the function '" +
+            raise DecoratorException("(decorator) the function '" +
                                      fun.__name__+"' has already a "
                                      "shellMethod decorator")
 
         # inspect the function
-        analyzed_fun = funAnalyser(fun)
+        analyzed_fun = FunAnalyser(fun)
 
-        argCheckerList = OrderedDict()
+        arg_checker_list = OrderedDict()
         for i in range(0, len(analyzed_fun.inspect_result.args)):
             # for argname in analyzed_fun.inspect_result.args:
             argname = analyzed_fun.inspect_result.args[i]
@@ -155,30 +153,30 @@ def shellMethod(**argList):
                    frames[2][4][0].strip().startswith('class ')):
                     continue
 
-            if argname in argList:  # check if the argname is in the argList
-                checker = argList[argname]
-                del argList[argname]
-                argCheckerList[argname] = \
+            if argname in arg_list:  # check if the argname is in the arg_list
+                checker = arg_list[argname]
+                del arg_list[argname]
+                arg_checker_list[argname] = \
                     analyzed_fun.setCheckerDefault(argname, checker)
 
             # check if the arg has a DEFAULT value
-            elif analyzed_fun.has_default(argname):
-                argCheckerList[argname] = \
-                    defaultValueChecker(analyzed_fun.get_default(argname))
+            elif analyzed_fun.hasDefault(argname):
+                arg_checker_list[argname] = \
+                    DefaultValueChecker(analyzed_fun.getDefault(argname))
             else:
-                argCheckerList[argname] = \
-                    defaultInstanceArgChecker.getArgCheckerInstance()
+                arg_checker_list[argname] = \
+                    DefaultInstanceArgChecker.getArgCheckerInstance()
 
         # All the key are used in the function call?
-        keys = argList.keys()
+        keys = arg_list.keys()
         if len(keys) > 0:
-            string = ",".join(argList.keys())
-            raise decoratorException("(shellMethod decorator) the following "
+            string = ",".join(arg_list.keys())
+            raise DecoratorException("(shellMethod decorator) the following "
                                      "key(s) had no match in the function "
                                      "prototype : '"+string+"'")
 
         # set the checker on the function
-        fun.checker = ArgFeeder(argCheckerList)
+        fun.checker = ArgFeeder(arg_checker_list)
         return fun
 
     return decorator

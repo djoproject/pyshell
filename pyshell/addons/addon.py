@@ -24,10 +24,10 @@
 import os
 import traceback
 
-from pyshell.arg.argchecker import completeEnvironmentChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import environmentParameterChecker
-from pyshell.arg.argchecker import stringArgChecker
+from pyshell.arg.argchecker import CompleteEnvironmentChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import EnvironmentParameterChecker
+from pyshell.arg.argchecker import StringArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
@@ -101,7 +101,7 @@ def _formatState(state, printok, printwarning, printerror):
         return printerror(state)
 
 
-@shellMethod(addon_dico=environmentParameterChecker(ADDONLIST_KEY))
+@shellMethod(addon_dico=EnvironmentParameterChecker(ADDONLIST_KEY))
 def listAddonFun(addon_dico):
     "list the available addons"
 
@@ -147,9 +147,9 @@ def listAddonFun(addon_dico):
     return l
 
 
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=stringArgChecker(),
-             parameters=completeEnvironmentChecker())
+@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             sub_addon=StringArgChecker(),
+             parameters=CompleteEnvironmentChecker())
 def unloadAddon(name, parameters, sub_addon=None):
     "unload an addon"
 
@@ -158,9 +158,9 @@ def unloadAddon(name, parameters, sub_addon=None):
     notice(str(name) + " unloaded !")
 
 
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=stringArgChecker(),
-             parameters=completeEnvironmentChecker())
+@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             sub_addon=StringArgChecker(),
+             parameters=CompleteEnvironmentChecker())
 def reloadAddon(name, parameters, sub_addon=None):
     "reload an addon from memory"
 
@@ -169,9 +169,9 @@ def reloadAddon(name, parameters, sub_addon=None):
     notice(str(name) + " reloaded !")
 
 
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=stringArgChecker(),
-             parameters=completeEnvironmentChecker())
+@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             sub_addon=StringArgChecker(),
+             parameters=CompleteEnvironmentChecker())
 def loadAddonFun(name, parameters, sub_addon=None):
     "load an addon"
 
@@ -188,9 +188,9 @@ def loadAddonFun(name, parameters, sub_addon=None):
     notice(name + " loaded !")
 
 
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=stringArgChecker(),
-             parameters=completeEnvironmentChecker())
+@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             sub_addon=StringArgChecker(),
+             parameters=CompleteEnvironmentChecker())
 def hardReload(name, parameters, sub_addon=None):
     "reload an addon from file"
 
@@ -211,9 +211,9 @@ def hardReload(name, parameters, sub_addon=None):
     notice(name + " hard reloaded !")
 
 
-@shellMethod(name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-             addon_dico=environmentParameterChecker(ADDONLIST_KEY),
-             tabsize=environmentParameterChecker(ENVIRONMENT_TAB_SIZE_KEY))
+@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+             addon_dico=EnvironmentParameterChecker(ADDONLIST_KEY),
+             tabsize=EnvironmentParameterChecker(ENVIRONMENT_TAB_SIZE_KEY))
 def getAddonInformation(name, addon_dico, tabsize, ):
     "print all available information about an addon"
 
@@ -280,10 +280,10 @@ def getAddonInformation(name, addon_dico, tabsize, ):
 
 
 @shellMethod(
-    name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    sub_loader_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    sub_addon=stringArgChecker(),
-    parameters=completeEnvironmentChecker())
+    name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    sub_loader_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    sub_addon=StringArgChecker(),
+    parameters=CompleteEnvironmentChecker())
 def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
     "reload a profile of an addon from memory"
 
@@ -317,8 +317,8 @@ def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
 
 
 @shellMethod(
-    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addon_list_on_start_up=environmentParameterChecker(
+    addon_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=EnvironmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def addOnStartUp(addon_name, addon_list_on_start_up):
     "add an addon loading on startup"
@@ -334,8 +334,8 @@ def addOnStartUp(addon_name, addon_list_on_start_up):
 
 
 @shellMethod(
-    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addon_list_on_start_up=environmentParameterChecker(
+    addon_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=EnvironmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def removeOnStartUp(addon_name, addon_list_on_start_up):
     "remove an addon loading from startup"
@@ -347,7 +347,7 @@ def removeOnStartUp(addon_name, addon_list_on_start_up):
         addon_list_on_start_up.setValue(addon_list)
 
 
-@shellMethod(addon_list_on_start_up=environmentParameterChecker(
+@shellMethod(addon_list_on_start_up=EnvironmentParameterChecker(
     ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def listOnStartUp(addon_list_on_start_up):
     "list addon enabled on startup"
@@ -366,8 +366,8 @@ def listOnStartUp(addon_list_on_start_up):
 
 
 @shellMethod(
-    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addon_list_on_start_up=environmentParameterChecker(
+    addon_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=EnvironmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def downAddonInList(addon_name, addon_list_on_start_up):
     "reduce the loading priority at startup for an addon"
@@ -383,8 +383,8 @@ def downAddonInList(addon_name, addon_list_on_start_up):
 
 
 @shellMethod(
-    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    addon_list_on_start_up=environmentParameterChecker(
+    addon_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    addon_list_on_start_up=EnvironmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def upAddonInList(addon_name, addon_list_on_start_up):
     "increase the loading priority at startup for an addon"
@@ -400,9 +400,9 @@ def upAddonInList(addon_name, addon_list_on_start_up):
 
 
 @shellMethod(
-    addon_name=defaultInstanceArgChecker.getStringArgCheckerInstance(),
-    position=defaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-    addon_list_on_start_up=environmentParameterChecker(
+    addon_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
+    position=DefaultInstanceArgChecker.getIntegerArgCheckerInstance(),
+    addon_list_on_start_up=EnvironmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY))
 def setAddonPositionInList(addon_name, position, addon_list_on_start_up):
     "set the loading position at startup for an addon"
@@ -417,9 +417,9 @@ def setAddonPositionInList(addon_name, position, addon_list_on_start_up):
 
 
 @shellMethod(
-    addon_list_on_start_up=environmentParameterChecker(
+    addon_list_on_start_up=EnvironmentParameterChecker(
         ENVIRONMENT_ADDON_TO_LOAD_KEY),
-    params=defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+    params=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
 def loadAddonOnStartUp(addon_list_on_start_up, params):
 
     addon_list = addon_list_on_start_up.getValue()

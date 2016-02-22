@@ -54,7 +54,7 @@ class Settings(object):
     def mergeFromPreviousSettings(self, parameter):
         pass
 
-    def getLoaderSet(self):
+    def getLoaders(self):
         return None
 
     def getProperties(self):
@@ -180,8 +180,14 @@ class GlobalSettings(LocalSettings):
         loader_set_hash = str(hash(self.loaderSet[loader_signature]))
         return hash(self_hash+loader_set_hash)
 
+    def addLoader(self, signature):
+        self.loaderSet[signature] = ()
+
     def getLoaders(self):
-        return self.loaderSet.keys()
+        if len(self.loaderSet.keys()) == 0:
+            return None
+
+        return tuple(self.loaderSet.keys())
 
     def isFantom(self):
         return len(self.loaderSet) == 0
@@ -206,12 +212,12 @@ class GlobalSettings(LocalSettings):
                                      "got '"+str(type(settings))+"'")
 
         # manage loader
-        other_loaders = settings.getLoaderSet()
+        other_loaders = settings.loaderSet
         if self.loaderSet is None:
             if other_loaders is not None:
-                self.loaderSet = set(other_loaders)
+                self.loaderSet = dict(other_loaders)
         elif other_loaders is not None:
-            self.loaderSet = self.loaderSet.union(other_loaders)
+            self.loaderSet.update(other_loaders)
 
         # manage origin
         self.startingHash = settings.startingHash

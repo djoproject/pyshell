@@ -19,8 +19,8 @@
 import sys
 
 from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
@@ -119,9 +119,9 @@ class Procedure(UniCommand):
         MultiCommand.addProcess(self, None, None, self._internalProcess)
 
     @shellMethod(
-        args=listArgChecker(
+        args=ListArgChecker(
             ArgChecker()),
-        parameters=defaultInstanceArgChecker.getCompleteEnvironmentChecker())
+        parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
     def _internalProcess(self, args, parameters):
         parameters.pushVariableLevelForThisThread(self)
 
@@ -310,11 +310,10 @@ class ProcedureFromList(Procedure):
         # for cmd in self.stringCmdList:
         i = 0
         while i < len(self.stringCmdList):
+            execution_name = self.name+" (index: "+str(i)+")"
             last_exception, engine = self._innerExecute(self.stringCmdList[i],
-                                                       self.name +
-                                                       " (index: " + str(i) +
-                                                       ")",
-                                                       parameters)
+                                                        execution_name,
+                                                        parameters)
 
             if self.nextCommandIndex is not None:
                 i = self.nextCommandIndex
@@ -503,10 +502,10 @@ class ProcedureFromFile(Procedure):
         index = 1
         with open(self.file_path) as f:
             for line in f:
-                execution_name = self.name + " (line: " + str(index) + ")"
+                execution_name = self.name+" (line: "+str(index)+")"
                 last_exception, engine = self._innerExecute(line,
-                                                           execution_name,
-                                                           parameters)
+                                                            execution_name,
+                                                            parameters)
                 index += 1
 
         # return the result of last command in the procedure

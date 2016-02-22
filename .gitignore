@@ -38,3 +38,5 @@ nosetests.xml
 testscript
 .DS_Store
 *test*
+.cache
+MANIFEST

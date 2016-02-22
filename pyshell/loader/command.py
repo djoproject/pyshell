@@ -181,7 +181,7 @@ class CommandLoader(AbstractLoader):
         exceptions = ListOfException()
 
         # add command
-        for key_list, cmdInfo in self.cmdDict.iteritems():
+        for key_list, cmdInfo in self.cmdDict.items():
             cmd, raise_if_exist, override = cmdInfo
             key = list(self.prefix)
             key.extend(key_list)

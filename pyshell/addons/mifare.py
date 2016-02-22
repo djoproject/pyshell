@@ -19,7 +19,7 @@
 from apdu.tag.mifareUltralight import MifareUltralightAPDUBuilder
 
 from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
@@ -43,7 +43,7 @@ def mifareUltraLightRead(sector=0):
 
 # TODO retry with LimitedInteger
 @shellMethod(sector=IntegerArgChecker(0),
-             data=listArgChecker(IntegerArgChecker(0, 255), 1))
+             data=ListArgChecker(IntegerArgChecker(0, 255), 1))
 def mifareUltraLightWrite(sector, data, compatibility=False):
     if compatibility:
         return MifareUltralightAPDUBuilder.CompatibilityWrite(data, sector)

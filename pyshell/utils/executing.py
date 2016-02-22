@@ -18,7 +18,7 @@
 
 import threading
 
-from pyshell.arg.exception import argException
+from pyshell.arg.exception import ArgException
 from pyshell.command.engine import EngineV3
 from pyshell.command.exception import CommandException
 from pyshell.command.exception import EngineInterruptionException
@@ -147,7 +147,7 @@ def _execute(parser, parameter_container, process_name=None):
             Solver().solve(parser, mltries, parameter_container.variable)
         # clone command/procedure to manage concurrency state
         new_raw_command_list = []
-        for i in xrange(0, len(rawCommandList)):
+        for i in range(0, len(rawCommandList)):
             c = rawCommandList[i].clone()
 
             # check if there is at least one empty command, if yes, raise
@@ -205,7 +205,7 @@ def _execute(parser, parameter_container, process_name=None):
             printException(ex,
                            prefix="Normal execution abort, reason: ",
                            suffix=suffix)
-    except argException as ex:
+    except ArgException as ex:
         printException(ex,
                        prefix="Error while parsing argument: ",
                        suffix=_generateSuffix(

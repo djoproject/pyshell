@@ -24,17 +24,17 @@
 
 #       need to refactore argFeeder before to do that
 
-from pyshell.arg.argchecker import booleanValueArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
+from tries import multiLevelTries
+from tries.exception import triesException
+
+from pyshell.arg.argchecker import BooleanValueArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.command.engine import EMPTY_MAPPED_ARGS
 from pyshell.system.parameter import ParameterManager
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import SYSTEM_ERROR
 from pyshell.utils.exception import USER_WARNING
 from pyshell.utils.parsing import Parser
-
-from tries import multiLevelTries
-from tries.exception import triesException
 
 
 class Solver(object):
@@ -233,7 +233,7 @@ class Solver(object):
                              EMPTY_MAPPED_ARGS,
                              EMPTY_MAPPED_ARGS]
         param_found, remainingArgs = _mapDashedParams(remaining_token_list,
-                                                      feeder.argTypeList,
+                                                      feeder.arg_type_list,
                                                       param_spotted)
         local_mapped_args[index_to_set] = param_found
 
@@ -241,7 +241,7 @@ class Solver(object):
 
 
 def _removeEveryIndexUnder(index_list, end_index):
-    for i in xrange(0, len(index_list)):
+    for i in range(0, len(index_list)):
         if index_list[i] < end_index:
             continue
 
@@ -253,7 +253,7 @@ def _removeEveryIndexUnder(index_list, end_index):
 
 
 def _addValueToIndex(index_list, starting_index, value_to_add=1):
-    for i in xrange(0, len(index_list)):
+    for i in range(0, len(index_list)):
         if index_list[i] < starting_index:
             continue
 
@@ -322,7 +322,7 @@ def _mapDashedParamsManageParam(input_args,
     arg_available_count = last_index - current_index - 1
 
     # special case for boolean, parameter alone is equivalent to true
-    if isinstance(current_param, booleanValueArgChecker):
+    if isinstance(current_param, BooleanValueArgChecker):
         if arg_available_count == 0:
             param_found[current_name] = ("true",)
         elif _isValidBooleanValueForChecker(input_args[current_index+1]):
@@ -335,9 +335,9 @@ def _mapDashedParamsManageParam(input_args,
         # did we reach max size ?
         # don't care about minimum size, it will be check during
         # execution phase
-        if (current_param.maximumSize is not None and
-           current_param.maximumSize < arg_available_count):
-            pivot = current_index+1+current_param.maximumSize
+        if (current_param.maximum_size is not None and
+           current_param.maximum_size < arg_available_count):
+            pivot = current_index+1+current_param.maximum_size
             param_found[current_name] = tuple(
                 input_args[current_index+1:pivot])
             not_used_args.extend(input_args[pivot:last_index])
@@ -347,7 +347,7 @@ def _mapDashedParamsManageParam(input_args,
 
 
 def _isValidBooleanValueForChecker(value):
-    checker = defaultInstanceArgChecker.getbooleanValueArgCheckerInstance()
+    checker = DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance()
     try:
         checker.getValue(value)
         return True

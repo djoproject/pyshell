@@ -78,7 +78,7 @@ class EngineV3(object):
                                          "size with the command list")
 
         # reset every commands
-        for i in xrange(0, len(cmd_list)):
+        for i in range(0, len(cmd_list)):
             c = cmd_list[i]
 
             if not isinstance(c, MultiCommand):
@@ -396,11 +396,11 @@ class EngineV3(object):
                                         cmd_id,
                                         start_skip_range,
                                         range_length=1):
-        for i in xrange(0, min(start_skip_range, len(self.cmd_list[cmd_id]))):
+        for i in range(0, min(start_skip_range, len(self.cmd_list[cmd_id]))):
             if not self.cmd_list[cmd_id].isdisabledCmd(i):
                 return False
 
-        for i in xrange(start_skip_range+range_length,
+        for i in range(start_skip_range+range_length,
                         len(self.cmd_list[cmd_id])):
             if not self.cmd_list[cmd_id].isdisabledCmd(i):
                 return False
@@ -411,15 +411,15 @@ class EngineV3(object):
                                               data_index,
                                               start_skip_range,
                                               range_length=1):
-        emap = self.stack.enabling_mapOnIndex(data_index)
+        emap = self.stack.enablingMapOnIndex(data_index)
         cmd_id = self.stack.cmdIndexOnIndex(data_index)
 
-        for j in xrange(0, min(start_skip_range, len(self.cmd_list[cmd_id]))):
+        for j in range(0, min(start_skip_range, len(self.cmd_list[cmd_id]))):
             if (not self.cmd_list[cmd_id].isdisabledCmd(j) and
                (emap is None or emap[j])):
                 return False
 
-        for j in xrange(start_skip_range+range_length,
+        for j in range(start_skip_range+range_length,
                         len(self.cmd_list[cmd_id])):
             if (not self.cmd_list[cmd_id].isdisabledCmd(j) and
                (emap is None or emap[j])):
@@ -431,17 +431,17 @@ class EngineV3(object):
                                              data_index,
                                              start_skip_range,
                                              range_length=1):
-        emap = self.stack.enabling_mapOnIndex(data_index)
+        emap = self.stack.enablingMapOnIndex(data_index)
         if emap is None:
             return True
 
         cmd_id = self.stack.cmdIndexOnIndex(data_index)
 
-        for j in xrange(0, min(start_skip_range, len(emap))):
+        for j in range(0, min(start_skip_range, len(emap))):
             if not emap[j]:
                 return False
 
-        for j in xrange(start_skip_range+range_length,
+        for j in range(start_skip_range+range_length,
                         len(self.cmd_list[cmd_id])):
             if not emap[j]:
                 return False
@@ -478,7 +478,7 @@ class EngineV3(object):
                 cmd_to_update.append(i)
 
         # explore the stack looking after these paths
-        for i in xrange(0, self.stack.size()):
+        for i in range(0, self.stack.size()):
             if self.stack.typeOnIndex(i) != PREPROCESS_INSTRUCTION:
                 break
 
@@ -496,7 +496,7 @@ class EngineV3(object):
         # no prblm found, the disabling can occur
         how_many_to_skip = min(len(self.cmd_list[cmd_id]),
                                sub_cmd_id+skip_count)
-        for i in xrange(sub_cmd_id, how_many_to_skip):
+        for i in range(sub_cmd_id, how_many_to_skip):
             self.cmd_list[cmd_id].disableCmd(i)
 
     def _enableOnCmd(self, cmd_id, sub_cmd_id, enable_count=1):
@@ -513,7 +513,7 @@ class EngineV3(object):
         # no prblm found, the disabling can occur
         how_many_to_enable = min(len(self.cmd_list[cmd_id]),
                                  sub_cmd_id+enable_count)
-        for i in xrange(sub_cmd_id, how_many_to_enable):
+        for i in range(sub_cmd_id, how_many_to_enable):
             self.cmd_list[cmd_id].enableCmd(i)
 
     def _skipOnDataBunch(self, data_bunch_index, sub_cmd_id, skip_count=1):
@@ -546,14 +546,14 @@ class EngineV3(object):
                                      " in this databunch will be disabled with"
                                      " this skip range")
 
-        enabling_map = self.stack.enabling_mapOnIndex(data_bunch_index)
+        enabling_map = self.stack.enablingMapOnIndex(data_bunch_index)
 
         if enabling_map is None:
             cmd_length = self.stack.subCmdLengthOnIndex(data_bunch_index,
                                                         self.cmd_list)
             enabling_map = [True] * cmd_length
 
-        for i in xrange(sub_cmd_id,
+        for i in range(sub_cmd_id,
                         min(sub_cmd_id+skip_count, len(enabling_map))):
             if not enabling_map[i]:
                 continue
@@ -589,10 +589,10 @@ class EngineV3(object):
                                                      enable_count):
             enabling_map = None
         else:
-            enabling_map = self.stack.enabling_mapOnIndex(data_bunch_index)
+            enabling_map = self.stack.enablingMapOnIndex(data_bunch_index)
 
             enable_until = min(sub_cmd_id+enable_count, len(enabling_map))
-            for i in xrange(sub_cmd_id, enable_until):
+            for i in range(sub_cmd_id, enable_until):
                 if enabling_map[i]:
                     continue
 
@@ -646,7 +646,7 @@ class EngineV3(object):
             raise ExecutionException("(engine) disableEnablingMapOnDataBunch, "
                                      "can only skip method on PREPROCESS item")
 
-        mapping = self.stack.enabling_mapOnIndex(index)
+        mapping = self.stack.enablingMapOnIndex(index)
 
         if mapping is not None:
             self.stack.setEnableMapOnIndex(index, None)
@@ -715,7 +715,7 @@ class EngineV3(object):
                 continue
 
             # is there an enabled mapping ?
-            enabling_map = self.stack.enabling_mapOnIndex(i)
+            enabling_map = self.stack.enablingMapOnIndex(i)
             if enabling_map is None:
                 continue
 
@@ -863,7 +863,7 @@ class EngineV3(object):
                                          " map of the selected items")
 
             # get the valid map
-            enabling_map = self.stack.enabling_mapOnIndex(
+            enabling_map = self.stack.enablingMapOnIndex(
                 index_of_the_map_to_keep)
 
             if enabling_map is not None:

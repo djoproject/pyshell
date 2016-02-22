@@ -19,15 +19,15 @@
 from threading import Lock
 
 from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.system.parameter import Parameter, ParameterManager
 from pyshell.system.settings import GlobalSettings
 from pyshell.utils.exception import ParameterException
 
 
-_defaultArgChecker = defaultInstanceArgChecker.getArgCheckerInstance()
-DEFAULT_CHECKER = listArgChecker(_defaultArgChecker)
+_defaultArgChecker = DefaultInstanceArgChecker.getArgCheckerInstance()
+DEFAULT_CHECKER = ListArgChecker(_defaultArgChecker)
 
 
 class EnvironmentParameterManager(ParameterManager):
@@ -69,7 +69,7 @@ class EnvironmentParameter(Parameter):
         self.typ = typ
         Parameter.__init__(self, value, settings)
 
-        self.isListType = isinstance(typ, listArgChecker)
+        self.isListType = isinstance(typ, ListArgChecker)
         self.lock = None
         self.lockID = -1
 

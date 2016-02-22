@@ -36,11 +36,13 @@
 
 import readline
 
+from tries.exception import triesException
+
+from pyshell.arg.argchecker import BooleanValueArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import EnvironmentParameterChecker
 from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import booleanValueArgChecker
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import environmentParameterChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiOutput
 from pyshell.loader.command import registerCommand
@@ -56,8 +58,6 @@ from pyshell.utils.misc import createParentDirectory
 from pyshell.utils.postprocess import listFlatResultHandler
 from pyshell.utils.postprocess import listResultHandler
 
-from tries.exception import triesException
-
 # # FUNCTION SECTION # #
 
 
@@ -66,8 +66,8 @@ def exitFun():
     exit()
 
 
-@shellMethod(args=listArgChecker(
-    defaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(args=ListArgChecker(
+    DefaultInstanceArgChecker.getArgCheckerInstance()))
 def echo(args):
     "echo all the args"
 
@@ -78,8 +78,8 @@ def echo(args):
     return listFlatResultHandler(s)
 
 
-@shellMethod(args=listArgChecker(
-    defaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(args=ListArgChecker(
+    DefaultInstanceArgChecker.getArgCheckerInstance()))
 def echo16(args):
     "echo all the args in hexa"
 
@@ -93,8 +93,8 @@ def echo16(args):
     return listFlatResultHandler(s)
 
 
-@shellMethod(args=listArgChecker(
-    defaultInstanceArgChecker.getIntegerArgCheckerInstance()))
+@shellMethod(args=ListArgChecker(
+    DefaultInstanceArgChecker.getIntegerArgCheckerInstance()))
 def intToAscii(args):
     "echo all the args into chars"
     s = ""
@@ -108,8 +108,8 @@ def intToAscii(args):
 
 
 @shellMethod(
-    args=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance(), 1),
-    mltries=environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY))
+    args=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance(), 1),
+    mltries=EnvironmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY))
 def usageFun(args, mltries):
     "print the usage of a fonction"
 
@@ -156,8 +156,8 @@ def usageFun(args, mltries):
 
 
 @shellMethod(
-    mltries=environmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY),
-    args=listArgChecker(defaultInstanceArgChecker.getArgCheckerInstance()))
+    mltries=EnvironmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY),
+    args=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
 def helpFun(mltries, args=None):
     "print the help"
 
@@ -340,7 +340,7 @@ def helpFun(mltries, args=None):
 @shellMethod(start=IntegerArgChecker(),
              stop=IntegerArgChecker(),
              step=IntegerArgChecker(),
-             multi_output=booleanValueArgChecker())
+             multi_output=BooleanValueArgChecker())
 def generator(start=0, stop=100, step=1, multi_output=True):
     "generate a list of integer"
     if multi_output:
@@ -350,8 +350,8 @@ def generator(start=0, stop=100, step=1, multi_output=True):
 
 
 @shellMethod(
-    use_history=environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
-    history_file=environmentParameterChecker(
+    use_history=EnvironmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+    history_file=EnvironmentParameterChecker(
         ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historyLoad(use_history, history_file):
     "save readline history"
@@ -366,8 +366,8 @@ def historyLoad(use_history, history_file):
 
 
 @shellMethod(
-    use_history=environmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
-    history_file=environmentParameterChecker(
+    use_history=EnvironmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+    history_file=EnvironmentParameterChecker(
         ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historySave(use_history, history_file):
     "load readline history"

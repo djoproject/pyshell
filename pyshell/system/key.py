@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import defaultInstanceArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.parameter import ParameterManager
 
@@ -28,7 +28,7 @@ class CryptographicKeyParameterManager(ParameterManager):
 
 class CryptographicKeyParameter(EnvironmentParameter):
     def __init__(self, value, settings=None):
-        default_arg_checker = defaultInstanceArgChecker.getKeyChecker()
+        default_arg_checker = DefaultInstanceArgChecker.getKeyChecker()
         EnvironmentParameter.__init__(self,
                                       value,
                                       default_arg_checker,

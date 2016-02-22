@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import defaultMethod
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import CommandException
@@ -31,19 +31,19 @@ class MultiOutput(list):
 
 class Command(object):
     # default preProcess
-    @shellMethod(args=listArgChecker(ArgChecker()))
+    @shellMethod(args=ListArgChecker(ArgChecker()))
     @defaultMethod()
     def preProcess(self, args):
         return args
 
     # default process
-    @shellMethod(args=listArgChecker(ArgChecker()))
+    @shellMethod(args=ListArgChecker(ArgChecker()))
     @defaultMethod()
     def process(self, args):
         return args
 
     # default postProcess
-    @shellMethod(args=listArgChecker(ArgChecker()))
+    @shellMethod(args=ListArgChecker(ArgChecker()))
     @defaultMethod()
     def postProcess(self, args):
         return args

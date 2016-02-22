@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import defaultInstanceArgChecker
-from pyshell.arg.argchecker import listArgChecker
+from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.argchecker import ListArgChecker
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.parameter import ParameterManager
 from pyshell.system.settings import GlobalSettings
@@ -26,8 +26,8 @@ from pyshell.system.settings import Settings
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.valuable import SelectableValuable
 
-_defaultArgChecker = defaultInstanceArgChecker.getArgCheckerInstance()
-CONTEXT_DEFAULT_CHECKER = listArgChecker(_defaultArgChecker)
+_defaultArgChecker = DefaultInstanceArgChecker.getArgCheckerInstance()
+CONTEXT_DEFAULT_CHECKER = ListArgChecker(_defaultArgChecker)
 CONTEXT_DEFAULT_CHECKER.setSize(1, None)
 
 
@@ -248,18 +248,18 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         if typ is None:
             typ = CONTEXT_DEFAULT_CHECKER
         else:
-            if not isinstance(typ, listArgChecker):
+            if not isinstance(typ, ListArgChecker):
                 # minimal size = 1, because we need at least one element
                 # to have a context
-                typ = listArgChecker(typ, minimumSize=1, maximumSize=None)
+                typ = ListArgChecker(typ, minimum_size=1, maximum_size=None)
             else:
-                typ.setSize(1, typ.maximumSize)
+                typ.setSize(1, typ.maximum_size)
 
-            if typ.checker.maximumSize != 1:
+            if typ.checker.maximum_size != 1:
                 raise ParameterException("(ContextParameter) __init__, inner "
                                          "checker must have a maximum length "
                                          "of 1, got '" +
-                                         str(typ.checker.maximumSize)+"'")
+                                         str(typ.checker.maximum_size)+"'")
 
         # set and check settings
         if settings is not None:
