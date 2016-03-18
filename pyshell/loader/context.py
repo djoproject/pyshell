@@ -19,8 +19,13 @@
 from pyshell.loader.parameter import ParameterAbstractLoader
 from pyshell.loader.parameter import registerAddValues
 from pyshell.loader.parameter import registerSet
+from pyshell.loader.parameter import setLoaderPriority
 from pyshell.system.context import ContextParameter
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
+
+
+def setContextLoaderPriority(value, sub_loader_name=None):
+    setLoaderPriority(value, ContextLoader, sub_loader_name)
 
 
 def registerAddValuesToContext(context_key, value, sub_loader_name=None):

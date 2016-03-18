@@ -31,11 +31,24 @@ def _localGetAndInitCallerModule(loader_class, profile=None):
                                   profile)
 
 
+def setLoaderPriority(value, loader_class, profile=None):
+    try:
+        priority = int(value)
+    except ValueError:
+        excmsg = ("(ParameterLoader) setLoaderPriority an integer value"
+                  " was expected for the argument value, got '" +
+                  str(type(value))+"'")
+        raise LoadException(excmsg)
+
+    loader = _localGetAndInitCallerModule(loader_class, profile)
+    loader.priority = priority
+
+
 def registerAddValues(key, value, loader_class, sub_loader_name=None):
     # test key
     state, result = isAValidStringPath(key)
     if not state:
-        raise LoadException("(Loader) registerAddValues, "+result)
+        raise LoadException("(ParameterLoader) registerAddValues, "+result)
 
     loader = _localGetAndInitCallerModule(loader_class, sub_loader_name)
     loader.value_to_add_to.append((key, value,))
@@ -67,7 +80,7 @@ def registerSet(key,
 
 class ParameterAbstractLoader(AbstractLoader):
     def __init__(self, container_name):
-        AbstractLoader.__init__(self)
+        AbstractLoader.__init__(self, priority=50)
         self.value_to_add_to = []
         self.value_to_set = []
 

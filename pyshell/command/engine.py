@@ -401,7 +401,7 @@ class EngineV3(object):
                 return False
 
         for i in range(start_skip_range+range_length,
-                        len(self.cmd_list[cmd_id])):
+                       len(self.cmd_list[cmd_id])):
             if not self.cmd_list[cmd_id].isdisabledCmd(i):
                 return False
 
@@ -420,7 +420,7 @@ class EngineV3(object):
                 return False
 
         for j in range(start_skip_range+range_length,
-                        len(self.cmd_list[cmd_id])):
+                       len(self.cmd_list[cmd_id])):
             if (not self.cmd_list[cmd_id].isdisabledCmd(j) and
                (emap is None or emap[j])):
                 return False
@@ -442,7 +442,7 @@ class EngineV3(object):
                 return False
 
         for j in range(start_skip_range+range_length,
-                        len(self.cmd_list[cmd_id])):
+                       len(self.cmd_list[cmd_id])):
             if not emap[j]:
                 return False
 
@@ -554,7 +554,7 @@ class EngineV3(object):
             enabling_map = [True] * cmd_length
 
         for i in range(sub_cmd_id,
-                        min(sub_cmd_id+skip_count, len(enabling_map))):
+                       min(sub_cmd_id+skip_count, len(enabling_map))):
             if not enabling_map[i]:
                 continue
 

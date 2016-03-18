@@ -44,6 +44,19 @@ def _checkBoolean(boolean, boolean_name, meth):
         raise RegisterException(excmsg)
 
 
+def setCommandLoaderPriority(value, profile=None):
+    try:
+        priority = int(value)
+    except ValueError:
+        excmsg = ("(CommandRegister) setCommandLoaderPriority an integer value"
+                  " was expected for the argument value, got '" +
+                  str(type(value))+"'")
+        raise RegisterException(excmsg)
+
+    loader = _localGetAndInitCallerModule(profile)
+    loader.priority = priority
+
+
 def registerSetGlobalPrefix(key_list, profile=None):
     raiseIfInvalidKeyList(key_list,
                           RegisterException,

@@ -98,14 +98,6 @@ class TestUtils(object):
 
     # ## AbstractLoader ## #
 
-    # AbstractLoader, init, exist without arg
-    def test_abstractLoader1(self):
-        assert hasattr(AbstractLoader, "__init__")
-        assert hasattr(AbstractLoader.__init__, "__call__")
-        assert isinstance(AbstractLoader(), AbstractLoader)
-        with pytest.raises(TypeError):
-            AbstractLoader(None)
-
     # AbstractLoader, load, exist, test args
     def test_abstractLoader2(self):
         al = AbstractLoader()

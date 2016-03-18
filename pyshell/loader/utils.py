@@ -38,6 +38,7 @@
 #                                          trigger file regeneration
 #       else => need to be saved + trigger file regeneration
 
+import heapq
 import inspect
 import traceback
 
@@ -74,8 +75,9 @@ def getAndInitCallerModule(caller_loader_key,
 
 
 class AbstractLoader(object):
-    def __init__(self):
+    def __init__(self, priority=100):
         self.last_exception = None
+        self.priority = priority
 
     def load(self, parameter_manager, profile=None):
         pass  # TO OVERRIDE
@@ -86,6 +88,10 @@ class AbstractLoader(object):
     def reload(self, parameter_manager, profile=None):
         self.unload(parameter_manager, profile)
         self.load(parameter_manager, profile)
+        # CAN BE OVERRIDEN TOO
+
+    def getPriority(self):
+        return self.priority
         # CAN BE OVERRIDEN TOO
 
 
@@ -144,7 +150,17 @@ class GlobalLoader(AbstractLoader):
 
         loaders = self.profile_list[profile]
 
-        for loader_name, loader in loaders.items():
+        loaders_heap = []
+
+        insert_order = 0
+        for loader in loaders.values():
+            heapq.heappush(loaders_heap, (loader.getPriority(),
+                                          insert_order,
+                                          loader,))
+            insert_order += 1
+
+        while len(loaders_heap) > 0:
+            priority, insert_order, loader = heapq.heappop(loaders_heap)
             # no need to test if attribute exist, it is supposed to call
             # load/unload or reload and loader is suppose to be an
             # AbstractLoader

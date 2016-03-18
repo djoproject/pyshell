@@ -37,6 +37,19 @@ def _localGetAndInitCallerModule(profile=None):
                                   profile)
 
 
+def setDependanciesLoaderPriority(value, profile=None):
+    try:
+        priority = int(value)
+    except ValueError:
+        excmsg = ("(Loader) setDependanciesLoaderPriority an integer value"
+                  " was expected for the argument value, got '" +
+                  str(type(value))+"'")
+        raise RegisterException(excmsg)
+
+    loader = _localGetAndInitCallerModule(profile)
+    loader.priority = priority
+
+
 def registerDependOnAddon(dependancy_name,
                           dependancy_profile=None,
                           profile=None):

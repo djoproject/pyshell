@@ -18,8 +18,13 @@
 
 from pyshell.loader.parameter import ParameterAbstractLoader
 from pyshell.loader.parameter import registerSet
+from pyshell.loader.parameter import setLoaderPriority
 from pyshell.system.key import CryptographicKeyParameter
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
+
+
+def setKeyLoaderPriority(value, sub_loader_name=None):
+    setLoaderPriority(value, KeyLoader, sub_loader_name)
 
 
 def registerSetKey(key,

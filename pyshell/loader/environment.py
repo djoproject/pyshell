@@ -19,8 +19,13 @@
 from pyshell.loader.parameter import ParameterAbstractLoader
 from pyshell.loader.parameter import registerAddValues
 from pyshell.loader.parameter import registerSet
+from pyshell.loader.parameter import setLoaderPriority
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
+
+
+def setEnvironmentLoaderPriority(value, sub_loader_name=None):
+    setLoaderPriority(value, EnvironmentLoader, sub_loader_name)
 
 
 def registerAddValuesToEnvironment(env_key, value, sub_loader_name=None):

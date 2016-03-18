@@ -19,8 +19,13 @@
 from pyshell.loader.parameter import ParameterAbstractLoader
 from pyshell.loader.parameter import registerAddValues
 from pyshell.loader.parameter import registerSet
+from pyshell.loader.parameter import setLoaderPriority
 from pyshell.system.variable import VarParameter
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
+
+
+def setVariableLoaderPriority(value, sub_loader_name=None):
+    setLoaderPriority(value, VariableLoader, sub_loader_name)
 
 
 def registerAddValuesToVariable(var_key, value, sub_loader_name=None):
