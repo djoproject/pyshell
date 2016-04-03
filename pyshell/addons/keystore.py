@@ -27,7 +27,7 @@ from pyshell.arg.decorator import shellMethod
 from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerStopHelpTraversalAt
-from pyshell.loader.keystore import registerKey
+from pyshell.loader.keystore import registerSetKey
 from pyshell.utils.constants import ENVIRONMENT_KEY_STORE_FILE_KEY
 from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_KEY
 from pyshell.utils.constants import KEYSTORE_SECTION_NAME
@@ -211,4 +211,4 @@ registerCommand(("load",), pro=loadKeyStore)
 registerCommand(("clean",), pro=cleanKeyStore)
 registerCommand(("transient",), pro=setTransient)
 registerStopHelpTraversalAt()
-registerKey("test", "0x00112233445566778899aabbccddeeff")
+registerSetKey("test", "0x00112233445566778899aabbccddeeff")

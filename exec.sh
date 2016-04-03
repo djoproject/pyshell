@@ -1,2 +1,2 @@
 #!/bin/bash
-python -m pyshell.executer "$@"
+python -m pyshell "$@"

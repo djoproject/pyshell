@@ -192,9 +192,11 @@ class GlobalLoader(AbstractLoader):
         if (self.last_updated_profile is not None and
            self.last_updated_profile[1] not in GlobalLoader._loadAllowedState):
             if profile == self.last_updated_profile[0]:
-                excmsg = ("(GlobalLoader) 'load', profile '"+str(profile)+"' "
-                          "is already loaded")
-                raise LoadException(excmsg)
+                # TODO should we raise an exception if already loaded ?
+                # excmsg = ("(GlobalLoader) 'load', profile '"+str(profile) +
+                #           "' is already loaded")
+                # raise LoadException(excmsg)
+                return
             else:
                 excmsg = ("(GlobalLoader) 'load', profile '"+str(profile)+"' "
                           "is not loaded but an other profile '" +

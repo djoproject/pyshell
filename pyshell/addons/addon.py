@@ -172,25 +172,6 @@ def reloadAddon(name, parameters, sub_addon=None):
 @shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
              sub_addon=StringArgChecker(),
              parameters=CompleteEnvironmentChecker())
-def loadAddonFun(name, parameters, sub_addon=None):
-    "load an addon"
-
-    # get addon list
-    addon_dico = _tryToGetDicoFromParameters(parameters)
-
-    # import from file
-    loader = _tryToImportLoaderFromFile(name)
-
-    # load and register
-    addon_dico[name] = loader
-    loader.load(parameters, sub_addon)
-
-    notice(name + " loaded !")
-
-
-@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=StringArgChecker(),
-             parameters=CompleteEnvironmentChecker())
 def hardReload(name, parameters, sub_addon=None):
     "reload an addon from file"
 
@@ -416,25 +397,6 @@ def setAddonPositionInList(addon_name, position, addon_list_on_start_up):
     addon_list.insert(max(position, 0), addon_name)
 
 
-@shellMethod(
-    addon_list_on_start_up=EnvironmentParameterChecker(
-        ENVIRONMENT_ADDON_TO_LOAD_KEY),
-    params=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
-def loadAddonOnStartUp(addon_list_on_start_up, params):
-
-    addon_list = addon_list_on_start_up.getValue()
-
-    error_list = ListOfException()
-    for addon_name in addon_list:
-        try:
-            loadAddonFun(addon_name, params)
-        except Exception as ex:
-            # TODO the information about the failing addon is lost here...
-            error_list.addException(ex)
-
-    if error_list.isThrowable():
-        raise error_list
-
 # TODO load all
 
 # ## REGISTER SECTION ## #
@@ -449,7 +411,6 @@ registerCommand(("hard",), pro=hardReload)
 registerCommand(("subloader",), pro=subLoaderReload)
 registerStopHelpTraversalAt()
 registerSetTempPrefix(())
-registerCommand(("load",), pro=loadAddonFun)
 registerCommand(("info",), pro=getAddonInformation, post=listResultHandler)
 registerSetTempPrefix(("onstartup",))
 registerCommand(("add",), pro=addOnStartUp)
@@ -458,5 +419,4 @@ registerCommand(("list",), pro=listOnStartUp, post=printColumn)
 registerCommand(("up",), pro=upAddonInList)
 registerCommand(("down",), pro=downAddonInList)
 registerCommand(("index",), pro=setAddonPositionInList)
-registerCommand(("load",), pro=loadAddonOnStartUp)
 registerStopHelpTraversalAt()

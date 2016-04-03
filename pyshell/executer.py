@@ -17,62 +17,37 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import atexit
-import getopt
 import readline
 import sys
+import threading
 from contextlib import contextmanager
 
-from tries import multiLevelTries
 from tries.exception import pathNotExistsTriesException
 
-from pyshell.addons import addon
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import FilePathArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.addons import parameter
+from pyshell.addons import std
+from pyshell.addons import system
 from pyshell.system.container import ParameterContainer
-from pyshell.system.context import ContextParameter
 from pyshell.system.context import ContextParameterManager
-from pyshell.system.context import GlobalContextSettings
-from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
 from pyshell.system.key import CryptographicKeyParameterManager
 from pyshell.system.procedure import ProcedureFromFile
-from pyshell.system.procedure import ProcedureFromList
-from pyshell.system.settings import GlobalSettings
 from pyshell.system.variable import VarParameter
 from pyshell.system.variable import VariableParameterManager
 from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
-from pyshell.utils.constants import CONTEXT_COLORATION_DARK
-from pyshell.utils.constants import CONTEXT_COLORATION_KEY
-from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
-from pyshell.utils.constants import CONTEXT_COLORATION_NONE
-from pyshell.utils.constants import CONTEXT_EXECUTION_DAEMON
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
 from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
-from pyshell.utils.constants import DEFAULT_PARAMETER_FILE
-from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
-from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_VALUE
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.constants import ENVIRONMENT_PARAMETER_FILE_KEY
-from pyshell.utils.constants import ENVIRONMENT_PROMPT_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_KEY
-from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_DEFAULT
-from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_KEY
-from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
-from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_VALUE
-from pyshell.utils.constants import EVENT_AT_EXIT
-from pyshell.utils.constants import EVENT_ON_STARTUP
-from pyshell.utils.constants import EVENT__ON_STARTUP
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
-from pyshell.utils.constants import TAB_SIZE
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.executing import execute
@@ -86,49 +61,39 @@ from pyshell.utils.valuable import SimpleValuable
 
 
 # TODO
-#   there is no NoneCheck after .getParameter,
+#   there is no None check after call to any getParameter,
 #   could be interesting to manage these case
 
-#   use constant EVENT_TO_CREATE_ON_STARTUP to create the list of procedure
-#   for these event at startup
+# TODO
+#   the second part of the __init__ is not an init part
+#   it is more like the first part of the running.
+#   So it could move in the main loop method or in another method.
 
-#   create an endless "shell" procedure
-#       use object ProcedureFromList
-#           need some new command before to do that
-#               GOTO or LOOP
-#               command to readline and execute
-
-# TODO does not work if we import it in a python shell and try to
-# instanciate it without args
 class CommandExecuter():
     def __init__(self, param_file=None, outside_args=None):
-        self._initParams(param_file, outside_args)
+        self.params = ParameterContainer()
+        self._initContainers()
+
+        self.promptWaitingValuable = SimpleValuable(False)
         self._initPrinter()
 
-        # load addon addon (if not loaded, can't do anything)
+        # load addon system (if not loaded, can't do anything)
         loaded = False
         with self.exceptionManager("fail to load addon "
-                                   "'pyshell.addons.addon'"):
-            addon.loadAddonFun("pyshell.addons.addon", self.params)
+                                   "'pyshell.addons.system'"):
+            system._loaders.load(self.params)
             loaded = True
 
         if not loaded:
-            print("fail to load addon loader, can not do anything with"  # noqa
+            print("fail to load system addon, can not do anything with"  # noqa
                   " the application without this loader")
             exit(-1)
 
-        # TODO create default event here (see list of event in constant file)
+        self._initParams(param_file, outside_args, system._loaders)
+        self._startUp()
+        atexit.register(self._atExit)
 
-        self._initStartUpEvent()
-        self._initExitEvent()
-
-        # # execute atStartUp # #
-        execute(EVENT__ON_STARTUP, self.params, "__startup__")
-
-    def _initParams(self, param_file, outside_args):
-        # create param manager
-        self.params = ParameterContainer()
-
+    def _initContainers(self):
         env = EnvironmentParameterManager(self.params)
         self.params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME, env)
 
@@ -141,176 +106,62 @@ class CommandExecuter():
         key = CryptographicKeyParameterManager(self.params)
         self.params.registerParameterManager(KEY_ATTRIBUTE_NAME, key)
 
+    def _initParams(self, param_file, outside_args, system_loader):
+        env = self.params.environment
+
+        loaded_addon = env.getParameter(ADDONLIST_KEY, perfect_match=True)
+        loaded_addon.getValue()["pyshell.addons.system"] = system_loader
+
+        if param_file is not None:
+            parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
+                                              perfect_match=True)
+
+            parameter_file.setValue(param_file)
+
         # init local level
-        # TODO remove me as soon as shell has its own procedure
+        # TODO remove me as soon as level has been removed
         self.params.pushVariableLevelForThisThread()
-        self.promptWaitingValuable = SimpleValuable(False)
 
-        default_global_setting = GlobalSettings(transient=False,
-                                                read_only=False,
-                                                removable=False)
+        # these variable has to be defined here, because they have to be
+        # local type.  So it is not possible to declare them in an addon
+        # because only global variable are allowed there
+        # TODO this operation will occur at each thread creation
+        #   it could be interresting to have a generic method
+        var = self.params.variable
+        if outside_args is None:
+            outside_args = ()
 
-        default_string_arg_checker = DefaultInstanceArgChecker.\
-            getStringArgCheckerInstance()
-        default_arg_checker = DefaultInstanceArgChecker.\
-            getArgCheckerInstance()
-        default_boolean_arg_checker = DefaultInstanceArgChecker.\
-            getBooleanValueArgCheckerInstance()
-        default_integer_arg_checker = DefaultInstanceArgChecker.\
-            getIntegerArgCheckerInstance()
+        all_in_one = ' '.join(str(x) for x in outside_args)
 
-        # # init original params # #
-        param = EnvironmentParameter(value=param_file,
-                                     typ=FilePathArgChecker(exist=None,
-                                                            readable=True,
-                                                            writtable=None,
-                                                            is_file=True),
-                                     settings=GlobalSettings(transient=True,
-                                                             read_only=False,
-                                                             removable=False))
-        env.setParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
-                         param,
-                         local_param=False)
+        # all outside argument in one string
+        args_string = VarParameter(all_in_one)
+        args_string.settings.setTransient(True)
+        var.setParameter("*", args_string,)
 
-        param = EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT,
-                                     typ=default_string_arg_checker,
-                                     settings=default_global_setting.clone())
-        env.setParameter(ENVIRONMENT_PROMPT_KEY,
-                         param,
-                         local_param=False)
+        # outside argument count
+        arg_count = VarParameter(len(outside_args))
+        arg_count.settings.setTransient(True)
+        var.setParameter("#", arg_count)
 
-        param = EnvironmentParameter(value=TAB_SIZE,
-                                     typ=IntegerArgChecker(0),
-                                     settings=default_global_setting.clone())
-        env.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
-                         param,
-                         local_param=False)
+        # all outside argument
+        all_args = VarParameter(outside_args)
+        all_args.settings.setTransient(True)
+        var.setParameter("@", all_args)
 
-        param = EnvironmentParameter(value=multiLevelTries(),
-                                     typ=default_arg_checker,
-                                     settings=GlobalSettings(transient=True,
-                                                             read_only=True,
-                                                             removable=False))
-        env.setParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                         param,
-                         local_param=False)
-
-        param = EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT,
-                                     typ=default_boolean_arg_checker,
-                                     settings=default_global_setting.clone())
-        env.setParameter(ENVIRONMENT_SAVE_KEYS_KEY,
-                         param,
-                         local_param=False)
-
-        param = EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE,
-                                     typ=FilePathArgChecker(exist=None,
-                                                            readable=True,
-                                                            writtable=None,
-                                                            is_file=True),
-                                     settings=default_global_setting.clone())
-        env.setParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
-                         param,
-                         local_param=False)
-
-        param = EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE,
-                                     typ=default_boolean_arg_checker,
-                                     settings=default_global_setting.clone())
-        env.setParameter(ENVIRONMENT_USE_HISTORY_KEY,
-                         param,
-                         local_param=False)
-
-        typ = ListArgChecker(default_string_arg_checker)
-        param = EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT,
-                                     typ=typ,
-                                     settings=default_global_setting.clone())
-        env.setParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
-                         param,
-                         local_param=False)
-
-        param = EnvironmentParameter(value={},
-                                     typ=default_arg_checker,
-                                     settings=GlobalSettings(transient=True,
-                                                             read_only=True,
-                                                             removable=False))
-        env.setParameter(ADDONLIST_KEY,
-                         param,
-                         local_param=False)
-
-        default_context_setting = GlobalContextSettings(removable=False,
-                                                        read_only=True,
-                                                        transient=False,
-                                                        transient_index=False)
-
-        param = ContextParameter(value=tuple(range(0, 5)),
-                                 typ=default_integer_arg_checker,
-                                 default_index=0,
-                                 index=1,
-                                 settings=default_context_setting.clone())
-        con.setParameter(DEBUG_ENVIRONMENT_NAME,
-                         param,
-                         local_param=False)
-
-        settings = GlobalContextSettings(removable=False,
-                                         read_only=True,
-                                         transient=True,
-                                         transient_index=True)
-        values = (CONTEXT_EXECUTION_SHELL,
-                  CONTEXT_EXECUTION_SCRIPT,
-                  CONTEXT_EXECUTION_DAEMON,)
-        param = ContextParameter(value=values,
-                                 typ=default_string_arg_checker,
-                                 default_index=0,
-                                 settings=settings)
-        con.setParameter(CONTEXT_EXECUTION_KEY,
-                         param,
-                         local_param=False)
-
-        values = (CONTEXT_COLORATION_LIGHT,
-                  CONTEXT_COLORATION_DARK,
-                  CONTEXT_COLORATION_NONE,)
-        param = ContextParameter(value=values,
-                                 typ=default_string_arg_checker,
-                                 default_index=0,
-                                 settings=default_context_setting.clone())
-        con.setParameter(CONTEXT_COLORATION_KEY,
-                         param,
-                         local_param=False)
-
-        # mapped outside argument
-        if outside_args is not None:
-            # all in one string
-            args_string = VarParameter(' '.join(str(x) for x in outside_args))
-            var.setParameter("*", args_string, local_param=False)
-            args_string.settings.setTransient(True)
-
-            # arg count
-            arg_count = VarParameter(len(outside_args))
-            var.setParameter("#", arg_count, local_param=False)
-            arg_count.settings.setTransient(True)
-
-            # all args
-            all_args = VarParameter(outside_args)
-            var.setParameter("@", all_args, local_param=False)
-            all_args.settings.setTransient(True)
-            # last pid started in background
-            # TODO var = self.params.variable.setParameter("!",
-            #            VarParameter(outside_args), local_param = False)
-            # var.settings.setTransient(True)
+        # last pid started in background
+        last_pid_var = VarParameter("")
+        last_pid_var.settings.setTransient(True)
+        var.setParameter("!", last_pid_var)
 
         # current process id
-        # TODO id is not enought, need level
-        current_id_var = VarParameter(self.params.getCurrentId())
-        var = self.params.variable.setParameter("$",
-                                                current_id_var,
-                                                local_param=False)
-        var.settings.setTransient(True)
+        current_pid_var = VarParameter(threading.current_thread().ident)
+        current_pid_var.settings.setTransient(True)
+        var.setParameter("$", current_pid_var)
 
         # value from last command
-        # TODO remove me as soon as shell will be in its self procedure
-        var = self.params.variable.setParameter("?",
-                                                VarParameter(()),
-                                                local_param=True)
-        var.settings.setTransient(True)
+        last_result_var = VarParameter(())
+        last_result_var.settings.setTransient(True)
+        var.setParameter("?", last_result_var)
 
     def _initPrinter(self):
         # # prepare the printing system # #
@@ -319,70 +170,61 @@ class CommandExecuter():
         printer.setPromptShowedContext(self.promptWaitingValuable)
         printer.setParameters(self.params)
 
-    def _initStartUpEvent(self):
-        # # prepare atStartUp # #
+    def _startUp(self):
         env = self.params.environment
-        mltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                   perfect_match=True).getValue()
-        _atstartup = ProcedureFromList(EVENT__ON_STARTUP,
-                                       settings=GlobalSettings(read_only=False,
-                                                               removable=False,
-                                                               transient=True))
-        _atstartup.neverStopIfErrorOccured()
 
-        _atstartup.addCommand("addon load pyshell.addons.parameter")
-        _atstartup.addCommand("parameter load")
+        # load parameter addon
+        loaded_addons = env.getParameter(ADDONLIST_KEY,
+                                         perfect_match=True)
 
-        # TODO don't unload it if in addon to load on startup
-        _atstartup.addCommand("addon unload pyshell.addons.parameter")
+        # load parameter
+        parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
+                                          perfect_match=True)
 
-        # TODO don't load parameter if already loaded
-        _atstartup.addCommand("addon onstartup load")
-        _atstartup.addCommand(EVENT_ON_STARTUP)
+        with self.exceptionManager("fail to load parameter file"):
+            system.loadAddonFun("pyshell.addons.parameter",
+                                self.params,
+                                None,
+                                loaded_addons)
+            parameter.loadParameter(parameter_file, self.params)
 
-        _atstartup.settings.setReadOnly(True)
-        mltries.insert((EVENT__ON_STARTUP,),
-                       _atstartup,
-                       stopTraversalAtThisNode=True)
+        # load addon
+        addon_to_load = env.getParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
+                                         perfect_match=True)
 
-        atstartup = ProcedureFromList(EVENT_ON_STARTUP,
-                                      settings=GlobalSettings(read_only=False,
-                                                              removable=False,
-                                                              transient=True))
-        atstartup.neverStopIfErrorOccured()
-        atstartup.addCommand("history load")
-        # atstartup.addCommand( "key load" )
-        mltries.insert((EVENT_ON_STARTUP,),
-                       atstartup,
-                       stopTraversalAtThisNode=True)
+        with self.exceptionManager("An error occurred during startup addon"
+                                   "loading"):
+            system.loadAddonOnStartUp(addon_to_load,
+                                      self.params,
+                                      loaded_addons)
 
-    def _initExitEvent(self):
+        # load history
+        use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
+                                       perfect_match=True)
+        history_file = env.getParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
+                                        perfect_match=True)
+
+        with self.exceptionManager("fail to load history file"):
+            std.historyLoad(use_history, history_file)
+
+    def _atExit(self):
         env = self.params.environment
-        mltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                   perfect_match=True).getValue()
 
-        # # prepare atExit # #
-        at_exit = ProcedureFromList(EVENT_AT_EXIT,
-                                    settings=GlobalSettings(read_only=False,
-                                                            removable=False,
-                                                            transient=True))
-        at_exit.neverStopIfErrorOccured()
+        # parameter save
+        parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
+                                          perfect_match=True)
 
-        # TODO need to have parameters addons parameter loaded before to save
-        at_exit.addCommand("parameter save")
+        with self.exceptionManager("fail to save parameters"):
+            parameter.saveParameter(parameter_file, self.params)
 
-        # TODO load parameter addon but do not print any error if already
-        # loaded, add a parameter to addon load
-        at_exit.addCommand("history save")
-        # at_exit.addCommand( "key save" )
+        # history save
+        use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
+                                       perfect_match=True)
+        history_file = env.getParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
+                                        perfect_match=True)
 
-        at_exit.settings.setReadOnly(True)
-        mltries.insert((EVENT_AT_EXIT,), at_exit, stopTraversalAtThisNode=True)
-        atexit.register(self.atExit)
-
-    def atExit(self):
-        # TODO provide args from outside
-        execute(EVENT_AT_EXIT, self.params, "__atexit__")
+        with self.exceptionManager("fail to save history"):
+            std.historySave(use_history, history_file)
 
     def mainLoop(self):
         # enable autocompletion
@@ -558,77 +400,3 @@ class CommandExecuter():
         with self.exceptionManager("An error occured during the script "
                                    "execution: "):
             afile.execute(args=(), parameters=self.params)
-
-# TODO this part should be in an other file, e.g. exec ########################
-# no need to use printing system on the following function because shell is
-# not yet running
-
-
-def usage():
-    print("\nexecuter.py [-h -p <parameter file> -i <script file> -s]")  # noqa
-
-
-def help():
-    usage()
-    print("\nPython Custom Shell Executer v1.0\n\n"  # noqa
-          "-h, --help:        print this help message\n"
-          "-p, --parameter:   define a custom parameter file\n"
-          "-s, --script:      define a script to execute\n"
-          "-n, --no-exit:     start the shell after the script\n"
-          "-g, --granularity: set the error granularity for file script\n")
-
-if __name__ == "__main__":
-    # manage args
-    opts = ()
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hp:s:ng:", ["help",
-                                                              "parameter=",
-                                                              "script=",
-                                                              "no-exit",
-                                                              "granularity="])
-    except getopt.GetoptError as err:
-        # print help information and exit:
-        # will print something like "option -a not recognized"
-        print(str(err))  # noqa
-        usage()
-        print("\nto get help: executer.py -h\n")  # noqa
-        sys.exit(2)
-
-    ParameterFile = None
-    ScriptFile = None
-    ExitAfterScript = True
-    Granularity = sys.maxint
-
-    for o, a in opts:  # TODO test every args
-        if o in ("-h", "--help"):
-            help()
-            exit()
-        elif o in ("-p", "--parameter"):
-            ParameterFile = a
-        elif o in ("-s", "--script"):
-            ScriptFile = a
-        elif o in ("-n", "--no-exit"):
-            ExitAfterScript = False
-        elif o in ("-g", "--granularity"):
-            try:
-                Granularity = int(a)
-            except ValueError as ve:
-                print("invalid value for granularity: "+str(ve))  # noqa
-                usage()
-                exit(-1)
-        else:
-            print("unknown parameter: "+str(o))  # noqa
-
-    if ParameterFile is None:
-        ParameterFile = DEFAULT_PARAMETER_FILE
-
-    # run basic instance
-    executer = CommandExecuter(ParameterFile, args)
-
-    if ScriptFile is not None:
-        executer.executeFile(ScriptFile, Granularity)
-    else:
-        ExitAfterScript = False
-
-    if not ExitAfterScript:
-        executer.mainLoop()

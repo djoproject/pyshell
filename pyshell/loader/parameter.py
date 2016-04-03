@@ -28,7 +28,8 @@ def _localGetAndInitCallerModule(loader_class, profile=None):
     return getAndInitCallerModule(loader_class.__module__+"." +
                                   loader_class.__name__,
                                   loader_class,
-                                  profile)
+                                  profile,
+                                  module_level=4)
 
 
 def setLoaderPriority(value, loader_class, profile=None):
@@ -93,7 +94,6 @@ class ParameterAbstractLoader(AbstractLoader):
                        container,
                        key_name,
                        value_to_remove,
-                       attribute_name,
                        list_of_exceptions):
         env_object = container.getParameter(key_name,
                                             perfect_match=True,
@@ -116,7 +116,6 @@ class ParameterAbstractLoader(AbstractLoader):
                     container,
                     key_name,
                     value_to_add,
-                    attribute_name,
                     list_of_exceptions):
         env_object = container.getParameter(key_name,
                                             perfect_match=True,
@@ -133,8 +132,7 @@ class ParameterAbstractLoader(AbstractLoader):
         try:
             env_object.addValues(value_to_add)
             self.value_to_remove.append((key_name,
-                                         value_to_add,
-                                         attribute_name))
+                                         value_to_add))
         except Exception as ex:
             list_of_exceptions.addException(ex)
 
@@ -143,7 +141,6 @@ class ParameterAbstractLoader(AbstractLoader):
                       exist,
                       old_value,
                       key_name,
-                      attribute_name,
                       value,
                       list_of_exceptions):
         # still exist ?
@@ -181,7 +178,6 @@ class ParameterAbstractLoader(AbstractLoader):
                     value,
                     no_error_if_key_exist,
                     override,
-                    attribute_name,
                     list_of_exceptions):
         param = container.getParameter(key_name,
                                        perfect_match=True,
@@ -205,7 +201,6 @@ class ParameterAbstractLoader(AbstractLoader):
             self.value_to_unset.append((exist,
                                         old_value,
                                         key_name,
-                                        attribute_name,
                                         value,))
         except ParameterException as pe:
             excmsg = ("(ParamaterLoader) setValueTo, fail to set value with "
@@ -236,13 +231,12 @@ class ParameterAbstractLoader(AbstractLoader):
 
         # set value
         for value in self.value_to_set:
-            key, instance, no_error_if_key_exist, override, parent = value
+            key, instance, no_error_if_key_exist, override = value
             self._setValueTo(container,
                              key,
                              instance,
                              no_error_if_key_exist,
                              override,
-                             parent,
                              exceptions)
 
         # raise error list

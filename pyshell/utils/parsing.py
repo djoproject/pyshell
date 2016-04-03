@@ -31,6 +31,9 @@ from pyshell.utils.exception import PARSE_ERROR
 
 def escapeString(string, wrapped=True):
 
+    if len(string) == 0:
+        return string
+
     string = string.replace("\\", "\\\\")
     string = string.replace("\"", "\\\"")
 

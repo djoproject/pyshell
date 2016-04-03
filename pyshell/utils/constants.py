@@ -71,7 +71,7 @@ ENVIRONMENT_USE_HISTORY_VALUE = True
 ENVIRONMENT_ADDON_TO_LOAD_KEY = MAIN_CATEGORY+".addonToLoad"
 ENVIRONMENT_ADDON_TO_LOAD_DEFAULT = ("pyshell.addons.std",
                                      "pyshell.addons.parameter")
-#                                    "pyshell.addons.keystore")
+#                                     "pyshell.addons.keystore")
 
 ADDONLIST_KEY = MAIN_CATEGORY+".loader_addon"
 
