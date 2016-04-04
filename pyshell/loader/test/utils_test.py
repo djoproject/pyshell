@@ -417,8 +417,11 @@ class TestUtils(object):
         gl.load(None)
         assert gl.last_updated_profile[0] == DEFAULT_PROFILE_NAME
         assert gl.last_updated_profile[1] == STATE_LOADED
-        with pytest.raises(LoadException):
-            gl.load(None)
+        # with pytest.raises(LoadException):
+        #     gl.load(None)
+        # from now, no exception is raised if an addon is already loaded
+        # maybe it will change in the future.
+        gl.load(None)
 
     # # unload # #
     # valid unload
