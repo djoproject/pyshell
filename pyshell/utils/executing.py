@@ -134,7 +134,6 @@ def _generateSuffix(parameter_container,
 
 
 def _execute(parser, parameter_container, process_name=None):
-
     # # solving then execute # #
     ex = None
     engine = None
@@ -142,7 +141,14 @@ def _execute(parser, parameter_container, process_name=None):
     try:
         # solve command, variable, and dashed parameters
         env = parameter_container.environment
-        mltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY).getValue()
+        mltries_param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY)
+
+        if mltries_param is None:
+            raise DefaultPyshellException("Fail to execute the command,"
+                                          " no levelTries defined",
+                                          CORE_ERROR)
+
+        mltries = mltries_param.getValue()
         rawCommandList, rawArgList, mappedArgs, command_name_list = \
             Solver().solve(parser, mltries, parameter_container.variable)
         # clone command/procedure to manage concurrency state

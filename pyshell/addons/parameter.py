@@ -290,6 +290,9 @@ def listParameter(parameters, key=None):
 def loadParameter(file_path, parameters):
     "load parameters from the settings file"
 
+    if file_path is None:
+        return
+
     if os.path.exists(file_path.getValue()):
         afile = ProcedureFromFile(file_path.getValue())
         afile.neverStopIfErrorOccured()
@@ -317,6 +320,9 @@ def saveParameter(file_path, parameters):
     #   starting parameter...
     # SOLUTION2 historized parameters
     # store old value, when it has been change and by what
+
+    if file_path is None:
+        return
 
     file_path = file_path.getValue()
 

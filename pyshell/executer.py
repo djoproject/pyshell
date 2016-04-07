@@ -22,6 +22,7 @@ import sys
 import threading
 from contextlib import contextmanager
 
+from tries import multiLevelTries
 from tries.exception import pathNotExistsTriesException
 
 from pyshell.addons import parameter
@@ -45,6 +46,7 @@ from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.constants import ENVIRONMENT_PARAMETER_FILE_KEY
+from pyshell.utils.constants import ENVIRONMENT_PROMPT_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
@@ -59,39 +61,23 @@ from pyshell.utils.printing import printException
 from pyshell.utils.printing import warning
 from pyshell.utils.valuable import SimpleValuable
 
-
-# TODO
-#   there is no None check after call to any getParameter,
-#   could be interesting to manage these case
-
 # TODO
 #   the second part of the __init__ is not an init part
 #   it is more like the first part of the running.
 #   So it could move in the main loop method or in another method.
 
+
 class CommandExecuter():
-    def __init__(self, param_file=None, outside_args=None):
+    def __init__(self, param_file_path=None, outside_args=None):
         self.params = ParameterContainer()
         self._initContainers()
-
         self.promptWaitingValuable = SimpleValuable(False)
         self._initPrinter()
-
-        # load addon system (if not loaded, can't do anything)
-        loaded = False
-        with self.exceptionManager("fail to load addon "
-                                   "'pyshell.addons.system'"):
-            system._loaders.load(self.params)
-            loaded = True
-
-        if not loaded:
-            print("fail to load system addon, can not do anything with"  # noqa
-                  " the application without this loader")
-            exit(-1)
-
-        self._initParams(param_file, outside_args, system._loaders)
-        self._startUp()
         atexit.register(self._atExit)
+
+        self._loadSystemAddon()
+        self._initParams(param_file_path, outside_args, system._loaders)
+        self._startUp()
 
     def _initContainers(self):
         env = EnvironmentParameterManager(self.params)
@@ -106,17 +92,32 @@ class CommandExecuter():
         key = CryptographicKeyParameterManager(self.params)
         self.params.registerParameterManager(KEY_ATTRIBUTE_NAME, key)
 
-    def _initParams(self, param_file, outside_args, system_loader):
+    def _loadSystemAddon(self):
+        loaded = False
+        with self.exceptionManager("fail to load addon "
+                                   "'pyshell.addons.system'"):
+            system._loaders.load(self.params)
+            loaded = True
+
+        # load addon system (if not loaded, can't do anything)
+        if not loaded:
+            print("fail to load system addon, can not do anything with"  # noqa
+                  " the application without this loader")
+            exit(-1)
+
+    def _initParams(self, param_file_path, outside_args, system_loader):
         env = self.params.environment
 
         loaded_addon = env.getParameter(ADDONLIST_KEY, perfect_match=True)
-        loaded_addon.getValue()["pyshell.addons.system"] = system_loader
+        if loaded_addon is not None:
+            loaded_addon.getValue()["pyshell.addons.system"] = system_loader
 
-        if param_file is not None:
+        if param_file_path is not None:
             parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
                                               perfect_match=True)
 
-            parameter_file.setValue(param_file)
+            if parameter_file is not None:
+                parameter_file.setValue(param_file_path)
 
         # init local level
         # TODO remove me as soon as level has been removed
@@ -192,7 +193,7 @@ class CommandExecuter():
         addon_to_load = env.getParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
                                          perfect_match=True)
 
-        with self.exceptionManager("An error occurred during startup addon"
+        with self.exceptionManager("An error occurred during startup addon "
                                    "loading"):
             system.loadAddonOnStartUp(addon_to_load,
                                       self.params,
@@ -226,6 +227,15 @@ class CommandExecuter():
         with self.exceptionManager("fail to save history"):
             std.historySave(use_history, history_file)
 
+    def _getPrompt(self):
+        env = self.params.environment
+        prompt_param = env.getParameter(ENVIRONMENT_PROMPT_KEY,
+                                        perfect_match=True)
+
+        if prompt_param is None:
+            return ENVIRONMENT_PROMPT_DEFAULT
+        return prompt_param.getValue()
+
     def mainLoop(self):
         # enable autocompletion
         if 'libedit' in readline.__doc__:
@@ -239,16 +249,15 @@ class CommandExecuter():
         context = self.params.context
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
                                          perfect_match=True)
-        exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        if exec_type is not None:
+            exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
 
         # mainloop
         while True:
             # read prompt
+            prompt = self._getPrompt()
             self.promptWaitingValuable.setValue(True)
             try:
-                env = self.params.environment
-                prompt = env.getParameter(ENVIRONMENT_PROMPT_KEY,
-                                          perfect_match=True).getValue()
                 cmd = raw_input(prompt)
             except SyntaxError as se:
                 error(se, "syntax error")
@@ -264,9 +273,7 @@ class CommandExecuter():
             execute(cmd, self.params, "__shell__")
 
     def printAsynchronousOnShellV2(self, message):
-        env = self.params.environment
-        prompt = env.getParameter(ENVIRONMENT_PROMPT_KEY,
-                                  perfect_match=True).getValue()
+        prompt = self._getPrompt()
         # this is needed because after an input,
         # the readline buffer isn't always empty
         if len(readline.get_line_buffer()) == 0 or \
@@ -294,8 +301,14 @@ class CommandExecuter():
         parser = Parser(readline.get_line_buffer())
         parser.parse()
         env = self.params.environment
-        ltries = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                  perfect_match=True).getValue()
+        ltries_param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
+                                        perfect_match=True).getValue()
+
+        if ltries_param is None:
+            ltries = multiLevelTries()
+        else:
+            ltries = ltries_param.getValue()
+
         try:
             # # special case, empty line # #
                 # only print root tokens
@@ -368,7 +381,7 @@ class CommandExecuter():
             context = self.params.context
             debug_level = context.getParameter(DEBUG_ENVIRONMENT_NAME,
                                                perfect_match=True)
-            if debug_level.getSelectedValue() > 0:
+            if debug_level is None or debug_level.getSelectedValue() > 0:
                 printException(ex)
 
         return None
@@ -393,7 +406,9 @@ class CommandExecuter():
         context = self.params.context
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
                                          perfect_match=True)
-        exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        if exec_type is not None:
+            exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+
         afile = ProcedureFromFile(filename)
         afile.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(granularity)
 

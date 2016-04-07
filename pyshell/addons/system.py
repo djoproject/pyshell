@@ -187,7 +187,8 @@ def loadAddonFun(name, parameters, sub_addon=None, addon_dico=None):
     loader = mod._loaders
 
     # load and register
-    addon_dico.getValue()[name] = loader
+    if addon_dico is not None:
+        addon_dico.getValue()[name] = loader
     loader.load(parameters, sub_addon)
 
     notice(name + " loaded !")
@@ -200,6 +201,8 @@ def loadAddonFun(name, parameters, sub_addon=None, addon_dico=None):
     addon_dico=EnvironmentParameterChecker(ADDONLIST_KEY))
 def loadAddonOnStartUp(addon_list_on_start_up, params, addon_dico=None):
 
+    if addon_list_on_start_up is None:
+        return
     addon_list = addon_list_on_start_up.getValue()
 
     error_list = ListOfException()

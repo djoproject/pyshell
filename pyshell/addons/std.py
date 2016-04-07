@@ -356,7 +356,9 @@ def generator(start=0, stop=100, step=1, multi_output=True):
 def historyLoad(use_history, history_file):
     "save readline history"
 
-    if not use_history.getValue():
+    if (use_history is None or
+       history_file is None or
+       not use_history.getValue()):
         return
 
     try:
@@ -372,7 +374,9 @@ def historyLoad(use_history, history_file):
 def historySave(use_history, history_file):
     "load readline history"
 
-    if not use_history.getValue():
+    if (use_history is None or
+       history_file is None or
+       not use_history.getValue()):
         return
 
     path = history_file.getValue()
