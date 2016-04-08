@@ -119,10 +119,6 @@ class CommandExecuter():
             if parameter_file is not None:
                 parameter_file.setValue(param_file_path)
 
-        # init local level
-        # TODO remove me as soon as level has been removed
-        self.params.pushVariableLevelForThisThread()
-
         # these variable has to be defined here, because they have to be
         # local type.  So it is not possible to declare them in an addon
         # because only global variable are allowed there

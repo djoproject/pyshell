@@ -82,13 +82,13 @@ class TestParameter(object):
     def test_parameterManagerConstructor1(self):
         params = ParameterManager(parent=None)
         curr_id = params.parentContainer.getCurrentId()
-        assert curr_id == (current_thread().ident, None,)
+        assert curr_id == current_thread().ident
 
     # with valid parent + test getCurrentId
     def test_parameterManagerConstructor2(self):
         params = ParameterManager(parent=DummyParameterContainer())
         curr_id = params.parentContainer.getCurrentId()
-        assert curr_id == (current_thread().ident, None,)
+        assert curr_id == current_thread().ident
 
     # with parent without getCurrentId + test getCurrentId
     def test_parameterManagerConstructor3(self):
@@ -1050,16 +1050,16 @@ class TestParameter(object):
 
         # construct fake other var
         params.setParameter("plop", Parameter("titi"), local_param=True)
-        (tid, empty,) = params.parentContainer.getCurrentId()
-        name_set = params.threadLocalVar[(tid, empty,)]
-        del params.threadLocalVar[(tid, empty,)]
-        params.threadLocalVar[(tid + 1, empty,)] = name_set
+        key = params.parentContainer.getCurrentId()
+        name_set = params.threadLocalVar[key]
+        del params.threadLocalVar[key]
+        params.threadLocalVar["ANY_KEY"] = name_set
 
         result = params.mltries.advancedSearch(("plop",), True)
         g, l = result.getValue()
-        param = l[(tid, empty,)]
-        del l[(tid, empty,)]
-        l[(tid + 1, empty,)] = param
+        param = l[key]
+        del l[key]
+        l["ANY_KEY"] = param
 
         params.setParameter("plip", Parameter("tutu"), local_param=True)
 
@@ -1086,7 +1086,7 @@ class TestParameter(object):
 
         result = params.mltries.advancedSearch(("plop",), True)
         g, l = result.getValue()
-        assert (tid + 1, empty,) in l
+        assert "ANY_KEY" in l
 
     # #
 

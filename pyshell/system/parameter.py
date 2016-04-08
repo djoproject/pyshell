@@ -211,9 +211,11 @@ class ParameterManager(Flushable):
             else:
                 global_var = param
                 param.enableGlobal()
-                settings = param.settings
-                settings.setStartingPoint(hash(param),
-                                          *self.parentContainer.getOrigin())
+                # settings = param.settings
+
+                # TODO need update
+                # settings.setStartingPoint(hash(param),
+                #                          *self.parentContainer.getOrigin())
 
             self.mltries.insert(string_path.split("."),
                                 (global_var, local_var,))
@@ -408,8 +410,7 @@ class ParameterManager(Flushable):
             # no error possible, missing value or invalid type is possible
             # here, because of the process in set/unset
             for path in self.threadLocalVar[key]:
-                meth_name = "popVariableLevelForThisThread"
-                advanced_result = self._getAdvanceResult(meth_name,
+                advanced_result = self._getAdvanceResult("flush",
                                                          path,
                                                          False,
                                                          False)

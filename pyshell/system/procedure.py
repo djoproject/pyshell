@@ -30,12 +30,9 @@ from pyshell.system.variable import VarParameter
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import ERROR
 from pyshell.utils.exception import ParameterException
-from pyshell.utils.exception import ProcedureStackableException
 from pyshell.utils.exception import PyshellException
 from pyshell.utils.executing import execute
-from pyshell.utils.printing import getPrinterFromExceptionSeverity
-from pyshell.utils.printing import printShell
-from pyshell.utils.printing import warning
+from pyshell.utils.printing import printException
 
 
 class ProcedureFromFile(UniCommand):
@@ -104,22 +101,8 @@ class ProcedureFromFile(UniCommand):
             ArgChecker()),
         parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
     def _internalProcess(self, args, parameters):
-        parameters.pushVariableLevelForThisThread(self)
-
-        thread_id, level = parameters.getCurrentId()
-
-        if level == 0 and self.errorGranularity is not None:
-            warning("WARN: execution of the procedure " + str(self.name) +
-                    " at level 0 with an error granularity equal to '" +
-                    str(self.errorGranularity) + "'.  Any error with a " +
-                    "granularity equal or lower will interrupt the " +
-                    "application.")
-
         self._setArgs(parameters, args)
-        try:
-            return self.execute(parameters)
-        finally:
-            parameters.popVariableLevelForThisThread()
+        return self.execute(parameters)
 
     def interrupt(self, reason=None):
         self.interruptReason = reason
@@ -175,27 +158,12 @@ class ProcedureFromFile(UniCommand):
             else:
                 severity = ERROR
 
-            if self.errorGranularity is not None and \
-               severity <= self.errorGranularity:
-                if isinstance(last_exception, ProcedureStackableException):
-                    last_exception.append((cmd, name,))
-                    raise last_exception
+            printException(last_exception)
 
-                exception = ProcedureStackableException(
-                    severity, last_exception)
-                exception.procedureStack.append((cmd, name,))
-
-                thread_id, level = param.getCurrentId()
-                if level == 0:
-                    self._printProcedureStack(exception, thread_id, 0)
-
-                raise exception
-
-            if isinstance(last_exception, ProcedureStackableException):
-                thread_id, level = param.getCurrentId()
-                last_exception.procedureStack.append((cmd, name,))
-                self._printProcedureStack(last_exception, thread_id, level)
-
+            # The last error was too severe, stop the procedure.
+            if (self.errorGranularity is not None and
+               severity <= self.errorGranularity):
+                raise last_exception
         else:
             if engine is not None and engine.getLastResult(
             ) is not None and len(engine.getLastResult()) > 0:
@@ -204,23 +172,6 @@ class ProcedureFromFile(UniCommand):
                 param.setValue(())
 
         return last_exception, engine
-
-    def _printProcedureStack(self, stack_exception, thread_id, current_level):
-        # TODO no usage of thread_id ?
-
-        if len(stack_exception.procedureStack) == 0:
-            return
-
-        to_print = ""
-        for i in range(0, len(stack_exception.procedureStack)):
-            cmd, name = stack_exception.procedureStack[
-                len(stack_exception.procedureStack) - i - 1]
-            to_print += (i * " ") + str(name) + " : " + str(cmd) + \
-                "(level=" + str(current_level + i) + ")\n"
-
-        to_print = to_print[:-1]
-        color_fun = getPrinterFromExceptionSeverity(stack_exception.severity)
-        printShell(color_fun(to_print))
 
     # get/set method
 

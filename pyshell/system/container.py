@@ -18,22 +18,8 @@
 
 from threading import current_thread
 
-from pyshell.utils.constants import DEFAULT_PROFILE_NAME
-from pyshell.utils.constants import SYSTEM_VIRTUAL_LOADER
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.flushable import Flushable
-
-
-class _ThreadInfo(object):
-    def __init__(self):
-        self.procedureStack = []
-        self.origin = SYSTEM_VIRTUAL_LOADER
-        self.origin_profile = DEFAULT_PROFILE_NAME
-
-    def canBeDeleted(self):
-        return len(self.procedureStack) == 0 and \
-            self.origin == SYSTEM_VIRTUAL_LOADER and \
-            self.origin_profile == DEFAULT_PROFILE_NAME
 
 
 class AbstractParameterContainer(object):
@@ -48,31 +34,14 @@ class AbstractParameterContainer(object):
 
 
 class DummyParameterContainer(AbstractParameterContainer):
-    def __init__(self):
-        self.origin = SYSTEM_VIRTUAL_LOADER
-        self.origin_profile = DEFAULT_PROFILE_NAME
-
     def getCurrentId(self):
-        return current_thread().ident, None
-
-    def getOrigin(self):
-        return self.origin, self.origin_profile
-
-    def setOrigin(self, origin, origin_profile=None):
-        self.origin = origin
-
-        if origin_profile is None:
-            self.origin_profile = DEFAULT_PROFILE_NAME
-        else:
-            self.origin_profile = origin_profile
-
+        return current_thread().ident
 
 DEFAULT_DUMMY_PARAMETER_CONTAINER = DummyParameterContainer()
 
 
 class ParameterContainer(AbstractParameterContainer):
     def __init__(self):
-        self.threadInfo = {}  # hold the level of the current thread
         self.mainThread = current_thread().ident
         self.parameterManagerList = []
 
@@ -92,84 +61,8 @@ class ParameterContainer(AbstractParameterContainer):
         setattr(self, name, obj)
         self.parameterManagerList.append(name)
 
-    def getThreadInfo(self):
-        tid = current_thread().ident
-
-        if tid in self.threadInfo:
-            return self.threadInfo[tid]
-
-        ti = _ThreadInfo()
-        self.threadInfo[tid] = ti
-        return ti
-
-    def pushVariableLevelForThisThread(self, procedure=None):
-        info = self.getThreadInfo()  # get or create
-        info.procedureStack.append(procedure)
-
-    def popVariableLevelForThisThread(self):
-        if current_thread().ident not in self.threadInfo:
-            return
-
-        info = self.getThreadInfo()  # only get, never create thread info
-
-        if len(info.procedureStack) > 0:  # this info only hold the origin
-            # flush parameter manager
-            for name in self.parameterManagerList:
-                pm = getattr(self, name)
-                pm.flush()
-
-            # update level map
-            info.procedureStack = info.procedureStack[:-1]
-
-        if info.canBeDeleted():
-            del self.threadInfo[current_thread().ident]
-
     def getCurrentId(self):
-        if current_thread().ident not in self.threadInfo:
-            return current_thread().ident, -1
-
-        info = self.getThreadInfo()  # only get, never create thread info
-        return current_thread().ident, len(info.procedureStack)-1,
+        return current_thread().ident
 
     def isMainThread(self):
         return self.mainThread == current_thread().ident
-
-    def getCurrentProcedure(self):
-        if current_thread().ident not in self.threadInfo:
-            return None
-
-        info = self.getThreadInfo()  # only get, never create thread info
-
-        if len(info.procedureStack) == 0:
-            return None
-
-        return info.procedureStack[-1]
-
-    def getOrigin(self):
-        if current_thread().ident not in self.threadInfo:
-            return SYSTEM_VIRTUAL_LOADER, DEFAULT_PROFILE_NAME
-
-        info = self.getThreadInfo()  # only get, never create thread info
-        return info.origin, info.origin_profile
-
-    def setOrigin(self, origin, origin_profile=None):
-
-        if origin_profile is None:
-            origin_profile = DEFAULT_PROFILE_NAME
-
-        if origin == SYSTEM_VIRTUAL_LOADER and \
-           origin_profile == DEFAULT_PROFILE_NAME:
-            # no need to store origin if not registered and new origin is
-            # SYSTEM_VIRTUAL_LOADER, because for unregistered,
-            # the default origin is ORIGIN_PROCESS
-            if current_thread().ident in self.threadInfo:
-                info = self.getThreadInfo()
-                info.origin = SYSTEM_VIRTUAL_LOADER
-                info.origin_profile = DEFAULT_PROFILE_NAME
-
-                if info.canBeDeleted():
-                    del self.threadInfo[current_thread().ident]
-        else:
-            info = self.getThreadInfo()
-            info.origin = origin
-            info.origin_profile = origin_profile

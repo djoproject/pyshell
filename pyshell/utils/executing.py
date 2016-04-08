@@ -33,7 +33,6 @@ from pyshell.utils.exception import CORE_ERROR
 from pyshell.utils.exception import CORE_WARNING
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import ListOfException
-from pyshell.utils.exception import ProcedureStackableException
 from pyshell.utils.parsing import Parser
 from pyshell.utils.printing import printException
 from pyshell.utils.solving import Solver
@@ -112,10 +111,9 @@ def _generateSuffix(parameter_container,
                                 CONTEXT_EXECUTION_SHELL)
 
     if (show_advanced_result or
-       not parameter_container.isMainThread() or
-       parameter_container.getCurrentId()[1] > 0):
-        threadId, levelId = parameter_container.getCurrentId()
-        message = " (threadId="+str(threadId)+", level="+str(levelId)
+       not parameter_container.isMainThread()):
+        thread_id = parameter_container.getCurrentId()
+        message = " (threadId="+str(thread_id)
 
         if process_name is not None:
             message += ", process='"+str(process_name)+"'"
@@ -178,26 +176,26 @@ def _execute(parser, parameter_container, process_name=None):
         printException(ex,
                        prefix="Fail to init an execution object: ",
                        suffix=_generateSuffix(
-                          parameter_container,
-                          command_name_list=command_name_list,
-                          engine=engine,
-                          process_name=process_name))
+                           parameter_container,
+                           command_name_list=command_name_list,
+                           engine=engine,
+                           process_name=process_name))
     except ExecutionException as ex:
         printException(ex,
                        prefix="Fail to execute: ",
                        suffix=_generateSuffix(
-                          parameter_container,
-                          command_name_list=command_name_list,
-                          engine=engine,
-                          process_name=process_name))
+                           parameter_container,
+                           command_name_list=command_name_list,
+                           engine=engine,
+                           process_name=process_name))
     except CommandException as ex:
         printException(ex,
                        prefix="Error in command method: ",
                        suffix=_generateSuffix(
-                          parameter_container,
-                          command_name_list=command_name_list,
-                          engine=engine,
-                          process_name=process_name))
+                           parameter_container,
+                           command_name_list=command_name_list,
+                           engine=engine,
+                           process_name=process_name))
     except EngineInterruptionException as ex:
         suffix = _generateSuffix(parameter_container,
                                  command_name_list=command_name_list,
@@ -215,28 +213,24 @@ def _execute(parser, parameter_container, process_name=None):
         printException(ex,
                        prefix="Error while parsing argument: ",
                        suffix=_generateSuffix(
-                          parameter_container,
-                          command_name_list=command_name_list,
-                          engine=engine,
-                          process_name=process_name))
+                           parameter_container,
+                           command_name_list=command_name_list,
+                           engine=engine,
+                           process_name=process_name))
     except ListOfException as ex:
         printException(ex,
                        prefix="List of exception(s): ",
                        suffix=_generateSuffix(
-                          parameter_container,
-                          command_name_list=command_name_list,
-                          engine=engine,
-                          process_name=process_name))
-    except ProcedureStackableException as ex:
-        # nothing to do here, the exception will be managed
-        # in the parent procedure
-        pass
+                           parameter_container,
+                           command_name_list=command_name_list,
+                           engine=engine,
+                           process_name=process_name))
     except Exception as ex:
         printException(ex,
                        suffix=_generateSuffix(
-                          parameter_container,
-                          command_name_list=command_name_list,
-                          engine=engine,
-                          process_name=process_name))
+                           parameter_container,
+                           command_name_list=command_name_list,
+                           engine=engine,
+                           process_name=process_name))
 
     return ex, engine

@@ -432,7 +432,7 @@ class TestExecuting(object):
     def test_generateSuffix1(self):  # test with debug
         self.debugContext.settings.setIndexValue(1)
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__')")
+                    "process='__process__')")
         assert _generateSuffix(self.params,
                                (("plop",),),
                                None,
@@ -451,7 +451,7 @@ class TestExecuting(object):
                                "__process__") is None
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__')")
+                    "process='__process__')")
         assert _generateSuffix(self.params,
                                (("plop",),),
                                None,
@@ -460,13 +460,12 @@ class TestExecuting(object):
     def test_generateSuffix3(self):  # test with processName provided or not
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__')")
+                    "process='__process__')")
         assert _generateSuffix(self.params,
                                (("plop",),),
                                None,
                                "__process__") == expected
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1)")
+        expected = (" (threadId="+str(threading.current_thread().ident)+")")
         assert _generateSuffix(
             self.params, (("plop",),), None, None) == expected
 
@@ -474,13 +473,13 @@ class TestExecuting(object):
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__')")
+                    "process='__process__')")
         assert _generateSuffix(self.params, None, e, "__process__") == expected
 
     def test_generateSuffix6(self):  # test with None engine
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__')")
+                    "process='__process__')")
         assert _generateSuffix(self.params,
                                (("plop",),),
                                None,
@@ -491,7 +490,7 @@ class TestExecuting(object):
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
         del e.stack[:]
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__')")
+                    "process='__process__')")
         assert _generateSuffix(self.params,
                                (("plop",),),
                                e,
@@ -502,7 +501,7 @@ class TestExecuting(object):
         self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
         expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "level=-1, process='__process__', command='plop')")
+                    "process='__process__', command='plop')")
         assert _generateSuffix(self.params,
                                (("plop",),),
                                e,
