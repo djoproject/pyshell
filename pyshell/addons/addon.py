@@ -24,6 +24,11 @@
 import os
 import traceback
 
+from pyshell.addons.utils.addon import formatState
+from pyshell.addons.utils.addon import tryToGetAddonFromDico
+from pyshell.addons.utils.addon import tryToGetAddonFromParameters
+from pyshell.addons.utils.addon import tryToGetDicoFromParameters
+from pyshell.addons.utils.addon import tryToImportLoaderFromFile
 from pyshell.arg.argchecker import CompleteEnvironmentChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import EnvironmentParameterChecker
@@ -37,7 +42,6 @@ from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
-from pyshell.utils.constants import STATE_LOADED
 from pyshell.utils.constants import STATE_UNLOADED
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.postprocess import listResultHandler
@@ -52,53 +56,6 @@ from pyshell.utils.printing import notice
 ADDON_PREFIX = "pyshell.addons."
 
 # # FUNCTION SECTION # #
-
-
-def _tryToGetDicoFromParameters(parameters):
-    param = parameters.environment.getParameter(ADDONLIST_KEY,
-                                                perfect_match=True)
-    if param is None:
-        raise Exception("no addon list defined")
-
-    return param.getValue()
-
-
-def _tryToGetAddonFromDico(addon_dico, name):
-    if name not in addon_dico:
-        raise Exception("unknown addon '"+str(name)+"'")
-
-    return addon_dico[name]
-
-
-def _tryToGetAddonFromParameters(parameters, name):
-    return _tryToGetAddonFromDico(_tryToGetDicoFromParameters(parameters),
-                                  name)
-
-
-def _tryToImportLoaderFromFile(name):
-    try:
-        mod = __import__(name, fromlist=["_loaders"])
-    except ImportError as ie:
-        raise Exception(
-            "fail to load addon '" +
-            str(name) +
-            "', reason: " +
-            str(ie))
-
-    if not hasattr(mod, "_loaders"):
-        raise Exception("invalid addon '"+str(name)+"', no loader found. "
-                        "don't forget to register something in the addon")
-
-    return mod._loaders
-
-
-def _formatState(state, printok, printwarning, printerror):
-    if state == STATE_LOADED:
-        return printok(state)
-    elif state == STATE_UNLOADED:
-        return printwarning(state)
-    else:
-        return printerror(state)
 
 
 @shellMethod(addon_dico=EnvironmentParameterChecker(ADDONLIST_KEY))
@@ -126,10 +83,10 @@ def listAddonFun(addon_dico):
         profileName, profileState = loader.last_updated_profile
         l.append((name,
                   profileName,
-                  _formatState(profileState,
-                               formatGreen,
-                               formatOrange,
-                               formatRed),))
+                  formatState(profileState,
+                              formatGreen,
+                              formatOrange,
+                              formatRed),))
 
     # print not loaded local addon
     for name in local_addon:
@@ -153,7 +110,7 @@ def listAddonFun(addon_dico):
 def unloadAddon(name, parameters, sub_addon=None):
     "unload an addon"
 
-    addon = _tryToGetAddonFromParameters(parameters, name)
+    addon = tryToGetAddonFromParameters(parameters, name)
     addon.unload(parameters, sub_addon)
     notice(str(name) + " unloaded !")
 
@@ -164,7 +121,7 @@ def unloadAddon(name, parameters, sub_addon=None):
 def reloadAddon(name, parameters, sub_addon=None):
     "reload an addon from memory"
 
-    addon = _tryToGetAddonFromParameters(parameters, name)
+    addon = tryToGetAddonFromParameters(parameters, name)
     addon.reload(parameters, sub_addon)
     notice(str(name) + " reloaded !")
 
@@ -176,14 +133,14 @@ def hardReload(name, parameters, sub_addon=None):
     "reload an addon from file"
 
     # get addon list and addon
-    addon_dico = _tryToGetDicoFromParameters(parameters)
-    addon = _tryToGetAddonFromDico(addon_dico, name)
+    addon_dico = tryToGetDicoFromParameters(parameters)
+    addon = tryToGetAddonFromDico(addon_dico, name)
 
     # unload addon
     addon.unload(parameters, sub_addon)
 
     # load addon from file
-    loader = _tryToImportLoaderFromFile(name)
+    loader = tryToImportLoaderFromFile(name)
 
     # load and register
     addon_dico[name] = loader
@@ -203,7 +160,7 @@ def getAddonInformation(name, addon_dico, tabsize, ):
     # if not in the list, try to load it
     addon_dico = addon_dico.getValue()
     if name not in addon_dico:
-        addon = _tryToImportLoaderFromFile(name)
+        addon = tryToImportLoaderFromFile(name)
     else:
         addon = addon_dico[name]
 
@@ -216,10 +173,10 @@ def getAddonInformation(name, addon_dico, tabsize, ):
     for sub_addon_name, (subloaders, status, ) in addon.profile_list.items():
         # current status
         lines.append(tab+formatBolt("Sub addon")+" '"+str(sub_addon_name) +
-                     "': "+_formatState(status,
-                                        formatGreen,
-                                        formatOrange,
-                                        formatRed))
+                     "': "+formatState(status,
+                                       formatGreen,
+                                       formatOrange,
+                                       formatRed))
 
         # loader in each subbadon
         for name, loader in subloaders.items():
@@ -269,7 +226,7 @@ def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
     "reload a profile of an addon from memory"
 
     # addon name exist ?
-    addon = _tryToGetAddonFromParameters(parameters, name)
+    addon = tryToGetAddonFromParameters(parameters, name)
 
     if sub_addon is None:
         sub_addon = DEFAULT_PROFILE_NAME
@@ -305,7 +262,7 @@ def addOnStartUp(addon_name, addon_list_on_start_up):
     "add an addon loading on startup"
 
     # package exist ?
-    _tryToImportLoaderFromFile(addon_name)
+    tryToImportLoaderFromFile(addon_name)
 
     addon_list = addon_list_on_start_up.getValue()
 

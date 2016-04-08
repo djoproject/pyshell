@@ -18,6 +18,7 @@
 
 from tries import multiLevelTries
 
+from pyshell.addons.utils.addon import tryToImportLoaderFromFile
 from pyshell.arg.argchecker import CompleteEnvironmentChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import EnvironmentParameterChecker
@@ -176,15 +177,7 @@ registerSetContext(CONTEXT_COLORATION_KEY, param)
 def loadAddonFun(name, parameters, sub_addon=None, addon_dico=None):
     "load an addon"
 
-    try:
-        mod = __import__(name, fromlist=["_loaders"])
-    except ImportError as ie:
-        raise Exception("fail to load addon '"+str(name)+"', reason: "+str(ie))
-
-    if not hasattr(mod, "_loaders"):
-        raise Exception("invalid addon '"+str(name)+"', no loader found. "
-                        "don't forget to register something in the addon")
-    loader = mod._loaders
+    loader = tryToImportLoaderFromFile(name)
 
     # load and register
     if addon_dico is not None:
