@@ -302,7 +302,7 @@ class CommandExecuter():
         parser.parse()
         env = self.params.environment
         ltries_param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                        perfect_match=True).getValue()
+                                        perfect_match=True)
 
         if ltries_param is None:
             ltries = multiLevelTries()
