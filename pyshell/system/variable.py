@@ -55,9 +55,6 @@ class VariableGlobalSettings(GlobalSettings, VariableSettings):
                                 removable=True,
                                 transient=transient)
 
-    def addLoader(self, loader_signature):
-        pass
-
 
 # TODO rename to VariableParameter
 class VarParameter(EnvironmentParameter):

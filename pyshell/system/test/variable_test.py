@@ -104,11 +104,6 @@ class TestVariable(object):
         vls.setRemovable(False)
         assert vls.isRemovable()
 
-    def test_globalSettings6(self):
-        vls = VariableGlobalSettings()
-        vls.addLoader("plop")
-        assert vls.getLoaders() is None
-
     def test_globalSettings7(self):
         vls = VariableGlobalSettings()
         assert len(vls.getProperties()) == 0
@@ -116,22 +111,6 @@ class TestVariable(object):
     def test_globalSettings8(self):
         vls = VariableGlobalSettings()
         vls.setStartingPoint(hash(vls), "titi", "toto")
-
-    def test_globalSettings9(self):
-        vls = VariableGlobalSettings()
-        assert vls.getLoaders() is None
-        vls.addLoader("plop")
-        assert vls.getLoaders() is None
-
-    def test_globalSettings10(self):
-        vls = VariableGlobalSettings()
-        vls.addLoader("ahah")
-        vls.setStartingPoint(hash(vls), "titi", "toto")
-
-        vls2 = VariableGlobalSettings()
-        vls2.mergeFromPreviousSettings(vls)
-
-        assert vls2.getLoaders() is None
 
     def test_globalSettings11(self):
         vls = VariableGlobalSettings()

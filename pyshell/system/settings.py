@@ -45,18 +45,6 @@ class Settings(object):
     def isRemovable(self):
         return True
 
-    def isFantom(self):
-        return False
-
-    def addLoader(self, loader_signature):
-        pass
-
-    def mergeFromPreviousSettings(self, parameter):
-        pass
-
-    def getLoaders(self):
-        return None
-
     def getProperties(self):
         return (("removable", self.isRemovable(),),
                 ("readOnly", self.isReadOnly(),),
@@ -134,7 +122,6 @@ class GlobalSettings(LocalSettings):
         LocalSettings.__init__(self, False, removable)
 
         self.setTransient(transient)
-        self.loaderSet = {}
         self.startingHash = None
         self.setReadOnly(read_only)
 
@@ -150,77 +137,6 @@ class GlobalSettings(LocalSettings):
 
     def isTransient(self):
         return self.transient
-
-    def setLoaderState(self, loader_signature, loader_state):
-        # loaderState must be hashable
-        if not isinstance(loader_signature, collections.Hashable):
-            raise ParameterException("(GlobalSettings) setLoaderState, "
-                                     "loader_signature has to be hashable")
-
-        self.loaderSet[loader_signature] = loader_state
-        return loader_state
-
-    def getLoaderState(self, loader_signature):
-        return self.loaderSet[loader_signature]
-
-    def hasLoaderState(self, loader_signature):
-        return loader_signature in self.loaderSet
-
-    def hashForLoader(self, loader_signature=None):
-        if loader_signature is None:
-            SYSTEM_VIRTUAL_LOADER
-
-        if loader_signature is not SYSTEM_VIRTUAL_LOADER:
-            return hash(self.loaderSet[loader_signature])
-
-        if SYSTEM_VIRTUAL_LOADER not in self.loaderSet:
-            return hash(self)
-
-        self_hash = str(hash(self))
-        loader_set_hash = str(hash(self.loaderSet[loader_signature]))
-        return hash(self_hash+loader_set_hash)
-
-    def addLoader(self, signature):
-        self.loaderSet[signature] = ()
-
-    def getLoaders(self):
-        if len(self.loaderSet.keys()) == 0:
-            return None
-
-        return tuple(self.loaderSet.keys())
-
-    def isFantom(self):
-        return len(self.loaderSet) == 0
-
-    # #### TODO remove method below, and update parameter/container
-    #   each loader will store two hash for each storable items
-    #   (original hash, hash after file load)
-    #   merge does not exist anymore
-    #   create a method, setRegisteredHashForLoader, setFileHashForLoader
-    #   (these methods will be called in loaders)
-    #       these methods only take the loaders signature as argument,
-    #       the hash occurs on the information stored in the settings
-
-    def mergeFromPreviousSettings(self, settings):
-        if settings is None:
-            return
-
-        if not isinstance(settings, GlobalSettings):
-            raise ParameterException("(GlobalSettings) "
-                                     "mergeFromPreviousSettings, a "
-                                     "GlobalSettings object was expected, "
-                                     "got '"+str(type(settings))+"'")
-
-        # manage loader
-        other_loaders = settings.loaderSet
-        if self.loaderSet is None:
-            if other_loaders is not None:
-                self.loaderSet = dict(other_loaders)
-        elif other_loaders is not None:
-            self.loaderSet.update(other_loaders)
-
-        # manage origin
-        self.startingHash = settings.startingHash
 
     def setStartingPoint(self, hashi, origin, origin_profile=None):
         if self.startingHash is not None:

@@ -187,12 +187,12 @@ class ParameterManager(Flushable):
                                   " exist and is not editable")
                         raise ParameterException(excmsg)
 
-                    previous_setting = global_var.settings
-                else:
-                    previous_setting = None
+                #     previous_setting = global_var.settings
+                # else:
+                #     previous_setting = None
 
                 param.enableGlobal()
-                param.settings.mergeFromPreviousSettings(previous_setting)
+                # param.settings.mergeFromPreviousSettings(previous_setting)
                 self.mltries.update(string_path.split("."),
                                     (param, local_var,))
         else:
@@ -377,16 +377,6 @@ class ParameterManager(Flushable):
                             excmsg = ("(ParameterManager) unsetParameter, "
                                       "parameter '"+complete_path+"' is not "
                                       "removable")
-                            raise ParameterException(excmsg)
-
-                        loader_set = global_var.settings.getLoaders()
-                        if loader_set is not None and len(loader_set) > 0:
-                            complete_path = " ".join(
-                                advanced_result.getFoundCompletePath())
-                            excmsg = ("(ParameterManager) unsetParameter, "
-                                      "parameter '"+complete_path+"' can be "
-                                      "removed, at least on loader is "
-                                      "registered on this parameter")
                             raise ParameterException(excmsg)
 
                     if len(local_var) == 0:

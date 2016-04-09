@@ -377,9 +377,6 @@ class TestParameter(object):
         param = self.params.setParameter("plop",
                                          Parameter("titi"),
                                          local_param=False)
-        param.settings.addLoader("uhuh")
-        param.settings.addLoader("ahah")
-        param.settings.addLoader("uhuh")
 
         # self.assertTrue(hasattr(param.settings, "origin"))
         # self.assertTrue(hasattr(param.settings, "originArg"))
@@ -396,8 +393,6 @@ class TestParameter(object):
         # self.assertEqual(param.settings.origin, "aaa")
         # self.assertEqual(param.settings.originArg, "bbb")
         assert param.settings.startingHash == has
-        loaders = tuple(sorted(param.settings.getLoaders()))
-        assert loaders == ("ahah", "uhuh",)
 
     # #
 
@@ -910,7 +905,6 @@ class TestParameter(object):
         param = self.params.setParameter("plop",
                                          Parameter("titi"),
                                          local_param=False)
-        param.settings.addLoader("load1")
         param.settings.setRemovable(False)
         with pytest.raises(ParameterException):
             self.params.unsetParameter("plop",
@@ -923,7 +917,6 @@ class TestParameter(object):
         param = self.params.setParameter("plop",
                                          Parameter("titi"),
                                          local_param=False)
-        param.settings.addLoader("load1")
         self.params.unsetParameter("plop",
                                    local_param=False,
                                    explore_other_level=False,
