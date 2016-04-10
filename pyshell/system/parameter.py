@@ -53,6 +53,57 @@ def _buildExistingPathFromError(wrong_path, advanced_result):
     return path_to_return
 
 
+class ParameterTriesNode(object):
+    def __init__(self):
+        self.global_var = None
+        self.local_var = None
+        self.origin_loader = None
+        self.starting_hash = None
+
+    def hasLocalVar(self, key):
+        return self.local_var is not None and key in self.local_var
+
+    def hasGlobalVar(self):
+        return self.global_var is not None
+
+    def getLocalVar(self, key):
+        return self.local_var[key]
+
+    def getGlobalVar(self):
+        return self.global_var
+
+    def setLocalVar(self, key, value):
+        if self.local_var is None:
+            self.local_var = {}
+
+        self.local_var[key] = value
+
+    def setGlobalVar(self, value, freeze=False):
+        self.global_var = value
+
+        if self.starting_hash is not None or self.origin_loader is not None:
+            self.global_var.settings.setStartingPoint(self.starting_hash)
+            self.global_var.settings.setLoaderOrigin(self.origin_loader)
+        else:
+            self.global_var.settings.setStartingPoint(hash(self.global_var))
+
+            if freeze:
+                self.origin_loader = self.global_var.settings.loaderOrigin
+                self.starting_hash = self.global_var.settings.startingHash
+
+    def unsetGlobalVar(self):
+        self.global_var = None
+
+    def unsetLocalVar(self, key):
+        if self.local_var is not None and key in self.local_var:
+            del self.local_var[key]
+
+    def isRemovable(self):
+        return (self.global_var is None and
+                (self.local_var is None or len(self.local_var) == 0) and
+                self.starting_hash is None and self.origin_loader is None)
+
+
 class ParameterManager(Flushable):
     def __init__(self, parent=None):
         self._internalLock = Lock()
@@ -141,9 +192,19 @@ class ParameterManager(Flushable):
         # try to instanciate parameter, may raise if invalid type
         return self.getAllowedType()(value)
 
+    # TODO test the frozen cases
     @synchronous()
-    def setParameter(self, string_path, param, local_param=True):
+    def setParameter(self,
+                     string_path,
+                     param,
+                     local_param=True,
+                     freeze_starting_point=False):
         param = self.extractParameter(param)
+
+        if freeze_starting_point and local_param:
+            excmsg = ("(ParameterManager) setParameter, can not "
+                      "freeze starting point with a local parameter")
+            raise ParameterException(excmsg)
 
         # check safety and existing
         advanced_result = self._getAdvanceResult("setParameter",
@@ -152,13 +213,14 @@ class ParameterManager(Flushable):
                                                  False,
                                                  True)
         if advanced_result.isValueFound():
-            (global_var, local_var, ) = advanced_result.getValue()
+            parameter_node = advanced_result.getValue()
 
             if local_param:
                 key = self.parentContainer.getCurrentId()
 
-                if key in local_var:
-                    if local_var[key].settings.isReadOnly():
+                if parameter_node.hasLocalVar(key):
+                    local_var = parameter_node.getLocalVar(key)
+                    if local_var.settings.isReadOnly():
                         complete_path = " ".join(
                             advanced_result.getFoundCompletePath())
                         excmsg = ("(ParameterManager) setParameter, can not "
@@ -175,9 +237,10 @@ class ParameterManager(Flushable):
                         '.'.join(str(x) for x in complete_path))
 
                 param.enableLocal()
-                local_var[key] = param
+                parameter_node.setLocalVar(key, param)
             else:
-                if global_var is not None:
+                if parameter_node.hasGlobalVar():
+                    global_var = parameter_node.getGlobalVar()
                     if global_var.settings.isReadOnly():
                         complete_path = " ".join(
                             advanced_result.getFoundCompletePath())
@@ -187,20 +250,31 @@ class ParameterManager(Flushable):
                                   " exist and is not editable")
                         raise ParameterException(excmsg)
 
-                #     previous_setting = global_var.settings
-                # else:
-                #     previous_setting = None
+                    if (freeze_starting_point and
+                       (parameter_node.starting_hash is not None or
+                            parameter_node.origin_loader is not None)):
+                        excmsg = ("(ParameterManager) setParameter, can not "
+                                  "freeze starting point, it is already "
+                                  "frozen.")
+                        raise ParameterException(excmsg)
 
                 param.enableGlobal()
-                # param.settings.mergeFromPreviousSettings(previous_setting)
-                self.mltries.update(string_path.split("."),
-                                    (param, local_var,))
+
+                if (freeze_starting_point and
+                   param.settings.loaderOrigin is None):
+                    excmsg = ("(ParameterManager) setParameter, can not "
+                              "freeze starting point, loader origin "
+                              "is not defined.")
+                    raise ParameterException(excmsg)
+
+                parameter_node.setGlobalVar(param,
+                                            freeze=freeze_starting_point)
         else:
-            local_var = {}
+            parameter_node = ParameterTriesNode()
             if local_param:
                 global_var = None
                 key = self.parentContainer.getCurrentId()
-                local_var[key] = param
+                parameter_node.setLocalVar(key, param)
                 param.enableLocal()
 
                 if key not in self.threadLocalVar:
@@ -209,16 +283,19 @@ class ParameterManager(Flushable):
                 self.threadLocalVar[key].add(string_path)
 
             else:
-                global_var = param
                 param.enableGlobal()
-                # settings = param.settings
 
-                # TODO need update
-                # settings.setStartingPoint(hash(param),
-                #                          *self.parentContainer.getOrigin())
+                if (freeze_starting_point and
+                   param.settings.loaderOrigin is None):
+                    excmsg = ("(ParameterManager) setParameter, can not "
+                              "freeze starting point, loader origin "
+                              "is not defined.")
+                    raise ParameterException(excmsg)
 
-            self.mltries.insert(string_path.split("."),
-                                (global_var, local_var,))
+                parameter_node.setGlobalVar(param,
+                                            freeze=freeze_starting_point)
+
+            self.mltries.insert(string_path.split("."), parameter_node)
 
         return param
 
@@ -236,21 +313,21 @@ class ParameterManager(Flushable):
                                                  raise_if_not_found=False)
 
         if advanced_result.isValueFound():
-            (global_var, local_var, ) = advanced_result.getValue()
+            parameter_node = advanced_result.getValue()
 
             # simple loop to explore the both statment of this condition
             # if needed, without ordering
             for case in range(0, 2):
                 if local_param:
                     key = self.parentContainer.getCurrentId()
-                    if key in local_var:
-                        return local_var[key]
+                    if parameter_node.hasLocalVar(key):
+                        return parameter_node.getLocalVar(key)
 
                     if not explore_other_level:
                         break
                 else:
-                    if global_var is not None:
-                        return global_var
+                    if parameter_node.hasGlobalVar():
+                        return parameter_node.getGlobalVar()
 
                     if not explore_other_level:
                         break
@@ -275,7 +352,7 @@ class ParameterManager(Flushable):
                                                  perfect_match)
 
         if advanced_result.isValueFound():
-            (global_var, local_var, ) = advanced_result.getValue()
+            parameter_node = advanced_result.getValue()
 
             # simple loop to explore the both statment of this condition if
             # needed, without any order
@@ -283,13 +360,13 @@ class ParameterManager(Flushable):
                 if local_param:
                     key = self.parentContainer.getCurrentId()
 
-                    if key in local_var:
+                    if parameter_node.hasLocalVar(key):
                         return True
 
                     if not explore_other_level:
                         return False
                 else:
-                    if global_var is not None:
+                    if parameter_node.hasGlobalVar():
                         return True
 
                     if not explore_other_level:
@@ -312,7 +389,7 @@ class ParameterManager(Flushable):
                                                  perfect_match=True)
 
         if advanced_result.isValueFound():
-            (global_var, local_var, ) = advanced_result.getValue()
+            parameter_node = advanced_result.getValue()
 
             # simple loop to explore the both statment of this condition if
             # needed, without any order
@@ -320,7 +397,7 @@ class ParameterManager(Flushable):
                 if local_param:
                     key = self.parentContainer.getCurrentId()
 
-                    if key not in local_var:
+                    if not parameter_node.hasLocalVar(key):
                         if not explore_other_level:
                             complete_path = " ".join(
                                 advanced_result.getFoundCompletePath())
@@ -333,7 +410,8 @@ class ParameterManager(Flushable):
                         continue
 
                     if not force:
-                        if not local_var[key].settings.isRemovable():
+                        local_var = parameter_node.getLocalVar(key)
+                        if not local_var.settings.isRemovable():
                             complete_path = " ".join(
                                 advanced_result.getFoundCompletePath())
                             excmsg = ("(ParameterManager) unsetParameter, "
@@ -349,16 +427,15 @@ class ParameterManager(Flushable):
                         del self.threadLocalVar[key]
 
                     # remove from mltries
-                    if len(local_var) == 1 and global_var is None:
-                        self.mltries.remove(
-                            advanced_result.getFoundCompletePath())
-                    else:
-                        del local_var[key]
+                    parameter_node.unsetLocalVar(key)
+                    if parameter_node.isRemovable():
+                        path = advanced_result.getFoundCompletePath()
+                        self.mltries.remove(path)
 
                     return
 
                 else:
-                    if global_var is None:
+                    if not parameter_node.hasGlobalVar():
                         if not explore_other_level:
                             complete_path = " ".join(
                                 advanced_result.getFoundCompletePath())
@@ -371,6 +448,7 @@ class ParameterManager(Flushable):
                         continue
 
                     if not force:
+                        global_var = parameter_node.getGlobalVar()
                         if not global_var.settings.isRemovable():
                             complete_path = " ".join(
                                 advanced_result.getFoundCompletePath())
@@ -379,13 +457,11 @@ class ParameterManager(Flushable):
                                       "removable")
                             raise ParameterException(excmsg)
 
-                    if len(local_var) == 0:
-                        self.mltries.remove(
-                            advanced_result.getFoundCompletePath())
-                    else:
-                        self.mltries.update(
-                            advanced_result.getFoundCompletePath(),
-                            (None, local_var,))
+                    parameter_node.unsetGlobalVar()
+
+                    if parameter_node.isRemovable():
+                        path = advanced_result.getFoundCompletePath()
+                        self.mltries.remove(path)
 
                     return
 
@@ -404,10 +480,10 @@ class ParameterManager(Flushable):
                                                          path,
                                                          False,
                                                          False)
-                (global_var_value, local_var_dic,) = advanced_result.getValue()
-                del local_var_dic[key]
+                parameter_node = advanced_result.getValue()
+                parameter_node.unsetLocalVar(key)
 
-                if global_var_value is None and len(local_var_dic) == 0:
+                if parameter_node.isRemovable():
                     # can not raise, because every path exist
                     self.mltries.remove(path.split("."))
 
@@ -429,7 +505,7 @@ class ParameterManager(Flushable):
         to_ret = {}
         key = None
 
-        for var_key, (global_var, local_var) in result.items():
+        for var_key, parameter_node in result.items():
             local_param_tmp = local_param
 
             # simple loop to explore the both statment of this condition if
@@ -439,14 +515,16 @@ class ParameterManager(Flushable):
                     if key is None:
                         key = self.parentContainer.getCurrentId()
 
-                    if key in local_var:
-                        to_ret[".".join(var_key)] = local_var[key]
+                    if parameter_node.hasLocalVar(key):
+                        local_var = parameter_node.getLocalVar(key)
+                        to_ret[".".join(var_key)] = local_var
                         break
 
                     if not explore_other_level:
                         break
                 else:
-                    if global_var is not None:
+                    if parameter_node.hasGlobalVar():
+                        global_var = parameter_node.getGlobalVar()
                         to_ret[".".join(var_key)] = global_var
                         break
 

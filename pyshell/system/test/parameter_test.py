@@ -33,15 +33,7 @@ from pyshell.system.settings import LocalSettings
 from pyshell.utils.exception import ParameterException
 
 
-class TestParameter(object):
-
-    def setup_method(self, method):
-        self.params = ParameterManager()
-        self.params.setParameter("aa.bb.cc", Parameter("plop"))
-        self.params.setParameter("ab.bc.cd", Parameter("plip"))
-
-    # # misc # #
-
+class TestParameterManagerMisc(object):
     # isAValidStringPath, with invalid string
     def test_parameterMisc2(self):
         state, message = isAValidStringPath(object())
@@ -76,7 +68,78 @@ class TestParameter(object):
         assert len(path) == 3
         assert path == ("plop", "plap", "plip",)
 
+
+class TestParameterNode(object):
+    def test_init(self):
+        pass  # TODO
+
+    def test_not_defined_local_var(self):
+        pass  # TODO
+
+    def test_defined_local_var(self):
+        pass  # TODO
+
+    def test_not_defined_global_var(self):
+        pass  # TODO
+
+    def test_defined_global_var(self):
+        pass  # TODO
+
+    def test_set_single_local_var(self):
+        pass  # TODO
+
+    def test_set_multiple_local_var(self):
+        pass  # TODO
+
+    def test_overwrite_local_var(self):
+        pass  # TODO
+
+    def test_set_global_var(self):
+        pass  # TODO
+
+    def test_overwrite_global_var_without_previous_freezing(self):
+        pass  # TODO
+
+    def test_overwrite_global_var_with_previous_freezing(self):
+        pass  # TODO
+
+    def test_overwrite_global_var_with_freezing_on_previous_and_current(self):
+        pass  # TODO
+
+    def test_unset_unexistant_local_var(self):
+        pass  # TODO
+
+    def test_unset_existant_local_var(self):
+        pass  # TODO
+
+    def test_unset_unexistant_global_var(self):
+        pass  # TODO
+
+    def test_unset_existant_global_var_without_freeze(self):
+        pass  # TODO
+
+    def test_unset_existant_global_var_with_freeze(self):
+        pass  # TODO
+
+    def test_is_removable_with_nothing_stored(self):
+        pass  # TODO
+
+    def test_is_removable_with_local_var(self):
+        pass  # TODO
+
+    def test_is_removable_with_global_var(self):
+        pass  # TODO
+
+    def test_is_removable_with_freeze(self):
+        pass  # TODO
+
+
     # # ParameterManager constructor # #
+class TestParameterManager(object):
+    def setup_method(self, method):
+        self.params = ParameterManager()
+        self.params.setParameter("aa.bb.cc", Parameter("plop"))
+        self.params.setParameter("ab.bc.cd", Parameter("plip"))
 
     # with parent None + test getCurrentId
     def test_parameterManagerConstructor1(self):
@@ -374,24 +437,22 @@ class TestParameter(object):
     # setParameter, on global overwritte ONLY, setting has to be
     # transfered/merged from old to new
     def test_parameterManagerSetParameter1(self):
+        p = Parameter("titi")
+        p.enableGlobal()
+        p.settings.setLoaderOrigin("loader A")
         param = self.params.setParameter("plop",
-                                         Parameter("titi"),
-                                         local_param=False)
+                                         p,
+                                         local_param=False,
+                                         freeze_starting_point=True)
 
-        # self.assertTrue(hasattr(param.settings, "origin"))
-        # self.assertTrue(hasattr(param.settings, "originArg"))
         assert hasattr(param.settings, "startingHash")
 
-        param.settings.origin = "aaa"
-        param.settings.originArg = "bbb"
         has = param.settings.startingHash
 
         param = self.params.setParameter("plop",
                                          Parameter("tata"),
                                          local_param=False)
 
-        # self.assertEqual(param.settings.origin, "aaa")
-        # self.assertEqual(param.settings.originArg, "bbb")
         assert param.settings.startingHash == has
 
     # #
@@ -914,9 +975,9 @@ class TestParameter(object):
     # unsetParameter, try to remove an existing global one, with loader
     # dependancies and force
     def test_parameterManagerUnsetParameter2(self):
-        param = self.params.setParameter("plop",
-                                         Parameter("titi"),
-                                         local_param=False)
+        self.params.setParameter("plop",
+                                 Parameter("titi"),
+                                 local_param=False)
         self.params.unsetParameter("plop",
                                    local_param=False,
                                    explore_other_level=False,
@@ -1049,10 +1110,10 @@ class TestParameter(object):
         params.threadLocalVar["ANY_KEY"] = name_set
 
         result = params.mltries.advancedSearch(("plop",), True)
-        g, l = result.getValue()
-        param = l[key]
-        del l[key]
-        l["ANY_KEY"] = param
+        parameter_node = result.getValue()
+        param = parameter_node.getLocalVar(key)
+        parameter_node.unsetLocalVar(key)
+        parameter_node.setLocalVar("ANY_KEY", param)
 
         params.setParameter("plip", Parameter("tutu"), local_param=True)
 
@@ -1078,8 +1139,8 @@ class TestParameter(object):
         assert curr_id not in params.threadLocalVar
 
         result = params.mltries.advancedSearch(("plop",), True)
-        g, l = result.getValue()
-        assert "ANY_KEY" in l
+        parameter_node = result.getValue()
+        assert parameter_node.hasLocalVar("ANY_KEY")
 
     # #
 
@@ -1409,8 +1470,9 @@ class TestParameter(object):
 
         assert result == {"aa.bb.cc": p1, "ab.ac.cd": p2, "aa.plop": p3}
 
-    # # parameters test # #
 
+    # # parameters test # #
+class TestParameter(object):
     # test value/getvalue on constructor
     def test_parameterConstructor1(self):
         with pytest.raises(ParameterException):

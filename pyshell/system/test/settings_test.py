@@ -209,11 +209,11 @@ class TestSettings(object):
 
     def test_globalSettings8(self):
         gs = GlobalSettings()
-        gs.setStartingPoint("toto", "tutu", "tata")
+        gs.setStartingPoint("toto")
         assert gs.isEqualToStartingHash("toto")
 
     def test_globalSettings9(self):
         gs = GlobalSettings()
-        gs.setStartingPoint("toto", "tutu", "tata")
+        gs.setStartingPoint("toto")
         with pytest.raises(ParameterException):
-            gs.setStartingPoint("toto", "tutu", "tata")
+            gs.setStartingPoint("toto")

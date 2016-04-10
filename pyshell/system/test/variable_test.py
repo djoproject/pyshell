@@ -110,18 +110,18 @@ class TestVariable(object):
 
     def test_globalSettings8(self):
         vls = VariableGlobalSettings()
-        vls.setStartingPoint(hash(vls), "titi", "toto")
+        vls.setStartingPoint(hash(vls))
 
     def test_globalSettings11(self):
         vls = VariableGlobalSettings()
-        vls.setStartingPoint(hash(self), "titi", "toto")
+        vls.setStartingPoint(hash(self))
         assert vls.isEqualToStartingHash(hash(self))
 
     def test_globalSettings12(self):
         vls = VariableGlobalSettings()
-        vls.setStartingPoint(hash(self), "titi", "toto")
+        vls.setStartingPoint(hash(self))
         with pytest.raises(ParameterException):
-            vls.setStartingPoint(hash(self), "titi", "toto")
+            vls.setStartingPoint(hash(self))
 
     # # manager # #
 

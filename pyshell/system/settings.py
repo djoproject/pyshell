@@ -16,10 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import collections
-
 from pyshell.utils.constants import EMPTY_STRING
-from pyshell.utils.constants import SYSTEM_VIRTUAL_LOADER
 from pyshell.utils.exception import ParameterException
 
 
@@ -117,12 +114,14 @@ class LocalSettings(Settings):
         return Settings.clone(self, parent)
 
 
+# TODO this class has been updated, check if everything is tested.
 class GlobalSettings(LocalSettings):
     def __init__(self, read_only=False, removable=True, transient=False):
         LocalSettings.__init__(self, False, removable)
 
         self.setTransient(transient)
         self.startingHash = None
+        self.loaderOrigin = None
         self.setReadOnly(read_only)
 
     def setTransient(self, state):
@@ -138,7 +137,7 @@ class GlobalSettings(LocalSettings):
     def isTransient(self):
         return self.transient
 
-    def setStartingPoint(self, hashi, origin, origin_profile=None):
+    def setStartingPoint(self, hashi):
         if self.startingHash is not None:
             raise ParameterException("(GlobalSettings) setStartingPoint, a "
                                      "starting point was already defined for "
@@ -146,10 +145,11 @@ class GlobalSettings(LocalSettings):
 
         self.startingHash = hashi
 
+    def setLoaderOrigin(self, name):
+        self.loaderOrigin = name
+
     def isEqualToStartingHash(self, hashi):
         return hashi == self.startingHash
-
-    # XXX stop removing here ###############################################
 
     def clone(self, parent=None):
         if parent is None:
@@ -162,8 +162,9 @@ class GlobalSettings(LocalSettings):
             parent.setTransient(self.isTransient())
             parent.setReadOnly(read_only)
 
-        # TODO clone loader state
-        #   if no clone method, use copy tools
-        #       simple or deep copy ?
+        parent.setLoaderOrigin(self.loaderOrigin)
+
+        # starting hash is not copied because it comes from something outside
+        # of this class, and it won't be relevant to copy it.
 
         return LocalSettings.clone(self, parent)
