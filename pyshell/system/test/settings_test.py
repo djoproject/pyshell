@@ -217,3 +217,13 @@ class TestSettings(object):
         gs.setStartingPoint("toto")
         with pytest.raises(ParameterException):
             gs.setStartingPoint("toto")
+
+    def test_globalSettings12(self):
+        gs = GlobalSettings(read_only=False, removable=True, transient=False)
+        gs.setStartingPoint("toto")
+        gsp = gs.clone()
+
+        assert not gsp.isReadOnly()
+        assert gsp.isRemovable()
+        assert not gsp.isTransient()
+        assert not gsp.isEqualToStartingHash("toto")

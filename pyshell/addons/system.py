@@ -184,6 +184,7 @@ def loadAddonFun(name, parameters, sub_addon=None, addon_dico=None):
         addon_dico.getValue()[name] = loader
     loader.load(parameters, sub_addon)
 
+    # TODO shouldn't print the message if the addon is already loaded
     notice(name + " loaded !")
 
 

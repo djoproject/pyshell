@@ -31,9 +31,10 @@ from pyshell.utils.valuable import Valuable
 
 
 def isAValidStringPath(string_path):
-    if type(string_path) != str and type(string_path) != unicode:
+    if not isinstance(string_path, str) and not isinstance(
+            string_path, unicode):
         return False, "invalid string_path, a string was expected, got '" + \
-            str(type(string_path))+"'"
+            str(type(string_path)) + "'"
 
     path = string_path.split(".")
     final_path = []
@@ -54,11 +55,14 @@ def _buildExistingPathFromError(wrong_path, advanced_result):
 
 
 class ParameterTriesNode(object):
-    def __init__(self):
+
+    def __init__(self, string_key):
         self.global_var = None
         self.local_var = None
         self.origin_loader = None
         self.starting_hash = None
+        self.string_key = string_key
+        self.mltries_key = string_key.split(".")
 
     def hasLocalVar(self, key):
         return self.local_var is not None and key in self.local_var
@@ -67,50 +71,120 @@ class ParameterTriesNode(object):
         return self.global_var is not None
 
     def getLocalVar(self, key):
+        if self.local_var is None:
+            raise KeyError(key)
+
         return self.local_var[key]
 
     def getGlobalVar(self):
+        if self.global_var is None:
+            excmsg = "(ParameterTriesNode) getGlobalVar, no global var defined"
+            raise ParameterException(excmsg)
+
         return self.global_var
 
-    def setLocalVar(self, key, value):
+    def setLocalVar(self, key, param):
+        param.enableLocal()
+
         if self.local_var is None:
             self.local_var = {}
+        elif key in self.local_var:
+            local_var = self.local_var[key]
+            if local_var.settings.isReadOnly():
+                excmsg = ("(ParameterTriesNode) setLocalVar, can not set the "
+                          "parameter '%s' because a parameter with this name "
+                          "already exist and is not "
+                          "editable" % self.string_key)
+                raise ParameterException(excmsg)
 
-        self.local_var[key] = value
+        self.local_var[key] = param
 
-    def setGlobalVar(self, value, freeze=False):
-        self.global_var = value
+    def setGlobalVar(self, param, origin_loader=None, freeze=False):
+        if (self.global_var is not None and
+                self.global_var.settings.isReadOnly()):
+            excmsg = ("(ParameterTriesNode) setGlobalVar, can not set the "
+                      "parameter '%s' because a parameter with this name "
+                      "already exist and is not editable" % self.string_key)
+            raise ParameterException(excmsg)
 
-        if self.starting_hash is not None or self.origin_loader is not None:
-            self.global_var.settings.setStartingPoint(self.starting_hash)
-            self.global_var.settings.setLoaderOrigin(self.origin_loader)
-        else:
-            self.global_var.settings.setStartingPoint(hash(self.global_var))
+        param.enableGlobal()
 
+        if self.isFrozen():
             if freeze:
-                self.origin_loader = self.global_var.settings.loaderOrigin
-                self.starting_hash = self.global_var.settings.startingHash
+                excmsg = ("(ParameterTriesNode) setGlobalVar, can not freeze "
+                          "starting point on parameter '%s' , it is already "
+                          "frozen." % self.string_key)
+                raise ParameterException(excmsg)
 
-    def unsetGlobalVar(self):
+            if self.origin_loader != origin_loader:
+                excmsg = ("(ParameterTriesNode) setGlobalVar, parameter '%s' "
+                          "is frozen and the new origin loader is different "
+                          "from the frozen one" % self.string_key)
+                raise ParameterException(excmsg)
+
+            param.settings.setStartingPoint(self.starting_hash)
+        else:
+            if origin_loader is None:
+                excmsg = ("(ParameterTriesNode) setGlobalVar, can not use "
+                          "parameter '%s' as global parameter, no loader "
+                          "origin is set" % self.string_key)
+                raise ParameterException(excmsg)
+
+            param.settings.setStartingPoint(hash(param))
+            self.origin_loader = origin_loader
+            if freeze:
+                self.starting_hash = param.settings.startingHash
+
+        self.global_var = param
+
+    def unsetGlobalVar(self, force=False):
+        if self.global_var is not None and not force:
+            if not self.global_var.settings.isRemovable():
+                excmsg = ("(ParameterTriesNode) unsetParameter, parameter '%s'"
+                          " is not removable" % self.string_key)
+                raise ParameterException(excmsg)
+
+        if not self.isFrozen():
+            self.origin_loader = None
+
         self.global_var = None
 
-    def unsetLocalVar(self, key):
+    def unsetLocalVar(self, key, force=False):
         if self.local_var is not None and key in self.local_var:
+            local_var = self.local_var[key]
+            if not local_var.settings.isRemovable() and not force:
+                excmsg = ("(ParameterTriesNode) unsetParameter, local "
+                          "parameter '%s' is not removable" % self.string_key)
+                raise ParameterException(excmsg)
+
             del self.local_var[key]
 
     def isRemovable(self):
         return (self.global_var is None and
                 (self.local_var is None or len(self.local_var) == 0) and
-                self.starting_hash is None and self.origin_loader is None)
+                self.starting_hash is None)
+
+    def isFrozen(self):
+        return self.starting_hash is not None
+
+    def unfreeze(self):
+        self.starting_hash = None
+
+    def getLoaderOrigin(self):
+        return self.origin_loader
 
 
 class ParameterManager(Flushable):
+
     def __init__(self, parent=None):
         self._internalLock = Lock()
         self.mltries = multiLevelTries()
 
-        # hold the paths for the current level of the current thread
+        # hold the nodes for the current thread
         self.threadLocalVar = {}
+
+        # hold the nodes for each loaders
+        self.loaderGlobalVar = {}
 
         if parent is None:
             self.parentContainer = DEFAULT_DUMMY_PARAMETER_CONTAINER
@@ -118,7 +192,7 @@ class ParameterManager(Flushable):
             if not isinstance(parent, AbstractParameterContainer):
                 excmsg = ("(ParameterManager) __init__, expect an instance of "
                           "AbstractParameterContainer, got '" +
-                          str(type(parent))+"'")
+                          str(type(parent)) + "'")
                 raise ParameterException(excmsg)
 
             self.parentContainer = parent
@@ -134,7 +208,7 @@ class ParameterManager(Flushable):
         state, result = isAValidStringPath(string_path)
 
         if not state:
-            excmsg = "(ParameterManager) "+str(meth_name)+", "+result
+            excmsg = "(ParameterManager) " + str(meth_name) + ", " + result
             raise ParameterException(excmsg)
 
         path = result
@@ -155,19 +229,19 @@ class ParameterManager(Flushable):
 
             existing_path = ".".join(
                 _buildExistingPathFromError(path, advanced_result))
-            excmsg = ("(ParameterManager) "+str(meth_name)+", key '" +
-                      str(path[index_of_ambiguous_key])+"' is ambiguous for"
-                      " path '"+existing_path+"', possible value are: '" +
-                      ",".join(possible_value)+"'")
+            excmsg = ("(ParameterManager) " + str(meth_name) + ", key '" +
+                      str(path[index_of_ambiguous_key]) + "' is ambiguous for"
+                      " path '" + existing_path + "', possible value are: '" +
+                      ",".join(possible_value) + "'")
             raise ParameterException(excmsg)
 
         if raise_if_not_found and not advanced_result.isValueFound():
             index_not_found = advanced_result.getTokenFoundCount()
             existing_path = ".".join(
                 _buildExistingPathFromError(path, advanced_result))
-            excmsg = ("(ParameterManager) "+str(meth_name)+", key '" +
-                      str(path[index_not_found])+"' is unknown for path '" +
-                      existing_path+"'")
+            excmsg = ("(ParameterManager) " + str(meth_name) + ", key '" +
+                      str(path[index_not_found]) + "' is unknown for path '" +
+                      existing_path + "'")
             raise ParameterException(excmsg)
 
         return advanced_result
@@ -176,34 +250,35 @@ class ParameterManager(Flushable):
         return Parameter
 
     def isAnAllowedType(self, value):  # XXX to override if needed
-        return isinstance(value, self.getAllowedType()) and \
-            value.__class__.__name__ == self.getAllowedType().__name__
-        # second condition is to forbidde child class
+        # why not using isinstance ? because children class are not allowed.
+        # return isinstance(value, self.getAllowedType())
+        return type(value) is self.getAllowedType()
 
-    def extractParameter(self, value):
+    def _extractParameter(self, value):
         if self.isAnAllowedType(value):
             return value
 
         if isinstance(value, Parameter):
-            excmsg = ("(ParameterManager) extractParameter, can not use an "
-                      "object of type '"+str(type(value))+"' in this manager")
+            excmsg = ("(ParameterManager) _extractParameter, can not use an "
+                      "object of type '" + str(type(value)) + "' in this "
+                      "manager")
             raise ParameterException(excmsg)
 
         # try to instanciate parameter, may raise if invalid type
         return self.getAllowedType()(value)
 
-    # TODO test the frozen cases
     @synchronous()
     def setParameter(self,
                      string_path,
                      param,
                      local_param=True,
-                     freeze_starting_point=False):
-        param = self.extractParameter(param)
+                     origin_loader=None,
+                     freeze=False):
+        param = self._extractParameter(param)
 
-        if freeze_starting_point and local_param:
-            excmsg = ("(ParameterManager) setParameter, can not "
-                      "freeze starting point with a local parameter")
+        if local_param and freeze:
+            excmsg = ("(ParameterManager) setParameter, freezing paramer '%s'"
+                      " is not allowed for local parameter" % string_path)
             raise ParameterException(excmsg)
 
         # check safety and existing
@@ -212,90 +287,44 @@ class ParameterManager(Flushable):
                                                  False,
                                                  False,
                                                  True)
-        if advanced_result.isValueFound():
+        creation_mode = not advanced_result.isValueFound()
+
+        if creation_mode:
+            parameter_node = ParameterTriesNode(string_path)
+        else:
             parameter_node = advanced_result.getValue()
 
-            if local_param:
-                key = self.parentContainer.getCurrentId()
+        if local_param:
+            key = self.parentContainer.getCurrentId()
+            parameter_node.setLocalVar(key, param)
 
-                if parameter_node.hasLocalVar(key):
-                    local_var = parameter_node.getLocalVar(key)
-                    if local_var.settings.isReadOnly():
-                        complete_path = " ".join(
-                            advanced_result.getFoundCompletePath())
-                        excmsg = ("(ParameterManager) setParameter, can not "
-                                  "set the parameter '"+complete_path+"' "
-                                  "because a parameter with this name already"
-                                  " exist and is not editable")
-                        raise ParameterException(excmsg)
-                else:
-                    if key not in self.threadLocalVar:
-                        self.threadLocalVar[key] = set()
+            if key not in self.threadLocalVar:
+                self.threadLocalVar[key] = set()
 
-                    complete_path = advanced_result.getFoundCompletePath()
-                    self.threadLocalVar[key].add(
-                        '.'.join(str(x) for x in complete_path))
-
-                param.enableLocal()
-                parameter_node.setLocalVar(key, param)
-            else:
-                if parameter_node.hasGlobalVar():
-                    global_var = parameter_node.getGlobalVar()
-                    if global_var.settings.isReadOnly():
-                        complete_path = " ".join(
-                            advanced_result.getFoundCompletePath())
-                        excmsg = ("(ParameterManager) setParameter, can not "
-                                  "set the parameter '"+complete_path+"' "
-                                  "because a parameter with this name already"
-                                  " exist and is not editable")
-                        raise ParameterException(excmsg)
-
-                    if (freeze_starting_point and
-                       (parameter_node.starting_hash is not None or
-                            parameter_node.origin_loader is not None)):
-                        excmsg = ("(ParameterManager) setParameter, can not "
-                                  "freeze starting point, it is already "
-                                  "frozen.")
-                        raise ParameterException(excmsg)
-
-                param.enableGlobal()
-
-                if (freeze_starting_point and
-                   param.settings.loaderOrigin is None):
-                    excmsg = ("(ParameterManager) setParameter, can not "
-                              "freeze starting point, loader origin "
-                              "is not defined.")
-                    raise ParameterException(excmsg)
-
-                parameter_node.setGlobalVar(param,
-                                            freeze=freeze_starting_point)
+            self.threadLocalVar[key].add(parameter_node)
         else:
-            parameter_node = ParameterTriesNode()
-            if local_param:
-                global_var = None
-                key = self.parentContainer.getCurrentId()
-                parameter_node.setLocalVar(key, param)
-                param.enableLocal()
+            if origin_loader is None:
+                origin_loader = "pyshell.addons.system"
 
-                if key not in self.threadLocalVar:
-                    self.threadLocalVar[key] = set()
+            old_loader_origin = parameter_node.getLoaderOrigin()
+            parameter_node.setGlobalVar(param,
+                                        origin_loader=origin_loader,
+                                        freeze=freeze)
 
-                self.threadLocalVar[key].add(string_path)
+            if (old_loader_origin is not None and
+               old_loader_origin != origin_loader):
+                self.loaderGlobalVar[origin_loader].remove(parameter_node)
 
-            else:
-                param.enableGlobal()
+                if len(self.loaderGlobalVar[origin_loader]) == 0:
+                    del self.loaderGlobalVar[origin_loader]
 
-                if (freeze_starting_point and
-                   param.settings.loaderOrigin is None):
-                    excmsg = ("(ParameterManager) setParameter, can not "
-                              "freeze starting point, loader origin "
-                              "is not defined.")
-                    raise ParameterException(excmsg)
+            if origin_loader not in self.loaderGlobalVar:
+                self.loaderGlobalVar[origin_loader] = set()
 
-                parameter_node.setGlobalVar(param,
-                                            freeze=freeze_starting_point)
+            self.loaderGlobalVar[origin_loader].add(parameter_node)
 
-            self.mltries.insert(string_path.split("."), parameter_node)
+        if creation_mode:
+            self.mltries.insert(parameter_node.mltries_key, parameter_node)
 
         return param
 
@@ -381,7 +410,13 @@ class ParameterManager(Flushable):
                        string_path,
                        local_param=True,
                        explore_other_level=True,
-                       force=False):
+                       force=False,
+                       unfreeze=False):
+
+        if local_param and not explore_other_level and unfreeze:
+            excmsg = ("(ParameterManager) setParameter, unfreezing paramer "
+                      "'%s' is not allowed for local parameter" % string_path)
+            raise ParameterException(excmsg)
 
         # this call will raise if value not found or ambiguous
         advanced_result = self._getAdvanceResult("unsetParameter",
@@ -399,93 +434,75 @@ class ParameterManager(Flushable):
 
                     if not parameter_node.hasLocalVar(key):
                         if not explore_other_level:
-                            complete_path = " ".join(
-                                advanced_result.getFoundCompletePath())
                             excmsg = ("(ParameterManager) unsetParameter, "
                                       "unknown local parameter '" +
-                                      complete_path+"'")
+                                      parameter_node.string_key + "'")
                             raise ParameterException(excmsg)
 
                         local_param = not local_param
                         continue
 
-                    if not force:
-                        local_var = parameter_node.getLocalVar(key)
-                        if not local_var.settings.isRemovable():
-                            complete_path = " ".join(
-                                advanced_result.getFoundCompletePath())
-                            excmsg = ("(ParameterManager) unsetParameter, "
-                                      "local parameter '"+complete_path+"' is"
-                                      " not removable")
-                            raise ParameterException(excmsg)
+                    param = parameter_node.getLocalVar(key)
+                    parameter_node.unsetLocalVar(key, force)
 
                     # remove from thread local list
-                    complete_path = advanced_result.getFoundCompletePath()
-                    self.threadLocalVar[key].remove(
-                        '.'.join(str(x) for x in complete_path))
+                    self.threadLocalVar[key].remove(parameter_node)
                     if len(self.threadLocalVar[key]) == 0:
                         del self.threadLocalVar[key]
 
                     # remove from mltries
-                    parameter_node.unsetLocalVar(key)
                     if parameter_node.isRemovable():
-                        path = advanced_result.getFoundCompletePath()
-                        self.mltries.remove(path)
+                        self.mltries.remove(parameter_node.mltries_key)
 
-                    return
-
+                    return param
                 else:
                     if not parameter_node.hasGlobalVar():
                         if not explore_other_level:
-                            complete_path = " ".join(
-                                advanced_result.getFoundCompletePath())
                             excmsg = ("(ParameterManager) unsetParameter, "
                                       "unknown global parameter '" +
-                                      complete_path+"'")
+                                      parameter_node.string_key + "'")
                             raise ParameterException(excmsg)
 
                         local_param = not local_param
                         continue
 
-                    if not force:
-                        global_var = parameter_node.getGlobalVar()
-                        if not global_var.settings.isRemovable():
-                            complete_path = " ".join(
-                                advanced_result.getFoundCompletePath())
-                            excmsg = ("(ParameterManager) unsetParameter, "
-                                      "parameter '"+complete_path+"' is not "
-                                      "removable")
-                            raise ParameterException(excmsg)
+                    origin_loader = parameter_node.getLoaderOrigin()
+                    param = parameter_node.getGlobalVar()
+                    parameter_node.unsetGlobalVar(force)
 
-                    parameter_node.unsetGlobalVar()
+                    if unfreeze:
+                        parameter_node.unfreeze()
+
+                    if not parameter_node.isFrozen():
+                        self.loaderGlobalVar[origin_loader].remove(
+                            parameter_node)
+
+                        if len(self.loaderGlobalVar[origin_loader]) == 0:
+                            del self.loaderGlobalVar[origin_loader]
 
                     if parameter_node.isRemovable():
-                        path = advanced_result.getFoundCompletePath()
-                        self.mltries.remove(path)
+                        self.mltries.remove(parameter_node.mltries_key)
 
-                    return
+                    return param
+
+            excmsg = ("(ParameterManager) unsetParameter, unknown parameter "
+                      " '%s'" % string_path)
+            raise ParameterException(excmsg)
 
     @synchronous()
-    def flush(self):  # flush the Variable at this Level For This Thread
+    def flush(self):
+        # flush the Variable For This Thread
         key = self.parentContainer.getCurrentId()
-
-        # clean level
-        # do we have recorded some variables for this thread at this level ?
+        # do we have recorded some variables for this thread ?
         if key in self.threadLocalVar:
-
             # no error possible, missing value or invalid type is possible
             # here, because of the process in set/unset
-            for path in self.threadLocalVar[key]:
-                advanced_result = self._getAdvanceResult("flush",
-                                                         path,
-                                                         False,
-                                                         False)
-                parameter_node = advanced_result.getValue()
+            for parameter_node in self.threadLocalVar[key]:
                 parameter_node.unsetLocalVar(key)
 
                 if parameter_node.isRemovable():
                     # can not raise, because every path exist
-                    self.mltries.remove(path.split("."))
+                    self.mltries.remove(parameter_node.mltries_key)
 
             del self.threadLocalVar[key]
 
@@ -497,7 +514,7 @@ class ParameterManager(Flushable):
         state, result = isAValidStringPath(string_path)
 
         if not state:
-            excmsg = "(ParameterManager) buildDictionnary, "+result
+            excmsg = "(ParameterManager) buildDictionnary, " + result
             raise ParameterException(excmsg)
 
         result = self.mltries.buildDictionnary(result, True, True, False)
@@ -517,7 +534,7 @@ class ParameterManager(Flushable):
 
                     if parameter_node.hasLocalVar(key):
                         local_var = parameter_node.getLocalVar(key)
-                        to_ret[".".join(var_key)] = local_var
+                        to_ret[parameter_node.string_key] = local_var
                         break
 
                     if not explore_other_level:
@@ -525,7 +542,7 @@ class ParameterManager(Flushable):
                 else:
                     if parameter_node.hasGlobalVar():
                         global_var = parameter_node.getGlobalVar()
-                        to_ret[".".join(var_key)] = global_var
+                        to_ret[parameter_node.string_key] = global_var
                         break
 
                     if not explore_other_level:
@@ -535,8 +552,36 @@ class ParameterManager(Flushable):
 
         return to_ret
 
+    @synchronous()
+    def getLoaderNodes(self, origin_loader):
+        if origin_loader in self.loaderGlobalVar:
+            return tuple(self.loaderGlobalVar[origin_loader])
+
+        return ()
+
+    @synchronous()
+    def clearFrozenNode(self, origin_loader):
+        if origin_loader not in self.loaderGlobalVar:
+            return
+
+        loader_node_set = self.loaderGlobalVar[origin_loader]
+        node_list = list(loader_node_set)
+
+        for node in node_list:
+            node.unfreeze()
+
+            if not node.hasGlobalVar():
+                loader_node_set.remove(node)
+
+            if node.isRemovable():
+                self.mltries.remove(node.mltries_key)
+
+        if len(loader_node_set) == 0:
+            del self.loaderGlobalVar[origin_loader]
+
 
 class Parameter(Valuable):  # abstract
+
     @staticmethod
     def getInitSettings():
         return LocalSettings()
@@ -546,7 +591,7 @@ class Parameter(Valuable):  # abstract
             if not isinstance(settings, LocalSettings):
                 excmsg = ("(EnvironmentParameter) __init__, a LocalSettings "
                           "was expected for settings, got '" +
-                          str(type(settings))+"'")
+                          str(type(settings)) + "'")
                 raise ParameterException(excmsg)
 
             self.settings = settings
@@ -572,17 +617,17 @@ class Parameter(Valuable):  # abstract
         return str(self.getValue())
 
     def __repr__(self):
-        return "Parameter: "+str(self.getValue())
+        return "Parameter: " + str(self.getValue())
 
     def enableGlobal(self):
-        if isinstance(self.settings, GlobalSettings):
+        if type(self.settings) is GlobalSettings:
             return
 
         self.settings = GlobalSettings(read_only=self.settings.isReadOnly(),
                                        removable=self.settings.isRemovable())
 
     def enableLocal(self):
-        if isinstance(self.settings, LocalSettings):
+        if type(self.settings) is LocalSettings:
             return
 
         self.settings = LocalSettings(read_only=self.settings.isReadOnly(),

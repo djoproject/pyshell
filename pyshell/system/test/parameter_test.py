@@ -26,6 +26,7 @@ from pyshell.system.container import DummyParameterContainer
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.parameter import Parameter
 from pyshell.system.parameter import ParameterManager
+from pyshell.system.parameter import ParameterTriesNode
 from pyshell.system.parameter import _buildExistingPathFromError
 from pyshell.system.parameter import isAValidStringPath
 from pyshell.system.settings import GlobalSettings
@@ -35,6 +36,7 @@ from pyshell.utils.exception import ParameterException
 
 class TestParameterManagerMisc(object):
     # isAValidStringPath, with invalid string
+
     def test_parameterMisc2(self):
         state, message = isAValidStringPath(object())
         assert not state
@@ -70,72 +72,280 @@ class TestParameterManagerMisc(object):
 
 
 class TestParameterNode(object):
+
     def test_init(self):
-        pass  # TODO
+        ParameterTriesNode("path")
 
-    def test_not_defined_local_var(self):
-        pass  # TODO
+    def test_notDefinedLocalVar1(self):
+        p = ParameterTriesNode("path")
+        assert not p.hasLocalVar("plop")
 
-    def test_defined_local_var(self):
-        pass  # TODO
+        with pytest.raises(KeyError):
+            p.getLocalVar("plop")
 
-    def test_not_defined_global_var(self):
-        pass  # TODO
+    def test_notDefinedLocalVar2(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setLocalVar("tutu", param)
+        assert not p.hasLocalVar("plop")
 
-    def test_defined_global_var(self):
-        pass  # TODO
+        with pytest.raises(KeyError):
+            p.getLocalVar("plop")
 
-    def test_set_single_local_var(self):
-        pass  # TODO
+    def test_definedLocalVar(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setLocalVar("tutu", param)
+        assert p.hasLocalVar("tutu")
+        assert p.getLocalVar("tutu") is param
 
-    def test_set_multiple_local_var(self):
-        pass  # TODO
+    def test_notDefinedGlobalVar(self):
+        p = ParameterTriesNode("path")
+        with pytest.raises(ParameterException):
+            p.getGlobalVar()
 
-    def test_overwrite_local_var(self):
-        pass  # TODO
+    def test_definedGlobalVar(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader name")
+        assert p.getGlobalVar() is param
 
-    def test_set_global_var(self):
-        pass  # TODO
+    def test_setMultipleLocalVar(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        param2 = Parameter("value")
+        param3 = Parameter("value")
 
-    def test_overwrite_global_var_without_previous_freezing(self):
-        pass  # TODO
+        p.setLocalVar("p1", param1)
+        p.setLocalVar("p2", param2)
+        p.setLocalVar("p3", param3)
 
-    def test_overwrite_global_var_with_previous_freezing(self):
-        pass  # TODO
+        assert p.getLocalVar("p1") is param1
+        assert p.getLocalVar("p2") is param2
+        assert p.getLocalVar("p3") is param3
 
-    def test_overwrite_global_var_with_freezing_on_previous_and_current(self):
-        pass  # TODO
+    def test_overwriteLocalVar(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        param2 = Parameter("value")
 
-    def test_unset_unexistant_local_var(self):
-        pass  # TODO
+        p.setLocalVar("p1", param1)
+        assert p.getLocalVar("p1") is param1
 
-    def test_unset_existant_local_var(self):
-        pass  # TODO
+        p.setLocalVar("p1", param2)
+        assert p.getLocalVar("p1") is param2
 
-    def test_unset_unexistant_global_var(self):
-        pass  # TODO
+    def test_overwriteLocalVarWithReadOnly(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value1")
+        param1.settings.setReadOnly(True)
+        p.setLocalVar("tutu", param1)
 
-    def test_unset_existant_global_var_without_freeze(self):
-        pass  # TODO
+        param2 = Parameter("value2")
+        with pytest.raises(ParameterException):
+            p.setLocalVar("tutu", param2)
 
-    def test_unset_existant_global_var_with_freeze(self):
-        pass  # TODO
+    def test_setGlobalVarWithoutFreeze(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader name")
+        assert p.getGlobalVar() is param
 
-    def test_is_removable_with_nothing_stored(self):
-        pass  # TODO
+    def test_setGlobalVarWithFreeze(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader", freeze=True)
+        assert p.getGlobalVar() is param
 
-    def test_is_removable_with_local_var(self):
-        pass  # TODO
+    def test_setGlobalVarWithFreezeAndNoneLoader(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        with pytest.raises(ParameterException):
+            p.setGlobalVar(param, None, freeze=True)
 
-    def test_is_removable_with_global_var(self):
-        pass  # TODO
+    def test_overwriteGlobalVarWithoutPreviousFreezing(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        p.setGlobalVar(param1, "loader name")
 
-    def test_is_removable_with_freeze(self):
-        pass  # TODO
+        param2 = Parameter("value")
+        p.setGlobalVar(param2, "loader name")
+
+        assert p.getGlobalVar() is param2
+        assert not p.isFrozen()
+
+    def test_overwriteGlobalVarWithPreviousFreezing(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        p.setGlobalVar(param1, "loader 1", freeze=True)
+
+        param2 = Parameter("value")
+        p.setGlobalVar(param2, "loader 1")
+
+        assert p.getGlobalVar() is param2
+        assert param2.settings.startingHash == param1.settings.startingHash
+        assert p.isFrozen()
+
+    def test_overwriteGlobalVarWithOnlyFreezingOnOverwrite(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        p.setGlobalVar(param1, "loader name")
+
+        param2 = Parameter("value")
+        p.setGlobalVar(param2, "loader 2", freeze=True)
+
+        assert p.getGlobalVar() is param2
+        assert param2.settings.startingHash == param2.settings.startingHash
+        assert p.isFrozen()
+
+    def test_overwriteGlobalVarWithFreezingOnPreviousAndCurrent(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        p.setGlobalVar(param1, "loader 1", freeze=True)
+        assert p.isFrozen()
+
+        param2 = Parameter("value")
+
+        with pytest.raises(ParameterException):
+            p.setGlobalVar(param2, "loader 2", freeze=True)
+
+    def test_overwriteGlobalVarWithFreezingOnPreviousAndNewLoaderOrigin(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value")
+        p.setGlobalVar(param1, "loader 1", freeze=True)
+        assert p.isFrozen()
+
+        param2 = Parameter("value")
+
+        with pytest.raises(ParameterException):
+            p.setGlobalVar(param2, "loader 2", freeze=False)
+
+    def test_overwriteGlobalVarWithReadOnly(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value1")
+        param1.settings.setReadOnly(True)
+        p.setGlobalVar(param1, "loader name")
+
+        param2 = Parameter("value2")
+        with pytest.raises(ParameterException):
+            p.setGlobalVar(param2, "loader name")
+
+    def test_unsetUnexistantLocalVar(self):
+        p = ParameterTriesNode("path")
+        p.unsetLocalVar("does not exist")
+        assert not p.hasLocalVar("does not exist")
+
+    def test_unsetExistantLocalVar(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value1")
+        p.setLocalVar("plop", param1)
+        assert p.hasLocalVar("plop")
+        p.unsetLocalVar("plop")
+        assert not p.hasLocalVar("plop")
+
+    def test_unsetExistantLocalVarNotRemovable(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value1")
+        param1.settings.setRemovable(False)
+        p.setLocalVar("plop", param1)
+        assert p.hasLocalVar("plop")
+        with pytest.raises(ParameterException):
+            p.unsetLocalVar("plop")
+
+    def test_unsetUnexistantGlobalVar(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setLocalVar("tutu", param)
+        assert p.hasLocalVar("tutu")
+        p.unsetLocalVar("tutu")
+        assert not p.hasLocalVar("tutu")
+
+    def test_unsetExistantGlobalVarWithoutFreeze(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader name")
+        assert p.getGlobalVar() is param
+        p.unsetGlobalVar()
+
+        with pytest.raises(ParameterException):
+            p.getGlobalVar()
+
+    def test_unsetExistantGlobalVarWithFreeze(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader 1", freeze=True)
+        assert p.getGlobalVar() is param
+        p.unsetGlobalVar()
+
+        with pytest.raises(ParameterException):
+            p.getGlobalVar()
+
+    def test_unsetExistantGlobalVarNotRemovable(self):
+        p = ParameterTriesNode("path")
+        param1 = Parameter("value1")
+        param1.settings.setRemovable(False)
+        p.setGlobalVar(param1, "loader name")
+        assert p.hasGlobalVar()
+        with pytest.raises(ParameterException):
+            p.unsetGlobalVar()
+
+    def test_isRemovableWithNothingStored1(self):
+        p = ParameterTriesNode("path")
+        assert p.isRemovable()
+
+    def test_isRemovableWithNothingStored2(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setLocalVar("local", param)
+        p.unsetLocalVar("local")
+        assert p.isRemovable()
+
+    def test_isRemovableWithNothingStored3(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader name")
+        p.unsetGlobalVar()
+        assert p.isRemovable()
+
+    def test_isRemovableWithLocalVar(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setLocalVar("local", param)
+        assert not p.isRemovable()
+
+    def test_isRemovableWithGlobalVar(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader name")
+        assert not p.isRemovable()
+
+    def test_isRemovableWithFreeze(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+        p.setGlobalVar(param, "loader 1", freeze=True)
+        p.unsetGlobalVar()
+        assert not p.isRemovable()
+
+    def test_unfreeze(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+
+        p.setGlobalVar(param, "loader 1", freeze=True)
+        assert p.isFrozen()
+        assert not p.isRemovable()
+
+        p.unsetGlobalVar()
+        assert p.isFrozen()
+        assert not p.isRemovable()
+
+        p.unfreeze()
+        assert not p.isFrozen()
+        assert p.isRemovable()
 
 
-    # # ParameterManager constructor # #
+# # ParameterManager constructor # #
 class TestParameterManager(object):
+
     def setup_method(self, method):
         self.params = ParameterManager()
         self.params.setParameter("aa.bb.cc", Parameter("plop"))
@@ -277,27 +487,41 @@ class TestParameterManager(object):
     # test extractParameter, with a valid type
     def test_parameterManager14(self):
         p = Parameter(42)
-        assert self.params.extractParameter(p) is p
+        assert self.params._extractParameter(p) is p
 
     # test extractParameter, with another parameter type
     def test_parameterManager15(self):
-        assert isinstance(self.params.extractParameter(42), Parameter)
+        assert isinstance(self.params._extractParameter(42), Parameter)
 
     # test extractParameter, with something else
     # (to try to instanciate an allowed type)
     def test_parameterManager16(self):
         with pytest.raises(ParameterException):
-            self.params.extractParameter(EnvironmentParameter("plop"))
+            self.params._extractParameter(EnvironmentParameter("plop"))
 
     ##
 
+    # setParameter, try to set local with freeze enable
+    def test_parameterManager17a(self):
+        with pytest.raises(ParameterException):
+            self.params.setParameter("plop",
+                                     Parameter("toto"),
+                                     local_param=True,
+                                     freeze=True)
+
     # setParameter, local exists + local + existing is readonly
-    def test_parameterManager17(self):
+    def test_parameterManager17b(self):
         param = self.params.setParameter("plop",
                                          Parameter("toto"),
                                          local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        assert len(self.params.threadLocalVar[curr_id]) > 0
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param
         assert isinstance(param.settings, LocalSettings)
         param.settings.setReadOnly(True)
         with pytest.raises(ParameterException):
@@ -311,7 +535,13 @@ class TestParameterManager(object):
                                           Parameter("toto"),
                                           local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        assert len(self.params.threadLocalVar[curr_id]) > 0
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param1
         assert isinstance(param1.settings, LocalSettings)
         param1.settings.setRemovable(True)
 
@@ -319,7 +549,12 @@ class TestParameterManager(object):
                                           Parameter("titi"),
                                           local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param2
         assert isinstance(param2.settings, LocalSettings)
         assert param1 is not param2
 
@@ -335,7 +570,12 @@ class TestParameterManager(object):
                                           Parameter("titi"),
                                           local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param2
         assert isinstance(param2.settings, LocalSettings)
         assert param1 is not param2
 
@@ -351,7 +591,12 @@ class TestParameterManager(object):
                                           Parameter("titi"),
                                           local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param2
         assert isinstance(param2.settings, LocalSettings)
         assert param1 is not param2
 
@@ -361,7 +606,12 @@ class TestParameterManager(object):
                                          Parameter("titi"),
                                          local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param
         assert isinstance(param.settings, LocalSettings)
         assert self.params.getParameter("plop") is param
 
@@ -371,7 +621,12 @@ class TestParameterManager(object):
                                           Parameter("titi"),
                                           local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param1
         assert isinstance(param1.settings, LocalSettings)
         param1.settings.setReadOnly(True)
 
@@ -388,7 +643,12 @@ class TestParameterManager(object):
                                           Parameter("titi"),
                                           local_param=True)
         curr_id = self.params.parentContainer.getCurrentId()
-        assert "plop" in self.params.threadLocalVar[curr_id]
+        node = None
+        for n in self.params.threadLocalVar[curr_id]:
+            if n.string_key == "plop":
+                node = n
+        assert node is not None
+        assert node.getLocalVar(curr_id) is param1
         assert isinstance(param1.settings, LocalSettings)
         param1.settings.setRemovable(True)
 
@@ -438,12 +698,11 @@ class TestParameterManager(object):
     # transfered/merged from old to new
     def test_parameterManagerSetParameter1(self):
         p = Parameter("titi")
-        p.enableGlobal()
-        p.settings.setLoaderOrigin("loader A")
         param = self.params.setParameter("plop",
                                          p,
                                          local_param=False,
-                                         freeze_starting_point=True)
+                                         origin_loader="loader A",
+                                         freeze=True)
 
         assert hasattr(param.settings, "startingHash")
 
@@ -451,9 +710,107 @@ class TestParameterManager(object):
 
         param = self.params.setParameter("plop",
                                          Parameter("tata"),
+                                         origin_loader="loader A",
                                          local_param=False)
 
         assert param.settings.startingHash == has
+
+    def test_setParameterFirstParameterForThisLoader(self):
+        p = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 1
+        assert l[0].getGlobalVar() is p
+
+    def test_setParameterSeveralParameterForThisLoader(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        p2 = Parameter("titi")
+        self.params.setParameter("plap",
+                                 p2,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 2
+        l = [pm.getGlobalVar() for pm in l]
+        assert p1 in l
+        assert p2 in l
+
+    def test_setParameterOverrideParameterInLoader(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        p2 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p2,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 1
+        l = [pm.getGlobalVar() for pm in l]
+        assert p2 in l
+
+    def test_clearFrozenNodeLoaderDoesNotExist(self):
+        self.params.clearFrozenNode("plop")
+
+    def test_clearFrozenNodeFrozenNodeWithGlobalVarSet(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A",
+                                 freeze=True)
+        self.params.clearFrozenNode("loader A")
+        assert self.params.hasParameter("plop")
+        assert "loader A" in self.params.loaderGlobalVar
+        self.params.unsetParameter("plop")
+        assert not self.params.hasParameter("plop")
+        assert "loader A" not in self.params.loaderGlobalVar
+
+    def test_clearFrozenNodeFrozenNodeWithoutVarSet(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A",
+                                 freeze=True)
+        self.params.unsetParameter("plop")
+        assert not self.params.hasParameter("plop")
+        assert "loader A" in self.params.loaderGlobalVar
+        self.params.clearFrozenNode("loader A")
+        assert "loader A" not in self.params.loaderGlobalVar
+
+    def test_clearFrozenNodeFrozenNodeWithLocalVarSet(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A",
+                                 freeze=True)
+        p2 = Parameter("tutu")
+        self.params.setParameter("plop",
+                                 p2,
+                                 local_param=True)
+        self.params.unsetParameter("plop",
+                                   local_param=False,
+                                   explore_other_level=False)
+        assert "loader A" in self.params.loaderGlobalVar
+        self.params.clearFrozenNode("loader A")
+        assert "loader A" not in self.params.loaderGlobalVar
+        assert self.params.hasParameter("plop")
 
     # #
 
@@ -1038,6 +1395,69 @@ class TestParameterManager(object):
                                        local_param=True,
                                        explore_other_level=False)
 
+    def test_unsetParameterLastParameterForLoader(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        p = self.params.unsetParameter("plop")
+        assert p is p1
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 0
+
+    def test_unsetParameterRemainParameterForLoader(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        p2 = Parameter("titi")
+        self.params.setParameter("plup",
+                                 p2,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        p = self.params.unsetParameter("plop")
+        assert p is p1
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 1
+        l = [pm.getGlobalVar() for pm in l]
+        assert p2 in l
+
+    def test_unsetParameterLastFrozenParameterForLoader(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A",
+                                 freeze=True)
+
+        p = self.params.unsetParameter("plop")
+        assert p is p1
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 1
+        assert not l[0].hasGlobalVar()
+
+    def test_unsetParameterLastFrozenParameterForLoaderWithUnfreeze(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_loader="loader A",
+                                 freeze=True)
+
+        p = self.params.unsetParameter("plop", unfreeze=True)
+        assert p is p1
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 0
+
     ##
 
     # flushVariableLevelForThisThread, nothing for the current thread
@@ -1470,10 +1890,25 @@ class TestParameterManager(object):
 
         assert result == {"aa.bb.cc": p1, "ab.ac.cd": p2, "aa.plop": p3}
 
+    def test_getLoaderNodesLoaderDoesNotExist(self):
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 0
 
-    # # parameters test # #
+    def test_getLoaderNodesLoaderExist(self):
+        p = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p,
+                                 local_param=False,
+                                 origin_loader="loader A")
+
+        l = self.params.getLoaderNodes("loader A")
+        assert len(l) == 1
+
+
+# # parameters test # #
 class TestParameter(object):
     # test value/getvalue on constructor
+
     def test_parameterConstructor1(self):
         with pytest.raises(ParameterException):
             Parameter(None, object())
@@ -1520,47 +1955,47 @@ class TestParameter(object):
         p.enableGlobal()
         assert sett is p.settings
 
-    # test from local to global
+    # test from global to local
     def test_parameter4(self):
         p = Parameter(None)
         p.settings.setRemovable(True)
         p.settings.setReadOnly(True)
-        p.enableGlobal()
-        assert isinstance(p.settings, GlobalSettings)
+        p.enableLocal()
+        assert isinstance(p.settings, LocalSettings)
         assert p.settings.isReadOnly()
         assert p.settings.isRemovable()
 
-    # test from local to global
+    # test from global to local
     def test_parameter5(self):
         p = Parameter(None)
         p.settings.setRemovable(False)
         p.settings.setReadOnly(False)
-        p.enableGlobal()
-        assert isinstance(p.settings, GlobalSettings)
+        p.enableLocal()
+        assert isinstance(p.settings, LocalSettings)
         assert not p.settings.isReadOnly()
         assert not p.settings.isRemovable()
 
-    # test from global to local
+    # test from local to global
     def test_parameter6(self):
         p = Parameter(None)
-        p.enableGlobal()
-        assert isinstance(p.settings, GlobalSettings)
-        p.settings.setRemovable(False)
-        p.settings.setReadOnly(False)
         p.enableLocal()
         assert isinstance(p.settings, LocalSettings)
+        p.settings.setRemovable(False)
+        p.settings.setReadOnly(False)
+        p.enableGlobal()
+        assert isinstance(p.settings, GlobalSettings)
         assert not p.settings.isReadOnly()
         assert not p.settings.isRemovable()
 
-    # test from global to local
+    # test from local to global
     def test_parameter7(self):
         p = Parameter(None)
-        p.enableGlobal()
-        assert isinstance(p.settings, GlobalSettings)
-        p.settings.setRemovable(True)
-        p.settings.setReadOnly(True)
         p.enableLocal()
         assert isinstance(p.settings, LocalSettings)
+        p.settings.setRemovable(True)
+        p.settings.setReadOnly(True)
+        p.enableGlobal()
+        assert isinstance(p.settings, GlobalSettings)
         assert p.settings.isReadOnly()
         assert p.settings.isRemovable()
 

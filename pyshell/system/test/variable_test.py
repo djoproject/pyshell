@@ -210,21 +210,21 @@ class TestVariable(object):
 
     def test_enableGlobal(self):
         v = VarParameter("plop plip plap")
-        assert isinstance(v.settings, VariableLocalSettings)
+        assert type(v.settings) is VariableLocalSettings
         v.enableGlobal()
-        assert isinstance(v.settings, VariableGlobalSettings)
+        assert type(v.settings) is VariableGlobalSettings
         s = v.settings
         v.enableGlobal()
         assert v.settings is s
 
     def test_enableLocal(self):
         v = VarParameter("plop plip plap")
-        assert isinstance(v.settings, VariableLocalSettings)
+        assert type(v.settings) is VariableLocalSettings
         s = v.settings
         v.enableGlobal()
-        assert isinstance(v.settings, VariableGlobalSettings)
+        assert type(v.settings) is VariableGlobalSettings
         v.enableLocal()
-        assert isinstance(v.settings, VariableLocalSettings)
+        assert type(v.settings) is VariableLocalSettings
         assert v.settings is not s
         s = v.settings
         v.enableLocal()

@@ -332,7 +332,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
         return str(self.value[self.settings.getIndex()])
 
     def enableGlobal(self):
-        if isinstance(self.settings, GlobalContextSettings):
+        if type(self.settings) is GlobalContextSettings:
             return
 
         default_index = self.settings.getDefaultIndex()
@@ -349,7 +349,7 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
             self.settings.setReadOnly(True)
 
     def enableLocal(self):
-        if isinstance(self.settings, LocalContextSettings):
+        if type(self.settings) is LocalContextSettings:
             return
 
         default_index = self.settings.getDefaultIndex()

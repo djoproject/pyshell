@@ -109,13 +109,13 @@ class VarParameter(EnvironmentParameter):
         return "Variable, value: "+str(self.value)
 
     def enableGlobal(self):
-        if isinstance(self.settings, VariableGlobalSettings):
+        if type(self.settings) is VariableGlobalSettings:
             return
 
         self.settings = VariableGlobalSettings()
 
     def enableLocal(self):
-        if isinstance(self.settings, VariableLocalSettings):
+        if type(self.settings) is VariableLocalSettings:
             return
 
         self.settings = VariableLocalSettings()

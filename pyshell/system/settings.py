@@ -21,6 +21,7 @@ from pyshell.utils.exception import ParameterException
 
 
 class Settings(object):
+
     def __init__(self, read_only=False, removable=True):
         pass
 
@@ -58,16 +59,17 @@ class Settings(object):
 
 
 class LocalSettings(Settings):
+
     def __init__(self, read_only=False, removable=True):
         self.read_only = False
         self.setRemovable(removable)
         self.setReadOnly(read_only)
 
     def setReadOnly(self, state):
-        if type(state) != bool:
+        if not isinstance(state, bool):
             raise ParameterException("(LocalSettings) setReadOnly, expected a"
                                      " bool type as state, got '" +
-                                     str(type(state))+"'")
+                                     str(type(state)) + "'")
 
         self.read_only = state
 
@@ -77,25 +79,25 @@ class LocalSettings(Settings):
     def _raiseIfReadOnly(self, class_name=None, meth_name=None):
         if self.isReadOnly():
             if meth_name is not None:
-                meth_name = str(meth_name)+", "
+                meth_name = str(meth_name) + ", "
             else:
                 meth_name = EMPTY_STRING
 
             if class_name is not None:
-                class_name = "("+str(class_name)+") "
+                class_name = "(" + str(class_name) + ") "
             else:
                 class_name = EMPTY_STRING
 
-            excmsg = class_name+meth_name+"read only parameter"
+            excmsg = class_name + meth_name + "read only parameter"
             raise ParameterException(excmsg)
 
     def setRemovable(self, state):
         self._raiseIfReadOnly(self.__class__.__name__, "setRemovable")
 
-        if type(state) != bool:
+        if not isinstance(state, bool):
             raise ParameterException("(LocalSettings) setRemovable, expected "
                                      "a bool type as state, got '" +
-                                     str(type(state))+"'")
+                                     str(type(state)) + "'")
 
         self.removable = state
 
@@ -114,23 +116,22 @@ class LocalSettings(Settings):
         return Settings.clone(self, parent)
 
 
-# TODO this class has been updated, check if everything is tested.
 class GlobalSettings(LocalSettings):
+
     def __init__(self, read_only=False, removable=True, transient=False):
         LocalSettings.__init__(self, False, removable)
 
         self.setTransient(transient)
         self.startingHash = None
-        self.loaderOrigin = None
         self.setReadOnly(read_only)
 
     def setTransient(self, state):
         self._raiseIfReadOnly(self.__class__.__name__, "setTransient")
 
-        if type(state) != bool:
+        if not isinstance(state, bool):
             raise ParameterException("(GlobalSettings) setTransient, expected "
                                      "a bool type as state, got '" +
-                                     str(type(state))+"'")
+                                     str(type(state)) + "'")
 
         self.transient = state
 
@@ -145,9 +146,6 @@ class GlobalSettings(LocalSettings):
 
         self.startingHash = hashi
 
-    def setLoaderOrigin(self, name):
-        self.loaderOrigin = name
-
     def isEqualToStartingHash(self, hashi):
         return hashi == self.startingHash
 
@@ -161,8 +159,6 @@ class GlobalSettings(LocalSettings):
             parent.setReadOnly(False)
             parent.setTransient(self.isTransient())
             parent.setReadOnly(read_only)
-
-        parent.setLoaderOrigin(self.loaderOrigin)
 
         # starting hash is not copied because it comes from something outside
         # of this class, and it won't be relevant to copy it.

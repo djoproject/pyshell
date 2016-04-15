@@ -292,6 +292,7 @@ class TestEnvironment(object):
     # setReadOnly with valid bool + getProp
     def test_environmentMethod23(self):
         e = EnvironmentParameter("plop")
+        e.enableLocal()
         assert not e.settings.isReadOnly()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
@@ -326,6 +327,7 @@ class TestEnvironment(object):
     # setRemovable with valid bool + getProp
     def test_environmentMethod26(self):
         e = EnvironmentParameter("plop")
+        e.enableLocal()
         assert e.settings.isRemovable()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
@@ -357,9 +359,9 @@ class TestEnvironment(object):
     def test_environmentMethod29(self):
         e = EnvironmentParameter("plop")
 
-        assert isinstance(e.settings, LocalSettings)
+        assert type(e.settings) is LocalSettings
         e.enableGlobal()
-        assert isinstance(e.settings, GlobalSettings)
+        assert type(e.settings) is GlobalSettings
         s = e.settings
         e.enableGlobal()
         assert e.settings is s
@@ -368,12 +370,12 @@ class TestEnvironment(object):
     def test_environmentMethod30(self):
         e = EnvironmentParameter("plop")
 
-        assert isinstance(e.settings, LocalSettings)
+        assert type(e.settings) is LocalSettings
         s = e.settings
         e.enableGlobal()
-        assert isinstance(e.settings, GlobalSettings)
+        assert type(e.settings) is GlobalSettings
         e.enableLocal()
-        assert isinstance(e.settings, LocalSettings)
+        assert type(e.settings) is LocalSettings
         assert e.settings is not s
         s = e.settings
         e.enableLocal()
@@ -384,7 +386,7 @@ class TestEnvironment(object):
                                  settings=LocalSettings(read_only=True,
                                                         removable=True))
         e.enableGlobal()
-        assert isinstance(e.settings, GlobalSettings)
+        assert type(e.settings) is GlobalSettings
         assert e.settings.isReadOnly()
         assert e.settings.isRemovable()
 
@@ -393,7 +395,7 @@ class TestEnvironment(object):
                                  settings=LocalSettings(read_only=False,
                                                         removable=False))
         e.enableGlobal()
-        assert isinstance(e.settings, GlobalSettings)
+        assert type(e.settings) is GlobalSettings
         assert not e.settings.isReadOnly()
         assert not e.settings.isRemovable()
 
@@ -402,9 +404,9 @@ class TestEnvironment(object):
                                  settings=LocalSettings(read_only=True,
                                                         removable=True))
         e.enableGlobal()
-        assert isinstance(e.settings, GlobalSettings)
+        assert type(e.settings) is GlobalSettings
         e.enableLocal()
-        assert isinstance(e.settings, LocalSettings)
+        assert type(e.settings) is LocalSettings
 
         assert e.settings.isReadOnly()
         assert e.settings.isRemovable()
@@ -414,9 +416,9 @@ class TestEnvironment(object):
                                  settings=LocalSettings(read_only=False,
                                                         removable=False))
         e.enableGlobal()
-        assert isinstance(e.settings, GlobalSettings)
+        assert type(e.settings) is GlobalSettings
         e.enableLocal()
-        assert isinstance(e.settings, LocalSettings)
+        assert type(e.settings) is LocalSettings
 
         assert not e.settings.isReadOnly()
         assert not e.settings.isRemovable()
