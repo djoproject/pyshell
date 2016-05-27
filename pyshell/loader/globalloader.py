@@ -29,6 +29,11 @@ from pyshell.utils.constants import STATE_UNLOADED
 from pyshell.utils.constants import STATE_UNLOADED_E
 from pyshell.utils.exception import ListOfException
 
+try:
+    from collections import OrderedDict
+except:
+    from pyshell.utils.ordereddict import OrderedDict
+
 
 class GlobalLoader(AbstractLoader):
     def __init__(self):
@@ -64,7 +69,7 @@ class GlobalLoader(AbstractLoader):
             raise RegisterException(excmsg)
 
         if profile not in self.profile_list:
-            self.profile_list[profile] = {}
+            self.profile_list[profile] = OrderedDict()
 
         loader = class_definition()
         self.profile_list[profile][loader_name] = loader
@@ -73,6 +78,7 @@ class GlobalLoader(AbstractLoader):
 
     def _innerLoad(self,
                    method_name,
+                   priority_method_name,
                    parameter_manager,
                    profile,
                    next_state,
@@ -89,7 +95,8 @@ class GlobalLoader(AbstractLoader):
 
         insert_order = 0
         for loader in loaders.values():
-            heapq.heappush(loaders_heap, (loader.getPriority(),
+            get_priority_meth = getattr(loader, priority_method_name)
+            heapq.heappush(loaders_heap, (get_priority_meth(),
                                           insert_order,
                                           loader,))
             insert_order += 1
@@ -139,6 +146,7 @@ class GlobalLoader(AbstractLoader):
                 raise LoadException(excmsg)
 
         self._innerLoad("load",
+                        "getLoadPriority",
                         parameter_manager=parameter_manager,
                         profile=profile,
                         next_state=STATE_LOADED,
@@ -157,6 +165,7 @@ class GlobalLoader(AbstractLoader):
             raise LoadException(excmsg)
 
         self._innerLoad("unload",
+                        "getUnloadPriority",
                         parameter_manager=parameter_manager,
                         profile=profile,
                         next_state=STATE_UNLOADED,

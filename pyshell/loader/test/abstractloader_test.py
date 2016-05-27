@@ -41,3 +41,8 @@ class TestAbstractLoader(object):
         assert al.unload(None, None) is None
         with pytest.raises(TypeError):
             al.unload(None, None, None)
+
+    def test_priorities(self):
+        al = AbstractLoader(load_priority=42, unload_priority=83)
+        assert al.getLoadPriority() == 42
+        assert al.getUnloadPriority() == 83

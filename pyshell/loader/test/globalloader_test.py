@@ -178,6 +178,7 @@ class TestGlobalLoader(object):
     def test_globalLoaderInnerLoad1(self):
         gl = GlobalLoader()
         assert gl._innerLoad(method_name="kill",
+                             priority_method_name="getKillPriority",
                              parameter_manager=None,
                              profile="TOTO",
                              next_state="nstate",
@@ -205,6 +206,7 @@ class TestGlobalLoader(object):
                              profile="TOTO")
         with pytest.raises(AttributeError):
             gl._innerLoad(method_name="kill",
+                          priority_method_name="getKillPriority",
                           parameter_manager=None,
                           profile="TOTO",
                           next_state="nstate",
@@ -219,6 +221,7 @@ class TestGlobalLoader(object):
                              profile="TOTO")
         with pytest.raises(ListOfException):
             gl._innerLoad(method_name="load",
+                          priority_method_name="getLoadPriority",
                           parameter_manager=None,
                           profile="TOTO",
                           next_state="nstate",
@@ -234,6 +237,7 @@ class TestGlobalLoader(object):
                              SubAbstractLoader,
                              profile="TOTO")
         gl._innerLoad(method_name="load",
+                      priority_method_name="getLoadPriority",
                       parameter_manager=None,
                       profile="TOTO",
                       next_state="nstate",
@@ -245,6 +249,7 @@ class TestGlobalLoader(object):
     def test_globalLoaderInnerLoad6(self):
         gl = GlobalLoader()
         assert gl._innerLoad(method_name="kill",
+                             priority_method_name="getKillPriority",
                              parameter_manager=None,
                              profile=None,
                              next_state="nstate",
@@ -272,6 +277,7 @@ class TestGlobalLoader(object):
                              profile=None)
         with pytest.raises(AttributeError):
             gl._innerLoad(method_name="kill",
+                          priority_method_name="getKillPriority",
                           parameter_manager=None,
                           profile=DEFAULT_PROFILE_NAME,
                           next_state="nstate",
@@ -286,6 +292,7 @@ class TestGlobalLoader(object):
                              profile=None)
         with pytest.raises(ListOfException):
             gl._innerLoad(method_name="load",
+                          priority_method_name="getLoadPriority",
                           parameter_manager=None,
                           profile=DEFAULT_PROFILE_NAME,
                           next_state="nstate",
@@ -301,6 +308,7 @@ class TestGlobalLoader(object):
                              SubAbstractLoader,
                              profile=None)
         gl._innerLoad(method_name="load",
+                      priority_method_name="getLoadPriority",
                       parameter_manager=None,
                       profile=DEFAULT_PROFILE_NAME,
                       next_state="nstate",
@@ -371,3 +379,271 @@ class TestGlobalLoader(object):
         assert gl.last_updated_profile[1] == STATE_UNLOADED
         with pytest.raises(LoadException):
             gl.unload(None)
+
+
+class RecordLoadOrderAbstractLoader(AbstractLoader):
+    def __init__(self):
+        AbstractLoader.__init__(self)
+        self.load_list = None
+        self.unload_list = None
+        self.id = None
+
+    def load(self, parameter_manager, profile=None):
+        self.load_list.append(self.id)
+
+    def unload(self, parameter_manager, profile=None):
+        self.unload_list.append(self.id)
+
+
+class TestGlobalLoaderPriority(object):
+    def test_samePriorityInsertionOrder1(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 1
+        assert load_list[1] == 2
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 1
+        assert unload_list[1] == 2
+
+    def test_samePriorityInsertionOrder2(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 2
+        assert load_list[1] == 1
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 2
+        assert unload_list[1] == 1
+
+    def test_differentPriorityInsertionOrder1(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+        loader.load_priority = 50
+        loader.unload_priority = 50
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 1
+        assert load_list[1] == 2
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 1
+        assert unload_list[1] == 2
+
+    def test_differentPriorityInsertionOrder2(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+        loader.load_priority = 50
+        loader.unload_priority = 50
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 1
+        assert load_list[1] == 2
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 1
+        assert unload_list[1] == 2
+
+    def test_differentPriorityInsertionOrder3(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+        loader.load_priority = 50
+        loader.unload_priority = 200
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 1
+        assert load_list[1] == 2
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 2
+        assert unload_list[1] == 1
+
+    def test_differentPriorityInsertionOrder4(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+        loader.load_priority = 50
+        loader.unload_priority = 200
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 1
+        assert load_list[1] == 2
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 2
+        assert unload_list[1] == 1
+
+    def test_differentPriorityInsertionOrder5(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+        loader.load_priority = 200
+        loader.unload_priority = 50
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 2
+        assert load_list[1] == 1
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 1
+        assert unload_list[1] == 2
+
+    def test_differentPriorityInsertionOrder6(self):
+        load_list = []
+        unload_list = []
+        gl = GlobalLoader()
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad1",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 2
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+
+        loader = gl.getOrCreateLoader("GlobalLoaderLoad2",
+                                      RecordLoadOrderAbstractLoader)
+
+        loader.id = 1
+        loader.load_list = load_list
+        loader.unload_list = unload_list
+        loader.load_priority = 200
+        loader.unload_priority = 50
+
+        gl.load(None)
+
+        assert len(load_list) == 2
+        assert load_list[0] == 2
+        assert load_list[1] == 1
+
+        gl.unload(None)
+
+        assert len(unload_list) == 2
+        assert unload_list[0] == 1
+        assert unload_list[1] == 2

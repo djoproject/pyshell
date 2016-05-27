@@ -18,9 +18,10 @@
 
 
 class AbstractLoader(object):
-    def __init__(self, priority=100):
+    def __init__(self, load_priority=100, unload_priority=100):
         self.last_exception = None
-        self.priority = priority
+        self.load_priority = load_priority
+        self.unload_priority = unload_priority
 
     def load(self, parameter_manager, profile=None):
         pass  # TO OVERRIDE
@@ -28,6 +29,8 @@ class AbstractLoader(object):
     def unload(self, parameter_manager, profile=None):
         pass  # TO OVERRIDE
 
-    def getPriority(self):
-        return self.priority
-        # CAN BE OVERRIDEN TOO
+    def getLoadPriority(self):
+        return self.load_priority
+
+    def getUnloadPriority(self):
+        return self.unload_priority
