@@ -20,9 +20,9 @@
 #   add a check on the targeted addon, to block at unload if a dependancy exist
 #   remove the check to the dependancy if the dependant addon is removed
 
+from pyshell.loader.abstractloader import AbstractLoader
 from pyshell.loader.exception import LoadException
 from pyshell.loader.exception import RegisterException
-from pyshell.loader.utils import AbstractLoader
 from pyshell.loader.utils import getAndInitCallerModule
 from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME

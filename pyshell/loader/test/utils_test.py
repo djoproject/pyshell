@@ -23,10 +23,10 @@
 
 import pytest
 
+from pyshell.loader.abstractloader import AbstractLoader
 from pyshell.loader.exception import LoadException
 from pyshell.loader.exception import RegisterException
-from pyshell.loader.utils import AbstractLoader
-from pyshell.loader.utils import GlobalLoader
+from pyshell.loader.globalloader import GlobalLoader
 from pyshell.loader.utils import getAndInitCallerModule
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import STATE_LOADED

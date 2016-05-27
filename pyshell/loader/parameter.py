@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.loader.abstractloader import AbstractLoader
 from pyshell.loader.exception import LoadException
-from pyshell.loader.utils import AbstractLoader
 from pyshell.loader.utils import getAndInitCallerModule
 from pyshell.system.parameter import isAValidStringPath
 from pyshell.utils.exception import ListOfException

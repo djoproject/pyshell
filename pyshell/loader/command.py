@@ -20,9 +20,9 @@ from tries.exception import triesException
 
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
+from pyshell.loader.abstractloader import AbstractLoader
 from pyshell.loader.exception import LoadException
 from pyshell.loader.exception import RegisterException
-from pyshell.loader.utils import AbstractLoader
 from pyshell.loader.utils import getAndInitCallerModule
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception import ListOfException
