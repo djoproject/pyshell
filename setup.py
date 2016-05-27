@@ -18,6 +18,7 @@
 
 
 from distutils.core import setup
+
 from pyshell import __version__
 
 setup(name='PyShell',
