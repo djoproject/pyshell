@@ -29,6 +29,7 @@ from pyshell.utils.constants import STATE_UNLOADED
 from pyshell.utils.constants import STATE_UNLOADED_E
 from pyshell.utils.exception import ListOfException
 
+
 class GlobalLoader(AbstractLoader):
     def __init__(self):
         AbstractLoader.__init__(self)

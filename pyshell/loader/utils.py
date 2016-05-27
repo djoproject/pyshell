@@ -21,6 +21,7 @@ import inspect
 from pyshell.loader.exception import RegisterException
 from pyshell.loader.globalloader import GlobalLoader
 
+
 def getAndInitCallerModule(caller_loader_key,
                            caller_loader_class_definition,
                            profile=None,
@@ -38,10 +39,10 @@ def getAndInitCallerModule(caller_loader_key,
     else:
         # init loaders dictionnary
         setattr(mod, "_loaders", GlobalLoader())
-        
+
         # add the always existing loader here
         # ===>
-        
+
         # <===
 
     return mod._loaders.getOrCreateLoader(caller_loader_key,
