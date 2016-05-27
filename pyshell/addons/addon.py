@@ -22,7 +22,6 @@
 #   profile is not saved with addon to load list, find a way to store it
 
 import os
-import traceback
 
 from pyshell.addons.utils.addon import formatState
 from pyshell.addons.utils.addon import tryToGetAddonFromDico
@@ -39,7 +38,6 @@ from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerSetTempPrefix
 from pyshell.loader.command import registerStopHelpTraversalAt
 from pyshell.utils.constants import ADDONLIST_KEY
-from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
 from pyshell.utils.constants import STATE_UNLOADED
@@ -113,17 +111,6 @@ def unloadAddon(name, parameters, sub_addon=None):
     addon = tryToGetAddonFromParameters(parameters, name)
     addon.unload(parameters, sub_addon)
     notice(str(name) + " unloaded !")
-
-
-@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=StringArgChecker(),
-             parameters=CompleteEnvironmentChecker())
-def reloadAddon(name, parameters, sub_addon=None):
-    "reload an addon from memory"
-
-    addon = tryToGetAddonFromParameters(parameters, name)
-    addon.reload(parameters, sub_addon)
-    notice(str(name) + " reloaded !")
 
 
 @shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
@@ -215,43 +202,6 @@ def getAddonInformation(name, addon_dico, tabsize, ):
                              "' (error count = 0)")
 
     return lines
-
-
-@shellMethod(
-    name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-    sub_loader_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-    sub_addon=StringArgChecker(),
-    parameters=CompleteEnvironmentChecker())
-def subLoaderReload(name, sub_loader_name, parameters, sub_addon=None):
-    "reload a profile of an addon from memory"
-
-    # addon name exist ?
-    addon = tryToGetAddonFromParameters(parameters, name)
-
-    if sub_addon is None:
-        sub_addon = DEFAULT_PROFILE_NAME
-
-    # sub_addon exist ?
-    if sub_addon not in addon.profile_list:
-        raise Exception("Unknown sub addon '" + str(sub_addon) + "'")
-
-    loaderDictionnary, status = addon.profile_list[sub_addon]
-
-    # subloader exist ?
-    if sub_loader_name not in loaderDictionnary:
-        raise Exception("Unknown sub loader '" + str(sub_loader_name) + "'")
-
-    loader = loaderDictionnary[sub_loader_name]
-
-    # reload subloader
-    try:
-        loader.reload(parameters, sub_addon)
-    except Exception as ex:
-        loader.last_exception = ex
-        loader.last_exception.stackTrace = traceback.format_exc()
-        raise ex
-
-    notice("sub loader '" + str(sub_loader_name) + "' reloaded !")
 
 
 @shellMethod(
@@ -363,9 +313,7 @@ registerStopHelpTraversalAt()
 registerCommand(("list",), pro=listAddonFun, post=printColumn)
 registerCommand(("unload",), pro=unloadAddon)
 registerSetTempPrefix(("reload",))
-registerCommand(("addon",), pro=reloadAddon)
 registerCommand(("hard",), pro=hardReload)
-registerCommand(("subloader",), pro=subLoaderReload)
 registerStopHelpTraversalAt()
 registerSetTempPrefix(())
 registerCommand(("info",), pro=getAddonInformation, post=listResultHandler)

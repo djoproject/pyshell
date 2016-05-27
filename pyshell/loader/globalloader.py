@@ -96,7 +96,7 @@ class GlobalLoader(AbstractLoader):
         while len(loaders_heap) > 0:
             priority, insert_order, loader = heapq.heappop(loaders_heap)
             # no need to test if attribute exist, it is supposed to call
-            # load/unload or reload and loader is suppose to be an
+            # load/unload and loader is suppose to be an
             # AbstractLoader
             meth_to_call = getattr(loader, method_name)
 
@@ -104,8 +104,7 @@ class GlobalLoader(AbstractLoader):
                 meth_to_call(parameter_manager, profile)
                 loader.last_exception = None
             except Exception as ex:
-                # TODO is it used somewhere ? will be overwrite on reload if
-                # error on unload and on load
+                # TODO is it used somewhere ?
                 loader.last_exception = ex
                 exceptions.addException(ex)
                 loader.last_exception.stackTrace = traceback.format_exc()
@@ -161,21 +160,3 @@ class GlobalLoader(AbstractLoader):
                         profile=profile,
                         next_state=STATE_UNLOADED,
                         next_state_if_error=STATE_UNLOADED_E)
-
-    def reload(self, parameter_manager, profile=None):
-        if profile is None:
-            profile = DEFAULT_PROFILE_NAME
-
-        allowed_state = GlobalLoader._unloadAllowedState
-        if (self.last_updated_profile is None or
-           self.last_updated_profile[0] != profile or
-           self.last_updated_profile[1] not in allowed_state):
-            excmsg = ("(GlobalLoader) 'reload', profile '"+str(profile)+"' is"
-                      " not loaded")
-            raise LoadException(excmsg)
-
-        self._innerLoad("reload",
-                        parameter_manager=parameter_manager,
-                        profile=profile,
-                        next_state=STATE_LOADED,
-                        next_state_if_error=STATE_LOADED_E)

@@ -28,11 +28,6 @@ class AbstractLoader(object):
     def unload(self, parameter_manager, profile=None):
         pass  # TO OVERRIDE
 
-    def reload(self, parameter_manager, profile=None):
-        self.unload(parameter_manager, profile)
-        self.load(parameter_manager, profile)
-        # CAN BE OVERRIDEN TOO
-
     def getPriority(self):
         return self.priority
         # CAN BE OVERRIDEN TOO

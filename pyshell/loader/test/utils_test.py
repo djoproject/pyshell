@@ -51,9 +51,6 @@ class SubAbstractUnloaderWithError(AbstractLoader):
     def unload(self, parameter_manager, profile=None):
         raise Exception("errroooorrr !")
 
-    def reload(self, parameter_manager, profile=None):
-        raise Exception("errroooorrr !")
-
 
 class TestUtils(object):
 
@@ -117,16 +114,6 @@ class TestUtils(object):
         assert al.unload(None, None) is None
         with pytest.raises(TypeError):
             al.unload(None, None, None)
-
-    # AbstractLoader, reload, exist, test args
-    def test_abstractLoader4(self):
-        al = AbstractLoader()
-        assert al, "reload"
-        assert al.reload, "__call__"
-        assert al.reload(None) is None
-        assert al.reload(None, None) is None
-        with pytest.raises(TypeError):
-            al.reload(None, None, None)
 
     # ## GlobalLoader ## #
 
@@ -455,34 +442,3 @@ class TestUtils(object):
         with pytest.raises(LoadException):
             gl.unload(None)
 
-    # # reload # #
-    # valid reload
-    def test_globalLoaderReload7(self):
-        gl = GlobalLoader()
-        gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
-        gl.load(None)
-        gl.reload(None)
-        assert gl.last_updated_profile[0] == DEFAULT_PROFILE_NAME
-        assert gl.last_updated_profile[1] == STATE_LOADED
-
-    # valid reload with error
-    def test_globalLoaderReload8(self):
-        gl = GlobalLoader()
-        gl.getOrCreateLoader("GlobalLoaderLoad1",
-                             SubAbstractUnloaderWithError)
-        gl.load(None)
-        with pytest.raises(ListOfException):
-            gl.reload(None)
-        assert gl.last_updated_profile[0] == DEFAULT_PROFILE_NAME
-        assert gl.last_updated_profile[1] == STATE_LOADED_E
-
-    # invalid reload
-    def test_globalLoaderReload9(self):
-        gl = GlobalLoader()
-        gl.getOrCreateLoader("GlobalLoaderLoad1", SubAbstractLoader)
-        gl.load(None)
-        gl.unload(None)
-        assert gl.last_updated_profile[0] == DEFAULT_PROFILE_NAME
-        assert gl.last_updated_profile[1] == STATE_UNLOADED
-        with pytest.raises(LoadException):
-            gl.reload(None)
