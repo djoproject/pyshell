@@ -1,7 +1,7 @@
 #!/usr/bin/env python -t
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject.net>
+# Copyright (C) 2016  Jonathan Delvaux <pyshell@djoproject.net>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,4 +16,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __version__ import __version__
+__version__ = "1.0.0"

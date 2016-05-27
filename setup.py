@@ -18,9 +18,10 @@
 
 
 from distutils.core import setup
+from pyshell import __version__
 
 setup(name='PyShell',
-      version='1.0',
+      version=__version__,
       description='Easy mapping between python script and a shell',
       author='Jonathan Delvaux',
       author_email='pyshell@djoproject.net',
