@@ -24,10 +24,10 @@ from pyshell.system.container import AbstractParameterContainer
 from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER
 from pyshell.system.settings import GlobalSettings
 from pyshell.system.settings import LocalSettings
+from pyshell.utils.abstract.flushable import Flushable
+from pyshell.utils.abstract.valuable import Valuable
 from pyshell.utils.exception import ParameterException
-from pyshell.utils.flushable import Flushable
 from pyshell.utils.synchronized import synchronous
-from pyshell.utils.valuable import Valuable
 
 
 def isAValidStringPath(string_path):

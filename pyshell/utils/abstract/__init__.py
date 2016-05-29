@@ -15,31 +15,3 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from pyshell.utils.abstract.valuable import SelectableValuable
-
-
-class DefaultValuable(SelectableValuable):
-    def __init__(self, value):
-        self.value = value
-
-    def getValue(self):
-        return self.value
-
-    def getSelectedValue(self):
-        return self.value
-
-
-class SimpleValuable(SelectableValuable):
-    def __init__(self, value=None):
-        self.value = value
-
-    def getValue(self):
-        return self.value
-
-    def setValue(self, value):
-        self.value = value
-        return value
-
-    def getSelectedValue(self):
-        return self.value

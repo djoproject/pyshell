@@ -16,15 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.flushable import Flushable
-
-# README these tests could look stupid but it is very important for the
-# whole application that these four class respect drasticaly this structure
+from abc import ABCMeta, abstractmethod
 
 
-class TestFlushable(object):
-    def test_flushable(self):
-        f = Flushable()
-        assert hasattr(f, "flush")
-        assert hasattr(f.flush, "__call__")
-        assert f.flush() is None
+class Flushable(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def flush(self):
+        pass  # TO OVERRIDE

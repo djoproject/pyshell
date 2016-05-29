@@ -18,8 +18,8 @@
 
 from threading import current_thread
 
+from pyshell.utils.abstract.flushable import Flushable
 from pyshell.utils.exception import DefaultPyshellException
-from pyshell.utils.flushable import Flushable
 
 
 class AbstractParameterContainer(object):

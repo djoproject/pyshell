@@ -22,6 +22,7 @@ from pyshell.arg.decorator import defaultMethod
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import CommandException
 from pyshell.command.utils import isAValidIndex
+from pyshell.utils.abstract.cloneable import Cloneable
 
 
 # just a marker class to differentiate an standard list from a multiple output
@@ -29,7 +30,7 @@ class MultiOutput(list):
     pass
 
 
-class Command(object):
+class Command(Cloneable):
     # default preProcess
     @shellMethod(args=ListArgChecker(ArgChecker()))
     @defaultMethod()

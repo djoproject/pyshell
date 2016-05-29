@@ -17,32 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.utils.valuable import DefaultValuable
-from pyshell.utils.valuable import SelectableValuable
 from pyshell.utils.valuable import SimpleValuable
-from pyshell.utils.valuable import Valuable
 
 # README these tests could look stupid but it is very important for the
 # whole application that these four class respect drasticaly this structure
 
 
 class TestValuable(object):
-
-    def test_valuable(self):
-        v = Valuable()
-        assert hasattr(v, "getValue")
-        assert hasattr(v.getValue, "__call__")
-        assert v.getValue() is None
-
-    def test_selectableValuable(self):
-        sv = SelectableValuable()
-
-        assert hasattr(sv, "getValue")
-        assert hasattr(sv.getValue, "__call__")
-        assert sv.getValue() is None
-
-        assert hasattr(sv, "getSelectedValue")
-        assert hasattr(sv.getSelectedValue, "__call__")
-        assert sv.getSelectedValue() is None
 
     def test_defaultValuable(self):
         d = DefaultValuable("plop")

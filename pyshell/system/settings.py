@@ -16,11 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.utils.abstract.cloneable import Cloneable
 from pyshell.utils.constants import EMPTY_STRING
 from pyshell.utils.exception import ParameterException
 
 
-class Settings(object):
+class Settings(Cloneable):
 
     def __init__(self, read_only=False, removable=True):
         pass
