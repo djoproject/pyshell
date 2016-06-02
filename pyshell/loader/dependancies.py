@@ -28,6 +28,7 @@ from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import STATE_LOADED
 from pyshell.utils.constants import STATE_LOADED_E
+from pyshell.utils.string import isString
 
 
 def _localGetAndInitCallerModule(profile=None):
@@ -53,14 +54,12 @@ def setDependanciesLoaderPriority(value, profile=None):
 def registerDependOnAddon(dependancy_name,
                           dependancy_profile=None,
                           profile=None):
-    if type(dependancy_name) != str and type(dependancy_name) != unicode:
+    if not isString(dependancy_name):
         raise RegisterException("(Loader) registerDependOnAddon, only string "
                                 "or unicode addon name are allowed, got '" +
                                 str(type(dependancy_name))+"'")
 
-    if (dependancy_profile is not None and
-       (type(dependancy_profile) != str and
-            type(dependancy_profile) != unicode)):
+    if dependancy_profile is not None and not isString(dependancy_profile):
         raise RegisterException("(Loader) registerDependOnAddon, only string "
                                 "or unicode addon profile are allowed, got '" +
                                 str(type(dependancy_profile))+"'")

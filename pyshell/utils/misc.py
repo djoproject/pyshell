@@ -22,6 +22,7 @@ import struct
 import termios
 
 from pyshell.utils.exception import DefaultPyshellException, SYSTEM_WARNING
+from pyshell.utils.string import isString
 
 
 def ioctlGwinsz(fd):
@@ -54,12 +55,12 @@ def raiseIfInvalidKeyList(key_list, exception_class, package_name, meth_name):
     # TODO test if a simple string could be a valid key_list,
     # it shouldn't be the case
 
-    if not hasattr(key_list, "__iter__"):
+    if not hasattr(key_list, "__iter__") or isString(key_list):
         raise exception_class("("+package_name+") "+meth_name+", list of "
                               "string is not iterable")
 
     for key in key_list:
-        if type(key) != str and type(key) != unicode:
+        if not isString(key):
             raise exception_class("("+package_name+") "+meth_name+", only "
                                   "string or unicode key are allowed")
 

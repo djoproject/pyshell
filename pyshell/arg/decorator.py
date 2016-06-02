@@ -20,6 +20,7 @@
 #   use wraps https://docs.python.org/2/library/functools.html#functools.wraps
 
 import inspect
+import sys
 import types
 
 from pyshell.arg.argchecker import ArgChecker
@@ -43,6 +44,8 @@ class _Class(object):
     staticMethType = type(_method)
 staticMethType = _Class.staticMethType
 
+PY3 = sys.version_info[0] == 3
+
 # #############################################################################
 # #### UTIL FUNCTION ##########################################################
 # #############################################################################
@@ -55,8 +58,8 @@ class FunAnalyser(object):
         # and python3 ?
         if (not isinstance(fun, staticMethType) and
            not isinstance(fun, types.MethodType) and
-           not isinstance(fun, types.InstanceType) and
-           not isinstance(fun, types.ClassType) and
+           (PY3 or not isinstance(fun, types.InstanceType)) and
+           (PY3 or not isinstance(fun, types.ClassType)) and
            not isinstance(fun, types.FunctionType)):
             raise DecoratorException("(FunAnalyser) init faile, need a "
                                      "function instance, got '" +

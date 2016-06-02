@@ -36,6 +36,7 @@ from pyshell.utils.exception import ListOfException
 from pyshell.utils.parsing import Parser
 from pyshell.utils.printing import printException
 from pyshell.utils.solving import Solver
+from pyshell.utils.string import isString
 
 # execute return engine and last_exception to the calling procedure
 #   engine to retrieve any output
@@ -46,7 +47,7 @@ def execute(string, parameter_container, process_name=None, process_arg=None):
     # add external parameters at the end of the command
     if hasattr(process_arg, "__iter__"):
         string += " " + ' '.join(str(x) for x in process_arg)
-    elif type(process_arg) == str or type(process_arg) == unicode:
+    elif isString(process_arg):
         string += " "+process_arg
     elif process_arg is not None:
         raise DefaultPyshellException("unknown type or process args, expect a "
@@ -172,65 +173,72 @@ def _execute(parser, parameter_container, process_name=None):
         # execute
         engine.execute()
 
-    except ExecutionInitException as ex:
-        printException(ex,
+    except ExecutionInitException as eie:
+        printException(eie,
                        prefix="Fail to init an execution object: ",
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
                            engine=engine,
                            process_name=process_name))
-    except ExecutionException as ex:
-        printException(ex,
+        ex = eie
+    except ExecutionException as ee:
+        printException(ee,
                        prefix="Fail to execute: ",
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
                            engine=engine,
                            process_name=process_name))
-    except CommandException as ex:
-        printException(ex,
+        ex = ee
+    except CommandException as ce:
+        printException(ce,
                        prefix="Error in command method: ",
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
                            engine=engine,
                            process_name=process_name))
-    except EngineInterruptionException as ex:
+        ex = ce
+    except EngineInterruptionException as enie:
         suffix = _generateSuffix(parameter_container,
                                  command_name_list=command_name_list,
                                  engine=engine,
                                  process_name=process_name)
-        if ex.abnormal:
-            printException(ex,
+        if enie.abnormal:
+            printException(enie,
                            prefix="Abnormal execution abort, reason: ",
                            suffix=suffix)
         else:
-            printException(ex,
+            printException(enie,
                            prefix="Normal execution abort, reason: ",
                            suffix=suffix)
-    except ArgException as ex:
-        printException(ex,
+        ex = enie
+    except ArgException as ae:
+        printException(ae,
                        prefix="Error while parsing argument: ",
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
                            engine=engine,
                            process_name=process_name))
-    except ListOfException as ex:
-        printException(ex,
+        ex = ae
+    except ListOfException as loe:
+        printException(loe,
                        prefix="List of exception(s): ",
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
                            engine=engine,
                            process_name=process_name))
-    except Exception as ex:
-        printException(ex,
+        ex = loe
+    except Exception as e:
+        printException(e,
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
                            engine=engine,
                            process_name=process_name))
+        ex = e
 
     return ex, engine

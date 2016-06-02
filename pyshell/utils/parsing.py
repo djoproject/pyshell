@@ -18,6 +18,7 @@
 
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import PARSE_ERROR
+from pyshell.utils.string import isString
 
 # BNF GRAMMAR OF A COMMAND
 #
@@ -63,7 +64,7 @@ class Parser(list):
     """
 
     def __init__(self, string):
-        if type(string) != str and type(string) != unicode:
+        if not isString(string):
             raise DefaultPyshellException("fail to init parser object, a s"
                                           "tring was expected, got '" +
                                           str(type(string))+"'",

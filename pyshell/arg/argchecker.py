@@ -39,6 +39,7 @@ from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.key import CryptographicKey
+from pyshell.utils.string import isString
 
 try:
     from collections import OrderedDict
@@ -359,7 +360,7 @@ class StringArgChecker(ArgChecker):
                                     arg_number,
                                     arg_name_to_bind)
 
-        if type(value) != str and type(value) != unicode:
+        if not isString(value):
             if not hasattr(value, "__str__"):
                 excmsg = ("this value '"+str(value)+"' is not a valid string, "
                           "got type '"+str(type(value))+"'")
@@ -435,7 +436,7 @@ class IntegerArgChecker(ArgChecker):
         casted_value = None
         if type(value) == int or type(value) == float or type(value) == bool:
             casted_value = int(value)
-        elif type(value) == str or type(value) == unicode:
+        elif isString(value):
             for b in self.bases:
                 try:
                     casted_value = int(value, b)
@@ -543,7 +544,7 @@ class TokenValueArgChecker(StringArgChecker):
         self.localtries = tries()
         for k, v in token_dict.items():
             # key must be non empty string, value can be anything
-            if type(k) != str and type(k) != unicode:
+            if not isString(k):
                 excmsg = ("("+self.type_name+") a key in the dictionary is not"
                           " a string: '"+str(k)+"', type: '"+str(type(k))+"'")
                 raise ArgInitializationException(excmsg)
@@ -733,7 +734,7 @@ class AbstractParameterChecker(ArgChecker):
         ArgChecker.__init__(self, 0, 0, False, type_name)
 
         if (keyname is None or
-           (type(keyname) != str and type(keyname) != unicode) or
+           not isString(keyname) or
            not isinstance(keyname, collections.Hashable)):
             excmsg = ("("+self.type_name+") keyname must be hashable string, "
                       "got '"+str(keyname)+"'")
@@ -741,9 +742,7 @@ class AbstractParameterChecker(ArgChecker):
 
         self.keyname = keyname
 
-        if (container_attribute is None or
-           (type(container_attribute) != str and
-                type(container_attribute) != unicode)):
+        if container_attribute is None or not isString(container_attribute):
             excmsg = ("("+self.type_name+") container_attribute must be a "
                       "valid string, got '"+str(type(container_attribute))+"'")
             raise ArgInitializationException(excmsg)
@@ -803,9 +802,7 @@ class AbstractParameterDynamicChecker(ArgChecker):
                  type_name=PARAMETERDYNAMICCHECKER_TYPENAME):
         ArgChecker.__init__(self, 1, 1, False, type_name)
 
-        if (container_attribute is None or
-           (type(container_attribute) != str and
-                type(container_attribute) != unicode)):
+        if container_attribute is None or not isString(container_attribute):
             excmsg = ("("+self.type_name+") container_attribute must be a "
                       "valid string, got '"+str(type(container_attribute))+"'")
             raise ArgInitializationException(excmsg)
@@ -960,7 +957,7 @@ class ListArgChecker(ArgChecker):
 
     def getValue(self, values, arg_number=None, arg_name_to_bind=None):
         # check if it's a list
-        if not hasattr(values, "__iter__"):  # if not isinstance(values,list):
+        if not hasattr(values, "__iter__") or isString(values):
             values = (values,)
 
         # len(values) must always be a multiple of self.checker.minimum_size
@@ -977,7 +974,7 @@ class ListArgChecker(ArgChecker):
             # checker has default value ?
             if self.checker.hasDefaultValue(arg_name_to_bind):
                 # build the missing part with the default value
-                add_at_end = ((self.minimum_size - len(values) /
+                add_at_end = (int(self.minimum_size - len(values) /
                               self.checker.minimum_size) *
                               [self.checker.getDefaultValue(arg_name_to_bind)])
             else:

@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.utils.exception import KeyStoreException
+from pyshell.utils.string import isString
 
 
 class CryptographicKey(object):
@@ -25,7 +26,7 @@ class CryptographicKey(object):
 
     def __init__(self, key_string):
         # is it a string ?
-        if type(key_string) != str and type(key_string) != unicode:
+        if not isString(key_string):
             raise KeyStoreException("("+self.__class__.__name__+") __init__, "
                                     "invalid key string, expected a string, "
                                     "got '"+str(type(key_string))+"'")

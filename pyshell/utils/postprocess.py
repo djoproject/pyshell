@@ -22,6 +22,7 @@ from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.utils.printing import printShell
 from pyshell.utils.printing import strLength
+from pyshell.utils.string import isString
 
 
 @shellMethod(
@@ -94,8 +95,7 @@ def printColumnWithouHeader(list_of_line):
     for row_index in range(0, len(list_of_line)):
         line = list_of_line[row_index]
 
-        if type(line) == str or type(line) == unicode or \
-           not hasattr(line, "__getitem__"):
+        if isString(line) or not hasattr(line, "__getitem__"):
             if 0 not in column_size:
                 column_size[0] = strLength(str(line)) + space_to_add
             else:
@@ -116,8 +116,7 @@ def printColumnWithouHeader(list_of_line):
     for row_index in range(0, len(list_of_line)):
         line = list_of_line[row_index]
 
-        if type(line) == str or type(line) == unicode or \
-           not hasattr(line, "__getitem__"):
+        if isString(line) or not hasattr(line, "__getitem__"):
             to_print += str(line) + "\n"
 
             # no need of pading if the line has only the first column
@@ -154,8 +153,7 @@ def printColumn(list_of_line):
         if row_index == 1:
             space_to_add += 1
 
-        if type(line) == str or type(line) == unicode or \
-           not hasattr(line, "__getitem__"):
+        if isString(line) or not hasattr(line, "__getitem__"):
             if 0 not in column_size:
                 column_size[0] = strLength(str(line)) + space_to_add
             else:
@@ -180,8 +178,7 @@ def printColumn(list_of_line):
         if row_index == 1:
             default_prefix = " "
 
-        if type(line) == str or type(line) == unicode or \
-           not hasattr(line, "__getitem__"):
+        if isString(line) or not hasattr(line, "__getitem__"):
             to_print += default_prefix + str(line) + "\n"
 
             # no need of pading if the line has only one column

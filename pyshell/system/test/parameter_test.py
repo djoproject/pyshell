@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 from threading import current_thread
 from uuid import uuid4
 
@@ -34,6 +35,8 @@ from pyshell.system.settings import GlobalSettings
 from pyshell.system.settings import LocalSettings
 from pyshell.utils.exception import ParameterException
 
+PY3 = sys.version_info[0] == 3
+
 
 class TestParameterManagerMisc(object):
     # isAValidStringPath, with invalid string
@@ -41,8 +44,13 @@ class TestParameterManagerMisc(object):
     def test_parameterMisc2(self):
         state, message = isAValidStringPath(object())
         assert not state
-        assert message == ("invalid string_path, a string was expected, "
-                           "got '<type 'object'>'")
+
+        if PY3:
+            assert message == ("invalid string_path, a string was expected, "
+                               "got '<class 'object'>'")
+        else:
+            assert message == ("invalid string_path, a string was expected, "
+                               "got '<type 'object'>'")
 
     # isAValidStringPath with empty string
     def test_parameterMisc3(self):

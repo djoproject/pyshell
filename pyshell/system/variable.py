@@ -23,6 +23,7 @@ from pyshell.system.settings import GlobalSettings
 from pyshell.system.settings import LocalSettings
 from pyshell.system.settings import Settings
 from pyshell.utils.constants import EMPTY_STRING
+from pyshell.utils.string import isString
 
 
 class VariableParameterManager(ParameterManager):
@@ -72,7 +73,7 @@ class VarParameter(EnvironmentParameter):
             tmp_value_parsed = []
 
             for v in value_to_parse:
-                if type(v) == str or type(v) == unicode:
+                if isString(v):
                     v = v.strip()
                     v = v.split(" ")
 

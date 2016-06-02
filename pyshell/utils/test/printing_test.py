@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+
 import pytest
 
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
@@ -54,6 +56,8 @@ try:
     from collections import OrderedDict
 except:
     from pyshell.utils.ordereddict import OrderedDict
+
+PY3 = sys.version_info[0] == 3
 
 
 class TestPrinting(object):
@@ -359,11 +363,16 @@ class TestPrinting(object):
         prefix = (LIGHTORANGE+"toto"+ENDC+LIGHTORANGE+"\n\n"
                   "Traceback (most recent call last):\n"
                   "  File \"")
-
-        suffix = ("in test_formatException7\n"
-                  "    raise DefaultPyshellException(\"toto\", WARNING)\n"
-                  "DefaultPyshellException: toto\n"
-                  ""+ENDC)
+        if PY3:
+            suffix = ("in test_formatException7\n"
+                      "    raise DefaultPyshellException(\"toto\", WARNING)\n"
+                      "pyshell.utils.exception.DefaultPyshellException: toto\n"
+                      ""+ENDC)
+        else:
+            suffix = ("in test_formatException7\n"
+                      "    raise DefaultPyshellException(\"toto\", WARNING)\n"
+                      "DefaultPyshellException: toto\n"
+                      ""+ENDC)
 
         try:
             raise DefaultPyshellException("toto", WARNING)
@@ -386,10 +395,16 @@ class TestPrinting(object):
                   "Traceback (most recent call last):\n"
                   "  File \"")
 
-        suffix = ("in test_formatException8\n"
-                  "    raise l\n"
-                  "ListOfException: 3 exception(s) in list\n"
-                  ""+ENDC)
+        if PY3:
+            suffix = ("in test_formatException8\n"
+                      "    raise l\n"
+                      "pyshell.utils.exception.ListOfException: 3 exception(s)"
+                      " in list\n"+ENDC)
+        else:
+            suffix = ("in test_formatException8\n"
+                      "    raise l\n"
+                      "ListOfException: 3 exception(s) in list\n"
+                      ""+ENDC)
 
         try:
             raise l
@@ -412,10 +427,17 @@ class TestPrinting(object):
                   LIGHTGREEN+"toto"+ENDC+LIGHTRED+"\n\n"
                   "Traceback (most recent call last):\n"
                   "  File \"")
-        suffix = ("in test_formatException9\n"
-                  "    raise l\n"
-                  "ListOfException: 3 exception(s) in list\n"
-                  ""+ENDC)
+
+        if PY3:
+            suffix = ("in test_formatException9\n"
+                      "    raise l\n"
+                      "pyshell.utils.exception.ListOfException: 3 exception(s)"
+                      " in list\n"+ENDC)
+        else:
+            suffix = ("in test_formatException9\n"
+                      "    raise l\n"
+                      "ListOfException: 3 exception(s) in list\n"
+                      ""+ENDC)
 
         try:
             raise l

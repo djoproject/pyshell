@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from thread import LockType
 from threading import Lock
 
 import pytest
@@ -29,10 +28,15 @@ from pyshell.system.context import ContextParameter
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
 from pyshell.system.environment import ParametersLocker
-from pyshell.system.environment import _lockSorter
+from pyshell.system.environment import _lockKey
 from pyshell.system.settings import GlobalSettings
 from pyshell.system.settings import LocalSettings
 from pyshell.utils.exception import ParameterException
+
+try:
+    from thread import LockType
+except:
+    from _thread import LockType
 
 
 class DummyLock(object):
@@ -58,7 +62,7 @@ class TestEnvironment(object):
                               DummyLock(4),
                               DummyLock(0),
                               DummyLock(888)],
-                             cmp=_lockSorter)
+                             key=_lockKey)
         assert sorted_list[0].value == 0
         assert sorted_list[1].value == 1
         assert sorted_list[2].value == 4

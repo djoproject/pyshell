@@ -129,11 +129,11 @@ class TestsplitAndMerge(object):
 
         # select a map outside of the scope
         with pytest.raises(ExecutionException):
-            engine.mergeData(-1, 2, [True, False, True, False])
+            engine.mergeData(-1, 2, 42)
 
         # select a map without the current process included
         with pytest.raises(ExecutionException):
-            engine.mergeData(-1, 2, [False, False, True])
+            engine.mergeData(-1, 2, -3)
 
         # try to merge some preprocess with different path
         del engine.stack[:]

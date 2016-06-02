@@ -29,12 +29,12 @@ from pyshell.utils.abstract.cloneable import Cloneable
 from pyshell.utils.abstract.flushable import Flushable
 from pyshell.utils.abstract.valuable import Valuable
 from pyshell.utils.exception import ParameterException
+from pyshell.utils.string import isString
 from pyshell.utils.synchronized import synchronous
 
 
 def isAValidStringPath(string_path):
-    if not isinstance(string_path, str) and not isinstance(
-            string_path, unicode):
+    if not isString(string_path):
         return False, "invalid string_path, a string was expected, got '" + \
             str(type(string_path)) + "'"
 

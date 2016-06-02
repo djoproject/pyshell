@@ -40,9 +40,13 @@ def _lockSorter(param1, param2):
     return param1.getLockId() - param2.getLockId()
 
 
+def _lockKey(parameter):
+    return parameter.getLockId()
+
+
 class ParametersLocker(object):
     def __init__(self, parameters_list):
-        self.parameters_list = sorted(parameters_list, cmp=_lockSorter)
+        self.parameters_list = sorted(parameters_list, key=_lockKey)
 
     def __enter__(self):
         for param in self.parameters_list:
