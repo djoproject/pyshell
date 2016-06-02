@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
-
 from pyshell.arg.argchecker import ArgChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import ListArgChecker
@@ -60,6 +58,7 @@ class ProcedureFromFile(UniCommand):
         # transient var
         self.interrupt = False
         self.interruptReason = None
+        self.errorGranularity = None
 
     # ## PRE/POST process ## #
 
@@ -182,7 +181,7 @@ class ProcedureFromFile(UniCommand):
 
     def stopOnFirstError(self):
         self.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
-            sys.maxsize)
+            float("inf"))
 
     def neverStopIfErrorOccured(self):
         self.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(None)
@@ -193,7 +192,9 @@ class ProcedureFromFile(UniCommand):
         the current procedure.  A None value is equal to no limit.
         """
 
-        if value is not None and (not isinstance(value, int) or value < 0):
+        if (value is not None and
+            ((not isinstance(value, int) and not isinstance(value, float)) or
+             value < 0)):
             raise ParameterException("(Procedure) setStopProcedureIfAnErrorOcc"
                                      "uredWithAGranularityLowerOrEqualTo, "
                                      "expected a integer value bigger than 0, "

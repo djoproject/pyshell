@@ -55,7 +55,7 @@ if __name__ == "__main__":
     ParameterFile = None
     ScriptFile = None
     ExitAfterScript = True
-    Granularity = sys.maxint
+    Granularity = float("inf")
 
     for o, a in opts:  # TODO test every args
         if o in ("-h", "--help"):

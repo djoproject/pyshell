@@ -61,6 +61,11 @@ from pyshell.utils.printing import printException
 from pyshell.utils.printing import warning
 from pyshell.utils.valuable import SimpleValuable
 
+try:
+    input = raw_input
+except:
+    pass
+
 # TODO
 #   the second part of the __init__ is not an init part
 #   it is more like the first part of the running.
@@ -254,7 +259,7 @@ class CommandExecuter():
             prompt = self._getPrompt()
             self.promptWaitingValuable.setValue(True)
             try:
-                cmd = raw_input(prompt)
+                cmd = input(prompt)
             except SyntaxError as se:
                 error(se, "syntax error")
                 continue

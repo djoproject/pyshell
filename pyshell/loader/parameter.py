@@ -81,7 +81,7 @@ def registerSet(key,
 
 class ParameterAbstractLoader(AbstractLoader):
     def __init__(self, container_name):
-        AbstractLoader.__init__(self, priority=50)
+        AbstractLoader.__init__(self, load_priority=50)
         self.value_to_add_to = []
         self.value_to_set = []
 
