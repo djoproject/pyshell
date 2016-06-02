@@ -655,3 +655,15 @@ class TestContext(object):
         assert not c.settings.isRemovable()
         assert c.settings.getIndex() == 3
         assert c.settings.getDefaultIndex() == 2
+
+    def test_clone(self):
+        c = ContextParameter(("aa", "bb", "cc", "dd",))
+        c_clone = c.clone()
+
+        assert c is not c_clone
+        assert c.settings is not c_clone
+        assert c.typ is c_clone.typ
+        assert c.getValue() is not c_clone.getValue()
+        assert c.getValue() == c_clone.getValue()
+        assert hash(c.settings) == hash(c_clone.settings)
+        assert hash(c) == hash(c_clone)

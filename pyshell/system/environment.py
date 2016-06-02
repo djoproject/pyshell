@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from copy import copy
 from threading import Lock
 
 from pyshell.arg.argchecker import ArgChecker
@@ -145,6 +146,17 @@ class EnvironmentParameter(Parameter):
     def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__, "setValue")
         self.value = self.typ.getValue(value)
+
+    def clone(self, parent=None):
+        if parent is None:
+            return EnvironmentParameter(copy(self.value),
+                                        self.typ,
+                                        self.settings.clone())
+
+        parent.typ = self.typ
+        parent.isListType = self.isListType
+
+        return Parameter.clone(self, parent)
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

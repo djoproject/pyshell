@@ -61,3 +61,15 @@ class TestKey(object):
         manager = CryptographicKeyParameterManager()
         with pytest.raises(ParameterException):
             manager.setParameter("test.key", EnvironmentParameter("0x1122ff"))
+
+    def test_clone(self):
+        k = CryptographicKeyParameter("0x1122ff")
+        k_clone = k.clone()
+
+        assert k is not k_clone
+        assert k.settings is not k_clone
+        assert k.typ is k_clone.typ
+        assert k.getValue() is not k_clone.getValue()
+        assert k.getValue() == k_clone.getValue()
+        assert hash(k.settings) == hash(k_clone.settings)
+        assert hash(k) == hash(k_clone)

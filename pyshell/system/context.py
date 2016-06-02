@@ -364,3 +364,13 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
 
         if read_only:
             self.settings.setReadOnly(True)
+
+    def clone(self, parent=None):
+        if parent is None:
+            return ContextParameter(self.value,  # convert to set will copy
+                                    self.typ,
+                                    self.settings.clone(),
+                                    self.settings.getIndex(),
+                                    self.settings.getDefaultIndex())
+
+        return EnvironmentParameter.clone(self, parent)

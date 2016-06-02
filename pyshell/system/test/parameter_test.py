@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from threading import current_thread
+from uuid import uuid4
 
 import pytest
 
@@ -1905,6 +1906,18 @@ class TestParameterManager(object):
         assert len(l) == 1
 
 
+class CopyableObject(object):
+    def __init__(self, to_store):
+        self.to_store = to_store
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and
+                other.to_store == self.to_store)
+
+    def __hash__(self):
+        return hash(self.to_store)
+
+
 # # parameters test # #
 class TestParameter(object):
     # test value/getvalue on constructor
@@ -2019,3 +2032,14 @@ class TestParameter(object):
         p4 = Parameter(42)
         p4.settings.setReadOnly(True)
         assert hash(p1) != hash(p4)
+
+    def test_clone(self):
+        p = Parameter(CopyableObject(uuid4()))
+        p_clone = p.clone()
+
+        assert p is not p_clone
+        assert p.settings is not p_clone
+        assert p.getValue() is not p_clone.getValue()
+        assert p.getValue() == p_clone.getValue()
+        assert hash(p.settings) == hash(p_clone.settings)
+        assert hash(p) == hash(p_clone)

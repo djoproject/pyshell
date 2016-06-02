@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from copy import copy
 from threading import Lock
 
 from tries import multiLevelTries
@@ -24,6 +25,7 @@ from pyshell.system.container import AbstractParameterContainer
 from pyshell.system.container import DEFAULT_DUMMY_PARAMETER_CONTAINER
 from pyshell.system.settings import GlobalSettings
 from pyshell.system.settings import LocalSettings
+from pyshell.utils.abstract.cloneable import Cloneable
 from pyshell.utils.abstract.flushable import Flushable
 from pyshell.utils.abstract.valuable import Valuable
 from pyshell.utils.exception import ParameterException
@@ -580,7 +582,7 @@ class ParameterManager(Flushable):
             del self.loaderGlobalVar[origin_loader]
 
 
-class Parameter(Valuable):  # abstract
+class Parameter(Valuable, Cloneable):  # abstract
 
     @staticmethod
     def getInitSettings():
@@ -632,6 +634,21 @@ class Parameter(Valuable):  # abstract
 
         self.settings = LocalSettings(read_only=self.settings.isReadOnly(),
                                       removable=self.settings.isRemovable())
+
+    def clone(self, parent=None):
+        if parent is None:
+            return Parameter(copy(self.value),
+                             self.settings.clone())
+
+        read_only = parent.settings.isReadOnly()
+        parent.settings.setReadOnly(False)
+
+        parent.setValue(self.value)
+
+        if read_only:
+            parent.settings.setReadOnly(True)
+
+        return parent
 
     def __hash__(self):
         value = self.getValue()

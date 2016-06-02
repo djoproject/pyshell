@@ -470,3 +470,15 @@ class TestEnvironment(object):
         h2 = hash(e)
 
         assert h1 != h2
+
+    def test_clone(self):
+        e = EnvironmentParameter(("plop",))
+        e_clone = e.clone()
+
+        assert e is not e_clone
+        assert e.settings is not e_clone
+        assert e.typ is e_clone.typ
+        assert e.getValue() is not e_clone.getValue()
+        assert e.getValue() == e_clone.getValue()
+        assert hash(e.settings) == hash(e_clone.settings)
+        assert hash(e) == hash(e_clone)

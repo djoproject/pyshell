@@ -33,3 +33,10 @@ class CryptographicKeyParameter(EnvironmentParameter):
                                       value,
                                       default_arg_checker,
                                       settings=settings)
+
+    def clone(self, parent=None):
+        if parent is None:
+            return CryptographicKeyParameter(str(self.value),
+                                             self.settings.clone())
+
+        return EnvironmentParameter.clone(self, parent)

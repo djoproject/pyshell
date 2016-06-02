@@ -229,3 +229,15 @@ class TestVariable(object):
         s = v.settings
         v.enableLocal()
         assert v.settings is s
+
+    def test_clone(self):
+        v = VarParameter("plop plip plap")
+        v_clone = v.clone()
+
+        assert v is not v_clone
+        assert v.settings is not v_clone
+        assert v.typ is v_clone.typ
+        assert v.getValue() is not v_clone.getValue()
+        assert v.getValue() == v_clone.getValue()
+        assert hash(v.settings) == hash(v_clone.settings)
+        assert hash(v) == hash(v_clone)

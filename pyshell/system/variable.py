@@ -119,3 +119,9 @@ class VarParameter(EnvironmentParameter):
             return
 
         self.settings = VariableLocalSettings()
+
+    def clone(self, parent=None):
+        if parent is None:
+            return VarParameter(self.value)
+
+        return EnvironmentParameter.clone(self, parent)
