@@ -22,7 +22,7 @@ import threading
 import traceback
 
 from pyshell.system.container import ParameterContainer
-from pyshell.system.parameter import ParameterManager
+from pyshell.system.manager import ParameterManager
 from pyshell.utils.abstract.valuable import Valuable
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
@@ -432,7 +432,7 @@ def formatException(exception,
 
     if printer.isDebugEnabled() and no_stack_trace_in_case_of_debug:
         stacktrace = traceback.format_exc()
-        if stacktrace is not None:
+        if stacktrace is not None and stacktrace != "None\n":
             toprint += print_fun("\n\n"+stacktrace)
 
     return toprint

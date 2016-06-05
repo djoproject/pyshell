@@ -20,109 +20,162 @@ from pyshell.arg.argchecker import ArgChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
 from pyshell.command.exception import EngineInterruptionException
-from pyshell.system.settings import GlobalSettings
-from pyshell.system.variable import VarParameter
-from pyshell.utils.exception import DefaultPyshellException
+from pyshell.system.container import AbstractParameterContainer
+from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.setting.procedure import ProcedureLocalSettings
+from pyshell.system.setting.procedure import ProcedureSettings
+from pyshell.system.variable import VariableParameter
+from pyshell.system.variable import VariableParameterManager
+from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.exception import ERROR
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.exception import PyshellException
 from pyshell.utils.executing import execute
-from pyshell.utils.printing import printException
 
 
-class ProcedureFromFile(UniCommand):
+def setArgs(container, args=None):
+    if not isinstance(container, AbstractParameterContainer):
+        excmsg = ("(setArgs) an AbstractParameterContainer instance was"
+                  " expected for the argument container, got'" +
+                  str(type(container))+"'")
+        raise ParameterException(excmsg)
+
+    if not hasattr(container, VARIABLE_ATTRIBUTE_NAME):
+        excmsg = ("(setArgs) no variable manager is present in the "
+                  "provided container")
+        raise ParameterException(excmsg)
+
+    variables = getattr(container, VARIABLE_ATTRIBUTE_NAME)
+
+    if not isinstance(variables, VariableParameterManager):
+        excmsg = ("(setArgs) a VariableParameterManager instance was expected"
+                  " for the argument variables, got '" +
+                  str(type(variables))+"'")
+        raise ParameterException(excmsg)
+
+    if args is None:
+        args = ()
+
+    if not hasattr(args, "__iter__"):
+        raise ParameterException("(setArgs) args argument is not iterable")
+
+    # all in one string
+    var = VariableParameter(' '.join(str(x) for x in args))
+    variables.setParameter("*", var, local_param=True)
+
+    # arg count
+    var = VariableParameter(len(args))
+    variables.setParameter("#", var, local_param=True)
+
+    # all args
+    var = VariableParameter(args)
+    variables.setParameter("@", var, local_param=True)
+
+    # value from last command
+    var = VariableParameter(())
+    variables.setParameter("?", var, local_param=True)
+
+    # last pid started in background
+    var = VariableParameter("")
+    variables.setParameter("!", var, local_param=True)
+
+    # current process id
+    var = VariableParameter(container.getCurrentId())
+    variables.setParameter("$", var, local_param=True)
+
+
+class FileProcedure(EnvironmentParameter, UniCommand):
+    @staticmethod
+    def getInitSettings():
+        return ProcedureLocalSettings()
+
+    @staticmethod
+    def getAllowedParentSettingClass():
+        return ProcedureSettings
+
     def __init__(self, file_path, settings=None):
-        # by default, enable on pre process #TODO this information should be
-        # stored
-        UniCommand.__init__(self, self._internalProcess, None, None)
+        UniCommand.__init__(self,
+                            self._internalPre,
+                            self._internalPro,
+                            self._internalPost)
 
-        self.name = "execute " + str(file_path)
-        # default error policy  #TODO should be in settings
-        self.stopOnFirstError()
-        self.setFilePath(file_path)
-
-        if settings is not None:
-            if not isinstance(settings, GlobalSettings):
-                raise ParameterException("(EnvironmentParameter) __init__, "
-                                         "a GlobalSettings was expected for "
-                                         "settings, got '" +
-                                         str(type(settings))+"'")
-
-            self.settings = settings
-        else:
-            self.settings = GlobalSettings()
+        EnvironmentParameter.__init__(self, file_path, settings=settings)
 
         # transient var
-        self.interrupt = False
+        self.interrupted = False
         self.interruptReason = None
-        self.errorGranularity = None
-
-    # ## PRE/POST process ## #
-
-    def _setArgs(self, parameters, args):
-        parameters.variable.setParameter(
-            "*",  # all in one string
-            VarParameter(' '.join(str(x) for x in args)),
-            local_param=True)
-        parameters.variable.setParameter(
-            "#",  # arg count
-            VarParameter(len(args)), local_param=True)
-        parameters.variable.setParameter(
-            "@", VarParameter(args), local_param=True)  # all args
-        parameters.variable.setParameter(
-            "?",  # value from last command
-            VarParameter(()), local_param=True)
-        parameters.variable.setParameter(
-            "!",  # last pid started in background
-            VarParameter(()), local_param=True)
-        parameters.variable.setParameter(
-            "$",  # current process id
-            VarParameter(parameters.getCurrentId()),
-            local_param=True)
-
-    def enableOnPreProcess(self):
-        del self[:]
-        MultiCommand.addProcess(self, self._internalProcess, None, None)
-
-    def enableOnProcess(self):
-        del self[:]
-        MultiCommand.addProcess(self, None, self._internalProcess, None)
-
-    def enableOnPostProcess(self):
-        del self[:]
-        MultiCommand.addProcess(self, None, None, self._internalProcess)
 
     @shellMethod(
-        args=ListArgChecker(
-            ArgChecker()),
+        args=ListArgChecker(ArgChecker()),
         parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
-    def _internalProcess(self, args, parameters):
-        self._setArgs(parameters, args)
-        return self.execute(parameters)
+    def _internalPre(self, args, parameters):
+        if not self.settings.isEnabledOnPreProcess():
+            return args
+
+        return self.execute(parameters, args)
+
+    @shellMethod(
+        args=ListArgChecker(ArgChecker()),
+        parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
+    def _internalPro(self, args, parameters):
+        if not self.settings.isEnabledOnProcess():
+            return args
+
+        return self.execute(parameters, args)
+
+    @shellMethod(
+        args=ListArgChecker(ArgChecker()),
+        parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker())
+    def _internalPost(self, args, parameters):
+        if not self.settings.isEnabledOnPostProcess():
+            return args
+
+        return self.execute(parameters, args)
 
     def interrupt(self, reason=None):
         self.interruptReason = reason
 
-        # ALWAYS keep interrupt at last, because it will interrupt another
-        # thread, and the other thread could be interrupt before the end of
-        # this method if interrupt is not set at the end
-        self.interrupt = True
+        # ALWAYS keep interrupt at the end, because it will maybe interrupt
+        # another thread, and the other thread could be interrupt before
+        # the end of this method if interrupt is not set at the end.
+        # And so interruptReason could be empty
+        self.interrupted = True
 
-    def execute(self, parameters):
-        # make a copy of the current procedure
+    def execute(self, parameter_container, args):
+        # incrementing the level will isolate the local parameters of the
+        # procedure from the local parameters of the caller
+        parameter_container.incrementLevel()
+
+        try:
+            setArgs(parameter_container, args)
+            return self.innerExecute(parameter_container)
+        finally:
+            # remove every local parameters created in this procedure
+            parameter_container.flush()
+            parameter_container.decrementLevel()
+
+    def innerExecute(self, parameter_container):
         engine = None
         index = 1
+        self.interrupted = False
+        self.interruptReason = None
+        execution_name = "execute "+str(self.getValue())+" (line: "
 
-        with open(self.file_path) as f:
-            for line in f:
-                execution_name = self.name+" (line: "+str(index)+")"
-                # TODO no parsing ?
-                last_exception, engine = self._innerExecute(line,
-                                                            execution_name,
-                                                            parameters)
+        with open(self.getValue()) as f:
+            for cmd in f:
+                self._raiseIfInterrupted()
+
+                last_exception, engine = execute(
+                    cmd,
+                    parameter_container,
+                    execution_name+str(index)+")")
+
+                self._setResult(last_exception,
+                                engine,
+                                parameter_container)
+
                 index += 1
 
         # return the result of last command in the procedure
@@ -131,25 +184,36 @@ class ProcedureFromFile(UniCommand):
 
         return engine.getLastResult()
 
-    def _innerExecute(self, cmd, name, parameters):
-        if self.interrupt:
-            if self.interruptReason is None:
-                raise EngineInterruptionException(
-                    "this process has been interrupted", abnormal=True)
-            else:
-                raise EngineInterruptionException(
-                    "this process has been interrupted, reason: '" + str(
-                        self.interruptReason) + "'", abnormal=True)
+    def _raiseIfInterrupted(self):
+        if self.interrupted:
+            exc_msg = "this process has been interrupted"
 
-        last_exception, engine = execute(cmd, parameters, name)
-        param = parameters.variable.getParameter("?",
-                                                 perfect_match=True,
-                                                 local_param=True,
-                                                 explore_other_level=False)
+            if self.interruptReason is not None:
+                exc_msg += ", reason: '" + str(self.interruptReason)
+
+            raise EngineInterruptionException(exc_msg, abnormal=True)
+
+    def _setResult(self, last_exception, engine, parameter_container):
+        variable_manager = getattr(parameter_container,
+                                   VARIABLE_ATTRIBUTE_NAME)
+
+        if variable_manager.hasParameter(string_path="?",
+                                         raise_if_ambiguous=True,
+                                         perfect_match=True,
+                                         local_param=True,
+                                         explore_other_scope=False):
+            result_param = variable_manager.getParameter(
+                string_path="?",
+                perfect_match=True,
+                local_param=True,
+                explore_other_scope=False)
+        else:
+            result_param = VariableParameter(())
+            variable_manager.setParameter("?", result_param, local_param=True)
 
         if last_exception is not None:
             # set empty the variable "?"
-            param.setValue(())
+            result_param.setValue(())
 
             # manage exception
             if isinstance(last_exception, PyshellException):
@@ -157,70 +221,23 @@ class ProcedureFromFile(UniCommand):
             else:
                 severity = ERROR
 
-            printException(last_exception)
-
             # The last error was too severe, stop the procedure.
-            if (self.errorGranularity is not None and
-               severity <= self.errorGranularity):
-                raise last_exception
+            if severity <= self.settings.getErrorGranularity():
+                self.interrupt('the exception granularity of the last '
+                               'executed command was to low.')
         else:
-            if engine is not None and engine.getLastResult(
-            ) is not None and len(engine.getLastResult()) > 0:
-                param.setValue(engine.getLastResult())
+            if (engine is not None and
+               engine.getLastResult() is not None and
+               len(engine.getLastResult()) > 0):
+                result_param.setValue(engine.getLastResult())
             else:
-                param.setValue(())
-
-        return last_exception, engine
-
-    # get/set method
-
-    def setNextCommandIndex(self, index):  # TODO remove me
-        raise DefaultPyshellException("(Procedure) setNextCommandIndex, not "
-                                      "possible to set next command index on "
-                                      "this king of procedure")
-
-    def stopOnFirstError(self):
-        self.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(
-            float("inf"))
-
-    def neverStopIfErrorOccured(self):
-        self.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(None)
-
-    def stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(self, value):
-        """
-        Every error granularity bellow this limit will stop the execution of
-        the current procedure.  A None value is equal to no limit.
-        """
-
-        if (value is not None and
-            ((not isinstance(value, int) and not isinstance(value, float)) or
-             value < 0)):
-            raise ParameterException("(Procedure) setStopProcedureIfAnErrorOcc"
-                                     "uredWithAGranularityLowerOrEqualTo, "
-                                     "expected a integer value bigger than 0, "
-                                     "got '" + str(type(value)) + "'")
-
-        self.errorGranularity = value
-
-    def getErrorGranularity(self):
-        return self.errorGranularity
+                result_param.setValue(())
 
     def clone(self, parent=None):
         if parent is None:
-            parent = ProcedureFromFile(self.file_path,
-                                       self.settings.clone())
+            parent = FileProcedure(self.getValue(),
+                                   self.settings.clone())
 
-        parent.errorGranularity = self.errorGranularity
-        return UniCommand.clone(self, parent)
+        UniCommand.clone(self, parent)
 
-    def __hash__(self):
-        settings_string_hash = str(hash(self.settings))
-        file_path_string_hash = str(hash(self.file_path))
-        return hash(settings_string_hash + file_path_string_hash)
-
-    def getFilePath(self):
-        return self.file_path
-
-    def setFilePath(self, file_path):
-        # TODO readOnly, path validity, ...
-        self.file_path = file_path
+        return EnvironmentParameter.clone(self, parent)

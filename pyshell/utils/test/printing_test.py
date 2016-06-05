@@ -27,6 +27,8 @@ from pyshell.system.context import ContextParameter
 from pyshell.system.context import ContextParameterManager
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.system.setting.context import ContextGlobalSettings
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
 from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
@@ -74,49 +76,61 @@ class TestPrinting(object):
         manager = ContextParameterManager(self.params)
         self.params.registerParameterManager("context", manager)
 
+        ##
+
+        checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
         self.debugContext = ContextParameter(
             value=tuple(range(0, 91)),
-            typ=DefaultInstanceArgChecker.getIntegerArgCheckerInstance(),
-            default_index=0,
-            index=0)
+            settings=ContextGlobalSettings(checker=checker))
         self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,
                                          self.debugContext,
                                          local_param=False)
         self.debugContext.settings.setTransient(False)
         self.debugContext.settings.setTransientIndex(False)
         self.debugContext.settings.setRemovable(False)
+        self.debugContext.settings.tryToSetDefaultIndex(0)
         self.debugContext.settings.setReadOnly(True)
+        self.debugContext.settings.tryToSetIndex(0)
 
+        ##
+
+        checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
         self.shellContext = ContextParameter(
             value=(CONTEXT_EXECUTION_SHELL,
                    CONTEXT_EXECUTION_SCRIPT,
                    CONTEXT_EXECUTION_DAEMON,),
-            typ=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-            default_index=0)
+            settings=ContextGlobalSettings(checker=checker))
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY,
                                          self.shellContext,
                                          local_param=False)
         self.shellContext.settings.setTransient(True)
         self.shellContext.settings.setTransientIndex(True)
         self.shellContext.settings.setRemovable(False)
+        self.shellContext.settings.tryToSetDefaultIndex(0)
         self.shellContext.settings.setReadOnly(True)
 
+        ##
+
+        checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
         self.backgroundContext = ContextParameter(
             value=(CONTEXT_COLORATION_LIGHT,
                    CONTEXT_COLORATION_DARK,
                    CONTEXT_COLORATION_NONE,),
-            typ=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-            default_index=0)
+            settings=ContextGlobalSettings(checker=checker))
         self.params.context.setParameter(CONTEXT_COLORATION_KEY,
                                          self.backgroundContext,
                                          local_param=False)
         self.backgroundContext.settings.setTransient(False)
         self.backgroundContext.settings.setTransientIndex(False)
         self.backgroundContext.settings.setRemovable(False)
+        self.backgroundContext.settings.tryToSetDefaultIndex(0)
         self.backgroundContext.settings.setReadOnly(True)
 
-        self.spacingContext = EnvironmentParameter(value=5,
-                                                   typ=IntegerArgChecker(0))
+        ##
+
+        self.spacingContext = EnvironmentParameter(
+            value=5,
+            settings=EnvironmentGlobalSettings(checker=IntegerArgChecker(0)))
         self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
                                              self.spacingContext,
                                              local_param=False)
@@ -137,47 +151,47 @@ class TestPrinting(object):
 
     def test_isDarkBackGround(self):
         p = Printer.getInstance()
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_DARK)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_DARK)
         assert p.isDarkBackGround()
 
     def test_isDarkBackGround2(self):
         p = Printer.getInstance()
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_LIGHT)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_LIGHT)
         assert not p.isDarkBackGround()
 
     def test_isDarkBackGround3(self):
         p = Printer.getInstance()
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_NONE)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_NONE)
         assert not p.isDarkBackGround()
 
     def test_isLightBackGround(self):
         p = Printer.getInstance()
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_DARK)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_DARK)
         assert not p.isLightBackGround()
 
     def test_isLightBackGround2(self):
         p = Printer.getInstance()
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_LIGHT)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_LIGHT)
         assert p.isLightBackGround()
 
     def test_isLightBackGround3(self):
         p = Printer.getInstance()
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_NONE)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_NONE)
         assert not p.isLightBackGround()
 
     def test_shellContext(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         assert p.isInShell()
 
     def test_shellContext2(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         assert not p.isInShell()
 
     def test_shellContext3(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_DAEMON)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_DAEMON)
         assert not p.isInShell()
 
     def test_promptShowedContext(self):
@@ -192,64 +206,64 @@ class TestPrinting(object):
 
     def test_debugContext(self):
         p = Printer.getInstance()
-        self.debugContext.settings.setIndexValue(0)
+        self.debugContext.setSelectedValue(0)
         assert not p.isDebugEnabled()
         assert p.getDebugLevel() == 0
 
     def test_debugContext2(self):
         p = Printer.getInstance()
-        self.debugContext.settings.setIndexValue(1)
+        self.debugContext.setSelectedValue(1)
         assert p.isDebugEnabled()
         assert p.getDebugLevel() == 1
 
     def test_debugContext3(self):
         p = Printer.getInstance()
-        self.debugContext.settings.setIndexValue(90)
+        self.debugContext.setSelectedValue(90)
         assert p.isDebugEnabled()
         assert p.getDebugLevel() == 90
 
     def test_formatColor(self):
         p = Printer.getInstance()
 
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         assert p.formatRed("plop") == LIGHTRED+"plop"+ENDC
 
     def test_formatColor2(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         assert p.formatRed("plop") == "plop"
 
     def test_formatColor3(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_DARK)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_DARK)
         assert p.formatRed("plop") == DARKRED+"plop"+ENDC
 
     def test_formatColor4(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         assert p.formatRed("plop") == "plop"
 
     def test_formatColor5(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_NONE)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_NONE)
         assert p.formatRed("plop") == "plop"
 
     def test_formatColor6(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         assert p.formatRed("plop") == "plop"
 
     def test_format(self):
         p = Printer.getInstance()
 
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         assert p.formatBolt("plop") == BOLT+"plop"+ENDC
 
     def test_format2(self):
         p = Printer.getInstance()
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         assert p.formatBolt("plop") == "plop"
 
     def test_cprint(self, capsys):
@@ -261,7 +275,7 @@ class TestPrinting(object):
     def test_cprint2(self, capsys):
         p = Printer.getInstance()
 
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         txt = p.formatRed("plop")
         p.cprint(txt)
         out, err = capsys.readouterr()
@@ -270,9 +284,9 @@ class TestPrinting(object):
     def test_cprint3(self, capsys):
         p = Printer.getInstance()
 
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         txt = p.formatRed("plop")
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         p.cprint(txt)
         out, err = capsys.readouterr()
         assert out == "     plop\n"
@@ -280,7 +294,7 @@ class TestPrinting(object):
     def test_cprint4(self, capsys):
         p = Printer.getInstance()
 
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         txt = p.formatRed("plop\nplop")
         p.cprint(txt)
         out, err = capsys.readouterr()
@@ -289,9 +303,9 @@ class TestPrinting(object):
     def test_cprint5(self, capsys):
         p = Printer.getInstance()
 
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         txt = p.formatRed("plop")
-        self.backgroundContext.settings.setIndexValue(CONTEXT_COLORATION_NONE)
+        self.backgroundContext.setSelectedValue(CONTEXT_COLORATION_NONE)
         p.cprint(txt)
         out, err = capsys.readouterr()
         assert out == "     plop\n"
@@ -358,7 +372,7 @@ class TestPrinting(object):
         assert formatException(l, "plap") == expected
 
     def test_formatException7(self):
-        self.debugContext.settings.setIndexValue(1)
+        self.debugContext.setSelectedValue(1)
 
         prefix = (LIGHTORANGE+"toto"+ENDC+LIGHTORANGE+"\n\n"
                   "Traceback (most recent call last):\n"
@@ -383,7 +397,7 @@ class TestPrinting(object):
             assert "printing_test.py" in formated
 
     def test_formatException8(self):
-        self.debugContext.settings.setIndexValue(1)
+        self.debugContext.setSelectedValue(1)
 
         l = ListOfException()
         l.addException(Exception("plop"))
@@ -415,7 +429,7 @@ class TestPrinting(object):
             assert "printing_test.py" in formated
 
     def test_formatException9(self):
-        self.debugContext.settings.setIndexValue(1)
+        self.debugContext.setSelectedValue(1)
 
         l = ListOfException()
         l.addException(Exception("plop"))

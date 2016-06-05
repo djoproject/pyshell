@@ -19,7 +19,6 @@
 import atexit
 import readline
 import sys
-import threading
 from contextlib import contextmanager
 
 from tries import multiLevelTries
@@ -32,8 +31,8 @@ from pyshell.system.container import ParameterContainer
 from pyshell.system.context import ContextParameterManager
 from pyshell.system.environment import EnvironmentParameterManager
 from pyshell.system.key import CryptographicKeyParameterManager
-from pyshell.system.procedure import ProcedureFromFile
-from pyshell.system.variable import VarParameter
+from pyshell.system.procedure import FileProcedure
+from pyshell.system.procedure import setArgs
 from pyshell.system.variable import VariableParameterManager
 from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
@@ -113,10 +112,12 @@ class CommandExecuter():
     def _initParams(self, param_file_path, outside_args, system_loader):
         env = self.params.environment
 
+        # because the system addon is loaded manually, need to register it
         loaded_addon = env.getParameter(ADDONLIST_KEY, perfect_match=True)
         if loaded_addon is not None:
             loaded_addon.getValue()["pyshell.addons.system"] = system_loader
 
+        # set the parameter file
         if param_file_path is not None:
             parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
                                               perfect_match=True)
@@ -127,43 +128,7 @@ class CommandExecuter():
         # these variable has to be defined here, because they have to be
         # local type.  So it is not possible to declare them in an addon
         # because only global variable are allowed there
-        # TODO this operation will occur at each thread creation
-        #   it could be interresting to have a generic method
-        var = self.params.variable
-        if outside_args is None:
-            outside_args = ()
-
-        all_in_one = ' '.join(str(x) for x in outside_args)
-
-        # all outside argument in one string
-        args_string = VarParameter(all_in_one)
-        args_string.settings.setTransient(True)
-        var.setParameter("*", args_string,)
-
-        # outside argument count
-        arg_count = VarParameter(len(outside_args))
-        arg_count.settings.setTransient(True)
-        var.setParameter("#", arg_count)
-
-        # all outside argument
-        all_args = VarParameter(outside_args)
-        all_args.settings.setTransient(True)
-        var.setParameter("@", all_args)
-
-        # last pid started in background
-        last_pid_var = VarParameter("")
-        last_pid_var.settings.setTransient(True)
-        var.setParameter("!", last_pid_var)
-
-        # current process id
-        current_pid_var = VarParameter(threading.current_thread().ident)
-        current_pid_var.settings.setTransient(True)
-        var.setParameter("$", current_pid_var)
-
-        # value from last command
-        last_result_var = VarParameter(())
-        last_result_var.settings.setTransient(True)
-        var.setParameter("?", last_result_var)
+        setArgs(self.params, outside_args or ())
 
     def _initPrinter(self):
         # # prepare the printing system # #
@@ -251,7 +216,7 @@ class CommandExecuter():
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
                                          perfect_match=True)
         if exec_type is not None:
-            exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+            exec_type.setSelectedValue(CONTEXT_EXECUTION_SHELL)
 
         # mainloop
         while True:
@@ -408,11 +373,11 @@ class CommandExecuter():
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
                                          perfect_match=True)
         if exec_type is not None:
-            exec_type.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+            exec_type.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
 
-        afile = ProcedureFromFile(filename)
-        afile.stopIfAnErrorOccuredWithAGranularityLowerOrEqualTo(granularity)
+        afile = FileProcedure(filename)
+        afile.settings.setErrorGranularity(granularity)
 
         with self.exceptionManager("An error occured during the script "
                                    "execution: "):
-            afile.execute(args=(), parameters=self.params)
+            afile.execute(args=(), parameter_container=self.params)

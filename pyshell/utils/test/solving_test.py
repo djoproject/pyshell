@@ -27,7 +27,7 @@ from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
-from pyshell.system.variable import VarParameter
+from pyshell.system.variable import VariableParameter
 from pyshell.system.variable import VariableParameterManager
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.parsing import Parser
@@ -88,7 +88,7 @@ class TestSolving(object):
         p.parse()
         s = Solver()
 
-        self.var.setParameter("plop", VarParameter(()))
+        self.var.setParameter("plop",  VariableParameter(()))
 
         solvingresult = s.solve(p, self.mltries, self.var)
         commandList, argList, mappedArgsList, commandNameList = solvingresult
@@ -114,7 +114,7 @@ class TestSolving(object):
         p.parse()
         s = Solver()
 
-        self.var.setParameter("plop", VarParameter(()))
+        self.var.setParameter("plop",  VariableParameter(()))
 
         solvingresult = s.solve(p, self.mltries, self.var)
         commandList, argList, mappedArgsList, commandNameList = solvingresult
@@ -141,7 +141,7 @@ class TestSolving(object):
         p.parse()
         s = Solver()
 
-        self.var.setParameter("plop", VarParameter(("uhuh",)))
+        self.var.setParameter("plop",  VariableParameter(("uhuh",)))
 
         solvingresult = s.solve(p, self.mltries, self.var)
         commandList, argList, mappedArgsList, commandNameList = solvingresult
@@ -167,7 +167,8 @@ class TestSolving(object):
         p.parse()
         s = Solver()
 
-        self.var.setParameter("plop", VarParameter(("uhuh", "ihih", "ohoho",)))
+        self.var.setParameter("plop",
+                              VariableParameter(("uhuh", "ihih", "ohoho",)))
 
         solvingresult = s.solve(p, self.mltries, self.var)
         commandList, argList, mappedArgsList, commandNameList = solvingresult
@@ -194,7 +195,8 @@ class TestSolving(object):
         p.parse()
         s = Solver()
 
-        self.var.setParameter("plop", VarParameter(("uhuh", "ihih", "ohoho",)))
+        self.var.setParameter("plop",
+                              VariableParameter(("uhuh", "ihih", "ohoho",)))
 
         solvingresult = s.solve(p, self.mltries, self.var)
         commandList, argList, mappedArgsList, commandNameList = solvingresult
@@ -246,7 +248,7 @@ class TestSolving(object):
         p.parse()
         s = Solver()
 
-        self.var.setParameter("plop", VarParameter(("uhuh",)))
+        self.var.setParameter("plop",  VariableParameter(("uhuh",)))
 
         solvingresult = s.solve(p, self.mltries, self.var)
         commandList, argList, mappedArgsList, commandNameList = solvingresult

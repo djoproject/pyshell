@@ -19,7 +19,7 @@
 from pyshell.loader.abstractloader import AbstractLoader
 from pyshell.loader.exception import LoadException
 from pyshell.loader.utils import getAndInitCallerModule
-from pyshell.system.parameter import isAValidStringPath
+from pyshell.system.manager import isAValidStringPath
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.exception import ParameterException
 
@@ -98,7 +98,7 @@ class ParameterAbstractLoader(AbstractLoader):
         env_object = container.getParameter(key_name,
                                             perfect_match=True,
                                             local_param=False,
-                                            explore_other_level=False)
+                                            explore_other_scope=False)
         if env_object is None:
             excmsg = ("(ParamaterLoader) addValueTo, fail to add value '" +
                       str(value_to_remove)+"' to '"+str(key_name)+"': unknow "
@@ -120,7 +120,7 @@ class ParameterAbstractLoader(AbstractLoader):
         env_object = container.getParameter(key_name,
                                             perfect_match=True,
                                             local_param=False,
-                                            explore_other_level=False)
+                                            explore_other_scope=False)
         if env_object is None:
             excmsg = ("(ParamaterLoader) addValueTo, fail to add value '" +
                       str(value_to_add)+"' to '"+str(key_name)+"': unknow key"
@@ -147,7 +147,7 @@ class ParameterAbstractLoader(AbstractLoader):
         env_item = container.getParameter(key_name,
                                           perfect_match=True,
                                           local_param=False,
-                                          explore_other_level=False)
+                                          explore_other_scope=False)
         if env_item is None:
             excmsg = ("(ParamaterLoader) unsetValueTo, fail to unset value "
                       "with key '"+str(key_name)+"': key does not exist")
@@ -165,7 +165,7 @@ class ParameterAbstractLoader(AbstractLoader):
             try:
                 container.unsetParameter(key_name,
                                          local_param=False,
-                                         explore_other_level=False)
+                                         explore_other_scope=False)
             except ParameterException as pe:
                 excmsg = ("(ParamaterLoader) unsetValueTo, fail to unset value"
                           " with key '"+str(key_name)+"': "+str(pe))
@@ -182,7 +182,7 @@ class ParameterAbstractLoader(AbstractLoader):
         param = container.getParameter(key_name,
                                        perfect_match=True,
                                        local_param=False,
-                                       explore_other_level=False)
+                                       explore_other_scope=False)
         exist = param is not None
         old_value = None
         if exist:

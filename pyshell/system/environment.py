@@ -16,28 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from copy import copy
 from threading import Lock
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import ListArgChecker
-from pyshell.system.parameter import Parameter, ParameterManager
-from pyshell.system.settings import GlobalSettings
+from pyshell.system.manager import ParameterManager
+from pyshell.system.parameter import Parameter
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.system.setting.environment import EnvironmentLocalSettings
+from pyshell.system.setting.environment import EnvironmentSettings
 from pyshell.utils.exception import ParameterException
-
-
-_defaultArgChecker = DefaultInstanceArgChecker.getArgCheckerInstance()
-DEFAULT_CHECKER = ListArgChecker(_defaultArgChecker)
 
 
 class EnvironmentParameterManager(ParameterManager):
     def getAllowedType(self):
         return EnvironmentParameter
-
-
-def _lockSorter(param1, param2):
-    return param1.getLockId() - param2.getLockId()
 
 
 def _lockKey(parameter):
@@ -60,21 +51,19 @@ class ParametersLocker(object):
 
 
 class EnvironmentParameter(Parameter):
+    @staticmethod
+    def getInitSettings():
+        return EnvironmentLocalSettings()
+
+    @staticmethod
+    def getAllowedParentSettingClass():
+        return EnvironmentSettings
+
     _internalLock = Lock()
     _internalLockCounter = 0
 
-    def __init__(self, value, typ=None, settings=None):
-        if typ is None:
-            typ = DEFAULT_CHECKER
-        elif not isinstance(typ, ArgChecker):  # typ must be argChecker
-            raise ParameterException("(EnvironmentParameter) __init__, an "
-                                     "ArgChecker instance was expected for "
-                                     "argument typ, got '"+str(type(typ))+"'")
-
-        self.typ = typ
+    def __init__(self, value, settings=None):
         Parameter.__init__(self, value, settings)
-
-        self.isListType = isinstance(typ, ListArgChecker)
         self.lock = None
         self.lockID = -1
 
@@ -98,17 +87,14 @@ class EnvironmentParameter(Parameter):
         return self.lockID
 
     def isLockEnable(self):
-        return isinstance(self.settings, GlobalSettings)
-
-    def isAListType(self):
-        return self.isListType
+        return isinstance(self.settings, EnvironmentGlobalSettings)
 
     def addValues(self, values):
         # must be "not readonly"
         self.settings._raiseIfReadOnly(self.__class__.__name__, "addValues")
 
         # typ must be list
-        if not self.isAListType():
+        if not self.settings.isListChecker():
             raise ParameterException("(EnvironmentParameter) addValues, can "
                                      "only add value to a list parameter")
 
@@ -117,19 +103,17 @@ class EnvironmentParameter(Parameter):
             values = (values, )
 
         # each value must be a valid element from checker
-        values = self.typ.getValue(values)
+        values = self.settings.getChecker().getValue(values)
 
         # append values
         self.value.extend(values)
 
-    # TODO because we insert the value at the end, should remove value
-    # from the end
     def removeValues(self, values):
         # must be "not readonly"
         self.settings._raiseIfReadOnly(self.__class__.__name__, "removeValues")
 
         # typ must be list
-        if not self.isAListType():
+        if not self.settings.isListChecker():
             raise ParameterException("(EnvironmentParameter) removeValues, "
                                      "can only remove value to a list "
                                      "parameter")
@@ -139,28 +123,14 @@ class EnvironmentParameter(Parameter):
             values = (values,)
 
         # remove first occurence of each value
-        values = self.typ.getValue(values)
+        values = self.settings.getChecker().getValue(values)
         for v in values:
             if v in self.value:
                 self.value.remove(v)
 
-    def getValue(self):
-        return self.value
-
     def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__, "setValue")
-        self.value = self.typ.getValue(value)
-
-    def clone(self, parent=None):
-        if parent is None:
-            return EnvironmentParameter(copy(self.value),
-                                        self.typ,
-                                        self.settings.clone())
-
-        parent.typ = self.typ
-        parent.isListType = self.isListType
-
-        return Parameter.clone(self, parent)
+        self.value = self.settings.getChecker().getValue(value)
 
     def __repr__(self):
         return "Environment, value:"+str(self.value)

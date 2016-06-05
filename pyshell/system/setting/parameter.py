@@ -21,8 +21,7 @@ from pyshell.utils.constants import EMPTY_STRING
 from pyshell.utils.exception import ParameterException
 
 
-class Settings(Cloneable):
-
+class ParameterSettings(Cloneable):
     def __init__(self, read_only=False, removable=True):
         pass
 
@@ -54,28 +53,9 @@ class Settings(Cloneable):
 
     def clone(self, parent=None):
         if parent is None:
-            return Settings()
+            return self.__class__()
 
         return parent
-
-
-class LocalSettings(Settings):
-
-    def __init__(self, read_only=False, removable=True):
-        self.read_only = False
-        self.setRemovable(removable)
-        self.setReadOnly(read_only)
-
-    def setReadOnly(self, state):
-        if not isinstance(state, bool):
-            raise ParameterException("(LocalSettings) setReadOnly, expected a"
-                                     " bool type as state, got '" +
-                                     str(type(state)) + "'")
-
-        self.read_only = state
-
-    def isReadOnly(self):
-        return self.read_only
 
     def _raiseIfReadOnly(self, class_name=None, meth_name=None):
         if self.isReadOnly():
@@ -92,35 +72,76 @@ class LocalSettings(Settings):
             excmsg = class_name + meth_name + "read only parameter"
             raise ParameterException(excmsg)
 
+    @staticmethod
+    def _getOppositeSettingClass():
+        return None
+
+    def _buildOpposite(self):
+        clazz = self._getOppositeSettingClass()
+        read_only = self.isReadOnly()
+        removable = self.isRemovable()
+
+        return clazz(read_only=read_only, removable=removable)
+
+
+class ParameterLocalSettings(ParameterSettings):
+    @staticmethod
+    def _getOppositeSettingClass():
+        return ParameterGlobalSettings
+
+    def __init__(self, read_only=False, removable=True):
+        self.read_only = False
+        self.setRemovable(removable)
+        self.setReadOnly(read_only)
+
+    def setReadOnly(self, state):
+        if not isinstance(state, bool):
+            excmsg = ("(ParameterLocalSettings) setReadOnly, expected a bool "
+                      "type as state, got '"+str(type(state)) + "'")
+            raise ParameterException(excmsg)
+
+        self.read_only = state
+
+    def isReadOnly(self):
+        return self.read_only
+
     def setRemovable(self, state):
         self._raiseIfReadOnly(self.__class__.__name__, "setRemovable")
 
         if not isinstance(state, bool):
-            raise ParameterException("(LocalSettings) setRemovable, expected "
-                                     "a bool type as state, got '" +
-                                     str(type(state)) + "'")
+            excmsg = ("(ParameterLocalSettings) setRemovable, expected a bool "
+                      "type as state, got '"+str(type(state)) + "'")
+            raise ParameterException(excmsg)
 
         self.removable = state
 
     def isRemovable(self):
         return self.removable
 
+    def getGlobalFromLocal(self):
+        return self._buildOpposite()
+
     def clone(self, parent=None):
         if parent is None:
-            return LocalSettings(self.isReadOnly(), self.isRemovable())
+            return ParameterLocalSettings(self.isReadOnly(),
+                                          self.isRemovable())
         else:
             read_only = self.isReadOnly()
             parent.setReadOnly(False)
             parent.setRemovable(self.isRemovable())
             parent.setReadOnly(read_only)
 
-        return Settings.clone(self, parent)
+        return ParameterSettings.clone(self, parent)
 
 
-class GlobalSettings(LocalSettings):
+class ParameterGlobalSettings(ParameterLocalSettings):
+
+    @staticmethod
+    def _getOppositeSettingClass():
+        return ParameterLocalSettings
 
     def __init__(self, read_only=False, removable=True, transient=False):
-        LocalSettings.__init__(self, False, removable)
+        ParameterLocalSettings.__init__(self, False, removable)
 
         self.setTransient(transient)
         self.startingHash = None
@@ -130,9 +151,9 @@ class GlobalSettings(LocalSettings):
         self._raiseIfReadOnly(self.__class__.__name__, "setTransient")
 
         if not isinstance(state, bool):
-            raise ParameterException("(GlobalSettings) setTransient, expected "
-                                     "a bool type as state, got '" +
-                                     str(type(state)) + "'")
+            excmsg = ("(ParameterGlobalSettings) setTransient, expected a bool"
+                      " type as state, got '"+str(type(state)) + "'")
+            raise ParameterException(excmsg)
 
         self.transient = state
 
@@ -141,20 +162,27 @@ class GlobalSettings(LocalSettings):
 
     def setStartingPoint(self, hashi):
         if self.startingHash is not None:
-            raise ParameterException("(GlobalSettings) setStartingPoint, a "
-                                     "starting point was already defined for "
-                                     "this parameter")
+            excmsg = ("(ParameterGlobalSettings) setStartingPoint, a starting "
+                      "point was already defined for this parameter")
+            raise ParameterException(excmsg)
 
         self.startingHash = hashi
 
     def isEqualToStartingHash(self, hashi):
         return hashi == self.startingHash
 
+    def getGlobalFromLocal(self):
+        raise AttributeError("ParameterGlobalSettings has no "
+                             "attribute 'getGlobalFromLocal'")
+
+    def getLocalFromGlobal(self):
+        return self._buildOpposite()
+
     def clone(self, parent=None):
         if parent is None:
-            parent = GlobalSettings(self.isReadOnly(),
-                                    self.isRemovable(),
-                                    self.isTransient())
+            parent = ParameterGlobalSettings(self.isReadOnly(),
+                                             self.isRemovable(),
+                                             self.isTransient())
         else:
             read_only = self.isReadOnly()
             parent.setReadOnly(False)
@@ -164,4 +192,4 @@ class GlobalSettings(LocalSettings):
         # starting hash is not copied because it comes from something outside
         # of this class, and it won't be relevant to copy it.
 
-        return LocalSettings.clone(self, parent)
+        return ParameterLocalSettings.clone(self, parent)

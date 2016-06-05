@@ -41,6 +41,8 @@ from pyshell.system.context import ContextParameter
 from pyshell.system.context import ContextParameterManager
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.system.setting.context import ContextGlobalSettings
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.system.variable import VariableParameterManager
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
@@ -141,7 +143,8 @@ class TestExecuting(object):
 
         self.debugContext = ContextParameter(
             value=tuple(range(0, 91)),
-            typ=DefaultArg.getIntegerArgCheckerInstance())
+            settings=ContextGlobalSettings(
+                checker=DefaultArg.getIntegerArgCheckerInstance()))
         self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,
                                          self.debugContext,
                                          local_param=False)
@@ -154,7 +157,8 @@ class TestExecuting(object):
             value=(CONTEXT_EXECUTION_SHELL,
                    CONTEXT_EXECUTION_SCRIPT,
                    CONTEXT_EXECUTION_DAEMON,),
-            typ=DefaultArg.getStringArgCheckerInstance())
+            settings=ContextGlobalSettings(
+                checker=DefaultArg.getStringArgCheckerInstance()))
         self.params.context.setParameter(CONTEXT_EXECUTION_KEY,
                                          self.shellContext,
                                          local_param=False)
@@ -167,7 +171,8 @@ class TestExecuting(object):
             value=(CONTEXT_COLORATION_LIGHT,
                    CONTEXT_COLORATION_DARK,
                    CONTEXT_COLORATION_NONE,),
-            typ=DefaultArg.getStringArgCheckerInstance())
+            settings=ContextGlobalSettings(
+                checker=DefaultArg.getStringArgCheckerInstance()))
         self.params.context.setParameter(CONTEXT_COLORATION_KEY,
                                          self.backgroundContext,
                                          local_param=False)
@@ -176,8 +181,10 @@ class TestExecuting(object):
         self.backgroundContext.settings.setRemovable(False)
         self.backgroundContext.settings.setReadOnly(True)
 
-        self.spacingContext = EnvironmentParameter(value=5,
-                                                   typ=IntegerArgChecker(0))
+        self.spacingContext = EnvironmentParameter(
+            value=5,
+            settings=EnvironmentGlobalSettings(
+                checker=IntegerArgChecker(0)))
         self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
                                              self.spacingContext,
                                              local_param=False)
@@ -192,8 +199,10 @@ class TestExecuting(object):
 
         param = self.params.environment.setParameter(
             ENVIRONMENT_LEVEL_TRIES_KEY,
-            EnvironmentParameter(value=self.mltries,
-                                 typ=DefaultArg.getArgCheckerInstance()),
+            EnvironmentParameter(
+                value=self.mltries,
+                settings=EnvironmentGlobalSettings(
+                    checker=DefaultArg.getArgCheckerInstance())),
             local_param=False)
         param.settings.setTransient(True)
         param.settings.setRemovable(False)
@@ -426,83 +435,69 @@ class TestExecuting(object):
     def test_generateSuffix0(self):  # no suffix production
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               None,
-                               "__process__") is None
+                               None) is None
 
     def test_generateSuffix1(self):  # test with debug
-        self.debugContext.settings.setIndexValue(1)
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__')")
+        self.debugContext.setSelectedValue(1)
+        thread_id = (threading.current_thread().ident, "main",)
+        expected = (" (threadId="+str(thread_id)+", "
+                    "process='MainThread')")
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               None,
-                               "__process__") == expected
-        self.debugContext.settings.setIndexValue(0)
+                               None) == expected
+        self.debugContext.setSelectedValue(0)
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               None,
-                               "__process__") is None
+                               None) is None
 
     def test_generateSuffix2(self):  # test outside shell context
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SHELL)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SHELL)
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               None,
-                               "__process__") is None
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__')")
+                               None) is None
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
+        thread_id = (threading.current_thread().ident, "main",)
+        expected = (" (threadId="+str(thread_id)+", "
+                    "process='MainThread')")
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               None,
-                               "__process__") == expected
-
-    def test_generateSuffix3(self):  # test with processName provided or not
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__')")
-        assert _generateSuffix(self.params,
-                               (("plop",),),
-                               None,
-                               "__process__") == expected
-        expected = (" (threadId="+str(threading.current_thread().ident)+")")
-        assert _generateSuffix(
-            self.params, (("plop",),), None, None) == expected
+                               None) == expected
 
     def test_generateSuffix5(self):  # test without commandNameList
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__')")
-        assert _generateSuffix(self.params, None, e, "__process__") == expected
+        thread_id = (threading.current_thread().ident, "main",)
+        expected = (" (threadId="+str(thread_id)+", "
+                    "process='MainThread')")
+        assert _generateSuffix(self.params, None, e) == expected
 
     def test_generateSuffix6(self):  # test with None engine
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__')")
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
+        thread_id = (threading.current_thread().ident, "main",)
+        expected = (" (threadId="+str(thread_id)+", "
+                    "process='MainThread')")
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               None,
-                               "__process__") == expected
+                               None) == expected
 
     def test_generateSuffix7(self):  # test with empty engine
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
         del e.stack[:]
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__')")
+        thread_id = (threading.current_thread().ident, "main",)
+        expected = (" (threadId="+str(thread_id)+", "
+                    "process='MainThread')")
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               e,
-                               "__process__") == expected
+                               e) == expected
 
     # test with valid engine and commandNameList
     def test_generateSuffix8(self):
-        self.shellContext.settings.setIndexValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
-        expected = (" (threadId="+str(threading.current_thread().ident)+", "
-                    "process='__process__', command='plop')")
+        thread_id = (threading.current_thread().ident, "main",)
+        expected = (" (threadId="+str(thread_id)+", "
+                    "process='MainThread', command='plop')")
         assert _generateSuffix(self.params,
                                (("plop",),),
-                               e,
-                               "__process__") == expected
+                               e) == expected

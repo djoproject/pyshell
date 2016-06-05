@@ -16,22 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from threading import Thread
 from threading import current_thread
 
 import pytest
 
 from pyshell.system.container import AbstractParameterContainer
 from pyshell.system.container import DummyParameterContainer
+from pyshell.system.container import MAIN_LEVEL
+from pyshell.system.container import PROCEDURE_LEVEL
 from pyshell.system.container import ParameterContainer
-from pyshell.system.parameter import ParameterManager
+from pyshell.system.manager import ParameterManager
+from pyshell.utils.abstract.flushable import Flushable
 from pyshell.utils.exception import DefaultPyshellException
 
 
-class TestException(object):
-    # # misc # #
-
-    # # AbstractParameterContainer # #
-
+class TestAbstractParameterContainer(object):
     def test_abstractParameterContainer1(self):
         apc = AbstractParameterContainer()
 
@@ -54,18 +54,26 @@ class TestException(object):
         assert apc.setOrigin("plop", "plip") is None
         assert apc.setOrigin("plop") is None
 
-    # # DummyParameterContainer # #
 
+class TestDummyParameterContainer(object):
     def test_dummyParameterContainer1(self):
         dpc = DummyParameterContainer()
         assert dpc.getCurrentId() == current_thread().ident
 
-    # # ParameterContainer # #
 
+class FakeFlushable(Flushable):
+    def __init__(self):
+        self.flushed = False
+
+    def flush(self):
+        self.flushed = True
+
+
+class TestParameterContainer(object):
     def test_parameterContainer1(self):
         pc = ParameterContainer()
         assert pc.isMainThread()
-        assert pc.getCurrentId() == current_thread().ident
+        assert pc.getCurrentId() == (current_thread().ident, "main",)
 
     # registerParameterManager, try to register a not flushable
     # parameterManager
@@ -90,5 +98,85 @@ class TestException(object):
     # isMainThread, false
     def test_parameterContainer17(self):
         pc = ParameterContainer()
-        pc.mainThread += 1
-        assert not pc.isMainThread()
+
+        def testNotInMainThread(pc):
+            assert not pc.isMainThread()
+
+        t = Thread(target=testNotInMainThread, args=(pc,))
+        t.start()
+        t.join()
+
+    def test_increment(self):
+        pc = ParameterContainer()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+        pc.incrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is PROCEDURE_LEVEL
+
+    def test_decrement(self):
+        pc = ParameterContainer()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+        pc.decrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+    def test_incrementThenDecrement(self):
+        pc = ParameterContainer()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+        pc.incrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is PROCEDURE_LEVEL
+
+        pc.decrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+    def test_twoConsecutiveIncrement(self):
+        pc = ParameterContainer()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+        pc.incrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is PROCEDURE_LEVEL
+
+        with pytest.raises(DefaultPyshellException):
+            pc.incrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is PROCEDURE_LEVEL
+
+    def test_twoConsecutiveDecrement(self):
+        pc = ParameterContainer()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+        pc.decrementLevel()
+        pc.decrementLevel()
+
+        tid, level = pc.getCurrentId()
+        assert level is MAIN_LEVEL
+
+    def test_flush(self):
+        f = FakeFlushable()
+        pc = ParameterContainer()
+        pc.registerParameterManager('toto', f)
+        assert not f.flushed
+        pc.flush()
+        assert f.flushed

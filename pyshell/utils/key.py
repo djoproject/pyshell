@@ -137,3 +137,9 @@ class CryptographicKey(object):
 
     def __hash__(self):
         return hash(str(self.keyType)+self.key)
+
+    def __int__(self):
+        if self.keyType == CryptographicKey.KEYTYPE_HEXA:
+            return int(self.key, 16)
+        else:
+            return int(self.key, 2)

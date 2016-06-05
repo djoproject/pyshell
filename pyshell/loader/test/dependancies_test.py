@@ -28,6 +28,7 @@ from pyshell.loader.utils import GlobalLoader
 from pyshell.system.container import ParameterContainer
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import STATE_LOADED
@@ -250,10 +251,10 @@ class TestDependancies(object):
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
                                     EnvironmentParameterManager())
-
+        env_settings = EnvironmentLocalSettings(checker=DEFAULT_CHECKER)
         pc.environment.setParameter(
             ADDONLIST_KEY,
-            EnvironmentParameter(value={}, typ=DEFAULT_CHECKER),
+            EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
         with pytest.raises(LoadException):
             dl.load(pc)
@@ -266,9 +267,10 @@ class TestDependancies(object):
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
                                     EnvironmentParameterManager())
+        env_settings = EnvironmentLocalSettings(checker=DEFAULT_CHECKER)
         param = pc.environment.setParameter(
             ADDONLIST_KEY,
-            EnvironmentParameter(value={}, typ=DEFAULT_CHECKER),
+            EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
         loader = GlobalLoader()
         param.getValue()["addons.plop"] = loader
@@ -284,9 +286,10 @@ class TestDependancies(object):
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
                                     EnvironmentParameterManager())
+        env_settings = EnvironmentLocalSettings(checker=DEFAULT_CHECKER)
         param = pc.environment.setParameter(
             ADDONLIST_KEY,
-            EnvironmentParameter(value={}, typ=DEFAULT_CHECKER),
+            EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
         loader = GlobalLoader()
         param.getValue()["addons.plop"] = loader
@@ -301,9 +304,10 @@ class TestDependancies(object):
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
                                     EnvironmentParameterManager())
+        env_settings = EnvironmentLocalSettings(checker=DEFAULT_CHECKER)
         param = pc.environment.setParameter(
             ADDONLIST_KEY,
-            EnvironmentParameter(value={}, typ=DEFAULT_CHECKER),
+            EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
         loader = GlobalLoader()
         param.getValue()["addons.plop"] = loader

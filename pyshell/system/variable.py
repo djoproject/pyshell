@@ -16,79 +16,47 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.environment import DEFAULT_CHECKER
 from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.parameter import ParameterManager
-from pyshell.system.settings import GlobalSettings
-from pyshell.system.settings import LocalSettings
-from pyshell.system.settings import Settings
+from pyshell.system.manager import ParameterManager
+from pyshell.system.setting.variable import VariableLocalSettings
+from pyshell.system.setting.variable import VariableSettings
 from pyshell.utils.constants import EMPTY_STRING
 from pyshell.utils.string import isString
 
 
 class VariableParameterManager(ParameterManager):
     def getAllowedType(self):
-        return VarParameter
+        return VariableParameter
 
 
-class VariableSettings(Settings):
-    def getProperties(self):
-        return ()
+def _parseValues(output_values, input_values):
+    if isString(input_values):
+        # with py3, str has starts to heve an attribute __iter__
+        output_values.append(input_values)
+    elif hasattr(input_values, "__iter__"):
+        for v in input_values:
+            _parseValues(output_values, v)
+    else:
+        output_values.append(str(input_values))
 
 
-class VariableLocalSettings(LocalSettings, VariableSettings):
-    isReadOnly = Settings.isReadOnly
-    isRemovable = Settings.isRemovable
-    getProperties = VariableSettings.getProperties
-
-    def __init__(self):
-        pass
-
-
-class VariableGlobalSettings(GlobalSettings, VariableSettings):
-    isReadOnly = Settings.isReadOnly
-    isRemovable = Settings.isRemovable
-    getProperties = VariableSettings.getProperties
-
-    def __init__(self, transient=False):
-        GlobalSettings.__init__(self,
-                                read_only=False,
-                                removable=True,
-                                transient=transient)
-
-
-# TODO rename to VariableParameter
-class VarParameter(EnvironmentParameter):
+class VariableParameter(EnvironmentParameter):
     @staticmethod
     def getInitSettings():
         return VariableLocalSettings()
 
+    @staticmethod
+    def getAllowedParentSettingClass():
+        return VariableSettings
+
     # value can be a list or not, it will be processed
-    def __init__(self, value):
-        tmp_value_parsed = [value]
+    def __init__(self, value, settings=None):
         parsed_value = []
+        _parseValues(parsed_value, value)
 
-        while len(tmp_value_parsed) > 0:
-            value_to_parse = tmp_value_parsed
-            tmp_value_parsed = []
-
-            for v in value_to_parse:
-                if isString(v):
-                    v = v.strip()
-                    v = v.split(" ")
-
-                    for subv in v:
-                        if len(subv) == 0:
-                            continue
-
-                        parsed_value.append(subv)
-
-                elif hasattr(v, "__iter__"):
-                    value_to_parse.extend(v)
-                else:
-                    value_to_parse.append(str(v))
-
-        EnvironmentParameter.__init__(self, parsed_value, typ=DEFAULT_CHECKER)
+        EnvironmentParameter.__init__(self,
+                                      value=parsed_value,
+                                      settings=settings)
 
     def __str__(self):
         if len(self.value) == 0:
@@ -108,21 +76,3 @@ class VarParameter(EnvironmentParameter):
             return "Variable (empty)"
 
         return "Variable, value: "+str(self.value)
-
-    def enableGlobal(self):
-        if type(self.settings) is VariableGlobalSettings:
-            return
-
-        self.settings = VariableGlobalSettings()
-
-    def enableLocal(self):
-        if type(self.settings) is VariableLocalSettings:
-            return
-
-        self.settings = VariableLocalSettings()
-
-    def clone(self, parent=None):
-        if parent is None:
-            return VarParameter(self.value)
-
-        return EnvironmentParameter.clone(self, parent)

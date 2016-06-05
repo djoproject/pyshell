@@ -16,16 +16,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+from pyshell.arg.argchecker import DefaultInstanceArgChecker as DefaultArgs
+from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.decorator import shellMethod
+from pyshell.loader.command import registerCommand
 from pyshell.loader.command import registerSetGlobalPrefix
 from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.system.procedure import FileProcedure
 
 # ## COMMAND SECTION ## #
 
-# TODO issue #65
+
+def startNamedProcedure(name, args):
+    "start a registered script file"
+    # TODO create a procedure manager + update parameter addons to manage them
+    # TODO retrieve a stored procedure, then call it
+    pass
+
+
+@shellMethod(
+    file_path=DefaultArgs.getStringArgCheckerInstance(),
+    args=ListArgChecker(DefaultArgs.getArgCheckerInstance()),
+    parameters=DefaultArgs.getCompleteEnvironmentChecker())
+def startProcedure(file_path, args, parameters):
+    "start a script file"
+    procedure = FileProcedure(file_path=file_path)
+
+    # TODO this is wrong, it shouln't call the execute method
+    # but each meths pre/pro/post of the procedure must be called
+    procedure.execute(parameters=parameters, args=args)
 
 # ## REGISTER SECTION ## #
 
 registerSetGlobalPrefix(("procedure", ))
 registerStopHelpTraversalAt()
-
-# TODO issue #65
+registerCommand(("execute",), pro=startProcedure)

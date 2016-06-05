@@ -31,9 +31,9 @@ from pyshell.loader.command import registerCommand
 from pyshell.loader.context import registerSetContext
 from pyshell.loader.environment import registerSetEnvironment
 from pyshell.system.context import ContextParameter
-from pyshell.system.context import GlobalContextSettings
 from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.settings import GlobalSettings
+from pyshell.system.setting.context import ContextGlobalSettings
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
@@ -63,10 +63,6 @@ from pyshell.utils.exception import ListOfException
 from pyshell.utils.printing import notice
 
 
-default_global_setting = GlobalSettings(transient=False,
-                                        read_only=False,
-                                        removable=False)
-
 default_string_arg_checker = DefaultInstanceArgChecker.\
     getStringArgCheckerInstance()
 default_arg_checker = DefaultInstanceArgChecker.\
@@ -77,97 +73,170 @@ default_integer_arg_checker = DefaultInstanceArgChecker.\
     getIntegerArgCheckerInstance()
 
 # # init original params # #
-param = EnvironmentParameter(value=DEFAULT_PARAMETER_FILE,
-                             typ=FilePathArgChecker(exist=None,
-                                                    readable=True,
-                                                    writtable=None,
-                                                    is_file=True),
-                             settings=GlobalSettings(transient=True,
-                                                     read_only=False,
-                                                     removable=False))
+
+checker = FilePathArgChecker(exist=None,
+                             readable=True,
+                             writtable=None,
+                             is_file=True)
+
+settings = EnvironmentGlobalSettings(transient=True,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=checker)
+
+param = EnvironmentParameter(value=DEFAULT_PARAMETER_FILE, settings=settings)
 registerSetEnvironment(ENVIRONMENT_PARAMETER_FILE_KEY, param)
 
+##
+
+settings = EnvironmentGlobalSettings(transient=False,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=default_string_arg_checker)
+
 param = EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT,
-                             typ=default_string_arg_checker,
-                             settings=default_global_setting.clone())
+                             settings=settings)
+
 registerSetEnvironment(ENVIRONMENT_PROMPT_KEY, param)
 
-param = EnvironmentParameter(value=TAB_SIZE,
-                             typ=IntegerArgChecker(0),
-                             settings=default_global_setting.clone())
+##
+
+settings = EnvironmentGlobalSettings(transient=False,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=IntegerArgChecker(0))
+
+param = EnvironmentParameter(value=TAB_SIZE, settings=settings)
 registerSetEnvironment(ENVIRONMENT_TAB_SIZE_KEY, param)
 
-param = EnvironmentParameter(value=multiLevelTries(),
-                             typ=default_arg_checker,
-                             settings=GlobalSettings(transient=True,
-                                                     read_only=True,
-                                                     removable=False))
+##
+
+param = EnvironmentParameter(
+    value=multiLevelTries(),
+    settings=EnvironmentGlobalSettings(transient=True,
+                                       read_only=True,
+                                       removable=False,
+                                       checker=default_arg_checker))
+
 registerSetEnvironment(ENVIRONMENT_LEVEL_TRIES_KEY, param)
 
+##
+
+settings = EnvironmentGlobalSettings(transient=False,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=default_boolean_arg_checker)
+
 param = EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT,
-                             typ=default_boolean_arg_checker,
-                             settings=default_global_setting.clone())
+                             settings=settings)
+
 registerSetEnvironment(ENVIRONMENT_SAVE_KEYS_KEY, param)
 
+##
+
+checker = FilePathArgChecker(exist=None,
+                             readable=True,
+                             writtable=None,
+                             is_file=True)
+
+settings = EnvironmentGlobalSettings(
+    transient=False,
+    read_only=False,
+    removable=False,
+    checker=checker)
+
 param = EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE,
-                             typ=FilePathArgChecker(exist=None,
-                                                    readable=True,
-                                                    writtable=None,
-                                                    is_file=True),
-                             settings=default_global_setting.clone())
+                             settings=settings)
+
 registerSetEnvironment(ENVIRONMENT_HISTORY_FILE_NAME_KEY, param)
 
+##
+
+settings = EnvironmentGlobalSettings(
+    transient=False,
+    read_only=False,
+    removable=False,
+    checker=default_boolean_arg_checker)
+
 param = EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE,
-                             typ=default_boolean_arg_checker,
-                             settings=default_global_setting.clone())
+                             settings=settings)
+
 registerSetEnvironment(ENVIRONMENT_USE_HISTORY_KEY, param)
 
-typ = ListArgChecker(default_string_arg_checker)
+##
+
+settings = EnvironmentGlobalSettings(
+    transient=False,
+    read_only=False,
+    removable=False,
+    checker=ListArgChecker(default_string_arg_checker))
+
 param = EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT,
-                             typ=typ,
-                             settings=default_global_setting.clone())
+                             settings=settings)
+
 registerSetEnvironment(ENVIRONMENT_ADDON_TO_LOAD_KEY, param)
 
-param = EnvironmentParameter(value={},
-                             typ=default_arg_checker,
-                             settings=GlobalSettings(transient=True,
-                                                     read_only=True,
-                                                     removable=False))
+##
+
+settings = EnvironmentGlobalSettings(transient=True,
+                                     read_only=True,
+                                     removable=False,
+                                     checker=default_arg_checker)
+
+param = EnvironmentParameter(value={}, settings=settings)
 registerSetEnvironment(ADDONLIST_KEY, param)
 
-default_context_setting = GlobalContextSettings(removable=False,
-                                                read_only=True,
-                                                transient=False,
-                                                transient_index=False)
+##
 
-param = ContextParameter(value=tuple(range(0, 5)),
-                         typ=default_integer_arg_checker,
-                         default_index=0,
-                         index=1,
-                         settings=default_context_setting.clone())
+settings = ContextGlobalSettings(removable=False,
+                                 read_only=False,
+                                 transient=False,
+                                 transient_index=False,
+                                 checker=default_integer_arg_checker)
+
+param = ContextParameter(value=tuple(range(0, 5)), settings=settings)
+settings.setDefaultIndex(0)
+settings.setIndex(1)
+settings.setReadOnly(True)
+
 registerSetContext(DEBUG_ENVIRONMENT_NAME, param)
 
-settings = GlobalContextSettings(removable=False,
-                                 read_only=True,
+##
+
+settings = ContextGlobalSettings(removable=False,
+                                 read_only=False,
                                  transient=True,
-                                 transient_index=True)
+                                 transient_index=True,
+                                 checker=default_string_arg_checker)
 values = (CONTEXT_EXECUTION_SHELL,
           CONTEXT_EXECUTION_SCRIPT,
           CONTEXT_EXECUTION_DAEMON,)
-param = ContextParameter(value=values,
-                         typ=default_string_arg_checker,
-                         default_index=0,
-                         settings=settings)
+
+param = ContextParameter(value=values, settings=settings)
+settings.setDefaultIndex(0)
+settings.setReadOnly(True)
+
 registerSetContext(CONTEXT_EXECUTION_KEY, param)
+
+##
+
+settings = ContextGlobalSettings(removable=False,
+                                 read_only=False,
+                                 transient=False,
+                                 transient_index=False,
+                                 checker=default_string_arg_checker)
 
 values = (CONTEXT_COLORATION_LIGHT,
           CONTEXT_COLORATION_DARK,
           CONTEXT_COLORATION_NONE,)
-param = ContextParameter(value=values,
-                         typ=default_string_arg_checker,
-                         default_index=0,
-                         settings=default_context_setting.clone())
+
+param = ContextParameter(value=values, settings=settings)
+settings.setDefaultIndex(0)
+settings.setReadOnly(True)
+
 registerSetContext(CONTEXT_COLORATION_KEY, param)
+
+##
 
 
 @shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),

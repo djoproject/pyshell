@@ -71,6 +71,8 @@ BOOLEANCHECKER_TYPENAME = "boolean"
 TOKENCHECKER_TYPENAME = "token"
 KEYCHECKER_TYPENAME = "key"
 KEYTRANSLATORCHECKER_TYPENAME = "keyTranslator"
+
+# FIXME similar as the previous
 KEYTRASNLATORCHECKER_TYPENAME = "keyTranslator"
 KEYTRANSLATORDYNAMICCHECKER_TYPENAME = "keyTranslator dynamic"
 
@@ -695,6 +697,9 @@ class EngineChecker(ArgChecker):
         pass
 
 
+# TODO should have a different name
+# Environment is a manager
+# this checker return the container
 class CompleteEnvironmentChecker(ArgChecker):
     def __init__(self):
         ArgChecker.__init__(self,
@@ -1403,6 +1408,9 @@ class KeyArgChecker(IntegerArgChecker):
         IntegerArgChecker.__init__(self, 0, None, True, KEYCHECKER_TYPENAME)
 
     def getValue(self, value, arg_number=None, arg_name_to_bind=None):
+        if isinstance(value, CryptographicKey):
+            return value
+
         IntegerArgChecker.getValue(self, value, arg_number, arg_name_to_bind)
 
         try:

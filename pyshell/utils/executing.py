@@ -24,7 +24,7 @@ from pyshell.command.exception import CommandException
 from pyshell.command.exception import EngineInterruptionException
 from pyshell.command.exception import ExecutionException
 from pyshell.command.exception import ExecutionInitException
-from pyshell.system.variable import VarParameter
+from pyshell.system.variable import VariableParameter
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
@@ -77,26 +77,28 @@ def execute(string, parameter_container, process_name=None, process_arg=None):
         return ex, None
 
     if parser.isToRunInBackground():
-        t = threading.Thread(None, _execute, None, (parser,
-                                                    parameter_container,
-                                                    process_name,))
+        t = threading.Thread(
+            group=None,
+            target=_execute,
+            name=process_name,
+            args=(),
+            kwargs={'parser': parser,
+                    'parameter_container': parameter_container,
+                    'new_thread': True})
         t.start()
-        parameter_container.variable.setParameter("!",
-                                                  VarParameter(str(t.ident)),
-                                                  local_param=True)
+        parameter_container.variable.setParameter(
+            "!",
+            VariableParameter(str(t.ident)),
+            local_param=True)
 
         # not possible to retrieve exception or engine, it is another thread
         return None, None
     else:
-        return _execute(parser, parameter_container, process_name)
+        return _execute(parser, parameter_container)
 
 
-def _generateSuffix(parameter_container,
-                    command_name_list=None,
-                    engine=None,
-                    process_name=None):
-
-    # TODO process_name then command_name_list should appear first if not None
+def _generateSuffix(parameter_container, command_name_list=None, engine=None):
+    # TODO thread_name then command_name_list should appear first if not None
 
     # print if in debug ?
     param = parameter_container.context.getParameter(DEBUG_ENVIRONMENT_NAME,
@@ -116,8 +118,9 @@ def _generateSuffix(parameter_container,
         thread_id = parameter_container.getCurrentId()
         message = " (threadId="+str(thread_id)
 
-        if process_name is not None:
-            message += ", process='"+str(process_name)+"'"
+        thread_name = threading.current_thread().name
+        if thread_name is not None:
+            message += ", process='"+str(thread_name)+"'"
 
         if (command_name_list is not None and
            engine is not None and
@@ -132,7 +135,8 @@ def _generateSuffix(parameter_container,
     return None
 
 
-def _execute(parser, parameter_container, process_name=None):
+def _execute(parser, parameter_container, new_thread=False):
+
     # # solving then execute # #
     ex = None
     engine = None
@@ -179,8 +183,7 @@ def _execute(parser, parameter_container, process_name=None):
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
-                           engine=engine,
-                           process_name=process_name))
+                           engine=engine))
         ex = eie
     except ExecutionException as ee:
         printException(ee,
@@ -188,8 +191,7 @@ def _execute(parser, parameter_container, process_name=None):
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
-                           engine=engine,
-                           process_name=process_name))
+                           engine=engine))
         ex = ee
     except CommandException as ce:
         printException(ce,
@@ -197,14 +199,12 @@ def _execute(parser, parameter_container, process_name=None):
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
-                           engine=engine,
-                           process_name=process_name))
+                           engine=engine))
         ex = ce
     except EngineInterruptionException as enie:
         suffix = _generateSuffix(parameter_container,
                                  command_name_list=command_name_list,
-                                 engine=engine,
-                                 process_name=process_name)
+                                 engine=engine)
         if enie.abnormal:
             printException(enie,
                            prefix="Abnormal execution abort, reason: ",
@@ -220,8 +220,7 @@ def _execute(parser, parameter_container, process_name=None):
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
-                           engine=engine,
-                           process_name=process_name))
+                           engine=engine))
         ex = ae
     except ListOfException as loe:
         printException(loe,
@@ -229,16 +228,18 @@ def _execute(parser, parameter_container, process_name=None):
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
-                           engine=engine,
-                           process_name=process_name))
+                           engine=engine))
         ex = loe
     except Exception as e:
         printException(e,
                        suffix=_generateSuffix(
                            parameter_container,
                            command_name_list=command_name_list,
-                           engine=engine,
-                           process_name=process_name))
+                           engine=engine))
         ex = e
+
+    finally:
+        if new_thread:
+            parameter_container.flush()
 
     return ex, engine

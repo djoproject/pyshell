@@ -22,14 +22,13 @@ from pyshell.arg.exception import ArgException
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.key import CryptographicKeyParameter
 from pyshell.system.key import CryptographicKeyParameterManager
+from pyshell.system.setting.key import KeyGlobalSettings
+from pyshell.system.setting.key import KeyLocalSettings
 from pyshell.utils.exception import ParameterException
 from pyshell.utils.key import CryptographicKey
 
 
-class TestKey(object):
-
-    def setUp(self):
-        pass
+class TestCryptographicKeyParameterManager(object):
 
     def test_manager(self):
         assert CryptographicKeyParameterManager() is not None
@@ -62,13 +61,92 @@ class TestKey(object):
         with pytest.raises(ParameterException):
             manager.setParameter("test.key", EnvironmentParameter("0x1122ff"))
 
+
+class TestCryptographicKeyParameter(object):
+
+    def test_initInvalidSettings(self):
+        with pytest.raises(ParameterException):
+            CryptographicKeyParameter("0x1122ff", settings=object())
+
+    # test enableGlobal
+    def test_environmentMethod29(self):
+        e = CryptographicKeyParameter("0x1122ff")
+
+        assert type(e.settings) is KeyLocalSettings
+        e.enableGlobal()
+        assert type(e.settings) is KeyGlobalSettings
+        s = e.settings
+        e.enableGlobal()
+        assert e.settings is s
+
+    # test enableLocal
+    def test_environmentMethod30(self):
+        e = CryptographicKeyParameter("0x1122ff")
+
+        assert type(e.settings) is KeyLocalSettings
+        s = e.settings
+        e.enableGlobal()
+        assert type(e.settings) is KeyGlobalSettings
+        e.enableLocal()
+        assert type(e.settings) is KeyLocalSettings
+        assert e.settings is not s
+        s = e.settings
+        e.enableLocal()
+        assert e.settings is s
+
+    def test_environmentMethod31(self):
+        e = CryptographicKeyParameter("0x1122ff",
+                                      settings=KeyLocalSettings(
+                                          read_only=True,
+                                          removable=True))
+        e.enableGlobal()
+        assert type(e.settings) is KeyGlobalSettings
+        assert e.settings.isReadOnly()
+        assert e.settings.isRemovable()
+
+    def test_environmentMethod32(self):
+        e = CryptographicKeyParameter("0x1122ff",
+                                      settings=KeyLocalSettings(
+                                          read_only=False,
+                                          removable=False))
+        e.enableGlobal()
+        assert type(e.settings) is KeyGlobalSettings
+        assert not e.settings.isReadOnly()
+        assert not e.settings.isRemovable()
+
+    def test_environmentMethod33(self):
+        e = CryptographicKeyParameter("0x1122ff",
+                                      settings=KeyLocalSettings(
+                                          read_only=True,
+                                          removable=True))
+        e.enableGlobal()
+        assert type(e.settings) is KeyGlobalSettings
+        e.enableLocal()
+        assert type(e.settings) is KeyLocalSettings
+
+        assert e.settings.isReadOnly()
+        assert e.settings.isRemovable()
+
+    def test_environmentMethod34(self):
+        e = CryptographicKeyParameter("0x1122ff",
+                                      settings=KeyLocalSettings(
+                                          read_only=False,
+                                          removable=False))
+        e.enableGlobal()
+        assert type(e.settings) is KeyGlobalSettings
+        e.enableLocal()
+        assert type(e.settings) is KeyLocalSettings
+
+        assert not e.settings.isReadOnly()
+        assert not e.settings.isRemovable()
+
     def test_clone(self):
         k = CryptographicKeyParameter("0x1122ff")
         k_clone = k.clone()
 
         assert k is not k_clone
         assert k.settings is not k_clone
-        assert k.typ is k_clone.typ
+        assert k.settings.checker is k_clone.settings.checker
         assert k.getValue() is not k_clone.getValue()
         assert k.getValue() == k_clone.getValue()
         assert hash(k.settings) == hash(k_clone.settings)

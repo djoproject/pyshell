@@ -30,7 +30,7 @@ from tries.exception import triesException
 from pyshell.arg.argchecker import BooleanValueArgChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.command.engine import EMPTY_MAPPED_ARGS
-from pyshell.system.parameter import ParameterManager
+from pyshell.system.manager import ParameterManager
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import SYSTEM_ERROR
 from pyshell.utils.exception import USER_WARNING

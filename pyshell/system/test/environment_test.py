@@ -29,8 +29,8 @@ from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
 from pyshell.system.environment import ParametersLocker
 from pyshell.system.environment import _lockKey
-from pyshell.system.settings import GlobalSettings
-from pyshell.system.settings import LocalSettings
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.utils.exception import ParameterException
 
 try:
@@ -109,85 +109,105 @@ class TestEnvironment(object):
     # test removable boolean
     def test_environmentConstructor1(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(removable=True))
+                                 settings=EnvironmentLocalSettings(
+                                     removable=True))
         assert e.settings.isRemovable()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     removable=False))
         assert not e.settings.isRemovable()
         assert e.settings.getProperties() == (("removable", False),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
     # test readonly boolean
     def test_environmentConstructor2(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True))
         assert e.settings.isReadOnly()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", True),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False))
         assert not e.settings.isReadOnly()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
     # test typ None
     def test_environmentConstructor3(self):
         e = EnvironmentParameter("plop")
-        assert isinstance(e.typ, ListArgChecker)
-        assert e.typ.minimum_size is None
-        assert e.typ.maximum_size is None
+        assert isinstance(e.settings.checker, ListArgChecker)
+        assert e.settings.checker.minimum_size is None
+        assert e.settings.checker.maximum_size is None
 
-        assert e.typ.checker.__class__.__name__ == ArgChecker.__name__
-        assert isinstance(e.typ.checker, ArgChecker)
+        sub_checker_name = e.settings.checker.checker.__class__.__name__
+        assert sub_checker_name == ArgChecker.__name__
+        assert isinstance(e.settings.checker.checker, ArgChecker)
 
     # test typ not an argchecker
     def test_environmentConstructor4(self):
         with pytest.raises(ParameterException):
             EnvironmentParameter("plop", object())
 
-    # test typ valid argchecker not a list + isAListType
+    # test typ valid argchecker not a list + isListChecker
     def test_environmentConstructor5(self):
-        e = EnvironmentParameter(42, IntegerArgChecker())
-        assert isinstance(e.typ, IntegerArgChecker)
-        assert not e.isAListType()
+        settings = EnvironmentLocalSettings(checker=IntegerArgChecker())
+        e = EnvironmentParameter(42, settings=settings)
+        assert isinstance(e.settings.checker, IntegerArgChecker)
+        assert not e.settings.isListChecker()
 
-    # test typ valid argchecker list + isAListType
+    # test typ valid argchecker list + isListChecker
     def test_environmentConstructor6(self):
-        e = EnvironmentParameter(42, ListArgChecker(IntegerArgChecker()))
-        assert isinstance(e.typ, ListArgChecker)
-        assert e.typ.minimum_size is None
-        assert e.typ.maximum_size is None
-        assert e.typ.checker.__class__.__name__ == IntegerArgChecker.__name__
-        assert isinstance(e.typ.checker, IntegerArgChecker)
-        assert e.isAListType()
+        settings = EnvironmentLocalSettings(
+            checker=ListArgChecker(IntegerArgChecker()))
+        e = EnvironmentParameter(42, settings=settings)
+        assert isinstance(e.settings.checker, ListArgChecker)
+        assert e.settings.checker.minimum_size is None
+        assert e.settings.checker.maximum_size is None
+        sub_checker_name = e.settings.checker.checker.__class__.__name__
+        assert sub_checker_name == IntegerArgChecker.__name__
+        assert isinstance(e.settings.checker.checker, IntegerArgChecker)
+        assert e.settings.isListChecker()
 
     # # parameter method # #
 
     # _raiseIfReadOnly with not readonly
     def test_environmentMethod2(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False))
         assert e.settings._raiseIfReadOnly() is None
 
     # _raiseIfReadOnly with readonly and method name
     def test_environmentMethod3(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True))
         with pytest.raises(ParameterException):
             e.settings._raiseIfReadOnly("meth")
 
     # _raiseIfReadOnly with readonly and no method name
     def test_environmentMethod4(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True))
         with pytest.raises(ParameterException):
             e.settings._raiseIfReadOnly()
 
@@ -210,13 +230,15 @@ class TestEnvironment(object):
     # addValues readonly
     def test_environmentMethod10(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True))
         with pytest.raises(ParameterException):
             e.addValues(("aa", "bb", "cc",))
 
     # addValues with non list typ
     def test_environmentMethod11(self):
-        e = EnvironmentParameter(42, IntegerArgChecker())
+        settings = EnvironmentLocalSettings(checker=IntegerArgChecker())
+        e = EnvironmentParameter(42, settings=settings)
         with pytest.raises(ParameterException):
             e.addValues((1, 23, 69,))
 
@@ -228,7 +250,9 @@ class TestEnvironment(object):
 
     # addValues with invalid values in front of the checker
     def test_environmentMethod13(self):
-        e = EnvironmentParameter(42, ListArgChecker(IntegerArgChecker()))
+        settings = EnvironmentLocalSettings(
+            checker=ListArgChecker(IntegerArgChecker()))
+        e = EnvironmentParameter(42, settings=settings)
         with pytest.raises(ArgException):
             e.addValues(("plop", "plip", "plap",))
 
@@ -241,13 +265,15 @@ class TestEnvironment(object):
     # removeValues readonly
     def test_environmentMethod14(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True))
         with pytest.raises(ParameterException):
             e.removeValues("plop")
 
     # removeValues with non list typ
     def test_environmentMethod15(self):
-        e = EnvironmentParameter(42, IntegerArgChecker())
+        settings = EnvironmentLocalSettings(checker=IntegerArgChecker())
+        e = EnvironmentParameter(42, settings=settings)
         with pytest.raises(ParameterException):
             e.removeValues(42)
 
@@ -272,18 +298,22 @@ class TestEnvironment(object):
         e.setValue(("aa", "bb", "cc",))
         assert e.getValue() == ["aa", "bb", "cc"]
 
-        e = EnvironmentParameter(42, IntegerArgChecker())
+        settings = EnvironmentLocalSettings(checker=IntegerArgChecker())
+        e = EnvironmentParameter(42, settings=settings)
         assert e.getValue() == 42
         e.setValue(23)
         assert e.getValue() == 23
 
     # setValue unvalid
     def test_environmentMethod19(self):
-        e = EnvironmentParameter(42, IntegerArgChecker())
+        settings = EnvironmentLocalSettings(checker=IntegerArgChecker())
+        e = EnvironmentParameter(42, settings=settings)
         with pytest.raises(ArgException):
             e.setValue("plop")
 
-        e = EnvironmentParameter(42, ListArgChecker(IntegerArgChecker()))
+        settings = EnvironmentLocalSettings(
+            checker=ListArgChecker(IntegerArgChecker()))
+        e = EnvironmentParameter(42, settings=settings)
         with pytest.raises(ArgException):
             e.setValue(("plop", "plap",))
 
@@ -300,24 +330,30 @@ class TestEnvironment(object):
         assert not e.settings.isReadOnly()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
         e.settings.setReadOnly(True)
         assert e.settings.isReadOnly()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", True),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
         e.settings.setReadOnly(False)
         assert not e.settings.isReadOnly()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
     # setRemovable readonly
     def test_environmentMethod24(self):
         e = EnvironmentParameter(
-            "plop", settings=LocalSettings(
+            "plop", settings=EnvironmentLocalSettings(
                 read_only=True))
         with pytest.raises(ParameterException):
             e.settings.setRemovable(True)
@@ -335,19 +371,25 @@ class TestEnvironment(object):
         assert e.settings.isRemovable()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
         e.settings.setRemovable(False)
         assert not e.settings.isRemovable()
         assert e.settings.getProperties() == (("removable", False),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
         e.settings.setRemovable(True)
         assert e.settings.isRemovable()
         assert e.settings.getProperties() == (("removable", True),
                                               ("readOnly", False),
-                                              ('transient', True))
+                                              ('transient', True),
+                                              ('checker', 'any'),
+                                              ('checkerList', True))
 
     # repr
     def test_environmentMethod27(self):
@@ -363,9 +405,9 @@ class TestEnvironment(object):
     def test_environmentMethod29(self):
         e = EnvironmentParameter("plop")
 
-        assert type(e.settings) is LocalSettings
+        assert type(e.settings) is EnvironmentLocalSettings
         e.enableGlobal()
-        assert type(e.settings) is GlobalSettings
+        assert type(e.settings) is EnvironmentGlobalSettings
         s = e.settings
         e.enableGlobal()
         assert e.settings is s
@@ -374,12 +416,12 @@ class TestEnvironment(object):
     def test_environmentMethod30(self):
         e = EnvironmentParameter("plop")
 
-        assert type(e.settings) is LocalSettings
+        assert type(e.settings) is EnvironmentLocalSettings
         s = e.settings
         e.enableGlobal()
-        assert type(e.settings) is GlobalSettings
+        assert type(e.settings) is EnvironmentGlobalSettings
         e.enableLocal()
-        assert type(e.settings) is LocalSettings
+        assert type(e.settings) is EnvironmentLocalSettings
         assert e.settings is not s
         s = e.settings
         e.enableLocal()
@@ -387,90 +429,102 @@ class TestEnvironment(object):
 
     def test_environmentMethod31(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True,
-                                                        removable=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True,
+                                     removable=True))
         e.enableGlobal()
-        assert type(e.settings) is GlobalSettings
+        assert type(e.settings) is EnvironmentGlobalSettings
         assert e.settings.isReadOnly()
         assert e.settings.isRemovable()
 
     def test_environmentMethod32(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         e.enableGlobal()
-        assert type(e.settings) is GlobalSettings
+        assert type(e.settings) is EnvironmentGlobalSettings
         assert not e.settings.isReadOnly()
         assert not e.settings.isRemovable()
 
     def test_environmentMethod33(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True,
-                                                        removable=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True,
+                                     removable=True))
         e.enableGlobal()
-        assert type(e.settings) is GlobalSettings
+        assert type(e.settings) is EnvironmentGlobalSettings
         e.enableLocal()
-        assert type(e.settings) is LocalSettings
+        assert type(e.settings) is EnvironmentLocalSettings
 
         assert e.settings.isReadOnly()
         assert e.settings.isRemovable()
 
     def test_environmentMethod34(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         e.enableGlobal()
-        assert type(e.settings) is GlobalSettings
+        assert type(e.settings) is EnvironmentGlobalSettings
         e.enableLocal()
-        assert type(e.settings) is LocalSettings
+        assert type(e.settings) is EnvironmentLocalSettings
 
         assert not e.settings.isReadOnly()
         assert not e.settings.isRemovable()
 
     def test_environmentMethod35(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         h1 = hash(e)
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         h2 = hash(e)
 
         assert h1 == h2
 
     def test_environmentMethod36(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         h1 = hash(e)
         e = EnvironmentParameter("plip",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         h2 = hash(e)
 
         assert h1 != h2
 
     def test_environmentMethod37(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         h1 = hash(e)
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=True,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=True,
+                                     removable=False))
         h2 = hash(e)
 
         assert h1 != h2
 
     def test_environmentMethod38(self):
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=False))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=False))
         h1 = hash(e)
         e = EnvironmentParameter("plop",
-                                 settings=LocalSettings(read_only=False,
-                                                        removable=True))
+                                 settings=EnvironmentLocalSettings(
+                                     read_only=False,
+                                     removable=True))
         h2 = hash(e)
 
         assert h1 != h2
@@ -481,7 +535,7 @@ class TestEnvironment(object):
 
         assert e is not e_clone
         assert e.settings is not e_clone
-        assert e.typ is e_clone.typ
+        assert e.settings.checker is e_clone.settings.checker
         assert e.getValue() is not e_clone.getValue()
         assert e.getValue() == e_clone.getValue()
         assert hash(e.settings) == hash(e_clone.settings)

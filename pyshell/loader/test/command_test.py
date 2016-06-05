@@ -39,7 +39,7 @@ from pyshell.loader.utils import GlobalLoader
 from pyshell.system.container import ParameterContainer
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
-from pyshell.system.settings import GlobalSettings
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
@@ -878,10 +878,11 @@ class TestCommandLoader(object):
         self.params.environment.setParameter(
             ENVIRONMENT_LEVEL_TRIES_KEY,
             EnvironmentParameter(value=self.mltries,
-                                 typ=ctype,
-                                 settings=GlobalSettings(transient=True,
-                                                         read_only=True,
-                                                         removable=False)),
+                                 settings=EnvironmentGlobalSettings(
+                                     transient=True,
+                                     read_only=True,
+                                     removable=False,
+                                     checker=ctype)),
             local_param=False)
 
     # __init__, test without args
