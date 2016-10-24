@@ -19,7 +19,7 @@
 import os
 
 # ## MISC ## #
-DEFAULT_CONFIG_DIRECTORY = os.path.join(os.path.expanduser("~"), ".pyshell")
+
 MAIN_CATEGORY = "main"
 SHELL_CATEGORY = "shell"
 PARAMETER_NAME = "parameter"
@@ -40,6 +40,9 @@ EVENT_TO_CREATE_ON_STARTUP = (EVENT__ON_STARTUP, EVENT_ON_STARTUP,
 
 # ## ENVIRONMENT ## #
 ENVIRONMENT_ATTRIBUTE_NAME = "environment"
+
+ENVIRONMENT_CONFIG_DIRECTORY_KEY = MAIN_CATEGORY+".configDirectory"
+DEFAULT_CONFIG_DIRECTORY = os.path.join(os.path.expanduser("~"), ".pyshell")
 
 ENVIRONMENT_PARAMETER_FILE_KEY = MAIN_CATEGORY+".parameterFile"
 DEFAULT_PARAMETER_FILE = os.path.join(DEFAULT_CONFIG_DIRECTORY, ".pyshellrc")

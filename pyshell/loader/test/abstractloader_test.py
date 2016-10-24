@@ -21,10 +21,18 @@ import pytest
 from pyshell.loader.abstractloader import AbstractLoader
 
 
+class MinimalAbstractLoader(AbstractLoader):
+    def load(self, parameter_manager=None, profile=None):
+        pass
+
+    def unload(self, parameter_manager=None, profile=None):
+        pass
+
+
 class TestAbstractLoader(object):
     # AbstractLoader, load, exist, test args
     def test_abstractLoader2(self):
-        al = AbstractLoader()
+        al = MinimalAbstractLoader()
         assert al, "load"
         assert al.load, "__call__"
         assert al.load(None) is None
@@ -34,7 +42,7 @@ class TestAbstractLoader(object):
 
     # AbstractLoader, unload, exist, test args
     def test_abstractLoader3(self):
-        al = AbstractLoader()
+        al = MinimalAbstractLoader()
         assert al, "unload"
         assert al.unload, "__call__"
         assert al.unload(None) is None
@@ -43,6 +51,6 @@ class TestAbstractLoader(object):
             al.unload(None, None, None)
 
     def test_priorities(self):
-        al = AbstractLoader(load_priority=42, unload_priority=83)
+        al = MinimalAbstractLoader(load_priority=42, unload_priority=83)
         assert al.getLoadPriority() == 42
         assert al.getUnloadPriority() == 83

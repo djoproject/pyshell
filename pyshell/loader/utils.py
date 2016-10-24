@@ -18,33 +18,61 @@
 
 import inspect
 
-from pyshell.loader.exception import RegisterException
-from pyshell.loader.globalloader import GlobalLoader
+from pyshell.loader.abstractloader import AbstractLoader
+from pyshell.loader.exception import LoaderException
+
+def getNearestModule():
+    nearest_frame = None
+    for record in inspect.stack():
+        frame, path, line_number, parent_stmp, line_string, unknown = record
+        if parent_stmp == "<module>":
+            nearest_frame = frame
+            break
+
+    if nearest_frame is None:
+        excmsg = ("(utils) getNearestModule, fail to find the nearest frame")
+        raise LoaderException(excmsg)
+
+    mod = inspect.getmodule(nearest_frame)
+    return mod
 
 
-def getAndInitCallerModule(caller_loader_key,
-                           caller_loader_class_definition,
-                           profile=None,
-                           module_level=3):
-    frm = inspect.stack()[module_level]
-    mod = inspect.getmodule(frm[0])
+def getRootLoader(class_definition=None):
+    mod = getNearestModule()
+
+    if class_definition is not None and not inspect.isclass(class_definition):
+        excmsg = ("(utils) getRootLoader, the provided argument is not"
+                  " a class definition")
+        raise LoaderException(excmsg)
 
     if hasattr(mod, "_loaders"):
-        # must be an instance of GlobalLoader
-        if not isinstance(mod._loaders, GlobalLoader):
-            excmsg = ("(loader) getAndInitCallerModule, the stored loader in"
+        if (class_definition is not None and
+           not isinstance(mod._loaders, class_definition)):
+            excmsg = ("(utils) getRootLoader, the stored loader in"
                       " the module '"+str(mod)+"' is not an instance of "
-                      "GlobalLoader, get '"+str(type(mod._loaders))+"'")
-            raise RegisterException(excmsg)
+                      "'"+class_definition.__name__+"', get '"+
+                      str(type(mod._loaders))+"'")
+            raise LoaderException(excmsg)
+        elif not isinstance(mod._loaders, AbstractLoader):
+            excmsg = ("(utils) getRootLoader, the stored loader in"
+                      " the module '"+str(mod)+"' is not an instance of "
+                      "AbstractLoader, get '"+str(type(mod._loaders))+"'")
+            raise LoaderException(excmsg)
+                
+        return mod._loaders
+
+    elif class_definition is not None:
+        master = class_definition(mod.__name__)
+        setattr(mod, "_loaders", master)
+        return master
+
     else:
-        # init loaders dictionnary
-        setattr(mod, "_loaders", GlobalLoader())
+        return None
 
-        # add the always existing loader here
-        # ===>
 
-        # <===
-
-    return mod._loaders.getOrCreateLoader(caller_loader_key,
-                                          caller_loader_class_definition,
-                                          profile)
+def getLoaderSignature(class_definition):
+    if not inspect.isclass(class_definition):
+        excmsg = ("(utils) getLoaderSignature, the provided argument is not"
+                  " a class definition")
+        raise LoaderException(excmsg)
+    return class_definition.__module__ + "." + class_definition.__name__

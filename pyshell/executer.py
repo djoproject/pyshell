@@ -105,8 +105,8 @@ class CommandExecuter():
 
         # load addon system (if not loaded, can't do anything)
         if not loaded:
-            print("fail to load system addon, can not do anything with"  # noqa
-                  " the application without this loader")
+            print("without this addon, the application can not do anything"
+                  " ==> exit.")  # noqa
             exit(-1)
 
     def _initParams(self, param_file_path, outside_args, system_loader):

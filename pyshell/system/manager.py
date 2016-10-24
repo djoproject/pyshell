@@ -57,7 +57,7 @@ class ParameterTriesNode(object):
     def __init__(self, string_key):
         self.global_var = None
         self.local_var = None
-        self.origin_loader = None
+        self.origin_addon = None
         self.starting_hash = None
         self.string_key = string_key
         self.mltries_key = string_key.split(".")
@@ -97,7 +97,7 @@ class ParameterTriesNode(object):
 
         self.local_var[key] = param
 
-    def setGlobalVar(self, param, origin_loader=None, freeze=False):
+    def setGlobalVar(self, param, origin_addon=None, freeze=False):
         if (self.global_var is not None and
                 self.global_var.settings.isReadOnly()):
             excmsg = ("(ParameterTriesNode) setGlobalVar, can not set the "
@@ -114,22 +114,22 @@ class ParameterTriesNode(object):
                           "frozen." % self.string_key)
                 raise ParameterException(excmsg)
 
-            if self.origin_loader != origin_loader:
+            if self.origin_addon != origin_addon:
                 excmsg = ("(ParameterTriesNode) setGlobalVar, parameter '%s' "
-                          "is frozen and the new origin loader is different "
+                          "is frozen and the new origin addon is different "
                           "from the frozen one" % self.string_key)
                 raise ParameterException(excmsg)
 
             param.settings.setStartingPoint(self.starting_hash)
         else:
-            if origin_loader is None:
+            if origin_addon is None:
                 excmsg = ("(ParameterTriesNode) setGlobalVar, can not use "
-                          "parameter '%s' as global parameter, no loader "
+                          "parameter '%s' as global parameter, no addon "
                           "origin is set" % self.string_key)
                 raise ParameterException(excmsg)
 
             param.settings.setStartingPoint(hash(param))
-            self.origin_loader = origin_loader
+            self.origin_addon = origin_addon
             if freeze:
                 self.starting_hash = param.settings.startingHash
 
@@ -143,7 +143,7 @@ class ParameterTriesNode(object):
                 raise ParameterException(excmsg)
 
         if not self.isFrozen():
-            self.origin_loader = None
+            self.origin_addon = None
 
         self.global_var = None
 
@@ -168,8 +168,8 @@ class ParameterTriesNode(object):
     def unfreeze(self):
         self.starting_hash = None
 
-    def getLoaderOrigin(self):
-        return self.origin_loader
+    def getAddonOrigin(self):
+        return self.origin_addon
 
 
 class ParameterManager(Flushable):
@@ -181,8 +181,8 @@ class ParameterManager(Flushable):
         # hold the nodes for the current thread
         self.threadLocalVar = {}
 
-        # hold the nodes for each loaders
-        self.loaderGlobalVar = {}
+        # hold the nodes for each addons
+        self.addonGlobalVar = {}
 
         if parent is None:
             self.parentContainer = DEFAULT_DUMMY_PARAMETER_CONTAINER
@@ -270,7 +270,7 @@ class ParameterManager(Flushable):
                      string_path,
                      param,
                      local_param=True,
-                     origin_loader=None,
+                     origin_addon=None,
                      freeze=False):
         param = self._extractParameter(param)
 
@@ -301,25 +301,28 @@ class ParameterManager(Flushable):
 
             self.threadLocalVar[key].add(parameter_node)
         else:
-            if origin_loader is None:
-                origin_loader = "pyshell.addons.system"
+            if origin_addon is None:
+                # TODO should be in constant
+                origin_addon = "pyshell.addons.system"
 
-            old_loader_origin = parameter_node.getLoaderOrigin()
+            old_addon_origin = parameter_node.getAddonOrigin()
             parameter_node.setGlobalVar(param,
-                                        origin_loader=origin_loader,
+                                        origin_addon=origin_addon,
                                         freeze=freeze)
 
-            if (old_loader_origin is not None and
-               old_loader_origin != origin_loader):
-                self.loaderGlobalVar[old_loader_origin].remove(parameter_node)
+            # TODO (issue #83) an addon should not be able to steal a parameter.
+            # because of the new politic, this is now forbidden
+            if (old_addon_origin is not None and
+               old_addon_origin != origin_addon):
+                self.addonGlobalVar[old_addon_origin].remove(parameter_node)
 
-                if len(self.loaderGlobalVar[old_loader_origin]) == 0:
-                    del self.loaderGlobalVar[old_loader_origin]
+                if len(self.addonGlobalVar[old_addon_origin]) == 0:
+                    del self.addonGlobalVar[old_addon_origin]
 
-            if origin_loader not in self.loaderGlobalVar:
-                self.loaderGlobalVar[origin_loader] = set()
+            if origin_addon not in self.addonGlobalVar:
+                self.addonGlobalVar[origin_addon] = set()
 
-            self.loaderGlobalVar[origin_loader].add(parameter_node)
+            self.addonGlobalVar[origin_addon].add(parameter_node)
 
         if creation_mode:
             self.mltries.insert(parameter_node.mltries_key, parameter_node)
@@ -464,7 +467,7 @@ class ParameterManager(Flushable):
                         local_param = not local_param
                         continue
 
-                    origin_loader = parameter_node.getLoaderOrigin()
+                    origin_addon = parameter_node.getAddonOrigin()
                     param = parameter_node.getGlobalVar()
                     parameter_node.unsetGlobalVar(force)
 
@@ -472,11 +475,11 @@ class ParameterManager(Flushable):
                         parameter_node.unfreeze()
 
                     if not parameter_node.isFrozen():
-                        self.loaderGlobalVar[origin_loader].remove(
+                        self.addonGlobalVar[origin_addon].remove(
                             parameter_node)
 
-                        if len(self.loaderGlobalVar[origin_loader]) == 0:
-                            del self.loaderGlobalVar[origin_loader]
+                        if len(self.addonGlobalVar[origin_addon]) == 0:
+                            del self.addonGlobalVar[origin_addon]
 
                     if parameter_node.isRemovable():
                         self.mltries.remove(parameter_node.mltries_key)
@@ -551,28 +554,28 @@ class ParameterManager(Flushable):
         return to_ret
 
     @synchronous()
-    def getLoaderNodes(self, origin_loader):
-        if origin_loader in self.loaderGlobalVar:
-            return tuple(self.loaderGlobalVar[origin_loader])
+    def getAddonNodes(self, origin_addon):
+        if origin_addon in self.addonGlobalVar:
+            return tuple(self.addonGlobalVar[origin_addon])
 
         return ()
 
     @synchronous()
-    def clearFrozenNode(self, origin_loader):
-        if origin_loader not in self.loaderGlobalVar:
+    def clearFrozenNode(self, origin_addon):
+        if origin_addon not in self.addonGlobalVar:
             return
 
-        loader_node_set = self.loaderGlobalVar[origin_loader]
-        node_list = list(loader_node_set)
+        addon_node_set = self.addonGlobalVar[origin_addon]
+        node_list = list(addon_node_set)
 
         for node in node_list:
             node.unfreeze()
 
             if not node.hasGlobalVar():
-                loader_node_set.remove(node)
+                addon_node_set.remove(node)
 
             if node.isRemovable():
                 self.mltries.remove(node.mltries_key)
 
-        if len(loader_node_set) == 0:
-            del self.loaderGlobalVar[origin_loader]
+        if len(addon_node_set) == 0:
+            del self.addonGlobalVar[origin_addon]

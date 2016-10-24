@@ -17,35 +17,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.loader.parameter import ParameterAbstractLoader
-from pyshell.loader.parameter import registerAddValues
 from pyshell.loader.parameter import registerSet
-from pyshell.loader.parameter import setLoaderPriority
+from pyshell.loader.parameter import setLoadPriority
+from pyshell.loader.parameter import setUnloadPriority
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 
 
-def setEnvironmentLoaderPriority(value, sub_loader_name=None):
-    setLoaderPriority(value, EnvironmentLoader, sub_loader_name)
+def setEnvironmentLoadPriority(value, profile=None):
+    setLoadPriority(value, EnvironmentLoader, profile)
 
 
-def registerAddValuesToEnvironment(env_key, value, sub_loader_name=None):
-    registerAddValues(env_key, value, EnvironmentLoader, sub_loader_name)
+def setEnvironmentUnloadPriority(value, profile=None):
+    setUnloadPriority(value, EnvironmentLoader, profile)
 
 
 def registerSetEnvironment(env_key,
                            env,
-                           no_error_if_key_exist=False,
-                           override=False,
-                           sub_loader_name=None):
+                           profile=None):
     registerSet(env_key,
                 env,
                 EnvironmentLoader,
                 EnvironmentParameter,
-                no_error_if_key_exist,
-                override,
-                sub_loader_name)
+                profile)
 
 
 class EnvironmentLoader(ParameterAbstractLoader):
-    def __init__(self):
-        ParameterAbstractLoader.__init__(self, ENVIRONMENT_ATTRIBUTE_NAME)
+    def __init__(self, parent):
+        ParameterAbstractLoader.__init__(self, parent, ENVIRONMENT_ATTRIBUTE_NAME)

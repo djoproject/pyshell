@@ -284,6 +284,7 @@ def listParameter(parameters, key=None):
     return to_print
 
 
+# TODO remove me as soon as the file loader is finished
 @shellMethod(
     file_path=EnvironmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
     parameters=DefaultArgs.getCompleteEnvironmentChecker())
@@ -309,6 +310,7 @@ def loadParameter(file_path, parameters):
         saveParameter(file_path, parameters)
 
 
+# TODO remove me as soon as the file loader is finished
 @shellMethod(
     file_path=EnvironmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
     parameters=DefaultArgs.getCompleteEnvironmentChecker())

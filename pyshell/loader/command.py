@@ -23,38 +23,45 @@ from pyshell.command.command import UniCommand
 from pyshell.loader.abstractloader import AbstractLoader
 from pyshell.loader.exception import LoadException
 from pyshell.loader.exception import RegisterException
-from pyshell.loader.utils import getAndInitCallerModule
+from pyshell.loader.exception import UnloadException
+from pyshell.loader.masterloader import MasterLoader
+from pyshell.loader.utils import getRootLoader
+from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.misc import raiseIfInvalidKeyList
 
 
 def _localGetAndInitCallerModule(profile=None):
-    return getAndInitCallerModule(CommandLoader.__module__+"." +
-                                  CommandLoader.__name__,
-                                  CommandLoader,
-                                  profile)
+    master = getRootLoader(class_definition=MasterLoader)
+    return master.getOrCreateLoader(CommandLoader, profile)
 
 
-def _checkBoolean(boolean, boolean_name, meth):
-    if type(boolean) != bool:
-        excmsg = ("(CommandRegister) "+meth+" a boolean value was expected for"
-                  " the argument "+boolean_name+", got '"+str(type(boolean)) +
-                  "'")
-        raise RegisterException(excmsg)
-
-
-def setCommandLoaderPriority(value, profile=None):
+def setCommandLoadPriority(value, profile=None):
     try:
         priority = int(value)
     except ValueError:
-        excmsg = ("(CommandRegister) setCommandLoaderPriority an integer value"
+        excmsg = ("(CommandRegister) setCommandLoadPriority an integer value"
                   " was expected for the argument value, got '" +
                   str(type(value))+"'")
         raise RegisterException(excmsg)
 
     loader = _localGetAndInitCallerModule(profile)
-    loader.priority = priority
+    loader.load_priority = priority
+
+
+def setCommandUnloadPriority(value, profile=None):
+    try:
+        priority = int(value)
+    except ValueError:
+        excmsg = ("(CommandRegister) setCommandUnloadPriority an integer value"
+                  " was expected for the argument value, got '" +
+                  str(type(value))+"'")
+        raise RegisterException(excmsg)
+
+    loader = _localGetAndInitCallerModule(profile)
+    loader.unload_priority = priority
+
 
 
 def registerSetGlobalPrefix(key_list, profile=None):
@@ -80,11 +87,7 @@ def registerResetTempPrefix(profile=None):
     loader.TempPrefix = None
 
 
-def registerAnInstanciatedCommand(key_list,
-                                  cmd,
-                                  raise_if_exist=True,
-                                  override=False,
-                                  profile=None):
+def registerAnInstanciatedCommand(key_list, cmd, profile=None):
     # must be a multiCmd
     if not isinstance(cmd, MultiCommand):
         excmsg = ("(CommandRegister) addInstanciatedCommand, an instance of "
@@ -96,54 +99,35 @@ def registerAnInstanciatedCommand(key_list,
                           RegisterException,
                           "CommandRegister",
                           "registerAnInstanciatedCommand")
-    _checkBoolean(raise_if_exist,
-                  "raise_if_exist",
-                  "registerAnInstanciatedCommand")
-    _checkBoolean(override, "override", "registerAnInstanciatedCommand")
 
     loader = _localGetAndInitCallerModule(profile)
-    loader.addCmd(key_list, cmd, raise_if_exist, override)
+    loader.addCmd(key_list, cmd)
     return cmd
 
 
-def registerCommand(key_list,
-                    pre=None,
-                    pro=None,
-                    post=None,
-                    raise_if_exist=True,
-                    override=False,
-                    profile=None):
+def registerCommand(key_list, pre=None, pro=None, post=None, profile=None):
     # check cmd and keylist
     raiseIfInvalidKeyList(key_list,
                           RegisterException,
                           "CommandRegister",
                           "registerCommand")
-    _checkBoolean(raise_if_exist, "raise_if_exist", "registerCommand")
-    _checkBoolean(override, "override", "registerCommand")
 
     loader = _localGetAndInitCallerModule(profile)
     cmd = UniCommand(pre, pro, post)
-    loader.addCmd(key_list, cmd, raise_if_exist, override)
+    loader.addCmd(key_list, cmd)
     return cmd
 
 
-def registerAndCreateEmptyMultiCommand(key_list,
-                                       raise_if_exist=True,
-                                       override=False,
-                                       profile=None):
+def registerAndCreateEmptyMultiCommand(key_list, profile=None):
     # check cmd and keylist
     raiseIfInvalidKeyList(key_list,
                           RegisterException,
                           "CommandRegister",
                           "registerCreateMultiCommand")
-    _checkBoolean(raise_if_exist,
-                  "raise_if_exist",
-                  "registerAndCreateEmptyMultiCommand")
-    _checkBoolean(override, "override", "registerAndCreateEmptyMultiCommand")
 
     loader = _localGetAndInitCallerModule(profile)
     cmd = MultiCommand()
-    loader.addCmd(key_list, cmd, raise_if_exist, override)
+    loader.addCmd(key_list, cmd)
     return cmd
 
 
@@ -165,8 +149,8 @@ def registerStopHelpTraversalAt(key_list=(), profile=None):
 
 
 class CommandLoader(AbstractLoader):
-    def __init__(self):
-        AbstractLoader.__init__(self)
+    def __init__(self, parent):
+        AbstractLoader.__init__(self, parent)
 
         self.prefix = ()
         self.cmdDict = {}
@@ -176,14 +160,21 @@ class CommandLoader(AbstractLoader):
         self.loadedCommand = None
         self.loadedStopTraversal = None
 
-    def load(self, parameter_manager, profile=None):
+    def load(self, parameter_container=None, profile=None):
         self.loadedCommand = []
         self.loadedStopTraversal = []
 
-        AbstractLoader.load(self, parameter_manager, profile)
-        env = parameter_manager.environment
-        param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                 perfect_match=True)
+        AbstractLoader.load(self, parameter_container, profile)
+
+        if not hasattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME):
+             excmsg = ("(CommandLoader) load, fail to load command because"
+                       "container has not attribute '"+ 
+                       ENVIRONMENT_ATTRIBUTE_NAME+"'")
+             raise LoadException(excmsg)
+
+        env_manager = getattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME)
+        param = env_manager.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
+                                         perfect_match=True)
 
         if param is None:
             excmsg = ("(CommandLoader) load, fail to load command because "
@@ -194,8 +185,7 @@ class CommandLoader(AbstractLoader):
         exceptions = ListOfException()
 
         # add command
-        for key_list, cmdInfo in self.cmdDict.items():
-            cmd, raise_if_exist, override = cmdInfo
+        for key_list, cmd in self.cmdDict.items():
             key = list(self.prefix)
             key.extend(key_list)
 
@@ -209,20 +199,11 @@ class CommandLoader(AbstractLoader):
                 search_result = mltries.searchNode(key, True)
 
                 if search_result is not None and search_result.isValueFound():
-                    if raise_if_exist:
-                        flat_key = str(" ".join(key))
-                        excmsg = ("(CommandLoader) load, fail to insert key "
-                                  "'"+flat_key+"' in multi tries: path already"
-                                  " exists")
-                        exceptions.addException(LoadException(excmsg))
-                        continue
-
-                    if not override:
-                        continue
-
-                    mltries.update(key, cmd)
-                    self.loadedCommand.append(key)
-
+                    flat_key = str(" ".join(key))
+                    excmsg = ("(CommandLoader) load, fail to insert key "
+                              "'"+flat_key+"' in multi tries: path already"
+                              " exists")
+                    exceptions.addException(LoadException(excmsg))
                 else:
                     mltries.insert(key, cmd)
                     self.loadedCommand.append(key)
@@ -253,16 +234,23 @@ class CommandLoader(AbstractLoader):
         if exceptions.isThrowable():
             raise exceptions
 
-    def unload(self, parameter_manager, profile=None):
-        AbstractLoader.unload(self, parameter_manager, profile)
-        env = parameter_manager.environment
-        param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
-                                 perfect_match=True)
+    def unload(self, parameter_container=None, profile=None):
+        AbstractLoader.unload(self, parameter_container, profile)
+
+        if not hasattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME):
+            excmsg = ("(CommandLoader) unload, fail to unload command because"
+                      "container has not attribute '"+ 
+                      ENVIRONMENT_ATTRIBUTE_NAME+"'")
+            raise UnloadException(excmsg)
+
+        env_manager = getattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME)
+        param = env_manager.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
+                                         perfect_match=True)
 
         if param is None:
-            excmsg = ("(CommandLoader) unload, fail to load command because "
-                      "parameter has not a levelTries item")
-            raise LoadException(excmsg)
+            excmsg = ("(CommandLoader) unload, fail to unload command because"
+                      " parameter has not a levelTries item")
+            raise UnloadException(excmsg)
 
         mltries = param.getValue()
         exceptions = ListOfException()
@@ -274,7 +262,7 @@ class CommandLoader(AbstractLoader):
             except triesException as te:
                 excmsg = ("(CommandLoader) unload, fail to remove key '" +
                           str(" ".join(key))+"' in multi tries: "+str(te))
-                exceptions.addException(LoadException(excmsg))
+                exceptions.addException(UnloadException(excmsg))
 
         # remove stop traversal
         for key in self.loadedStopTraversal:
@@ -290,7 +278,7 @@ class CommandLoader(AbstractLoader):
                 excmsg = ("(CommandLoader) unload, fail to disable traversal "
                           "for key list '"+str(" ".join(key))+"' in multi "
                           "tries: "+str(te))
-                exceptions.addException(LoadException(excmsg))
+                exceptions.addException(UnloadException(excmsg))
                 continue
 
             try:
@@ -299,19 +287,26 @@ class CommandLoader(AbstractLoader):
                 excmsg = ("(CommandLoader) unload,fail to disable traversal "
                           "for key list '"+str(" ".join(key))+"' in multi "
                           "tries: "+str(te))
-                exceptions.addException(LoadException(excmsg))
+                exceptions.addException(UnloadException(excmsg))
 
         # raise error list
         if exceptions.isThrowable():
             raise exceptions
 
-    def addCmd(self, key_list, cmd, raise_if_exist=True, override=False):
+    def addCmd(self, key_list, cmd):
         if self.TempPrefix is not None:
             prefix = list(self.TempPrefix)
             prefix.extend(key_list)
         else:
             prefix = key_list
+        
+        final_cmd_key = tuple(prefix)
+        
+        if final_cmd_key in self.cmdDict:
+            excmsg = ("(CommandLoader) addCmd, the following key already"
+                      " exists: '"+str(" ".join(final_cmd_key)+"'"))
+            raise RegisterException(excmsg)
 
-        self.cmdDict[tuple(prefix)] = (cmd, raise_if_exist, override,)
+        self.cmdDict[final_cmd_key] = cmd
 
         return cmd

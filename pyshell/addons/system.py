@@ -44,9 +44,11 @@ from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
 from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
+from pyshell.utils.constants import DEFAULT_CONFIG_DIRECTORY
 from pyshell.utils.constants import DEFAULT_PARAMETER_FILE
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
+from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_VALUE
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
@@ -73,6 +75,20 @@ default_integer_arg_checker = DefaultInstanceArgChecker.\
     getIntegerArgCheckerInstance()
 
 # # init original params # #
+checker = FilePathArgChecker(exist=None,
+                             readable=True,
+                             writtable=None,
+                             is_file=False)
+
+settings = EnvironmentGlobalSettings(transient=True,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=checker)
+
+param = EnvironmentParameter(value=DEFAULT_CONFIG_DIRECTORY, settings=settings)
+registerSetEnvironment(ENVIRONMENT_CONFIG_DIRECTORY_KEY, param)
+
+##
 
 checker = FilePathArgChecker(exist=None,
                              readable=True,
@@ -280,7 +296,6 @@ def loadAddonOnStartUp(addon_list_on_start_up, params, addon_dico=None):
 
     if error_list.isThrowable():
         raise error_list
-
 
 registerCommand(("addon", "load",), pro=loadAddonFun)
 registerCommand(("addon", "onstartup", "load",), pro=loadAddonOnStartUp)

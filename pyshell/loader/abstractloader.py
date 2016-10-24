@@ -16,21 +16,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from abc import ABCMeta, abstractmethod
+
 
 class AbstractLoader(object):
-    def __init__(self, load_priority=100, unload_priority=100):
-        self.last_exception = None
+    __metaclass__ = ABCMeta
+
+    def __init__(self, parent=None, load_priority=100.0, unload_priority=100.0):
+        self.parent = parent
         self.load_priority = load_priority
         self.unload_priority = unload_priority
+        self.last_exception = None
 
-    def load(self, parameter_manager, profile=None):
-        pass  # TO OVERRIDE
+    @abstractmethod
+    def load(self, parameter_container=None, profile=None):
+        pass
 
-    def unload(self, parameter_manager, profile=None):
-        pass  # TO OVERRIDE
+    @abstractmethod
+    def unload(self, parameter_container=None, profile=None):
+        pass
 
     def getLoadPriority(self):
         return self.load_priority
 
     def getUnloadPriority(self):
         return self.unload_priority
+
+    def saveCommands(self, section_name, command_list, addons_set=None):
+        if self.parent is not None:
+            self.parent.saveCommands(section_name, command_list, addons_set)

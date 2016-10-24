@@ -18,14 +18,42 @@
 
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import PARSE_WARNING
+from pyshell.utils.exception import SYSTEM_ERROR
+from pyshell.utils.exception import SYSTEM_WARNING
 from pyshell.utils.exception import USER_ERROR
 
 
 class RegisterException(DefaultPyshellException):
+    """
+    This exception is used in every methods the user can use
+    to register element in an addon.  It can also be used
+    in any method used to parameterize a loader in an addon.
+    """
     def __init__(self, value):
         DefaultPyshellException.__init__(self, value, USER_ERROR)
 
 
 class LoadException(DefaultPyshellException):
+    """
+    This exception is used for any error that can happen during
+    the load process.  It must be used only in this case.
+    """
     def __init__(self, value):
         DefaultPyshellException.__init__(self, value, PARSE_WARNING)
+
+
+class UnloadException(DefaultPyshellException):
+    """
+    This exception is used for any error that can happen during
+    the unload process.  It must be used only in this case.
+    """
+    def __init__(self, value):
+        DefaultPyshellException.__init__(self, value, SYSTEM_WARNING)
+
+
+class LoaderException(DefaultPyshellException):
+    """
+    This exception is used for eveything else in the loader module.
+    """
+    def __init__(self, value):
+        DefaultPyshellException.__init__(self, value, SYSTEM_ERROR)

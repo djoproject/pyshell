@@ -115,7 +115,7 @@ class TestParameterNode(object):
     def test_definedGlobalVar(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader name")
+        p.setGlobalVar(param, "addon name")
         assert p.getGlobalVar() is param
 
     def test_setMultipleLocalVar(self):
@@ -156,16 +156,16 @@ class TestParameterNode(object):
     def test_setGlobalVarWithoutFreeze(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader name")
+        p.setGlobalVar(param, "addon name")
         assert p.getGlobalVar() is param
 
     def test_setGlobalVarWithFreeze(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader", freeze=True)
+        p.setGlobalVar(param, "addon", freeze=True)
         assert p.getGlobalVar() is param
 
-    def test_setGlobalVarWithFreezeAndNoneLoader(self):
+    def test_setGlobalVarWithFreezeAndNoneAddon(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
         with pytest.raises(ParameterException):
@@ -174,10 +174,10 @@ class TestParameterNode(object):
     def test_overwriteGlobalVarWithoutPreviousFreezing(self):
         p = ParameterTriesNode("path")
         param1 = Parameter("value")
-        p.setGlobalVar(param1, "loader name")
+        p.setGlobalVar(param1, "addon name")
 
         param2 = Parameter("value")
-        p.setGlobalVar(param2, "loader name")
+        p.setGlobalVar(param2, "addon name")
 
         assert p.getGlobalVar() is param2
         assert not p.isFrozen()
@@ -185,10 +185,10 @@ class TestParameterNode(object):
     def test_overwriteGlobalVarWithPreviousFreezing(self):
         p = ParameterTriesNode("path")
         param1 = Parameter("value")
-        p.setGlobalVar(param1, "loader 1", freeze=True)
+        p.setGlobalVar(param1, "addon 1", freeze=True)
 
         param2 = Parameter("value")
-        p.setGlobalVar(param2, "loader 1")
+        p.setGlobalVar(param2, "addon 1")
 
         assert p.getGlobalVar() is param2
         assert param2.settings.startingHash == param1.settings.startingHash
@@ -197,10 +197,10 @@ class TestParameterNode(object):
     def test_overwriteGlobalVarWithOnlyFreezingOnOverwrite(self):
         p = ParameterTriesNode("path")
         param1 = Parameter("value")
-        p.setGlobalVar(param1, "loader name")
+        p.setGlobalVar(param1, "addon name")
 
         param2 = Parameter("value")
-        p.setGlobalVar(param2, "loader 2", freeze=True)
+        p.setGlobalVar(param2, "addon 2", freeze=True)
 
         assert p.getGlobalVar() is param2
         assert param2.settings.startingHash == param2.settings.startingHash
@@ -209,34 +209,34 @@ class TestParameterNode(object):
     def test_overwriteGlobalVarWithFreezingOnPreviousAndCurrent(self):
         p = ParameterTriesNode("path")
         param1 = Parameter("value")
-        p.setGlobalVar(param1, "loader 1", freeze=True)
+        p.setGlobalVar(param1, "addon 1", freeze=True)
         assert p.isFrozen()
 
         param2 = Parameter("value")
 
         with pytest.raises(ParameterException):
-            p.setGlobalVar(param2, "loader 2", freeze=True)
+            p.setGlobalVar(param2, "addon 2", freeze=True)
 
-    def test_overwriteGlobalVarWithFreezingOnPreviousAndNewLoaderOrigin(self):
+    def test_overwriteGlobalVarWithFreezingOnPreviousAndNewAddonOrigin(self):
         p = ParameterTriesNode("path")
         param1 = Parameter("value")
-        p.setGlobalVar(param1, "loader 1", freeze=True)
+        p.setGlobalVar(param1, "addon 1", freeze=True)
         assert p.isFrozen()
 
         param2 = Parameter("value")
 
         with pytest.raises(ParameterException):
-            p.setGlobalVar(param2, "loader 2", freeze=False)
+            p.setGlobalVar(param2, "addon 2", freeze=False)
 
     def test_overwriteGlobalVarWithReadOnly(self):
         p = ParameterTriesNode("path")
         param1 = Parameter("value1")
         param1.settings.setReadOnly(True)
-        p.setGlobalVar(param1, "loader name")
+        p.setGlobalVar(param1, "addon name")
 
         param2 = Parameter("value2")
         with pytest.raises(ParameterException):
-            p.setGlobalVar(param2, "loader name")
+            p.setGlobalVar(param2, "addon name")
 
     def test_unsetUnexistantLocalVar(self):
         p = ParameterTriesNode("path")
@@ -271,7 +271,7 @@ class TestParameterNode(object):
     def test_unsetExistantGlobalVarWithoutFreeze(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader name")
+        p.setGlobalVar(param, "addon name")
         assert p.getGlobalVar() is param
         p.unsetGlobalVar()
 
@@ -281,7 +281,7 @@ class TestParameterNode(object):
     def test_unsetExistantGlobalVarWithFreeze(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader 1", freeze=True)
+        p.setGlobalVar(param, "addon 1", freeze=True)
         assert p.getGlobalVar() is param
         p.unsetGlobalVar()
 
@@ -292,7 +292,7 @@ class TestParameterNode(object):
         p = ParameterTriesNode("path")
         param1 = Parameter("value1")
         param1.settings.setRemovable(False)
-        p.setGlobalVar(param1, "loader name")
+        p.setGlobalVar(param1, "addon name")
         assert p.hasGlobalVar()
         with pytest.raises(ParameterException):
             p.unsetGlobalVar()
@@ -311,7 +311,7 @@ class TestParameterNode(object):
     def test_isRemovableWithNothingStored3(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader name")
+        p.setGlobalVar(param, "addon name")
         p.unsetGlobalVar()
         assert p.isRemovable()
 
@@ -324,13 +324,13 @@ class TestParameterNode(object):
     def test_isRemovableWithGlobalVar(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader name")
+        p.setGlobalVar(param, "addon name")
         assert not p.isRemovable()
 
     def test_isRemovableWithFreeze(self):
         p = ParameterTriesNode("path")
         param = Parameter("value")
-        p.setGlobalVar(param, "loader 1", freeze=True)
+        p.setGlobalVar(param, "addon 1", freeze=True)
         p.unsetGlobalVar()
         assert not p.isRemovable()
 
@@ -338,7 +338,7 @@ class TestParameterNode(object):
         p = ParameterTriesNode("path")
         param = Parameter("value")
 
-        p.setGlobalVar(param, "loader 1", freeze=True)
+        p.setGlobalVar(param, "addon 1", freeze=True)
         assert p.isFrozen()
         assert not p.isRemovable()
 
@@ -709,7 +709,7 @@ class TestParameterManager(object):
         param = self.params.setParameter("plop",
                                          p,
                                          local_param=False,
-                                         origin_loader="loader A",
+                                         origin_addon="addon A",
                                          freeze=True)
 
         assert hasattr(param.settings, "startingHash")
@@ -718,110 +718,110 @@ class TestParameterManager(object):
 
         param = self.params.setParameter("plop",
                                          Parameter("tata"),
-                                         origin_loader="loader A",
+                                         origin_addon="addon A",
                                          local_param=False)
 
         assert param.settings.startingHash == has
 
-    def test_setParameterFirstParameterForThisLoader(self):
+    def test_setParameterFirstParameterForThisAddon(self):
         p = Parameter("titi")
         self.params.setParameter("plop",
                                  p,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 1
         assert l[0].getGlobalVar() is p
 
-    def test_setParameterSeveralParameterForThisLoader(self):
+    def test_setParameterSeveralParameterForThisAddon(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p2 = Parameter("titi")
         self.params.setParameter("plap",
                                  p2,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 2
         l = [pm.getGlobalVar() for pm in l]
         assert p1 in l
         assert p2 in l
 
-    def test_setParameterOverrideParameterInLoader(self):
+    def test_setParameterOverrideParameterInAddon(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p2 = Parameter("titi")
         self.params.setParameter("plop",
                                  p2,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 1
         l = [pm.getGlobalVar() for pm in l]
         assert p2 in l
 
-    def test_setParameterMoveAParameterBetweenDifferentLoader(self):
+    def test_setParameterMoveAParameterBetweenDifferentAddon(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p2 = Parameter("tutu")
         self.params.setParameter("plip",
                                  p2,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p3 = Parameter("tata")
         self.params.setParameter("plip",
                                  p3,
                                  local_param=False,
-                                 origin_loader="loader B")
+                                 origin_addon="addon B")
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 1
         l = [pm.getGlobalVar() for pm in l]
         assert p1 in l
 
-        l = self.params.getLoaderNodes("loader B")
+        l = self.params.getAddonNodes("addon B")
         assert len(l) == 1
         l = [pm.getGlobalVar() for pm in l]
         assert p3 in l
 
-    def test_setParameterMoveLastPArameterBetweenDifferentLoader(self):
+    def test_setParameterMoveLastPArameterBetweenDifferentAddon(self):
         p2 = Parameter("tutu")
         self.params.setParameter("plip",
                                  p2,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p3 = Parameter("tata")
         self.params.setParameter("plip",
                                  p3,
                                  local_param=False,
-                                 origin_loader="loader B")
+                                 origin_addon="addon B")
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 0
 
-        l = self.params.getLoaderNodes("loader B")
+        l = self.params.getAddonNodes("addon B")
         assert len(l) == 1
         l = [pm.getGlobalVar() for pm in l]
         assert p3 in l
 
-    def test_clearFrozenNodeLoaderDoesNotExist(self):
+    def test_clearFrozenNodeAddonDoesNotExist(self):
         self.params.clearFrozenNode("plop")
 
     def test_clearFrozenNodeFrozenNodeWithGlobalVarSet(self):
@@ -829,34 +829,34 @@ class TestParameterManager(object):
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A",
+                                 origin_addon="addon A",
                                  freeze=True)
-        self.params.clearFrozenNode("loader A")
+        self.params.clearFrozenNode("addon A")
         assert self.params.hasParameter("plop")
-        assert "loader A" in self.params.loaderGlobalVar
+        assert "addon A" in self.params.addonGlobalVar
         self.params.unsetParameter("plop")
         assert not self.params.hasParameter("plop")
-        assert "loader A" not in self.params.loaderGlobalVar
+        assert "addon A" not in self.params.addonGlobalVar
 
     def test_clearFrozenNodeFrozenNodeWithoutVarSet(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A",
+                                 origin_addon="addon A",
                                  freeze=True)
         self.params.unsetParameter("plop")
         assert not self.params.hasParameter("plop")
-        assert "loader A" in self.params.loaderGlobalVar
-        self.params.clearFrozenNode("loader A")
-        assert "loader A" not in self.params.loaderGlobalVar
+        assert "addon A" in self.params.addonGlobalVar
+        self.params.clearFrozenNode("addon A")
+        assert "addon A" not in self.params.addonGlobalVar
 
     def test_clearFrozenNodeFrozenNodeWithLocalVarSet(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A",
+                                 origin_addon="addon A",
                                  freeze=True)
         p2 = Parameter("tutu")
         self.params.setParameter("plop",
@@ -865,9 +865,9 @@ class TestParameterManager(object):
         self.params.unsetParameter("plop",
                                    local_param=False,
                                    explore_other_scope=False)
-        assert "loader A" in self.params.loaderGlobalVar
-        self.params.clearFrozenNode("loader A")
-        assert "loader A" not in self.params.loaderGlobalVar
+        assert "addon A" in self.params.addonGlobalVar
+        self.params.clearFrozenNode("addon A")
+        assert "addon A" not in self.params.addonGlobalVar
         assert self.params.hasParameter("plop")
 
     # #
@@ -1376,7 +1376,7 @@ class TestParameterManager(object):
                                        explore_other_scope=False)
 
     # unsetParameter, try to remove an existing global one, not removable
-    # with loader dependancies
+    # with addon dependancies
     def test_parameterManagerUnsetParameter1(self):
         param = self.params.setParameter("plop",
                                          Parameter("titi"),
@@ -1387,7 +1387,7 @@ class TestParameterManager(object):
                                        local_param=False,
                                        explore_other_scope=False)
 
-    # unsetParameter, try to remove an existing global one, with loader
+    # unsetParameter, try to remove an existing global one, with addon
     # dependancies and force
     def test_parameterManagerUnsetParameter2(self):
         self.params.setParameter("plop",
@@ -1453,67 +1453,67 @@ class TestParameterManager(object):
                                        local_param=True,
                                        explore_other_scope=False)
 
-    def test_unsetParameterLastParameterForLoader(self):
+    def test_unsetParameterLastParameterForAddon(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p = self.params.unsetParameter("plop")
         assert p is p1
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 0
 
-    def test_unsetParameterRemainParameterForLoader(self):
+    def test_unsetParameterRemainParameterForAddon(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p2 = Parameter("titi")
         self.params.setParameter("plup",
                                  p2,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
         p = self.params.unsetParameter("plop")
         assert p is p1
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 1
         l = [pm.getGlobalVar() for pm in l]
         assert p2 in l
 
-    def test_unsetParameterLastFrozenParameterForLoader(self):
+    def test_unsetParameterLastFrozenParameterForAddon(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A",
+                                 origin_addon="addon A",
                                  freeze=True)
 
         p = self.params.unsetParameter("plop")
         assert p is p1
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 1
         assert not l[0].hasGlobalVar()
 
-    def test_unsetParameterLastFrozenParameterForLoaderWithUnfreeze(self):
+    def test_unsetParameterLastFrozenParameterForAddonWithUnfreeze(self):
         p1 = Parameter("titi")
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A",
+                                 origin_addon="addon A",
                                  freeze=True)
 
         p = self.params.unsetParameter("plop", unfreeze=True)
         assert p is p1
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 0
 
     def test_unsetParameterTryToUnfreezeLocal(self):
@@ -1531,7 +1531,7 @@ class TestParameterManager(object):
         self.params.setParameter("plop",
                                  p1,
                                  local_param=False,
-                                 origin_loader="loader A",
+                                 origin_addon="addon A",
                                  freeze=True)
 
         self.params.unsetParameter("plop", unfreeze=False)
@@ -1981,16 +1981,16 @@ class TestParameterManager(object):
 
         assert result == {"aa.bb.cc": p1, "ab.ac.cd": p2, "aa.plop": p3}
 
-    def test_getLoaderNodesLoaderDoesNotExist(self):
-        l = self.params.getLoaderNodes("loader A")
+    def test_getAddonNodesAddonDoesNotExist(self):
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 0
 
-    def test_getLoaderNodesLoaderExist(self):
+    def test_getAddonNodesAddonExist(self):
         p = Parameter("titi")
         self.params.setParameter("plop",
                                  p,
                                  local_param=False,
-                                 origin_loader="loader A")
+                                 origin_addon="addon A")
 
-        l = self.params.getLoaderNodes("loader A")
+        l = self.params.getAddonNodes("addon A")
         assert len(l) == 1

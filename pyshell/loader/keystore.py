@@ -18,29 +18,30 @@
 
 from pyshell.loader.parameter import ParameterAbstractLoader
 from pyshell.loader.parameter import registerSet
-from pyshell.loader.parameter import setLoaderPriority
+from pyshell.loader.parameter import setLoadPriority
+from pyshell.loader.parameter import setUnloadPriority
 from pyshell.system.key import CryptographicKeyParameter
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
 
 
-def setKeyLoaderPriority(value, sub_loader_name=None):
-    setLoaderPriority(value, KeyLoader, sub_loader_name)
+def setKeyLoadPriority(value, profile=None):
+    setLoadPriority(value, KeyLoader, profile)
+
+
+def setKeyUnloadPriority(value, profile=None):
+    setUnloadPriority(value, KeyLoader, profile)
 
 
 def registerSetKey(key,
                    obj,
-                   no_error_if_key_exist=False,
-                   override=False,
-                   sub_loader_name=None):
+                   profile=None):
     registerSet(key,
                 obj,
                 KeyLoader,
                 CryptographicKeyParameter,
-                no_error_if_key_exist,
-                override,
-                sub_loader_name)
+                profile)
 
 
 class KeyLoader(ParameterAbstractLoader):
-    def __init__(self):
-        ParameterAbstractLoader.__init__(self, KEY_ATTRIBUTE_NAME)
+    def __init__(self, parent):
+        ParameterAbstractLoader.__init__(self, parent, KEY_ATTRIBUTE_NAME)

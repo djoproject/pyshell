@@ -24,7 +24,8 @@ from pyshell.loader.dependancies import _localGetAndInitCallerModule
 from pyshell.loader.dependancies import registerDependOnAddon
 from pyshell.loader.exception import LoadException
 from pyshell.loader.exception import RegisterException
-from pyshell.loader.utils import GlobalLoader
+from pyshell.loader.masterloader import MasterLoader
+from pyshell.loader.utils import getNearestModule
 from pyshell.system.container import ParameterContainer
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.environment import EnvironmentParameterManager
@@ -33,6 +34,7 @@ from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.constants import STATE_LOADED
 from pyshell.utils.constants import STATE_UNLOADED
+from pyshell.utils.exception import ListOfException
 
 
 DEFAULT_CHECKER = DefaultInstanceArgChecker.getArgCheckerInstance()
@@ -45,30 +47,32 @@ def loader(profile=None):
 class TestDependancies(object):
 
     def teardown_method(self, method):
-        global _loaders
-        if "_loaders" in globals():
-            del _loaders
+        mod = getNearestModule()
+        if hasattr(mod, "_loaders"):
+            delattr(mod, "_loaders")
 
     # # _localGetAndInitCallerModule # #
 
     # _localGetAndInitCallerModule with None profile
     def test_localGetAndInitCallerModule1(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         a = loader()
-        assert "_loaders" in globals()
-        assert isinstance(_loaders, GlobalLoader)
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
+        assert isinstance(_loaders, MasterLoader)
         b = loader()
         assert a is b
         assert isinstance(a, DependanciesLoader)
 
     # _localGetAndInitCallerModule withouth None profile
     def test_localGetAndInitCallerModule2(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         a = loader("plop")
-        assert "_loaders" in globals()
-        assert isinstance(_loaders, GlobalLoader)
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
+        assert isinstance(_loaders, MasterLoader)
         b = loader("plop")
         c = loader()
         assert a is b
@@ -87,12 +91,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with str dependancy_name, profile None
     def testRegisterDependOnAddon2(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name="plop",
                               dependancy_profile=None,
                               profile=None)
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list[DEFAULT_PROFILE_NAME][loader_name]
@@ -101,12 +106,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with unicode dependancy_name, profile None
     def testRegisterDependOnAddon3(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name=u"plop",
                               dependancy_profile=None,
                               profile=None)
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list[DEFAULT_PROFILE_NAME][loader_name]
@@ -122,12 +128,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with str dependancy_profile, profile None
     def testRegisterDependOnAddon5(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name="plop",
                               dependancy_profile="tutu",
                               profile=None)
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list[DEFAULT_PROFILE_NAME][loader_name]
@@ -136,12 +143,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with unicode dependancy_profile, profile None
     def testRegisterDependOnAddon6(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name=u"plop",
                               dependancy_profile=u"tutu",
                               profile=None)
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list[DEFAULT_PROFILE_NAME][loader_name]
@@ -157,12 +165,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with str dependancy_name, profile not None
     def testRegisterDependOnAddon8(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name="plop",
                               dependancy_profile=None,
                               profile="ahah")
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list["ahah"][loader_name]
@@ -171,12 +180,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with unicode dependancy_name, profile not None
     def testRegisterDependOnAddon9(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name=u"plop",
                               dependancy_profile=None,
                               profile="ahah")
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list["ahah"][loader_name]
@@ -192,12 +202,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with str dependancy_profile, profile not None
     def testRegisterDependOnAddon11(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name="plop",
                               dependancy_profile="tutu",
                               profile="uhuh")
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list["uhuh"][loader_name]
@@ -206,12 +217,13 @@ class TestDependancies(object):
 
     # registerDependOnAddon with unicode dependancy_profile, profile not None
     def testRegisterDependOnAddon12(self):
-        global _loaders
-        assert "_loaders" not in globals()
+        mod = getNearestModule()
+        assert not hasattr(mod, "_loaders")
         registerDependOnAddon(dependancy_name=u"plop",
                               dependancy_profile=u"tutu",
                               profile="uhuh")
-        assert "_loaders" in globals()
+        assert hasattr(mod, "_loaders")
+        _loaders = mod._loaders
         loader_name = (DependanciesLoader.__module__ + "." +
                        DependanciesLoader.__name__)
         l = _loaders.profile_list["uhuh"][loader_name]
@@ -224,18 +236,18 @@ class TestDependancies(object):
     def testDependanciesLoaderInit(self):
         assert hasattr(DependanciesLoader, "__init__")
         assert hasattr(DependanciesLoader.__init__, "__call__")
-        assert isinstance(DependanciesLoader(), DependanciesLoader)
+        assert isinstance(DependanciesLoader(None), DependanciesLoader)
         with pytest.raises(TypeError):
-            DependanciesLoader(None)
+            DependanciesLoader(None, None)
 
     # load with zero dep
     def testDependanciesLoaderLoad1(self):
-        dl = DependanciesLoader()
+        dl = DependanciesLoader(None)
         dl.load(None)
 
     # load with dep and ADDONLIST_KEY not in env
     def testDependanciesLoaderLoad2(self):
-        dl = DependanciesLoader()
+        dl = DependanciesLoader(None)
         dl.dep.append(("addons.plop", None,))
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
@@ -246,7 +258,7 @@ class TestDependancies(object):
     # load with dep, ADDONLIST_KEY defined in env, with dependancy_name
     # not satisfied
     def testDependanciesLoaderLoad3(self):
-        dl = DependanciesLoader()
+        dl = DependanciesLoader(None)
         dl.dep.append(("addons.plop", None,))
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
@@ -256,13 +268,16 @@ class TestDependancies(object):
             ADDONLIST_KEY,
             EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
-        with pytest.raises(LoadException):
+        with pytest.raises(ListOfException) as loe:
             dl.load(pc)
+        
+        assert len(loe.value.exceptions) is 1
+        assert isinstance(loe.value.exceptions[0], LoadException)
 
     # load with dep, ADDONLIST_KEY defined in env, with dependancy_name
     # satisfied, dependancy_profile not satisfied
     def testDependanciesLoaderLoad4(self):
-        dl = DependanciesLoader()
+        dl = DependanciesLoader(None)
         dl.dep.append(("addons.plop", "profile.plap",))
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
@@ -272,16 +287,19 @@ class TestDependancies(object):
             ADDONLIST_KEY,
             EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
-        loader = GlobalLoader()
+        loader = MasterLoader("test.addon.name")
         param.getValue()["addons.plop"] = loader
         loader.profile_list[DEFAULT_PROFILE_NAME] = (None, STATE_LOADED,)
-        with pytest.raises(LoadException):
+        with pytest.raises(ListOfException) as loe:
             dl.load(pc)
+
+        assert len(loe.value.exceptions) is 1
+        assert isinstance(loe.value.exceptions[0], LoadException)
 
     # load with dep, ADDONLIST_KEY defined in env, with dependancy_name
     # satisfied, dependancy_profile satisfied, loaded
     def testDependanciesLoaderLoad5(self):
-        dl = DependanciesLoader()
+        dl = DependanciesLoader(None)
         dl.dep.append(("addons.plop", "profile.plap",))
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
@@ -291,7 +309,7 @@ class TestDependancies(object):
             ADDONLIST_KEY,
             EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
-        loader = GlobalLoader()
+        loader = MasterLoader("test.addon.name")
         param.getValue()["addons.plop"] = loader
         loader.profile_list["profile.plap"] = (None, STATE_LOADED,)
         dl.load(pc)
@@ -299,7 +317,7 @@ class TestDependancies(object):
     # load with dep, ADDONLIST_KEY defined in env, with dependancy_name
     # satisfied, dependancy_profile satisfied, not loaded
     def testDependanciesLoaderLoad6(self):
-        dl = DependanciesLoader()
+        dl = DependanciesLoader(None)
         dl.dep.append(("addons.plop", "profile.plap",))
         pc = ParameterContainer()
         pc.registerParameterManager("environment",
@@ -309,8 +327,11 @@ class TestDependancies(object):
             ADDONLIST_KEY,
             EnvironmentParameter(value={}, settings=env_settings),
             local_param=False)
-        loader = GlobalLoader()
+        loader = MasterLoader("test.addon.name")
         param.getValue()["addons.plop"] = loader
         loader.profile_list["profile.plap"] = (None, STATE_UNLOADED,)
-        with pytest.raises(LoadException):
+        with pytest.raises(ListOfException) as loe:
             dl.load(pc)
+
+        assert len(loe.value.exceptions) is 1
+        assert isinstance(loe.value.exceptions[0], LoadException)
