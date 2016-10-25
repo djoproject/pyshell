@@ -348,7 +348,7 @@ def printException(exception, prefix=None, suffix=None):
                                suffix=suffix))
 
 
-def getPrinterFromExceptionSeverity(severity):  # TODO test it
+def getPrinterFromExceptionSeverity(severity):
     # TODO severity have to be an integer
 
     printer = Printer.getInstance()

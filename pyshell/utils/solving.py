@@ -16,14 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO
-#   mapDashedParams does not use tries yet
-#       convert it
-#       add test for that
-#       check old test (everything should be ok)
-
-#       need to refactore argFeeder before to do that
-
 from tries import multiLevelTries
 from tries.exception import triesException
 
@@ -182,7 +174,8 @@ class Solver(object):
                           "type 'help' to get the list of commands")
                 raise DefaultPyshellException(excmsg, USER_WARNING)
 
-            # TODO put the found tokens with the 'help' command
+            # TODO improve the help message build here, use the found tokens
+            # to suggest help command to use
             token_found = str(token_list[search_result.getTokenFoundCount()])
             excmsg = ("("+self.__class__.__name__+") _solveCommands, unknown "
                       "command '"+" ".join(token_list)+"', token '" +
@@ -275,7 +268,7 @@ def _mapDashedParams(input_args, arg_type_map, param_spotted):
         param_name = input_args[index][1:]
 
         # remove false param
-        if param_name not in arg_type_map:  # TODO should use tries
+        if param_name not in arg_type_map:
             continue
 
         # manage last met param
@@ -293,7 +286,7 @@ def _mapDashedParams(input_args, arg_type_map, param_spotted):
             not_used_args.extend(input_args[0:index])
 
         current_name = param_name
-        current_param = arg_type_map[param_name]  # TODO should use tries
+        current_param = arg_type_map[param_name]
         current_index = index
 
     # never found any valid and existing param
