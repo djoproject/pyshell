@@ -122,11 +122,21 @@ class EnvironmentParameter(Parameter):
         if not hasattr(values, "__iter__"):
             values = (values,)
 
-        # remove first occurence of each value
+        # nothing to remove
+        if len(values) == 0:
+            return
+
         values = self.settings.getChecker().getValue(values)
+
+        # doing a reverse allow to remove from the end
+        self.value.reverse()
         for v in values:
             if v in self.value:
-                self.value.remove(v)
+                try:
+                    self.value.remove(v)
+                except ValueError:
+                    pass  # do not care if the value does not exist in the list
+        self.value.reverse()
 
     def setValue(self, value):
         self.settings._raiseIfReadOnly(self.__class__.__name__, "setValue")

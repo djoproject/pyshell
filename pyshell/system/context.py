@@ -61,21 +61,23 @@ class ContextParameter(EnvironmentParameter, SelectableValuable):
 
         values = _convertToSetList(values)
 
-        # compute the value to remove, only the existing values will remain
+        # compute the list of values to remove, only the existing values
+        # will be kept
         new_values = []
         for v in values:
             if v in self.value:
                 new_values.append(v)
 
+        # the remove will do nothing, abort
         if len(new_values) == 0:
             return
 
         # must stay at least one item in list
         if (len(self.value) - len(new_values)) == 0:
             raise ParameterException("(ContextParameter) removeValues, can "
-                                     "remove all the value in this context, "
-                                     "at least one value must stay in the "
-                                     "list")
+                                     "not remove all the value in this "
+                                     "context, at least one value must stay in"
+                                     " the list")
 
         # remove
         EnvironmentParameter.removeValues(self, new_values)
