@@ -20,9 +20,9 @@
 from pyshell.arg.argchecker import DefaultInstanceArgChecker as DefaultArgs
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
 from pyshell.system.procedure import FileProcedure
 
 # ## COMMAND SECTION ## #

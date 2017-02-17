@@ -44,7 +44,7 @@ def tryToGetAddonFromParameters(parameters, name):
 
 def tryToImportLoaderFromFile(name):
     try:
-        mod = __import__(name, fromlist=["_loaders"])
+        mod = __import__(name, fromlist=["_loaders"], level=0)
     except ImportError as ie:
         raise Exception(
             "fail to load addon '" +

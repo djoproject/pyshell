@@ -165,7 +165,15 @@ class ParameterTriesNode(object):
     def isFrozen(self):
         return self.starting_hash is not None
 
-    def unfreeze(self):
+    def unfreeze(self, origin_addon):
+        if not self.isFrozen():
+            return
+
+        if self.origin_addon != origin_addon:
+            excmsg = ("(ParameterTriesNode) unfreeze, try to unfreeze with "
+                      "the wrong key: '%s'" % origin_addon)
+            raise ParameterException(excmsg)
+
         self.starting_hash = None
 
     def getAddonOrigin(self):
@@ -173,6 +181,8 @@ class ParameterTriesNode(object):
 
 
 class ParameterManager(Flushable):
+    # TODO for the class name in the exception use self.__class__.__name__
+    # TODO should this class be abstract ?
 
     def __init__(self, parent=None):
         self._internalLock = Lock()
@@ -249,7 +259,9 @@ class ParameterManager(Flushable):
 
     def isAnAllowedType(self, value):  # XXX to override if needed
         # why not using isinstance ? because children class are not allowed.
-        # return isinstance(value, self.getAllowedType())
+        # WARNING: autopep8 seems to replace the line with isinstance...
+        # valid: return type(value) is self.getAllowedType()
+        # invalid: return isinstance(value, self.getAllowedType())
         return type(value) is self.getAllowedType()
 
     def _extractParameter(self, value):
@@ -310,10 +322,10 @@ class ParameterManager(Flushable):
                                         origin_addon=origin_addon,
                                         freeze=freeze)
 
-            # TODO (issue #83) an addon should not be able to steal a parameter.
+            # TODO (issue #83) an addon should not be able to steal a parameter
             # because of the new politic, this is now forbidden
             if (old_addon_origin is not None and
-               old_addon_origin != origin_addon):
+                    old_addon_origin != origin_addon):
                 self.addonGlobalVar[old_addon_origin].remove(parameter_node)
 
                 if len(self.addonGlobalVar[old_addon_origin]) == 0:
@@ -412,6 +424,7 @@ class ParameterManager(Flushable):
                        local_param=True,
                        explore_other_scope=True,
                        force=False,
+                       origin_addon=None,
                        unfreeze=False):
 
         if local_param and not explore_other_scope and unfreeze:
@@ -467,19 +480,26 @@ class ParameterManager(Flushable):
                         local_param = not local_param
                         continue
 
-                    origin_addon = parameter_node.getAddonOrigin()
+                    if origin_addon is None:
+                        # TODO should be in constant
+                        origin_addon = "pyshell.addons.system"
+
+                    # TODO check origin_addon provided
+                    #   if uncheck is True
+
+                    actual_origin_addon = parameter_node.getAddonOrigin()
                     param = parameter_node.getGlobalVar()
                     parameter_node.unsetGlobalVar(force)
 
                     if unfreeze:
-                        parameter_node.unfreeze()
+                        parameter_node.unfreeze(origin_addon)
 
                     if not parameter_node.isFrozen():
-                        self.addonGlobalVar[origin_addon].remove(
+                        self.addonGlobalVar[actual_origin_addon].remove(
                             parameter_node)
 
-                        if len(self.addonGlobalVar[origin_addon]) == 0:
-                            del self.addonGlobalVar[origin_addon]
+                        if len(self.addonGlobalVar[actual_origin_addon]) == 0:
+                            del self.addonGlobalVar[actual_origin_addon]
 
                     if parameter_node.isRemovable():
                         self.mltries.remove(parameter_node.mltries_key)
@@ -554,6 +574,20 @@ class ParameterManager(Flushable):
         return to_ret
 
     @synchronous()
+    def getAssociatedAddon(self, string_path):
+        advanced_result = self._getAdvanceResult("hasParameter",
+                                                 string_path,
+                                                 False,
+                                                 True,
+                                                 True)
+
+        if not advanced_result.isValueFound():
+            return None
+
+        parameter_node = advanced_result.getValue()
+        return parameter_node.getAddonOrigin()
+
+    @synchronous()
     def getAddonNodes(self, origin_addon):
         if origin_addon in self.addonGlobalVar:
             return tuple(self.addonGlobalVar[origin_addon])
@@ -569,7 +603,7 @@ class ParameterManager(Flushable):
         node_list = list(addon_node_set)
 
         for node in node_list:
-            node.unfreeze()
+            node.unfreeze(origin_addon)
 
             if not node.hasGlobalVar():
                 addon_node_set.remove(node)

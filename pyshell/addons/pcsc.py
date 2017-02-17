@@ -56,11 +56,11 @@ from pyshell.arg.argchecker import IntegerArgChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.argchecker import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerSetTempPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
-from pyshell.loader.parameter import registerSetEnvironment
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerSetTempPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
+from pyshell.register.parameter import registerEnvironment
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import LIBRARY_ERROR
@@ -575,7 +575,7 @@ def monitorData(enable):
 
 # # register ENVIRONMENT # #
 
-registerSetEnvironment(
+registerEnvironment(
     env_key="pcsc_autoload",
     env=EnvironmentParameter(
         value=True,
@@ -584,7 +584,7 @@ registerSetEnvironment(
     no_error_if_key_exist=True,
     override=False)
 
-registerSetEnvironment(
+registerEnvironment(
     env_key="pcsc_contextready",
     env=EnvironmentParameter(
         value=False,
@@ -593,7 +593,7 @@ registerSetEnvironment(
     no_error_if_key_exist=True,
     override=True)
 
-registerSetEnvironment(
+registerEnvironment(
     env_key="pcsc_autoconnect",
     env=EnvironmentParameter(
         value=False,
@@ -602,7 +602,7 @@ registerSetEnvironment(
     no_error_if_key_exist=True,
     override=False)
 
-registerSetEnvironment(
+registerEnvironment(
     env_key="pcsc_card_list",
     env=EnvironmentParameter(
         value=[],
@@ -612,7 +612,7 @@ registerSetEnvironment(
     no_error_if_key_exist=True,
     override=True)
 
-registerSetEnvironment(
+registerEnvironment(
     env_key="pcsc_connexionlist",
     env=EnvironmentParameter(
         value=[],

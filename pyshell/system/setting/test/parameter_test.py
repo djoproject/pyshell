@@ -21,6 +21,9 @@ import pytest
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
 from pyshell.system.setting.parameter import ParameterSettings
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 
@@ -37,9 +40,9 @@ class TestParameterSettings(object):
         assert not s.isReadOnly()
         assert s.isRemovable()
         assert s.isTransient()
-        assert s.getProperties() == (("removable", True, ),
-                                     ("readOnly", False, ),
-                                     ("transient", True, ))
+        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True, ),
+                                     (SETTING_PROPERTY_READONLY, False, ),
+                                     (SETTING_PROPERTY_TRANSIENT, True, ))
         assert hash(s) == self.setHash
 
     def test_settings2(self):
@@ -48,9 +51,9 @@ class TestParameterSettings(object):
         assert not s.isReadOnly()
         assert s.isRemovable()
         assert s.isTransient()
-        assert s.getProperties() == (("removable", True, ),
-                                     ("readOnly", False, ),
-                                     ("transient", True, ))
+        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True, ),
+                                     (SETTING_PROPERTY_READONLY, False, ),
+                                     (SETTING_PROPERTY_TRANSIENT, True, ))
         assert hash(s) == self.setHash
 
     def test_settings3(self):
@@ -59,9 +62,9 @@ class TestParameterSettings(object):
         assert not s.isReadOnly()
         assert s.isRemovable()
         assert s.isTransient()
-        assert s.getProperties() == (("removable", True, ),
-                                     ("readOnly", False, ),
-                                     ("transient", True, ))
+        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True, ),
+                                     (SETTING_PROPERTY_READONLY, False, ),
+                                     (SETTING_PROPERTY_TRANSIENT, True, ))
         assert hash(s) == self.setHash
 
     def test_settings4(self):
@@ -318,5 +321,4 @@ class TestParameterGlobalSettings(object):
                                      removable=False,
                                      transient=True)
 
-        with pytest.raises(AttributeError):
-            gs.getGlobalFromLocal()
+        assert gs is gs.getGlobalFromLocal()

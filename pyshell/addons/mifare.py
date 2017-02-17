@@ -21,10 +21,10 @@ from apdu.tag.mifareUltralight import MifareUltralightAPDUBuilder
 from pyshell.arg.argchecker import IntegerArgChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerSetTempPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerSetTempPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
 
 # TODO
 #   ultralight c authentication is missing

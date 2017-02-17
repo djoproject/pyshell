@@ -15,6 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# TODO BUG what if a not hashable value is stored in the parameter?
+#   the list case is managed, but what about the others? e.g. the dict
+#   SOL 1: forbide to have not hashable value into a parameter
+#   SOL 2: forbid only if not transient
+#   SOL 3:
+
+
+from collections import Hashable
 from copy import deepcopy
 
 from pyshell.system.setting.parameter import ParameterGlobalSettings
@@ -25,7 +33,7 @@ from pyshell.utils.abstract.valuable import Valuable
 from pyshell.utils.exception import ParameterException
 
 
-class Parameter(Valuable, Cloneable):  # abstract
+class Parameter(Valuable, Cloneable, Hashable):  # abstract
 
     @staticmethod
     def getInitSettings():

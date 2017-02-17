@@ -21,6 +21,8 @@ from pyshell.arg.argchecker import StringArgChecker
 from pyshell.system.setting.key import KeyGlobalSettings
 from pyshell.system.setting.key import KeyLocalSettings
 from pyshell.system.setting.key import KeySettings
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
 
 
 class TestKeySettings(object):
@@ -43,8 +45,8 @@ class TestKeySettings(object):
     def test_getProperties(self):
         s = KeySettings()
         props = s.getProperties()
-        assert "checker" not in props
-        assert "checkerList" not in props
+        assert SETTING_PROPERTY_CHECKER not in props
+        assert SETTING_PROPERTY_CHECKERLIST not in props
 
     def test_cloneWithoutSource(self):
         zs = KeySettings()

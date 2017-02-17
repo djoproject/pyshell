@@ -27,9 +27,10 @@ from pyshell.arg.argchecker import IntegerArgChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.argchecker import StringArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.context import registerSetContext
-from pyshell.loader.environment import registerSetEnvironment
+from pyshell.register.command import registerCommand
+from pyshell.register.context import registerContext
+from pyshell.register.environment import registerEnvironment
+from pyshell.register.file import enableConfigSaving
 from pyshell.system.context import ContextParameter
 from pyshell.system.environment import EnvironmentParameter
 from pyshell.system.setting.context import ContextGlobalSettings
@@ -45,14 +46,12 @@ from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.constants import DEFAULT_CONFIG_DIRECTORY
-from pyshell.utils.constants import DEFAULT_PARAMETER_FILE
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_VALUE
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
-from pyshell.utils.constants import ENVIRONMENT_PARAMETER_FILE_KEY
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_KEY
 from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_DEFAULT
@@ -86,22 +85,7 @@ settings = EnvironmentGlobalSettings(transient=True,
                                      checker=checker)
 
 param = EnvironmentParameter(value=DEFAULT_CONFIG_DIRECTORY, settings=settings)
-registerSetEnvironment(ENVIRONMENT_CONFIG_DIRECTORY_KEY, param)
-
-##
-
-checker = FilePathArgChecker(exist=None,
-                             readable=True,
-                             writtable=None,
-                             is_file=True)
-
-settings = EnvironmentGlobalSettings(transient=True,
-                                     read_only=False,
-                                     removable=False,
-                                     checker=checker)
-
-param = EnvironmentParameter(value=DEFAULT_PARAMETER_FILE, settings=settings)
-registerSetEnvironment(ENVIRONMENT_PARAMETER_FILE_KEY, param)
+registerEnvironment(ENVIRONMENT_CONFIG_DIRECTORY_KEY, param)
 
 ##
 
@@ -113,7 +97,7 @@ settings = EnvironmentGlobalSettings(transient=False,
 param = EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT,
                              settings=settings)
 
-registerSetEnvironment(ENVIRONMENT_PROMPT_KEY, param)
+registerEnvironment(ENVIRONMENT_PROMPT_KEY, param)
 
 ##
 
@@ -123,7 +107,7 @@ settings = EnvironmentGlobalSettings(transient=False,
                                      checker=IntegerArgChecker(0))
 
 param = EnvironmentParameter(value=TAB_SIZE, settings=settings)
-registerSetEnvironment(ENVIRONMENT_TAB_SIZE_KEY, param)
+registerEnvironment(ENVIRONMENT_TAB_SIZE_KEY, param)
 
 ##
 
@@ -134,7 +118,7 @@ param = EnvironmentParameter(
                                        removable=False,
                                        checker=default_arg_checker))
 
-registerSetEnvironment(ENVIRONMENT_LEVEL_TRIES_KEY, param)
+registerEnvironment(ENVIRONMENT_LEVEL_TRIES_KEY, param)
 
 ##
 
@@ -146,7 +130,7 @@ settings = EnvironmentGlobalSettings(transient=False,
 param = EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT,
                              settings=settings)
 
-registerSetEnvironment(ENVIRONMENT_SAVE_KEYS_KEY, param)
+registerEnvironment(ENVIRONMENT_SAVE_KEYS_KEY, param)
 
 ##
 
@@ -164,7 +148,7 @@ settings = EnvironmentGlobalSettings(
 param = EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE,
                              settings=settings)
 
-registerSetEnvironment(ENVIRONMENT_HISTORY_FILE_NAME_KEY, param)
+registerEnvironment(ENVIRONMENT_HISTORY_FILE_NAME_KEY, param)
 
 ##
 
@@ -177,7 +161,7 @@ settings = EnvironmentGlobalSettings(
 param = EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE,
                              settings=settings)
 
-registerSetEnvironment(ENVIRONMENT_USE_HISTORY_KEY, param)
+registerEnvironment(ENVIRONMENT_USE_HISTORY_KEY, param)
 
 ##
 
@@ -190,7 +174,7 @@ settings = EnvironmentGlobalSettings(
 param = EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT,
                              settings=settings)
 
-registerSetEnvironment(ENVIRONMENT_ADDON_TO_LOAD_KEY, param)
+registerEnvironment(ENVIRONMENT_ADDON_TO_LOAD_KEY, param)
 
 ##
 
@@ -200,7 +184,7 @@ settings = EnvironmentGlobalSettings(transient=True,
                                      checker=default_arg_checker)
 
 param = EnvironmentParameter(value={}, settings=settings)
-registerSetEnvironment(ADDONLIST_KEY, param)
+registerEnvironment(ADDONLIST_KEY, param)
 
 ##
 
@@ -215,7 +199,7 @@ settings.setDefaultIndex(0)
 settings.setIndex(1)
 settings.setReadOnly(True)
 
-registerSetContext(DEBUG_ENVIRONMENT_NAME, param)
+registerContext(DEBUG_ENVIRONMENT_NAME, param)
 
 ##
 
@@ -232,7 +216,7 @@ param = ContextParameter(value=values, settings=settings)
 settings.setDefaultIndex(0)
 settings.setReadOnly(True)
 
-registerSetContext(CONTEXT_EXECUTION_KEY, param)
+registerContext(CONTEXT_EXECUTION_KEY, param)
 
 ##
 
@@ -250,7 +234,7 @@ param = ContextParameter(value=values, settings=settings)
 settings.setDefaultIndex(0)
 settings.setReadOnly(True)
 
-registerSetContext(CONTEXT_COLORATION_KEY, param)
+registerContext(CONTEXT_COLORATION_KEY, param)
 
 ##
 
@@ -267,7 +251,7 @@ def loadAddonFun(name, parameters, sub_addon=None, addon_dico=None):
     # load and register
     if addon_dico is not None:
         addon_dico.getValue()[name] = loader
-    loader.load(parameters, sub_addon)
+    loader.load(container=parameters, profile_name=sub_addon)
 
     # TODO shouldn't print the message if the addon is already loaded
     notice(name + " loaded !")
@@ -299,3 +283,4 @@ def loadAddonOnStartUp(addon_list_on_start_up, params, addon_dico=None):
 
 registerCommand(("addon", "load",), pro=loadAddonFun)
 registerCommand(("addon", "onstartup", "load",), pro=loadAddonOnStartUp)
+enableConfigSaving()

@@ -28,9 +28,9 @@ from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import IntegerArgChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.printing import formatOrange
 from pyshell.utils.printing import formatRed

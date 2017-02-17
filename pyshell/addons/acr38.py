@@ -24,9 +24,9 @@ from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.argchecker import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import EngineInterruptionException
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerSetTempPrefix
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerSetTempPrefix
 
 
 @shellMethod(anything=ListArgChecker(

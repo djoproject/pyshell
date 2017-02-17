@@ -21,6 +21,9 @@ from pyshell.arg.argchecker import ListArgChecker
 from pyshell.system.environment import EnvironmentSettings
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
+from pyshell.utils.constants import SETTING_PROPERTY_DEFAULTINDEX
+from pyshell.utils.constants import SETTING_PROPERTY_INDEX
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENTINDEX
 from pyshell.utils.exception import ParameterException
 
 
@@ -160,11 +163,11 @@ class ContextSettings(EnvironmentSettings):
 
     def getProperties(self):
         prop = list(EnvironmentSettings.getProperties(self))
-        prop.append(("transientIndex", self.isTransientIndex()))
-        prop.append(("defaultIndex", self.getDefaultIndex()))
+        prop.append((SETTING_PROPERTY_TRANSIENTINDEX, self.isTransientIndex()))
+        prop.append((SETTING_PROPERTY_DEFAULTINDEX, self.getDefaultIndex()))
 
         if not self.isTransientIndex():
-            prop.append(("index", self.getIndex()))
+            prop.append((SETTING_PROPERTY_INDEX, self.getIndex()))
 
         return tuple(prop)
 

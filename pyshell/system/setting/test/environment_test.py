@@ -24,6 +24,11 @@ from pyshell.system.setting.environment import DEFAULT_CHECKER
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.system.setting.environment import EnvironmentSettings
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 
@@ -153,22 +158,22 @@ class TestEnvironmentSettings(object):
         s = EnvironmentSettings(checker=DEFAULT_CHECKER)
         assert s.isListChecker()
 
-        assert s.getProperties() == (('removable', True),
-                                     ('readOnly', False),
-                                     ('transient', True),
-                                     ('checker', 'any'),
-                                     ('checkerList', True))
+        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
+                                     (SETTING_PROPERTY_READONLY, False),
+                                     (SETTING_PROPERTY_TRANSIENT, True),
+                                     (SETTING_PROPERTY_CHECKER, 'any'),
+                                     (SETTING_PROPERTY_CHECKERLIST, True))
 
     def test_getPropertiesNotAListChecker(self):
         int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
         s = EnvironmentSettings(checker=int_checker)
         assert not s.isListChecker()
 
-        assert s.getProperties() == (('removable', True),
-                                     ('readOnly', False),
-                                     ('transient', True),
-                                     ('checker', 'integer'),
-                                     ('checkerList', False))
+        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
+                                     (SETTING_PROPERTY_READONLY, False),
+                                     (SETTING_PROPERTY_TRANSIENT, True),
+                                     (SETTING_PROPERTY_CHECKER, 'integer'),
+                                     (SETTING_PROPERTY_CHECKERLIST, False))
 
     def test_cloneWithoutSource(self):
         int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()

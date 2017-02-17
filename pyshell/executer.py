@@ -24,7 +24,6 @@ from contextlib import contextmanager
 from tries import multiLevelTries
 from tries.exception import pathNotExistsTriesException
 
-from pyshell.addons import parameter
 from pyshell.addons import std
 from pyshell.addons import system
 from pyshell.system.container import ParameterContainer
@@ -42,9 +41,9 @@ from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
+from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
-from pyshell.utils.constants import ENVIRONMENT_PARAMETER_FILE_KEY
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
@@ -65,14 +64,17 @@ try:
 except:
     pass
 
-# TODO
+# TODO 1
 #   the second part of the __init__ is not an init part
 #   it is more like the first part of the running.
 #   So it could move in the main loop method or in another method.
 
+# TODO it should be possible to choose the profile to load wiht system
+#   there is no choice by default.
+
 
 class CommandExecuter():
-    def __init__(self, param_file_path=None, outside_args=None):
+    def __init__(self, param_directory_path=None, outside_args=None):
         self.params = ParameterContainer()
         self._initContainers()
         self.promptWaitingValuable = SimpleValuable(False)
@@ -80,7 +82,7 @@ class CommandExecuter():
         atexit.register(self._atExit)
 
         self._loadSystemAddon()
-        self._initParams(param_file_path, outside_args, system._loaders)
+        self._initParams(param_directory_path, outside_args, system._loaders)
         self._startUp()
 
     def _initContainers(self):
@@ -100,7 +102,7 @@ class CommandExecuter():
         loaded = False
         with self.exceptionManager("fail to load addon "
                                    "'pyshell.addons.system'"):
-            system._loaders.load(self.params)
+            system._loaders.load(container=self.params, profile_name=None)
             loaded = True
 
         # load addon system (if not loaded, can't do anything)
@@ -109,7 +111,7 @@ class CommandExecuter():
                   " ==> exit.")  # noqa
             exit(-1)
 
-    def _initParams(self, param_file_path, outside_args, system_loader):
+    def _initParams(self, param_directory_path, outside_args, system_loader):
         env = self.params.environment
 
         # because the system addon is loaded manually, need to register it
@@ -117,13 +119,14 @@ class CommandExecuter():
         if loaded_addon is not None:
             loaded_addon.getValue()["pyshell.addons.system"] = system_loader
 
-        # set the parameter file
-        if param_file_path is not None:
-            parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
-                                              perfect_match=True)
+        # set the parameter directory
+        if param_directory_path is not None:
+            parameter_directory = env.getParameter(
+                ENVIRONMENT_CONFIG_DIRECTORY_KEY,
+                perfect_match=True)
 
-            if parameter_file is not None:
-                parameter_file.setValue(param_file_path)
+            if parameter_directory is not None:
+                parameter_directory.setValue(param_directory_path)
 
         # these variable has to be defined here, because they have to be
         # local type.  So it is not possible to declare them in an addon
@@ -144,18 +147,7 @@ class CommandExecuter():
         loaded_addons = env.getParameter(ADDONLIST_KEY,
                                          perfect_match=True)
 
-        # load parameter
-        parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
-                                          perfect_match=True)
-
-        with self.exceptionManager("fail to load parameter file"):
-            system.loadAddonFun("pyshell.addons.parameter",
-                                self.params,
-                                None,
-                                loaded_addons)
-            parameter.loadParameter(parameter_file, self.params)
-
-        # load addon
+        # load startup addon
         addon_to_load = env.getParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
                                          perfect_match=True)
 
@@ -168,30 +160,53 @@ class CommandExecuter():
         # load history
         use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
                                        perfect_match=True)
+        parameter_directory = env.getParameter(
+            ENVIRONMENT_CONFIG_DIRECTORY_KEY,
+            perfect_match=True)
         history_file = env.getParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
                                         perfect_match=True)
 
         with self.exceptionManager("fail to load history file"):
-            std.historyLoad(use_history, history_file)
+            std.historyLoad(use_history, parameter_directory, history_file)
 
     def _atExit(self):
         env = self.params.environment
 
-        # parameter save
-        parameter_file = env.getParameter(ENVIRONMENT_PARAMETER_FILE_KEY,
-                                          perfect_match=True)
-
-        with self.exceptionManager("fail to save parameters"):
-            parameter.saveParameter(parameter_file, self.params)
-
         # history save
         use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
                                        perfect_match=True)
+        parameter_directory = env.getParameter(
+            ENVIRONMENT_CONFIG_DIRECTORY_KEY,
+            perfect_match=True)
         history_file = env.getParameter(ENVIRONMENT_HISTORY_FILE_NAME_KEY,
                                         perfect_match=True)
 
         with self.exceptionManager("fail to save history"):
-            std.historySave(use_history, history_file)
+            std.historySave(use_history, parameter_directory, history_file)
+
+        # unload every addon to trigger config file saving
+        # TODO (issue #88) loaded addon will come from container
+        loaded_addon = env.getParameter(ADDONLIST_KEY, perfect_match=True)
+        addon_system = None
+        if loaded_addon is not None:
+            for addon_name, addon_loader in loaded_addon.getValue().items():
+                if addon_name == "pyshell.addons.system":
+                    addon_system = addon_loader
+                    continue
+
+                error_msg = "fail to unload addon '%s'" % addon_name
+                with self.exceptionManager(error_msg):
+                    addon_loader.unload(container=self.params,
+                                        profile_name=None)
+
+            # TODO (issue #90) addon system has to be the last to be unloaded
+            # because it contains the commands tries.  It will be solved when
+            # commands will have their own manager.
+            if addon_system is not None:
+                error_msg = "fail to unload addon 'pyshell.addons.system'"
+                with self.exceptionManager(error_msg):
+                    addon_system.unload(container=self.params,
+                                        profile_name=None)
 
     def _getPrompt(self):
         env = self.params.environment

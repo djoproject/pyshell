@@ -23,14 +23,15 @@ from pyshell.executer import CommandExecuter
 
 
 def usage():
-    print("\nexecuter.py [-h -p <parameter file> -i <script file> -s]")  # noqa
+    print("\nexecuter.py [-h -p <parameter directory> -s <script file>"  # noqa
+          " -n -g <granularity integer>]")
 
 
 def help():
     usage()
     print("\nPython Custom Shell Executer v1.0\n\n"  # noqa
           "-h, --help:        print this help message\n"
-          "-p, --parameter:   define a custom parameter file\n"
+          "-p, --parameter:   define a custom parameter directory\n"
           "-s, --script:      define a script to execute\n"
           "-n, --no-exit:     start the shell after the script\n"
           "-g, --granularity: set the error granularity for file script\n")
@@ -52,7 +53,7 @@ if __name__ == "__main__":
         print("\nto get help: executer.py -h\n")  # noqa
         sys.exit(2)
 
-    ParameterFile = None
+    ParameterDirectory = None
     ScriptFile = None
     ExitAfterScript = True
     Granularity = float("inf")
@@ -62,7 +63,7 @@ if __name__ == "__main__":
             help()
             exit()
         elif o in ("-p", "--parameter"):
-            ParameterFile = a
+            ParameterDirectory = a
         elif o in ("-s", "--script"):
             ScriptFile = a
         elif o in ("-n", "--no-exit"):
@@ -78,7 +79,7 @@ if __name__ == "__main__":
             print("unknown parameter: "+str(o))  # noqa
 
     # run basic instance
-    executer = CommandExecuter(ParameterFile, args)
+    executer = CommandExecuter(ParameterDirectory, args)
 
     if ScriptFile is not None:
         executer.executeFile(ScriptFile, Granularity)

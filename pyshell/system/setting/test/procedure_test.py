@@ -23,6 +23,11 @@ from pyshell.system.setting.procedure import DEFAULT_CHECKER
 from pyshell.system.setting.procedure import ProcedureGlobalSettings
 from pyshell.system.setting.procedure import ProcedureLocalSettings
 from pyshell.system.setting.procedure import ProcedureSettings
+from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
+from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 
@@ -172,11 +177,12 @@ class TestProcedureSettings(object):
     def test_getProperties(self):
         s = ProcedureSettings(error_granularity=42,
                               enable_on=ProcedureSettings.ENABLE_ON_PROCESS)
-        assert s.getProperties() == (('removable', True),
-                                     ('readOnly', False),
-                                     ('transient', True),
-                                     ('granularity', 42),
-                                     ('enableon', 'enable_on_pro'))
+        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
+                                     (SETTING_PROPERTY_READONLY, False),
+                                     (SETTING_PROPERTY_TRANSIENT, True),
+                                     (SETTING_PROPERTY_GRANULARITY, 42),
+                                     (SETTING_PROPERTY_ENABLEON,
+                                      'enable_on_pro'))
 
     def test_getChecker(self):
         s = ProcedureSettings()

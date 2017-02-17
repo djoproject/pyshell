@@ -19,29 +19,22 @@
 # TODO
 #   don't save property that still have default value
 
-import os
-
 from pyshell.arg.argchecker import BooleanValueArgChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker as DefaultArgs
-from pyshell.arg.argchecker import EnvironmentParameterChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.argchecker import StringArgChecker
 from pyshell.arg.argchecker import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetTempPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetTempPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
 from pyshell.system.context import ContextParameter
 from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.procedure import FileProcedure
 from pyshell.system.variable import VariableParameter
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
-from pyshell.utils.constants import ENVIRONMENT_PARAMETER_FILE_KEY
 from pyshell.utils.constants import PARAMETER_NAME
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
-from pyshell.utils.misc import createParentDirectory
-from pyshell.utils.parsing import escapeString
 from pyshell.utils.postprocess import listFlatResultHandler
 from pyshell.utils.postprocess import listResultHandler
 from pyshell.utils.postprocess import printColumn
@@ -50,6 +43,7 @@ from pyshell.utils.printing import formatBolt
 from pyshell.utils.printing import formatOrange
 
 # # CONSTANT SECTION # #
+# TODO use settings constants from util.constant
 
 AVAILABLE_TYPE = {
     "any":  DefaultArgs.getArgCheckerInstance,
@@ -282,132 +276,6 @@ def listParameter(parameters, key=None):
                                      _parameterGetTitle))
 
     return to_print
-
-
-# TODO remove me as soon as the file loader is finished
-@shellMethod(
-    file_path=EnvironmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
-    parameters=DefaultArgs.getCompleteEnvironmentChecker())
-def loadParameter(file_path, parameters):
-    "load parameters from the settings file"
-
-    if file_path is None:
-        return
-
-    if os.path.exists(file_path.getValue()):
-        afile = FileProcedure(file_path.getValue())
-        afile.settings.neverStopIfErrorOccured()
-        # TODO yeaah, never stop execution BUT there is a problem
-        # if a parameter creation trigger an exception, the "set properties"
-        # will still be executed
-        # think about that
-
-        # need to jump over these setProperties if any exception occurs, create
-        # a method "jumpOverNextXlineIfPreviousCommandWasOnError"
-
-        afile.execute(parameter_container=parameters, args=None)
-    else:
-        saveParameter(file_path, parameters)
-
-
-# TODO remove me as soon as the file loader is finished
-@shellMethod(
-    file_path=EnvironmentParameterChecker(ENVIRONMENT_PARAMETER_FILE_KEY),
-    parameters=DefaultArgs.getCompleteEnvironmentChecker())
-def saveParameter(file_path, parameters):
-    "save not transient parameters to the settings file"
-
-    # TODO is there something to save ?
-    # SOLUTION1 should compare the content of the file, the memory and the
-    #   starting parameter...
-    # SOLUTION2 historized parameters
-    # store old value, when it has been change and by what
-
-    if file_path is None:
-        return
-
-    file_path = file_path.getValue()
-
-    # create directory if needed
-    createParentDirectory(file_path)
-
-    with open(file_path, 'wb') as configfile:
-        for subcontainername in parameters.parameterManagerList:
-            container = getattr(parameters, subcontainername)
-            dico = container.buildDictionnary("",
-                                              local_param=False,
-                                              explore_other_scope=False)
-
-            for key, parameter in dico.items():
-                if parameter.settings.isTransient():
-                    continue
-
-                if parameter.settings.isListChecker():
-                    checker = parameter.settings.checker.checker
-                    values = " ".join(
-                        escapeString(str(x)) for x in parameter.getValue())
-                    configfile.write(subcontainername+" create " +
-                                     checker.getTypeName() +
-                                     " "+key+" "+values +
-                                     " -no_creation_if_exist true"
-                                     " -local_var false\n")
-                else:
-                    checker = parameter.settings.checker
-                    configfile.write(subcontainername +
-                                     " create "+checker.getTypeName() +
-                                     " "+key+" " +
-                                     escapeString(str(parameter.getValue())) +
-                                     " -is_list false"
-                                     " -no_creation_if_exist true"
-                                     " -local_var false\n")
-
-                properties = parameter.settings.getProperties()
-
-                if len(properties) > 0:
-                    # disable readOnly
-                    configfile.write(
-                        subcontainername +
-                        " properties set " +
-                        key +
-                        " readOnly false\n")
-
-                    # set value
-                    if parameter.settings.isListChecker():
-                        configfile.write(
-                            subcontainername +
-                            " set " +
-                            key +
-                            " " +
-                            " ".join(
-                                str(x) for x in parameter.getValue()) +
-                            "\n")
-                    else:
-                        configfile.write(subcontainername +
-                                         " set " +
-                                         key +
-                                         " " +
-                                         str(parameter.getValue()) +
-                                         "\n")
-
-                    read_only_value = False
-                    settings = parameter.settings
-                    for propName, propValue in settings.getProperties():
-                        # TODO skip transient properties, no need to be
-                        # saved...
-
-                        # readonly should always be written on last
-                        if propName.lower() == "readonly":
-                            read_only_value = propValue
-                            continue
-
-                        configfile.write(subcontainername+" properties set " +
-                                         key+" "+propName+" "+str(propValue) +
-                                         "\n")
-                    # TODO don't disable again if already disabled
-                    configfile.write(subcontainername+" properties set " +
-                                     key+" readOnly "+str(read_only_value) +
-                                     "\n")
-                configfile.write("\n")
 
 
 def _createValuesFun(value_type,
@@ -1146,7 +1014,5 @@ registerStopHelpTraversalAt()
 
 # parameter
 registerSetTempPrefix((PARAMETER_NAME, ))
-registerCommand(("save",), pro=saveParameter)
-registerCommand(("load",), pro=loadParameter)
 registerCommand(("list",), pro=listParameter, post=printColumnWithouHeader)
 registerStopHelpTraversalAt()

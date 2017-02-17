@@ -21,6 +21,8 @@ from pyshell.system.setting.environment import EnvironmentSettings
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
 from pyshell.system.setting.parameter import ParameterSettings
+from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
+from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
 from pyshell.utils.exception import ParameterException
 
 
@@ -125,8 +127,8 @@ class ProcedureSettings(EnvironmentSettings):
 
     def getProperties(self):
         prop = list(ParameterSettings.getProperties(self))
-        prop.append(("granularity", self.getErrorGranularity()))
-        prop.append(("enableon", self.getEnableOn()))
+        prop.append((SETTING_PROPERTY_GRANULARITY, self.getErrorGranularity()))
+        prop.append((SETTING_PROPERTY_ENABLEON, self.getEnableOn()))
         return tuple(prop)
 
     def getChecker(self):

@@ -346,9 +346,29 @@ class TestParameterNode(object):
         assert p.isFrozen()
         assert not p.isRemovable()
 
-        p.unfreeze()
+        p.unfreeze("addon 1")
         assert not p.isFrozen()
         assert p.isRemovable()
+
+    def test_unfreezeNotFrozen(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+
+        p.setGlobalVar(param, "addon 1", freeze=False)
+        assert not p.isFrozen()
+
+        p.unfreeze("addon 1")
+        assert not p.isFrozen()
+
+    def test_unfreezeWithWrongKey(self):
+        p = ParameterTriesNode("path")
+        param = Parameter("value")
+
+        p.setGlobalVar(param, "addon 1", freeze=True)
+        assert p.isFrozen()
+
+        with pytest.raises(ParameterException):
+            p.unfreeze("addon 2")
 
 
 # # ParameterManager constructor # #
@@ -1510,7 +1530,9 @@ class TestParameterManager(object):
                                  origin_addon="addon A",
                                  freeze=True)
 
-        p = self.params.unsetParameter("plop", unfreeze=True)
+        p = self.params.unsetParameter("plop",
+                                       unfreeze=True,
+                                       origin_addon="addon A")
         assert p is p1
 
         l = self.params.getAddonNodes("addon A")
@@ -1525,6 +1547,19 @@ class TestParameterManager(object):
                                        local_param=True,
                                        explore_other_scope=False,
                                        unfreeze=True)
+
+    def test_unsetParameterTryToUnfreezeWithWrongAddonKey(self):
+        p1 = Parameter("titi")
+        self.params.setParameter("plop",
+                                 p1,
+                                 local_param=False,
+                                 origin_addon="addon A",
+                                 freeze=True)
+
+        with pytest.raises(ParameterException):
+            self.params.unsetParameter("plop",
+                                       unfreeze=True,
+                                       origin_addon="addon B")
 
     def test_unsetParameterFrozedButUnexistentParameter(self):
         p1 = Parameter("titi")

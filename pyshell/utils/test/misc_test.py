@@ -26,7 +26,6 @@ import pytest
 
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.misc import createParentDirectory
-from pyshell.utils.misc import raiseIfInvalidKeyList
 
 
 def touch(fname, times=None):
@@ -35,34 +34,6 @@ def touch(fname, times=None):
 
 
 class TestMisc(object):
-
-    def test_raiseIfInvalidKeyList1(self):
-        with pytest.raises(DefaultPyshellException):
-            raiseIfInvalidKeyList("toto",
-                                  DefaultPyshellException,
-                                  "package",
-                                  "method")
-
-    def test_raiseIfInvalidKeyList2(self):
-        with pytest.raises(DefaultPyshellException):
-            raiseIfInvalidKeyList(("toto", "tata", u"titi", 42),
-                                  DefaultPyshellException,
-                                  "package",
-                                  "method")
-
-    def test_raiseIfInvalidKeyList3(self):
-        with pytest.raises(DefaultPyshellException):
-            raiseIfInvalidKeyList(("toto", "tata", u"titi", ""),
-                                  DefaultPyshellException,
-                                  "package",
-                                  "method")
-
-    def test_raiseIfInvalidKeyList4(self):
-        assert raiseIfInvalidKeyList(("toto", "tata", u"titi",),
-                                     DefaultPyshellException,
-                                     "package",
-                                     "method") == ("toto", "tata", u"titi",)
-
     def test_createParentDirectory1(self):
         file_path = tempfile.gettempdir() + os.sep + "plop.txt"
         assert os.path.exists(tempfile.gettempdir())

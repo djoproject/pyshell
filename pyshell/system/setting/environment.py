@@ -22,6 +22,8 @@ from pyshell.arg.argchecker import ListArgChecker
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
 from pyshell.system.setting.parameter import ParameterSettings
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
 from pyshell.utils.exception import ParameterException
 
 
@@ -68,6 +70,8 @@ class EnvironmentSettings(ParameterSettings):
         else:
             self.checker = checker
 
+    # TODO this method is not a method defined in the mother class setting
+    # and so it should never be used outside of the class Environment
     def isListChecker(self):
         return isinstance(self.getChecker(), ListArgChecker)
 
@@ -87,11 +91,13 @@ class EnvironmentSettings(ParameterSettings):
         prop = list(ParameterSettings.getProperties(self))
 
         if self.isListChecker():
-            prop.append(("checker", self.getChecker().checker.getTypeName()))
+            prop.append((SETTING_PROPERTY_CHECKER,
+                         self.getChecker().checker.getTypeName()))
         else:
-            prop.append(("checker", self.getChecker().getTypeName()))
+            prop.append((SETTING_PROPERTY_CHECKER,
+                         self.getChecker().getTypeName()))
 
-        prop.append(("checkerList", self.isListChecker()))
+        prop.append((SETTING_PROPERTY_CHECKERLIST, self.isListChecker()))
         return tuple(prop)
 
     def _buildOpposite(self):

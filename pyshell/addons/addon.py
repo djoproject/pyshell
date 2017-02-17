@@ -33,10 +33,10 @@ from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import EnvironmentParameterChecker
 from pyshell.arg.argchecker import StringArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerSetTempPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerSetTempPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
 from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
 from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
@@ -109,7 +109,7 @@ def unloadAddon(name, parameters, sub_addon=None):
     "unload an addon"
 
     addon = tryToGetAddonFromParameters(parameters, name)
-    addon.unload(parameters, sub_addon)
+    addon.unload(container=parameters, profile_name=sub_addon)
     notice(str(name) + " unloaded !")
 
 
@@ -124,14 +124,14 @@ def hardReload(name, parameters, sub_addon=None):
     addon = tryToGetAddonFromDico(addon_dico, name)
 
     # unload addon
-    addon.unload(parameters, sub_addon)
+    addon.unload(container=parameters, profile_name=sub_addon)
 
     # load addon from file
     loader = tryToImportLoaderFromFile(name)
 
     # load and register
     addon_dico[name] = loader
-    loader.load(parameters, sub_addon)
+    loader.load(container=parameters, profile_name=sub_addon)
 
     notice(name + " hard reloaded !")
 

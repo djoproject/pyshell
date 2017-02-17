@@ -16,38 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-
 from pyshell.arg.argchecker import BooleanValueArgChecker
 from pyshell.arg.argchecker import DefaultInstanceArgChecker
 from pyshell.arg.argchecker import EnvironmentParameterChecker
 from pyshell.arg.argchecker import IntegerArgChecker
 from pyshell.arg.decorator import shellMethod
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
-from pyshell.loader.keystore import registerSetKey
-from pyshell.utils.constants import ENVIRONMENT_KEY_STORE_FILE_KEY
-from pyshell.utils.constants import ENVIRONMENT_SAVE_KEYS_KEY
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
+from pyshell.register.keystore import registerKey
 from pyshell.utils.constants import KEYSTORE_SECTION_NAME
-from pyshell.utils.exception import KeyStoreLoadingException
-from pyshell.utils.exception import ListOfException
-from pyshell.utils.misc import createParentDirectory
 from pyshell.utils.postprocess import listFlatResultHandler
 from pyshell.utils.postprocess import printColumn
 from pyshell.utils.printing import formatBolt
 from pyshell.utils.printing import formatGreen
 
-try:
-    pyrev = sys.version_info.major
-except AttributeError:
-    pyrev = sys.version_info[0]
-
-if pyrev == 2:
-    import ConfigParser
-else:
-    import configparser as ConfigParser
 
 # # DECLARATION PART # #
 
@@ -110,88 +93,6 @@ def cleanKeyStore(key_store=None):
     key_store.getValue().removeAll()
 
 
-@shellMethod(
-    file_path=EnvironmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
-    usekey_store=EnvironmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-    key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
-def saveKeyStore(file_path, usekey_store, key_store=None):
-    "save key_store from file"
-
-    if not usekey_store.getValue():
-        return
-
-    file_path = file_path.getValue()
-    key_store = key_store.getValue()
-
-    config = ConfigParser.RawConfigParser()
-    config.add_section(KEYSTORE_SECTION_NAME)
-
-    key_count = 0
-    for k, v in key_store.tries.getKeyValue().items():
-        if v.transient:
-            continue
-
-        config.set(KEYSTORE_SECTION_NAME, k, str(v))
-        key_count += 1
-
-    if key_count == 0 and not os.path.exists(file_path):
-        return
-
-    # create config directory
-    createParentDirectory(file_path)
-
-    # save key store
-    with open(file_path, 'wb') as configfile:
-        config.write(configfile)
-
-
-@shellMethod(
-    file_path=EnvironmentParameterChecker(ENVIRONMENT_KEY_STORE_FILE_KEY),
-    usekey_store=EnvironmentParameterChecker(ENVIRONMENT_SAVE_KEYS_KEY),
-    key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
-def loadKeyStore(file_path, usekey_store, key_store=None):
-    "load key_store from file"
-
-    if not usekey_store.getValue():
-        return
-
-    file_path = file_path.getValue()
-    key_store = key_store.getValue()
-
-    # if no file, no load, no key_store file, loading not possible but no error
-    if not os.path.exists(file_path):
-        return
-
-    # try to load the key_store
-    config = ConfigParser.RawConfigParser()
-    try:
-        config.read(file_path)
-    except Exception as ex:
-        excmsg = ("(key_store) load, fail to read parameter file '" +
-                  str(file_path)+"' : "+str(ex))
-        raise KeyStoreLoadingException(excmsg)
-
-    # main section available ?
-    if not config.has_section(KEYSTORE_SECTION_NAME):
-        excmsg = ("(key_store) load, config file '"+str(file_path) +
-                  "' is valid but does not hold key_store section")
-        raise KeyStoreLoadingException(excmsg)
-
-    exceptions = ListOfException()
-    for key_name in config.options(KEYSTORE_SECTION_NAME):
-        try:
-            key_store.setKey(key_name,
-                             config.get(KEYSTORE_SECTION_NAME, key_name),
-                             False)
-        except Exception as ex:
-            excmsg = ("(key_store) load, fail to load key '"+str(key_name) +
-                      "' : "+str(ex))
-            exceptions.append(KeyStoreLoadingException(excmsg))
-
-    if exceptions.isThrowable():
-        raise exceptions
-
-
 @shellMethod(key=DefaultInstanceArgChecker.getKeyTranslatorChecker(),
              state=BooleanValueArgChecker())
 def setTransient(key, state):
@@ -206,9 +107,7 @@ registerCommand(("set",), post=setKey)
 registerCommand(("get",), pre=getKey, pro=listFlatResultHandler)
 registerCommand(("unset",), pro=unsetKey)
 registerCommand(("list",), pre=listKey, pro=printColumn)
-registerCommand(("save",), pro=saveKeyStore)
-registerCommand(("load",), pro=loadKeyStore)
 registerCommand(("clean",), pro=cleanKeyStore)
 registerCommand(("transient",), pro=setTransient)
 registerStopHelpTraversalAt()
-registerSetKey("test", "0x00112233445566778899aabbccddeeff")
+registerKey("test", "0x00112233445566778899aabbccddeeff")

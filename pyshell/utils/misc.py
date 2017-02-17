@@ -22,7 +22,6 @@ import struct
 import termios
 
 from pyshell.utils.exception import DefaultPyshellException, SYSTEM_WARNING
-from pyshell.utils.string import isString
 
 
 def ioctlGwinsz(fd):
@@ -49,29 +48,6 @@ def getTerminalSize():
         cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
 
     return int(cr[1]), int(cr[0])
-
-
-def raiseIfInvalidKeyList(key_list, exception_class, package_name, meth_name):
-    # TODO test if a simple string could be a valid key_list,
-    # it shouldn't be the case
-
-    if not hasattr(key_list, "__iter__") or isString(key_list):
-        raise exception_class("("+package_name+") "+meth_name+", list of "
-                              "string is not iterable")
-
-    for key in key_list:
-        if not isString(key):
-            raise exception_class("("+package_name+") "+meth_name+", only "
-                                  "string or unicode key are allowed")
-
-        # trim key
-        key = key.strip()
-
-        if len(key) == 0:
-            raise exception_class("("+package_name+") "+meth_name+", empty "
-                                  "key is not allowed")
-
-    return key_list
 
 
 def createParentDirectory(file_path):

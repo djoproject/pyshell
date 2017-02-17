@@ -29,6 +29,14 @@ from pyshell.system.setting.context import CONTEXT_DEFAULT_CHECKER
 from pyshell.system.setting.context import ContextGlobalSettings
 from pyshell.system.setting.context import ContextLocalSettings
 from pyshell.system.setting.context import ContextSettings
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
+from pyshell.utils.constants import SETTING_PROPERTY_DEFAULTINDEX
+from pyshell.utils.constants import SETTING_PROPERTY_INDEX
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENTINDEX
 from pyshell.utils.exception import ParameterException
 
 
@@ -328,13 +336,14 @@ class TestContextLocalSettingsWithContextParameter(object):
         settings.tryToSetDefaultIndex(3)
         settings.tryToSetIndex(2)
         settings.setReadOnly(True)
-        assert settings.getProperties() == (('removable', False),
-                                            ('readOnly', True),
-                                            ('transient', True),
-                                            ('checker', 'any'),
-                                            ('checkerList', True),
-                                            ('transientIndex', True),
-                                            ('defaultIndex', 3))
+        props = ((SETTING_PROPERTY_REMOVABLE, False),
+                 (SETTING_PROPERTY_READONLY, True),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True),
+                 (SETTING_PROPERTY_TRANSIENTINDEX, True),
+                 (SETTING_PROPERTY_DEFAULTINDEX, 3))
+        assert settings.getProperties() == props
 
     def test_cloneWithoutSource(self):
         s = ContextLocalSettings(checker=IntegerArgChecker())
@@ -594,27 +603,29 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetIndex(2)
         assert not settings.isTransientIndex()
-        assert settings.getProperties() == (('removable', True),
-                                            ('readOnly', False),
-                                            ('transient', False),
-                                            ('checker', 'any'),
-                                            ('checkerList', True),
-                                            ('transientIndex', False),
-                                            ('defaultIndex', 0),
-                                            ('index', 2))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, False),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True),
+                 (SETTING_PROPERTY_TRANSIENTINDEX, False),
+                 (SETTING_PROPERTY_DEFAULTINDEX, 0),
+                 (SETTING_PROPERTY_INDEX, 2))
+        assert settings.getProperties() == props
 
     def test_contextConstructor10b(self):
         settings = ContextGlobalSettings(transient_index=True)
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetIndex(2)
         assert settings.isTransientIndex()
-        assert settings.getProperties() == (('removable', True),
-                                            ('readOnly', False),
-                                            ('transient', False),
-                                            ('checker', 'any'),
-                                            ('checkerList', True),
-                                            ('transientIndex', True),
-                                            ('defaultIndex', 0))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, False),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True),
+                 (SETTING_PROPERTY_TRANSIENTINDEX, True),
+                 (SETTING_PROPERTY_DEFAULTINDEX, 0))
+        assert settings.getProperties() == props
 
     # __init__ test each properties, True
     def test_globalSettings1(self):
@@ -648,14 +659,15 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(3)
         settings.tryToSetIndex(2)
-        assert settings.getProperties() == (('removable', True),
-                                            ('readOnly', False),
-                                            ('transient', False),
-                                            ('checker', 'any'),
-                                            ('checkerList', True),
-                                            ('transientIndex', False),
-                                            ('defaultIndex', 3),
-                                            ('index', 2))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, False),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True),
+                 (SETTING_PROPERTY_TRANSIENTINDEX, False),
+                 (SETTING_PROPERTY_DEFAULTINDEX, 3),
+                 (SETTING_PROPERTY_INDEX, 2))
+        assert settings.getProperties() == props
 
     # test getProperties transient index
     def test_globalSettings7(self):
@@ -663,13 +675,14 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(3)
         settings.tryToSetIndex(2)
-        assert settings.getProperties() == (('removable', True),
-                                            ('readOnly', False),
-                                            ('transient', False),
-                                            ('checker', 'any'),
-                                            ('checkerList', True),
-                                            ('transientIndex', True),
-                                            ('defaultIndex', 3))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, False),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True),
+                 (SETTING_PROPERTY_TRANSIENTINDEX, True),
+                 (SETTING_PROPERTY_DEFAULTINDEX, 3))
+        assert settings.getProperties() == props
 
     def test_cloneWithoutSource(self):
         s = ContextGlobalSettings(checker=IntegerArgChecker())

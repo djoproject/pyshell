@@ -41,11 +41,11 @@ from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.argchecker import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import EngineInterruptionException
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerSetGlobalPrefix
-from pyshell.loader.command import registerSetTempPrefix
-from pyshell.loader.command import registerStopHelpTraversalAt
-from pyshell.loader.dependancies import registerDependOnAddon
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerSetGlobalPrefix
+from pyshell.register.command import registerSetTempPrefix
+from pyshell.register.command import registerStopHelpTraversalAt
+from pyshell.register.dependancies import registerDependOnAddon
 from pyshell.utils.postprocess import printBytesAsString
 from pyshell.utils.postprocess import printStringCharResult
 from pyshell.utils.printing import printShell

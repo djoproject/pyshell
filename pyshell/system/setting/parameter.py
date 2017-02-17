@@ -18,6 +18,9 @@
 
 from pyshell.utils.abstract.cloneable import Cloneable
 from pyshell.utils.constants import EMPTY_STRING
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 
@@ -43,10 +46,11 @@ class ParameterSettings(Cloneable):
     def isRemovable(self):
         return True
 
+    # TODO should be a dict...
     def getProperties(self):
-        return (("removable", self.isRemovable(),),
-                ("readOnly", self.isReadOnly(),),
-                ("transient", self.isTransient(),))
+        return ((SETTING_PROPERTY_REMOVABLE, self.isRemovable(),),
+                (SETTING_PROPERTY_READONLY, self.isReadOnly(),),
+                (SETTING_PROPERTY_TRANSIENT, self.isTransient(),))
 
     def __hash__(self):
         return hash(self.getProperties())
@@ -121,6 +125,9 @@ class ParameterLocalSettings(ParameterSettings):
     def getGlobalFromLocal(self):
         return self._buildOpposite()
 
+    def getLocalFromGlobal(self):
+        return self
+
     def clone(self, parent=None):
         if parent is None:
             return ParameterLocalSettings(self.isReadOnly(),
@@ -172,8 +179,7 @@ class ParameterGlobalSettings(ParameterLocalSettings):
         return hashi == self.startingHash
 
     def getGlobalFromLocal(self):
-        raise AttributeError("ParameterGlobalSettings has no "
-                             "attribute 'getGlobalFromLocal'")
+        return self
 
     def getLocalFromGlobal(self):
         return self._buildOpposite()

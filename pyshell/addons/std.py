@@ -34,6 +34,7 @@
 #   command to startreadline then execute
 #   HOWTO ?
 
+import os
 import readline
 
 from tries.exception import triesException
@@ -45,8 +46,9 @@ from pyshell.arg.argchecker import IntegerArgChecker
 from pyshell.arg.argchecker import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiOutput
-from pyshell.loader.command import registerCommand
-from pyshell.loader.command import registerStopHelpTraversalAt
+from pyshell.register.command import registerCommand
+from pyshell.register.command import registerStopHelpTraversalAt
+from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
@@ -54,7 +56,6 @@ from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import USER_ERROR
 from pyshell.utils.exception import USER_WARNING
 from pyshell.utils.exception import WARNING
-from pyshell.utils.misc import createParentDirectory
 from pyshell.utils.postprocess import listFlatResultHandler
 from pyshell.utils.postprocess import listResultHandler
 
@@ -350,38 +351,51 @@ def generator(start=0, stop=100, step=1, multi_output=True):
 
 
 @shellMethod(
-    use_history=EnvironmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+    use_history=EnvironmentParameterChecker(
+        ENVIRONMENT_USE_HISTORY_KEY),
+    parameter_directory=EnvironmentParameterChecker(
+        ENVIRONMENT_CONFIG_DIRECTORY_KEY),
     history_file=EnvironmentParameterChecker(
         ENVIRONMENT_HISTORY_FILE_NAME_KEY))
-def historyLoad(use_history, history_file):
+def historyLoad(use_history, parameter_directory, history_file):
     "save readline history"
 
     if (use_history is None or
+       parameter_directory is None or
        history_file is None or
        not use_history.getValue()):
         return
 
+    file_name = history_file.getValue()
+    directory_path = parameter_directory.getValue()
+    file_path = os.path.join(directory_path, file_name)
+
     try:
-        readline.read_history_file(history_file.getValue())
+        readline.read_history_file(file_path)
     except IOError:
         pass
 
 
 @shellMethod(
-    use_history=EnvironmentParameterChecker(ENVIRONMENT_USE_HISTORY_KEY),
+    use_history=EnvironmentParameterChecker(
+        ENVIRONMENT_USE_HISTORY_KEY),
+    parameter_directory=EnvironmentParameterChecker(
+        ENVIRONMENT_CONFIG_DIRECTORY_KEY),
     history_file=EnvironmentParameterChecker(
         ENVIRONMENT_HISTORY_FILE_NAME_KEY))
-def historySave(use_history, history_file):
+def historySave(use_history, parameter_directory, history_file):
     "load readline history"
 
     if (use_history is None or
+       parameter_directory is None or
        history_file is None or
        not use_history.getValue()):
         return
 
-    path = history_file.getValue()
-    createParentDirectory(path)
-    readline.write_history_file(path)
+    file_name = history_file.getValue()
+    directory_path = parameter_directory.getValue()
+    file_path = os.path.join(directory_path, file_name)
+    readline.write_history_file(file_path)
 
 """@shellMethod(data = ,
             from = ,

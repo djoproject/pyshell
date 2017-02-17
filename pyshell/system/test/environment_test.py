@@ -31,6 +31,11 @@ from pyshell.system.environment import ParametersLocker
 from pyshell.system.environment import _lockKey
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.system.setting.environment import EnvironmentLocalSettings
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 try:
@@ -112,21 +117,23 @@ class TestEnvironment(object):
                                  settings=EnvironmentLocalSettings(
                                      removable=True))
         assert e.settings.isRemovable()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
         e = EnvironmentParameter("plop",
                                  settings=EnvironmentLocalSettings(
                                      removable=False))
         assert not e.settings.isRemovable()
-        assert e.settings.getProperties() == (("removable", False),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, False),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
     # test readonly boolean
     def test_environmentConstructor2(self):
@@ -134,21 +141,23 @@ class TestEnvironment(object):
                                  settings=EnvironmentLocalSettings(
                                      read_only=True))
         assert e.settings.isReadOnly()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", True),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, True),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
         e = EnvironmentParameter("plop",
                                  settings=EnvironmentLocalSettings(
                                      read_only=False))
         assert not e.settings.isReadOnly()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
     # test typ None
     def test_environmentConstructor3(self):
@@ -328,27 +337,30 @@ class TestEnvironment(object):
         e = EnvironmentParameter("plop")
         e.enableLocal()
         assert not e.settings.isReadOnly()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
         e.settings.setReadOnly(True)
         assert e.settings.isReadOnly()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", True),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, True),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
         e.settings.setReadOnly(False)
         assert not e.settings.isReadOnly()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
     # setRemovable readonly
     def test_environmentMethod24(self):
@@ -369,27 +381,30 @@ class TestEnvironment(object):
         e = EnvironmentParameter("plop")
         e.enableLocal()
         assert e.settings.isRemovable()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
         e.settings.setRemovable(False)
         assert not e.settings.isRemovable()
-        assert e.settings.getProperties() == (("removable", False),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, False),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
         e.settings.setRemovable(True)
         assert e.settings.isRemovable()
-        assert e.settings.getProperties() == (("removable", True),
-                                              ("readOnly", False),
-                                              ('transient', True),
-                                              ('checker', 'any'),
-                                              ('checkerList', True))
+        props = ((SETTING_PROPERTY_REMOVABLE, True),
+                 (SETTING_PROPERTY_READONLY, False),
+                 (SETTING_PROPERTY_TRANSIENT, True),
+                 (SETTING_PROPERTY_CHECKER, 'any'),
+                 (SETTING_PROPERTY_CHECKERLIST, True))
+        assert e.settings.getProperties() == props
 
     # repr
     def test_environmentMethod27(self):
