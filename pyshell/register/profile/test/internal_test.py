@@ -21,51 +21,20 @@ import pytest
 from pyshell.register.exception import LoaderException
 from pyshell.register.loader.abstractloader import AbstractLoader
 from pyshell.register.profile.internal import InternalLoaderProfile
-from pyshell.utils.constants import STATE_LOADED
-from pyshell.utils.constants import STATE_UNLOADED
+from pyshell.register.profile.root import RootProfile
 
 
 class FakeLoader(AbstractLoader):
     @staticmethod
-    def createProfileInstance():
+    def createProfileInstance(root_profile):
         return object()
 
 
 class TestInternalLoaderProfile(object):
     def setup_method(self, method):
-        self.p = InternalLoaderProfile()
-
-    def test_notRoot(self):
-        assert not self.p.isRoot()
-
-    def test_setRoot(self):
-        self.p.setRoot()
-        assert self.p.isRoot()
-
-    def test_setUnknownState(self):
-        with pytest.raises(LoaderException):
-            self.p.setState("toto")
-        assert self.p.getState() is None
-
-    def test_setNotAllowedUnloadedState(self):
-        with pytest.raises(LoaderException):
-            self.p.setState(STATE_UNLOADED)
-        assert self.p.getState() is None
-
-    def test_setAllowedKnownState(self):
-        self.p.setState(STATE_LOADED)
-        assert self.p.getState() is STATE_LOADED
-
-    def test_setAllowedUnloadedState(self):
-        self.p.setState(STATE_LOADED)
-        self.p.setState(STATE_UNLOADED)
-        assert self.p.getState() is STATE_UNLOADED
-
-    def test_setUnallowedLoadedState(self):
-        self.p.setState(STATE_LOADED)
-        with pytest.raises(LoaderException):
-            self.p.setState(STATE_LOADED)
-        assert self.p.getState() is STATE_LOADED
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        self.p = InternalLoaderProfile(root_profile)
 
     def test_addChildNotAValidLoader1(self):
         with pytest.raises(LoaderException):

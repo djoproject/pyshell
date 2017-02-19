@@ -16,9 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.argchecker import ArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
 from pyshell.system.setting.parameter import ParameterSettings
@@ -27,8 +27,7 @@ from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
 from pyshell.utils.exception import ParameterException
 
 
-_defaultArgChecker = DefaultInstanceArgChecker.getArgCheckerInstance()
-DEFAULT_CHECKER = ListArgChecker(_defaultArgChecker)
+DEFAULT_CHECKER = ListArgChecker(DefaultChecker.getArg())
 
 
 class EnvironmentSettings(ParameterSettings):
@@ -70,8 +69,9 @@ class EnvironmentSettings(ParameterSettings):
         else:
             self.checker = checker
 
-    # TODO this method is not a method defined in the mother class setting
-    # and so it should never be used outside of the class Environment
+    # TODO (issue #105) this method is not a method defined in the mother class
+    # setting and so it should never be used outside of the class
+    # system/Environment
     def isListChecker(self):
         return isinstance(self.getChecker(), ListArgChecker)
 

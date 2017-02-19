@@ -18,7 +18,7 @@
 
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import PARSE_ERROR
-from pyshell.utils.string import isString
+from pyshell.utils.string65 import isString
 
 # BNF GRAMMAR OF A COMMAND
 #
@@ -28,33 +28,6 @@ from pyshell.utils.string import isString
 # # RULE 3 ## <command>   ::= <token> | <token> " " <command>
 # # RULE 4 ## <token>     ::= <text> | "$" <text> | "-" <text>
 #
-
-
-def escapeString(string, wrapped=True):
-
-    if len(string) == 0:
-        return string
-
-    string = string.replace("\\", "\\\\")
-    string = string.replace("\"", "\\\"")
-
-    if wrapped:
-        if string[0] in ('$', '-',):
-            string = "\\" + string
-
-        return "\"" + string + "\""
-
-    string = string.replace("$", "\\$")
-    string = string.replace("&", "\\&")
-    string = string.replace("|", "\\|")
-    string = string.replace("-", "\\-")
-
-    string = string.replace(" ", "\\ ")
-    string = string.replace("\t", "\\\t")
-    string = string.replace("\n", "\\\n")
-    string = string.replace("\r", "\\\r")
-
-    return string
 
 
 class Parser(list):

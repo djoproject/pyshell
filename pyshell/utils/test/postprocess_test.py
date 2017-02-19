@@ -16,13 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.system.container import ParameterContainer
-from pyshell.system.context import ContextParameter
-from pyshell.system.context import ContextParameterManager
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.parameter.context import ContextParameter
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.system.setting.context import ContextGlobalSettings
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
@@ -31,7 +29,6 @@ from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
 from pyshell.utils.constants import CONTEXT_COLORATION_NONE
 from pyshell.utils.constants import CONTEXT_EXECUTION_DAEMON
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
-from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
@@ -48,21 +45,17 @@ class TestPostProcess(object):
 
     def setup_method(self, method):
         p = Printer.getInstance()
-        self.params = ParameterContainer()
-        manager = EnvironmentParameterManager(self.params)
-        self.params.registerParameterManager("environment", manager)
-        manager = ContextParameterManager(self.params)
-        self.params.registerParameterManager("context", manager)
+        self.params = ParentManager()
 
         ##
 
-        checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        checker = DefaultChecker.getInteger()
         self.debugContext = ContextParameter(
             value=tuple(range(0, 91)),
             settings=ContextGlobalSettings(checker=checker))
-        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,
-                                         self.debugContext,
-                                         local_param=False)
+        self.params.getContextManager().setParameter(DEBUG_ENVIRONMENT_NAME,
+                                                     self.debugContext,
+                                                     local_param=True)
         self.debugContext.settings.setTransient(False)
         self.debugContext.settings.setTransientIndex(False)
         self.debugContext.settings.setRemovable(False)
@@ -72,15 +65,14 @@ class TestPostProcess(object):
 
         ##
 
-        checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        checker = DefaultChecker.getString()
         self.shellContext = ContextParameter(
             value=(CONTEXT_EXECUTION_SHELL,
-                   CONTEXT_EXECUTION_SCRIPT,
                    CONTEXT_EXECUTION_DAEMON,),
             settings=ContextGlobalSettings(checker=checker))
-        self.params.context.setParameter(CONTEXT_EXECUTION_KEY,
-                                         self.shellContext,
-                                         local_param=False)
+        self.params.getContextManager().setParameter(CONTEXT_EXECUTION_KEY,
+                                                     self.shellContext,
+                                                     local_param=True)
         self.shellContext.settings.setTransient(True)
         self.shellContext.settings.setTransientIndex(True)
         self.shellContext.settings.setRemovable(False)
@@ -89,15 +81,15 @@ class TestPostProcess(object):
 
         ##
 
-        checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        checker = DefaultChecker.getString()
         self.backgroundContext = ContextParameter(
             value=(CONTEXT_COLORATION_LIGHT,
                    CONTEXT_COLORATION_DARK,
                    CONTEXT_COLORATION_NONE,),
             settings=ContextGlobalSettings(checker=checker))
-        self.params.context.setParameter(CONTEXT_COLORATION_KEY,
-                                         self.backgroundContext,
-                                         local_param=False)
+        self.params.getContextManager().setParameter(CONTEXT_COLORATION_KEY,
+                                                     self.backgroundContext,
+                                                     local_param=True)
         self.backgroundContext.settings.setTransient(False)
         self.backgroundContext.settings.setTransientIndex(False)
         self.backgroundContext.settings.setRemovable(False)
@@ -110,9 +102,10 @@ class TestPostProcess(object):
             value=5,
             settings=EnvironmentGlobalSettings(
                 checker=IntegerArgChecker(0)))
-        self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
-                                             self.spacingContext,
-                                             local_param=False)
+        self.params.getEnvironmentManager().setParameter(
+            ENVIRONMENT_TAB_SIZE_KEY,
+            self.spacingContext,
+            local_param=True)
         self.spacingContext.settings.setTransient(False)
         self.spacingContext.settings.setRemovable(False)
         self.spacingContext.settings.setReadOnly(False)

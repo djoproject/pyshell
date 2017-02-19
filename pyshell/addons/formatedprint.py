@@ -24,9 +24,10 @@
 
 from math import log
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.accessor.default import DefaultAccessor
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix
@@ -39,11 +40,9 @@ from pyshell.utils.printing import strLength
 from pyshell.utils.printing import warning
 
 
-@shellMethod(
-    var_lists=ListArgChecker(
-        DefaultInstanceArgChecker.getStringArgCheckerInstance()),
-    parameters=DefaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-    byte_per_line=IntegerArgChecker(4))
+@shellMethod(var_lists=ListArgChecker(DefaultChecker.getString()),
+             parameters=DefaultAccessor.getContainer(),
+             byte_per_line=IntegerArgChecker(4))
 def compareByteList(var_lists, byte_per_line=4, parameters=None):
     # TODO
     #   it is possible to inject something else than byte in the list,

@@ -16,18 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.constants import ADDONLIST_KEY
+# TODO this file is ridiculous, it should disappear...
+
 from pyshell.utils.constants import STATE_LOADED
 from pyshell.utils.constants import STATE_UNLOADED
-
-
-def tryToGetDicoFromParameters(parameters):
-    param = parameters.environment.getParameter(ADDONLIST_KEY,
-                                                perfect_match=True)
-    if param is None:
-        raise Exception("no addon list defined")
-
-    return param.getValue()
 
 
 def tryToGetAddonFromDico(addon_dico, name):
@@ -38,8 +30,7 @@ def tryToGetAddonFromDico(addon_dico, name):
 
 
 def tryToGetAddonFromParameters(parameters, name):
-    return tryToGetAddonFromDico(tryToGetDicoFromParameters(parameters),
-                                 name)
+    return tryToGetAddonFromDico(parameters.getAddonManager(), name)
 
 
 def tryToImportLoaderFromFile(name):

@@ -23,10 +23,10 @@ import inspect
 import sys
 import types
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import DefaultValueChecker
 from pyshell.arg.argfeeder import ArgFeeder
+from pyshell.arg.checker.argchecker import ArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.defaultvalue import DefaultValueChecker
 from pyshell.arg.exception import DecoratorException
 
 try:
@@ -167,8 +167,7 @@ def shellMethod(**arg_list):
                 arg_checker_list[argname] = \
                     DefaultValueChecker(analyzed_fun.getDefault(argname))
             else:
-                arg_checker_list[argname] = \
-                    DefaultInstanceArgChecker.getArgCheckerInstance()
+                arg_checker_list[argname] = DefaultChecker.getArg()
 
         # All the key are used in the function call?
         keys = arg_list.keys()

@@ -16,17 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO there are know three classes dedicated to addon
-#   (information, global_profile and addonLoader)
-#   it could be interresting to:
-#       - create an addon package
-#   OR  - move loader into loader package
-#   Think about it.
 
 from pyshell.register.exception import LoaderException
 from pyshell.register.loader.abstractloader import AbstractLoader
-from pyshell.register.loader.internal import InternalLoader
-from pyshell.register.profile.globale import GlobalProfile
+from pyshell.register.loader.root import RootLoader
 from pyshell.register.utils.module import getNearestModule
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 from pyshell.utils.raises import raiseIfNotString
@@ -36,7 +29,7 @@ from pyshell.utils.raises import raiseIfNotSubclass
 class AddonInformation(object):
     """
         the purpose of this class is to allowed loader and addon to exchange
-        infomations whitout opened an access to the addon object from
+        infomations whithout creating an access to the addon object from
         the loaders
     """
 
@@ -65,7 +58,7 @@ class AddonLoader(object):
 
     @staticmethod
     def getRootLoaderClass():
-        return InternalLoader
+        return RootLoader
 
     def getInformations(self):
         return self._informations
@@ -113,11 +106,10 @@ class AddonLoader(object):
             raise LoaderException(excmsg % (self.__class__.__name__,
                                             profile_name))
 
-        global_profile = GlobalProfile(profile_name, self._informations)
-        root_profile = self.getRootLoaderClass().createProfileInstance()
-        root_profile.setRoot()
-        root_profile.setGlobalProfile(global_profile)
-        self._profiles[profile_name] = root_profile
+        rootp = self.getRootLoaderClass().createProfileInstance(None)
+        rootp.setName(profile_name)
+        rootp.setAddonInformations(self._informations)
+        self._profiles[profile_name] = rootp
 
     def removeProfileIfEmpty(self, profile_name):
         profile_name = self._checkIfProfileExist("hasProfile", profile_name)
@@ -149,10 +141,7 @@ class AddonLoader(object):
                                             loader_class.__name__,
                                             profile_name))
 
-        global_profile = internal_profile.getGlobalProfile()
-        profile_object = internal_profile.addChild(loader_class)
-        profile_object.setGlobalProfile(global_profile)
-        return profile_object
+        return internal_profile.addChild(loader_class)
 
     def getRootLoaderProfile(self, profile_name):
         profile_name = self._checkIfProfileExist(

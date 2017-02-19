@@ -18,7 +18,10 @@
 
 from pyshell.register.loader.environment import EnvironmentLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.register.profile.root import RootProfile
+from pyshell.system.manager.environment import EnvironmentParameterManager
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 
 
@@ -27,6 +30,15 @@ class TestEnvironment(object):
         assert EnvironmentLoader.getManagerName() is ENVIRONMENT_ATTRIBUTE_NAME
 
     def test_createProfileInstance(self):
-        profile = EnvironmentLoader.createProfileInstance()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        profile = EnvironmentLoader.createProfileInstance(root_profile)
         assert isinstance(profile, ParameterLoaderProfile)
         assert profile.parameter_definition is EnvironmentParameter
+
+    def test_getManager(self):
+        parent_manager = ParentManager()
+        manager1 = EnvironmentLoader.getManager(parent_manager)
+        assert isinstance(manager1, EnvironmentParameterManager)
+        manager2 = EnvironmentLoader.getManager(parent_manager)
+        assert manager1 is manager2

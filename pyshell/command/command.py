@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import defaultMethod
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import CommandException
@@ -32,19 +32,19 @@ class MultiOutput(list):
 
 class Command(Cloneable):
     # default preProcess
-    @shellMethod(args=ListArgChecker(ArgChecker()))
+    @shellMethod(args=ListArgChecker(DefaultChecker.getArg()))
     @defaultMethod()
     def preProcess(self, args):
         return args
 
     # default process
-    @shellMethod(args=ListArgChecker(ArgChecker()))
+    @shellMethod(args=ListArgChecker(DefaultChecker.getArg()))
     @defaultMethod()
     def process(self, args):
         return args
 
     # default postProcess
-    @shellMethod(args=ListArgChecker(ArgChecker()))
+    @shellMethod(args=ListArgChecker(DefaultChecker.getArg()))
     @defaultMethod()
     def postProcess(self, args):
         return args

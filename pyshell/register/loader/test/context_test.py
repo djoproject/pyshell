@@ -18,7 +18,10 @@
 
 from pyshell.register.loader.context import ContextLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.context import ContextParameter
+from pyshell.register.profile.root import RootProfile
+from pyshell.system.manager.context import ContextParameterManager
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.parameter.context import ContextParameter
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
 
 
@@ -28,6 +31,15 @@ class TestContext(object):
         assert ContextLoader.getManagerName() is CONTEXT_ATTRIBUTE_NAME
 
     def test_createProfileInstance(self):
-        profile = ContextLoader.createProfileInstance()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        profile = ContextLoader.createProfileInstance(root_profile)
         assert isinstance(profile, ParameterLoaderProfile)
         assert profile.parameter_definition is ContextParameter
+
+    def test_getManager(self):
+        parent_manager = ParentManager()
+        manager1 = ContextLoader.getManager(parent_manager)
+        assert isinstance(manager1, ContextParameterManager)
+        manager2 = ContextLoader.getManager(parent_manager)
+        assert manager1 is manager2

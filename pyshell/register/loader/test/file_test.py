@@ -23,28 +23,27 @@ from uuid import uuid1
 
 import pytest
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.command.procedure import AbstractLevelHandler
 from pyshell.register.loader.abstractloader import AbstractLoader
 from pyshell.register.loader.exception import UnloadException
 from pyshell.register.loader.file import FileLoader
 from pyshell.register.profile.file import FileLoaderProfile
-from pyshell.register.profile.globale import GlobalProfile
+from pyshell.register.profile.root import RootProfile
 from pyshell.register.result.command import CommandResult
 from pyshell.register.utils.addon import AddonInformation
-from pyshell.system.container import ParameterContainer
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
-from pyshell.system.variable import VariableParameterManager
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
-from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 
 
 class TestFileMisc(object):
 
     def test_createProfileInstance(self):
-        profile = FileLoader.createProfileInstance()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        profile = FileLoader.createProfileInstance(root_profile)
         assert isinstance(profile, FileLoaderProfile)
 
 
@@ -52,44 +51,39 @@ class TestFileGetFilePath(object):
 
     def setup_method(self, method):
         self.addon_information = AddonInformation('test.loader.file')
-        self.global_profile = GlobalProfile(
-            'profile_name', self.addon_information)
-        self.profile = FileLoader.createProfileInstance()
-        self.profile.setGlobalProfile(self.global_profile)
+        self.root_profile = RootProfile()
+        self.root_profile.setName("profile_name")
+        self.root_profile.setAddonInformations(self.addon_information)
+        self.profile = FileLoader.createProfileInstance(self.root_profile)
 
     def test_getFilePathNoContainer(self):
         path = FileLoader.getFilePath(parameter_container=None,
                                       profile_object=self.profile)
         assert path == "/home/djo/.pyshell/test.loader.file.profile_name.pys"
 
-    def test_getFilePathNoEnv(self):
-        pc = ParameterContainer()
+    """def test_getFilePathNoEnv(self):
+        pc = ParentManager()
         path = FileLoader.getFilePath(parameter_container=pc,
                                       profile_object=self.profile)
         assert path == "/home/djo/.pyshell/test.loader.file.profile_name.pys"
+    """
 
     def test_getFilePathNoParam(self):
-        pc = ParameterContainer()
-        pc.registerParameterManager(
-            ENVIRONMENT_ATTRIBUTE_NAME,
-            EnvironmentParameterManager(pc))
+        pc = ParentManager()
         path = FileLoader.getFilePath(parameter_container=pc,
                                       profile_object=self.profile)
         assert path == "/home/djo/.pyshell/test.loader.file.profile_name.pys"
 
     def test_getFilePathNormalCase(self):
-        pc = ParameterContainer()
-        pc.registerParameterManager(
-            ENVIRONMENT_ATTRIBUTE_NAME,
-            EnvironmentParameterManager(pc))
-        env = getattr(pc, ENVIRONMENT_ATTRIBUTE_NAME)
-        ctype = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        pc = ParentManager()
+        env = pc.getEnvironmentManager()
+        ctype = DefaultChecker.getString()
         env.setParameter(
             ENVIRONMENT_CONFIG_DIRECTORY_KEY,
             EnvironmentParameter(value="/home/toto/",
                                  settings=EnvironmentGlobalSettings(
                                      checker=ctype)),
-            local_param=False)
+            local_param=True)
         path = FileLoader.getFilePath(parameter_container=pc,
                                       profile_object=self.profile)
         assert path == "/home/toto/test.loader.file.profile_name.pys"
@@ -101,6 +95,22 @@ class FileLoaderForTest(FileLoader):
     @staticmethod
     def getFilePath(parameter_container, profile_object):
         return FileLoaderForTest.TEST_PATH
+
+
+class Parameters(ParentManager, AbstractLevelHandler):
+    def __init__(self, *args, **kwargs):
+        ParentManager.__init__(self)
+        AbstractLevelHandler.__init__(self)
+        self.level = 0
+
+    def decrementLevel(self):
+        self.level -= 1
+
+    def incrementLevel(self):
+        self.level += 1
+
+    def getCurrentLevel(self):
+        return self.level
 
 
 class TestFileLoad(object):
@@ -116,9 +126,7 @@ class TestFileLoad(object):
         FileLoaderForTest.load(None, None)
 
     def test_validCase(self):
-        pc = ParameterContainer()
-        pc.registerParameterManager(VARIABLE_ATTRIBUTE_NAME,
-                                    VariableParameterManager(pc))
+        pc = Parameters()
 
         with NamedTemporaryFile() as file_descr:
             FileLoaderForTest.TEST_PATH = file_descr.name
@@ -142,10 +150,10 @@ class TestFileUnload(object):
     def setup_method(self, method):
         FileLoaderForTest.TEST_PATH = None
         self.addon_information = AddonInformation('test.loader.file')
-        self.global_profile = GlobalProfile(
-            'profile_name', self.addon_information)
-        self.profile = FileLoader.createProfileInstance()
-        self.profile.setGlobalProfile(self.global_profile)
+        self.root_profile = RootProfile()
+        self.root_profile.setName("profile_name")
+        self.root_profile.setAddonInformations(self.addon_information)
+        self.profile = FileLoader.createProfileInstance(self.root_profile)
 
     def test_nonePath(self):
         with pytest.raises(UnloadException):
@@ -171,15 +179,15 @@ class TestFileUnload(object):
         result1 = CommandResult(["toto", "titi"],
                                 "result1",
                                 set(["addon1", "addon2"]))
-        self.global_profile.postResult(ResultAa, result1)
+        self.root_profile.postResult(ResultAa, result1)
 
         result2 = CommandResult(["plip", "plap"],
                                 "result2",
                                 set(["addon1", "addon3"]))
-        self.global_profile.postResult(ResultBb, result2)
+        self.root_profile.postResult(ResultBb, result2)
 
         result3 = CommandResult(["glip", "glop"], "result3")
-        self.global_profile.postResult(ResultCc, result3)
+        self.root_profile.postResult(ResultCc, result3)
 
         expected_addon = ["addon load addon1",
                           "addon load addon2",

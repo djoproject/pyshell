@@ -20,7 +20,7 @@ import pytest
 
 from tries import multiLevelTries
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
 from pyshell.register.exception import LoaderException
@@ -28,11 +28,10 @@ from pyshell.register.loader.command import CommandLoader
 from pyshell.register.loader.exception import LoadException
 from pyshell.register.loader.exception import UnloadException
 from pyshell.register.profile.command import CommandLoaderProfile
-from pyshell.system.container import ParameterContainer
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.register.profile.root import RootProfile
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception import ListOfException
 
@@ -48,67 +47,62 @@ class TestCommandLoaderMisc(object):
             CommandLoader()
 
     def test_profileCreation(self):
-        profile = CommandLoader.createProfileInstance()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        profile = CommandLoader.createProfileInstance(root_profile)
         assert isinstance(profile, CommandLoaderProfile)
 
 
 class AbstractTestCommandLoader(object):
-    # # CommandLoader # #
-
     def setup_method(self, method):
-        self.cl = CommandLoader
-        self.params = ParameterContainer()
-        self.params.registerParameterManager(
-            ENVIRONMENT_ATTRIBUTE_NAME,
-            EnvironmentParameterManager(self.params))
+        self.params = ParentManager()
+
+        # set command tries environment
         self.mltries = multiLevelTries()
-        ctype = DefaultInstanceArgChecker.getArgCheckerInstance()
-        self.params.environment.setParameter(
+        settings = EnvironmentGlobalSettings(transient=True,
+                                             read_only=True,
+                                             removable=False,
+                                             checker=DefaultChecker.getArg())
+
+        self.params.getEnvironmentManager().setParameter(
             ENVIRONMENT_LEVEL_TRIES_KEY,
-            EnvironmentParameter(value=self.mltries,
-                                 settings=EnvironmentGlobalSettings(
-                                     transient=True,
-                                     read_only=True,
-                                     removable=False,
-                                     checker=ctype)),
-            local_param=False)
-        self.profile = CommandLoader.createProfileInstance()
+            EnvironmentParameter(value=self.mltries, settings=settings),
+            local_param=True)
+
+        root_profile = RootProfile()
+        self.profile = CommandLoader.createProfileInstance(root_profile)
 
 
 class TestCommandLoaderLoad(AbstractTestCommandLoader):
-
     def test_noneContainer(self):
         with pytest.raises(LoadException):
-            self.cl.load(parameter_container=None,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=None,
+                               profile_object=self.profile)
 
-    def test_containerWithoutEnv(self):
-        container = ParameterContainer()
+    """def test_containerWithoutEnv(self):
+        container = ParentManager()
         with pytest.raises(LoadException):
-            self.cl.load(parameter_container=container,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=container,
+                               profile_object=self.profile)"""
 
     # load, ENVIRONMENT_LEVEL_TRIES_KEY does not exist
     def test_commandLoaderLoad1(self):
-        params = ParameterContainer()
-        params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME,
-                                        EnvironmentParameterManager(params))
-
+        params = ParentManager()
         with pytest.raises(LoadException):
-            self.cl.load(parameter_container=params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=params,
+                               profile_object=self.profile)
 
     # load, execute without command and without stopTraversal, no global prefix
     def test_commandLoaderLoad2(self):
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
 
     # load, execute without command and without stopTraversal, global
     # prefix defined
     def test_commandLoaderLoad3(self):
         self.profile.setPrefix(("toto",))
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
 
     # load, try to insert an existing command, no global prefix
     def test_commandLoaderLoad4(self):
@@ -118,8 +112,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
                             MultiCommand())
 
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, try to insert an existing command, global prefix defined
     def test_commandLoaderLoad5(self):
@@ -129,16 +123,16 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
                             UniCommand(process=proPro))
 
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, insert a not existing command, no global prefix
     def test_commandLoaderLoad6(self):
         key = ("plop", "plip",)
         uc = self.profile.addCmd(key,
                                  UniCommand(process=proPro))
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
         search_result = self.mltries.searchNode(key, True)
 
         assert search_result is not None and search_result.isValueFound()
@@ -149,8 +143,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.profile.setPrefix(("toto",))
         uc = self.profile.addCmd(("plop", "plip",),
                                  UniCommand(process=proPro))
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
         search_result = self.mltries.searchNode(("toto", "plop", "plip",),
                                                 True)
 
@@ -161,8 +155,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
     def test_commandLoaderLoad8(self):
         self.profile.addStopTraversal(("toto",))
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, stopTraversal with command that does not exist, global
     # prefix defined
@@ -170,8 +164,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.profile.setPrefix(("plop",))
         self.profile.addStopTraversal(("toto",))
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, stopTraversal, command exist, no global prefix
     def test_commandLoaderLoad10(self):
@@ -179,8 +173,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.mltries.insert(key, object())
         self.profile.addStopTraversal(key)
         assert not self.mltries.isStopTraversal(key)
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
         assert self.mltries.isStopTraversal(key)
 
     # load, stopTraversal, command exist, global prefix defined
@@ -190,8 +184,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.mltries.insert(key, object())
         self.profile.addStopTraversal(("plop", "plip",))
         assert not self.mltries.isStopTraversal(key)
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
         assert self.mltries.isStopTraversal(key)
 
     # load, cmd exist, not raise if exist + not override
@@ -200,8 +194,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.mltries.insert(key, object())
         self.profile.addCmd(key, UniCommand(process=proPro))
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, cmd exist, raise if exist + not override
     def test_commandLoaderLoad13(self):
@@ -210,8 +204,8 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.profile.addCmd(key,
                             UniCommand(process=proPro))
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, cmd exist, not raise if exist + override
     def test_commandLoaderLoad14(self):
@@ -219,16 +213,16 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.mltries.insert(key, object())
         self.profile.addCmd(key, UniCommand(process=proPro))
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     # load, try to load an empty command
     def test_commandLoaderLoad15(self):
         self.profile.addCmd(("plop", "plip",),
                             MultiCommand())
         with pytest.raises(ListOfException):
-            self.cl.load(parameter_container=self.params,
-                         profile_object=self.profile)
+            CommandLoader.load(parameter_container=self.params,
+                               profile_object=self.profile)
 
     def test_stopTraversalAlreadyExist(self):
         key = ("toto", "plop", "plip",)
@@ -236,38 +230,35 @@ class TestCommandLoaderLoad(AbstractTestCommandLoader):
         self.profile.addStopTraversal(("toto",))
         self.mltries.insert(("toto", "plop", "titi",), object())
         self.mltries.setStopTraversal(("toto",), True)
-        self.cl.load(parameter_container=self.params,
-                     profile_object=self.profile)
+        CommandLoader.load(parameter_container=self.params,
+                           profile_object=self.profile)
 
 
 class TestCommandLoaderUnload(AbstractTestCommandLoader):
     def test_noneContainer(self):
         with pytest.raises(UnloadException):
-            self.cl.unload(parameter_container=None,
-                           profile_object=self.profile)
+            CommandLoader.unload(parameter_container=None,
+                                 profile_object=self.profile)
 
-    def test_containerWithoutEnv(self):
-        container = ParameterContainer()
+    """def test_containerWithoutEnv(self):
+        container = ParentManager()
         with pytest.raises(UnloadException):
-            self.cl.unload(parameter_container=container,
-                           profile_object=self.profile)
+            CommandLoader.unload(parameter_container=container,
+                                 profile_object=self.profile)"""
 
     # unload, ENVIRONMENT_LEVEL_TRIES_KEY does not exist
     def test_commandLoaderUnload1(self):
-        params = ParameterContainer()
-        params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME,
-                                        EnvironmentParameterManager(params))
-
+        params = ParentManager()
         with pytest.raises(UnloadException):
-            self.cl.unload(parameter_container=params,
-                           profile_object=self.profile)
+            CommandLoader.unload(parameter_container=params,
+                                 profile_object=self.profile)
 
     # unload, nothing to do
     def test_commandLoaderUnload2(self):
         self.profile.loadedCommand = []
         self.profile.loadedStopTraversal = []
-        self.cl.unload(parameter_container=self.params,
-                       profile_object=self.profile)
+        CommandLoader.unload(parameter_container=self.params,
+                             profile_object=self.profile)
 
     # unload, command does not exist
     def test_commandLoaderUnload3(self):
@@ -275,8 +266,8 @@ class TestCommandLoaderUnload(AbstractTestCommandLoader):
         self.profile.loadedStopTraversal = []
         self.profile.loadedCommand.append(("toto", "plop", "plip",))
         with pytest.raises(ListOfException):
-            self.cl.unload(parameter_container=self.params,
-                           profile_object=self.profile)
+            CommandLoader.unload(parameter_container=self.params,
+                                 profile_object=self.profile)
 
     # unload, command exists
     def test_commandLoaderUnload4(self):
@@ -286,8 +277,8 @@ class TestCommandLoaderUnload(AbstractTestCommandLoader):
         self.profile.loadedCommand.append(key)
         self.mltries.insert(key, object())
 
-        self.cl.unload(parameter_container=self.params,
-                       profile_object=self.profile)
+        CommandLoader.unload(parameter_container=self.params,
+                             profile_object=self.profile)
 
         search_result = self.mltries.searchNode(key, True)
 
@@ -298,8 +289,8 @@ class TestCommandLoaderUnload(AbstractTestCommandLoader):
         self.profile.loadedCommand = []
         self.profile.loadedStopTraversal = []
         self.profile.loadedStopTraversal.append(("toto", "plop", "plip",))
-        self.cl.unload(parameter_container=self.params,
-                       profile_object=self.profile)
+        CommandLoader.unload(parameter_container=self.params,
+                             profile_object=self.profile)
 
     # unload, stopTraversal, path exists
     def test_commandLoaderUnload6(self):
@@ -310,7 +301,7 @@ class TestCommandLoaderUnload(AbstractTestCommandLoader):
         self.mltries.insert(key, object())
         self.mltries.setStopTraversal(key, True)
 
-        self.cl.unload(parameter_container=self.params,
-                       profile_object=self.profile)
+        CommandLoader.unload(parameter_container=self.params,
+                             profile_object=self.profile)
 
         assert not self.mltries.isStopTraversal(key)

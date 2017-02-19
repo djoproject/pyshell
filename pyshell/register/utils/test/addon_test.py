@@ -20,7 +20,7 @@ import pytest
 
 from pyshell.register.exception import LoaderException
 from pyshell.register.loader.abstractloader import AbstractLoader
-from pyshell.register.loader.internal import InternalLoader
+from pyshell.register.loader.root import RootLoader
 from pyshell.register.profile.default import DefaultProfile
 from pyshell.register.utils.addon import AddonInformation
 from pyshell.register.utils.addon import AddonLoader
@@ -51,21 +51,21 @@ class TestAddonInformation(object):
 class LoaderAa(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return DefaultProfile()
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
 
 
 class LoaderBb(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return DefaultProfile()
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
 
 
 class TestAddonLoader(object):
 
     def test_getRootLoaderClass(self):
-        assert AddonLoader.getRootLoaderClass() is InternalLoader
+        assert AddonLoader.getRootLoaderClass() is RootLoader
 
     def test_getInformations(self):
         a = AddonLoader("plop")
@@ -287,7 +287,7 @@ class TestAddonLoaderGetAddonLoader(object):
 class LoaderError(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
+    def createProfileInstance(root_profile):
         raise Exception("Ooops")
 
 

@@ -19,52 +19,13 @@
 from pyshell.register.exception import LoaderException
 from pyshell.register.loader.abstractloader import AbstractLoader
 from pyshell.register.profile.default import DefaultProfile
-from pyshell.utils.constants import STATE_LOADED
-from pyshell.utils.constants import STATE_LOADED_E
-from pyshell.utils.constants import STATE_UNLOADED
-from pyshell.utils.constants import STATE_UNLOADED_E
 from pyshell.utils.raises import raiseIfNotSubclass
-
-_loadAllowedState = (STATE_UNLOADED, STATE_UNLOADED_E,)
-_unloadAllowedState = (STATE_LOADED, STATE_LOADED_E,)
 
 
 class InternalLoaderProfile(DefaultProfile):
-    def __init__(self):
-        DefaultProfile.__init__(self)
-        self.state = None
+    def __init__(self, root_profile):
+        DefaultProfile.__init__(self, root_profile)
         self.children = {}
-        self._is_root = False
-
-    def setRoot(self):
-        self._is_root = True
-
-    def isRoot(self):
-        return self._is_root
-
-    def setState(self, state):
-        if state not in _unloadAllowedState and state not in _loadAllowedState:
-            class_name = self.__class__.__name__
-            excmsg = ("("+class_name+") setState, invalid state: '" +
-                      str(state)+"'")
-            raise LoaderException(excmsg)
-
-        if self.state is None or self.state in _loadAllowedState:
-            expected_state = _unloadAllowedState
-        else:
-            expected_state = _loadAllowedState
-
-        if state not in expected_state:
-            class_name = self.__class__.__name__
-            excmsg = ("("+class_name+") setState, state not allowed. Expected"
-                      " a state in '"+str(expected_state)+"', got '" +
-                      str(state)+"'")
-            raise LoaderException(excmsg)
-
-        self.state = state
-
-    def getState(self):
-        return self.state
 
     @classmethod
     def _raiseIfInvalidClassDefinition(cls, meth_name, class_definition):
@@ -85,9 +46,10 @@ class InternalLoaderProfile(DefaultProfile):
                       str(loader_class_definition)+"' already exists")
             raise LoaderException(excmsg)
 
-        profile = loader_class_definition.createProfileInstance()
-        self.children[loader_class_definition] = profile
-        return profile
+        p = loader_class_definition.createProfileInstance(
+            self.getRootProfile())
+        self.children[loader_class_definition] = p
+        return p
 
     def hasChild(self, loader_class_definition):
         self._raiseIfInvalidClassDefinition("hasChild",

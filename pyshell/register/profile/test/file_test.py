@@ -17,13 +17,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.register.profile.file import FileLoaderProfile
+from pyshell.register.profile.root import RootProfile
 
 
 class TestFileLoaderProfile(object):
+    def setup_method(self, method):
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        self.p = FileLoaderProfile(root_profile)
+
     def test_getLoadPriority(self):
-        p = FileLoaderProfile()
-        assert p.getLoadPriority() == float("inf")
+        assert self.p.getLoadPriority() == float("inf")
 
     def test_getUnloadPriority(self):
-        p = FileLoaderProfile()
-        assert p.getUnloadPriority() == float("inf")
+        assert self.p.getUnloadPriority() == float("inf")

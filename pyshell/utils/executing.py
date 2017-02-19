@@ -24,7 +24,7 @@ from pyshell.command.exception import CommandException
 from pyshell.command.exception import EngineInterruptionException
 from pyshell.command.exception import ExecutionException
 from pyshell.command.exception import ExecutionInitException
-from pyshell.system.variable import VariableParameter
+from pyshell.system.parameter.variable import VariableParameter
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
@@ -36,7 +36,7 @@ from pyshell.utils.exception import ListOfException
 from pyshell.utils.parsing import Parser
 from pyshell.utils.printing import printException
 from pyshell.utils.solving import Solver
-from pyshell.utils.string import isString
+from pyshell.utils.string65 import isString
 
 # execute return engine and last_exception to the calling procedure
 #   engine to retrieve any output
@@ -86,7 +86,7 @@ def execute(string, parameter_container, process_name=None, process_arg=None):
                     'parameter_container': parameter_container,
                     'new_thread': True})
         t.start()
-        parameter_container.variable.setParameter(
+        parameter_container.getVariableManager().setParameter(
             "!",
             VariableParameter(str(t.ident)),
             local_param=True)
@@ -101,14 +101,16 @@ def _generateSuffix(parameter_container, command_name_list=None, engine=None):
     # TODO thread_name then command_name_list should appear first if not None
 
     # print if in debug ?
-    param = parameter_container.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                     perfect_match=True)
+    param = parameter_container.getContextManager().getParameter(
+        DEBUG_ENVIRONMENT_NAME,
+        perfect_match=True)
     show_advanced_result = (param is not None and param.getSelectedValue() > 0)
 
     if not show_advanced_result:
         # is is a shell execution ?
-        param = parameter_container.context.getParameter(CONTEXT_EXECUTION_KEY,
-                                                         perfect_match=True)
+        param = parameter_container.getContextManager().getParameter(
+            CONTEXT_EXECUTION_KEY,
+            perfect_match=True)
         show_advanced_result = (param is None or
                                 param.getSelectedValue() !=
                                 CONTEXT_EXECUTION_SHELL)
@@ -143,7 +145,7 @@ def _execute(parser, parameter_container, new_thread=False):
     command_name_list = None
     try:
         # solve command, variable, and dashed parameters
-        env = parameter_container.environment
+        env = parameter_container.getEnvironmentManager()
         mltries_param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY)
 
         if mltries_param is None:
@@ -152,8 +154,9 @@ def _execute(parser, parameter_container, new_thread=False):
                                           CORE_ERROR)
 
         mltries = mltries_param.getValue()
+        variables = parameter_container.getVariableManager()
         rawCommandList, rawArgList, mappedArgs, command_name_list = \
-            Solver().solve(parser, mltries, parameter_container.variable)
+            Solver().solve(parser, mltries, variables)
         # clone command/procedure to manage concurrency state
         new_raw_command_list = []
         for i in range(0, len(rawCommandList)):

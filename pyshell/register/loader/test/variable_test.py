@@ -18,7 +18,10 @@
 
 from pyshell.register.loader.variable import VariableLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.variable import VariableParameter
+from pyshell.register.profile.root import RootProfile
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.manager.variable import VariableParameterManager
+from pyshell.system.parameter.variable import VariableParameter
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 
 
@@ -27,6 +30,15 @@ class TestVariable(object):
         assert VariableLoader.getManagerName() is VARIABLE_ATTRIBUTE_NAME
 
     def test_createProfileInstance(self):
-        profile = VariableLoader.createProfileInstance()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        profile = VariableLoader.createProfileInstance(root_profile)
         assert isinstance(profile, ParameterLoaderProfile)
         assert profile.parameter_definition is VariableParameter
+
+    def test_getManager(self):
+        parent_manager = ParentManager()
+        manager1 = VariableLoader.getManager(parent_manager)
+        assert isinstance(manager1, VariableParameterManager)
+        manager2 = VariableLoader.getManager(parent_manager)
+        assert manager1 is manager2

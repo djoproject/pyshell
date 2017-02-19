@@ -20,6 +20,7 @@ import pytest
 
 from pyshell.register.exception import LoaderException
 from pyshell.register.loader.abstractloader import AbstractLoader
+from pyshell.register.profile.root import RootProfile
 
 
 class TestAbstractLoader(object):
@@ -29,11 +30,14 @@ class TestAbstractLoader(object):
             AbstractLoader()
 
     def test_getLoaderSignature(self):
-        assert AbstractLoader.getLoaderSignature(
-        ) == "pyshell.register.loader.abstractloader.AbstractLoader"
+        signature = AbstractLoader.getLoaderSignature()
+        assert signature == ("pyshell.register.loader.abstractloader"
+                             ".AbstractLoader")
 
     def test_createProfileInstance(self):
-        assert AbstractLoader.createProfileInstance() is None
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        assert AbstractLoader.createProfileInstance(root_profile) is None
 
     def test_load(self):
         AbstractLoader.load(profile_object=None, parameter_container=None)

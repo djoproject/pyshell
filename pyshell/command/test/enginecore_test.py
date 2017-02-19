@@ -18,8 +18,8 @@
 
 import pytest
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import MultiOutput
@@ -31,7 +31,7 @@ from pyshell.command.engine import PREPROCESS_INSTRUCTION
 from pyshell.command.engine import PROCESS_INSTRUCTION
 from pyshell.command.exception import ExecutionException
 from pyshell.command.exception import ExecutionInitException
-from pyshell.system.container import ParameterContainer
+from pyshell.control import ControlCenter
 
 # TODO pour l'instant dans les tests, on ne tiens pas compte de
 # -args (engine)
@@ -92,14 +92,14 @@ class TestEngineCore(object):
         mc.addProcess(noneFun, noneFun, noneFun)
 
         # empty dict
-        assert isinstance(e.env, ParameterContainer)
+        assert e.env is None
 
         # nawak dico
         with pytest.raises(ExecutionInitException):
             EngineV3([mc], 42, [[{}, {}, {}]])
 
         # non empty dico
-        a = ParameterContainer()
+        a = ControlCenter()
         e = EngineV3([mc], [[]], [[{}, {}, {}]], a)
         assert e.env is a
 
@@ -110,13 +110,13 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return 5 + arg1
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro(arg2):
             self.pro_count += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return arg2 * arg2
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post(arg3):
             assert arg3 == self.valueToTest
             self.post_count += 1
@@ -164,13 +164,13 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([5 + arg1, 10 + arg1])
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro(arg2):
             self.pro_count += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([arg2 * arg2, arg2 * arg2 * arg2])
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post(arg3):
             # print arg3
             assert arg3 in self.valueToTest
@@ -222,13 +222,13 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return 5 + arg1
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro1(arg2):
             self.pro_count[0] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return arg2 * arg2
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post1(arg3):
             self.post_count[0] += 1
             # print "post1", arg3
@@ -242,13 +242,13 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return 7 + arg1
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro2(arg2):
             self.pro_count[1] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return arg2 * arg2 * arg2
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post2(arg3):
             self.post_count[1] += 1
             # print "post2", arg3
@@ -262,13 +262,13 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return 1 + arg1
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro3(arg2):
             self.pro_count[2] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return arg2 * arg2 * arg2 * arg2
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post3(arg3):
             self.post_count[2] += 1
             # print "post3", arg3
@@ -353,14 +353,14 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([5 + arg1, 3 + arg1])
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro1(arg2):
             assert arg2 in self.valueToTest2[0]
             self.pro_count[0] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([arg2 * arg2, arg2**4])
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post1(arg3):
             assert arg3 in self.valueToTest3[0]
             self.post_count[0] += 1
@@ -374,14 +374,14 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([7 + arg1, 1 + arg1])
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro2(arg2):
             assert arg2 in self.valueToTest2[1]
             self.pro_count[1] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([arg2**3, arg2])
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post2(arg3):
             assert arg3 in self.valueToTest3[1]
             self.post_count[1] += 1
@@ -456,14 +456,14 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([5 + arg1, 3 + arg1])
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro1(arg2):
             assert arg2 in self.valueToTest2[0]
             self.pro_count[0] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([arg2 * arg2, arg2**4])
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post1(arg3):
             assert arg3 in self.valueToTest3[0]
             self.post_count[0] += 1
@@ -477,14 +477,14 @@ class TestEngineCore(object):
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([7 + arg1, 1 + arg1])
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro2(arg2):
             assert arg2 in self.valueToTest2[1]
             self.pro_count[1] += 1
             self.checkStack(self.engine.stack, self.engine.cmd_list)
             return MultiOutput([arg2**3, arg2])
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post2(arg3):
             assert arg3 in self.valueToTest3[1]
             self.post_count[1] += 1
@@ -660,12 +660,12 @@ class TestEngineCore(object):
             self.pre_count += 1
             return 5 + arg1
 
-        @shellMethod(arg2=IntegerArgChecker())
+        @shellMethod(arg2=DefaultChecker.getInteger())
         def pro(arg2):
             self.pro_count += 1
             return arg2 * arg2
 
-        @shellMethod(arg3=ArgChecker())
+        @shellMethod(arg3=DefaultChecker.getArg())
         def post(arg3):
             self.post_count += 1
             # needed to the next post method in case of encapsulation
@@ -710,7 +710,7 @@ class TestEngineCore(object):
 
         assert e.env is e.getEnv()
 
-        a = ParameterContainer()
+        a = ControlCenter()
         e = EngineV3([mc], [[]], [[{}, {}, {}]], a)
 
         assert e.env is e.getEnv()

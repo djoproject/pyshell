@@ -18,7 +18,7 @@
 
 from pyshell.register.loader.parameter import ParameterAbstractLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.key import CryptographicKeyParameter
+from pyshell.system.parameter.key import CryptographicKeyParameter
 from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
 
 
@@ -28,5 +28,9 @@ class KeyLoader(ParameterAbstractLoader):
         return KEY_ATTRIBUTE_NAME
 
     @staticmethod
-    def createProfileInstance():
-        return ParameterLoaderProfile(CryptographicKeyParameter)
+    def getManager(container):
+        return container.getKeyManager()
+
+    @staticmethod
+    def createProfileInstance(root_profile):
+        return ParameterLoaderProfile(CryptographicKeyParameter, root_profile)

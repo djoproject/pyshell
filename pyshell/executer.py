@@ -26,29 +26,18 @@ from tries.exception import pathNotExistsTriesException
 
 from pyshell.addons import std
 from pyshell.addons import system
-from pyshell.system.container import ParameterContainer
-from pyshell.system.context import ContextParameterManager
-from pyshell.system.environment import EnvironmentParameterManager
-from pyshell.system.key import CryptographicKeyParameterManager
-from pyshell.system.procedure import FileProcedure
-from pyshell.system.procedure import setArgs
-from pyshell.system.variable import VariableParameterManager
-from pyshell.utils.constants import ADDONLIST_KEY
-from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
+from pyshell.command.procedure import FileProcedure
+from pyshell.control import ControlCenter
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
-from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.constants import ENVIRONMENT_ADDON_TO_LOAD_KEY
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_DEFAULT
 from pyshell.utils.constants import ENVIRONMENT_PROMPT_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
-from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
-from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.executing import execute
 from pyshell.utils.misc import getTerminalSize
@@ -57,6 +46,7 @@ from pyshell.utils.printing import Printer
 from pyshell.utils.printing import error
 from pyshell.utils.printing import printException
 from pyshell.utils.printing import warning
+from pyshell.utils.setargs import setArgs
 from pyshell.utils.valuable import SimpleValuable
 
 try:
@@ -64,41 +54,30 @@ try:
 except:
     pass
 
-# TODO 1
-#   the second part of the __init__ is not an init part
+# TODO 1: the second part of the __init__ is not an init part
 #   it is more like the first part of the running.
 #   So it could move in the main loop method or in another method.
 
-# TODO it should be possible to choose the profile to load wiht system
+# TODO 2: it should be possible to choose the profile to load wiht system
 #   there is no choice by default.
 
 
 class CommandExecuter():
     def __init__(self, param_directory_path=None, outside_args=None):
-        self.params = ParameterContainer()
-        self._initContainers()
+        self.params = ControlCenter()
         self.promptWaitingValuable = SimpleValuable(False)
         self._initPrinter()
         atexit.register(self._atExit)
 
         self._loadSystemAddon()
-        self._initParams(param_directory_path, outside_args, system._loaders)
+        self._initParams(param_directory_path, outside_args)
         self._startUp()
 
-    def _initContainers(self):
-        env = EnvironmentParameterManager(self.params)
-        self.params.registerParameterManager(ENVIRONMENT_ATTRIBUTE_NAME, env)
-
-        con = ContextParameterManager(self.params)
-        self.params.registerParameterManager(CONTEXT_ATTRIBUTE_NAME, con)
-
-        var = VariableParameterManager(self.params)
-        self.params.registerParameterManager(VARIABLE_ATTRIBUTE_NAME, var)
-
-        key = CryptographicKeyParameterManager(self.params)
-        self.params.registerParameterManager(KEY_ATTRIBUTE_NAME, key)
-
     def _loadSystemAddon(self):
+        # because the system addon is loaded manually, need to register it
+        addon_dico = self.params.getAddonManager()
+        addon_dico["pyshell.addons.system"] = system._loaders
+
         loaded = False
         with self.exceptionManager("fail to load addon "
                                    "'pyshell.addons.system'"):
@@ -111,13 +90,8 @@ class CommandExecuter():
                   " ==> exit.")  # noqa
             exit(-1)
 
-    def _initParams(self, param_directory_path, outside_args, system_loader):
-        env = self.params.environment
-
-        # because the system addon is loaded manually, need to register it
-        loaded_addon = env.getParameter(ADDONLIST_KEY, perfect_match=True)
-        if loaded_addon is not None:
-            loaded_addon.getValue()["pyshell.addons.system"] = system_loader
+    def _initParams(self, param_directory_path, outside_args):
+        env = self.params.getEnvironmentManager()
 
         # set the parameter directory
         if param_directory_path is not None:
@@ -141,11 +115,7 @@ class CommandExecuter():
         printer.setParameters(self.params)
 
     def _startUp(self):
-        env = self.params.environment
-
-        # load parameter addon
-        loaded_addons = env.getParameter(ADDONLIST_KEY,
-                                         perfect_match=True)
+        env = self.params.getEnvironmentManager()
 
         # load startup addon
         addon_to_load = env.getParameter(ENVIRONMENT_ADDON_TO_LOAD_KEY,
@@ -153,9 +123,7 @@ class CommandExecuter():
 
         with self.exceptionManager("An error occurred during startup addon "
                                    "loading"):
-            system.loadAddonOnStartUp(addon_to_load,
-                                      self.params,
-                                      loaded_addons)
+            system.loadAddonOnStartUp(addon_to_load, self.params)
 
         # load history
         use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
@@ -170,7 +138,7 @@ class CommandExecuter():
             std.historyLoad(use_history, parameter_directory, history_file)
 
     def _atExit(self):
-        env = self.params.environment
+        env = self.params.getEnvironmentManager()
 
         # history save
         use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
@@ -185,31 +153,29 @@ class CommandExecuter():
             std.historySave(use_history, parameter_directory, history_file)
 
         # unload every addon to trigger config file saving
-        # TODO (issue #88) loaded addon will come from container
-        loaded_addon = env.getParameter(ADDONLIST_KEY, perfect_match=True)
+        addon_dico = self.params.getAddonManager()
         addon_system = None
-        if loaded_addon is not None:
-            for addon_name, addon_loader in loaded_addon.getValue().items():
-                if addon_name == "pyshell.addons.system":
-                    addon_system = addon_loader
-                    continue
+        for addon_name, addon_loader in addon_dico.items():
+            if addon_name == "pyshell.addons.system":
+                addon_system = addon_loader
+                continue
 
-                error_msg = "fail to unload addon '%s'" % addon_name
-                with self.exceptionManager(error_msg):
-                    addon_loader.unload(container=self.params,
-                                        profile_name=None)
+            error_msg = "fail to unload addon '%s'" % addon_name
+            with self.exceptionManager(error_msg):
+                addon_loader.unload(container=self.params,
+                                    profile_name=None)
 
-            # TODO (issue #90) addon system has to be the last to be unloaded
-            # because it contains the commands tries.  It will be solved when
-            # commands will have their own manager.
-            if addon_system is not None:
-                error_msg = "fail to unload addon 'pyshell.addons.system'"
-                with self.exceptionManager(error_msg):
-                    addon_system.unload(container=self.params,
-                                        profile_name=None)
+        # TODO (issue #90) addon system has to be the last to be unloaded
+        # because it contains the commands tries.  It will be solved when
+        # commands will have their own manager.
+        if addon_system is not None:
+            error_msg = "fail to unload addon 'pyshell.addons.system'"
+            with self.exceptionManager(error_msg):
+                addon_system.unload(container=self.params,
+                                    profile_name=None)
 
     def _getPrompt(self):
-        env = self.params.environment
+        env = self.params.getEnvironmentManager()
         prompt_param = env.getParameter(ENVIRONMENT_PROMPT_KEY,
                                         perfect_match=True)
 
@@ -227,7 +193,7 @@ class CommandExecuter():
 
         readline.set_completer(self.complete)
 
-        context = self.params.context
+        context = self.params.getContextManager()
         exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
                                          perfect_match=True)
         if exec_type is not None:
@@ -281,7 +247,7 @@ class CommandExecuter():
     def complete(self, suffix, index):
         parser = Parser(readline.get_line_buffer())
         parser.parse()
-        env = self.params.environment
+        env = self.params.getEnvironmentManager()
         ltries_param = env.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
                                         perfect_match=True)
 
@@ -359,7 +325,7 @@ class CommandExecuter():
             return final_keys[index]
 
         except Exception as ex:
-            context = self.params.context
+            context = self.params.getContextManager()
             debug_level = context.getParameter(DEBUG_ENVIRONMENT_NAME,
                                                perfect_match=True)
             if debug_level is None or debug_level.getSelectedValue() > 0:
@@ -384,15 +350,13 @@ class CommandExecuter():
             printException(pex, msg_prefix)
 
     def executeFile(self, filename, granularity=None):
-        context = self.params.context
-        exec_type = context.getParameter(CONTEXT_EXECUTION_KEY,
-                                         perfect_match=True)
-        if exec_type is not None:
-            exec_type.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
-
-        afile = FileProcedure(filename)
-        afile.settings.setErrorGranularity(granularity)
+        # TODO bug, CONTEXT_EXECUTION_KEY is no more defined when this is
+        #   executed, because an app can only be in shell or daemon mode.
+        #   Script execution is detectable with the execution level.
+        #   And the method executeFile is executed in __main__ before to
+        #   know if it is daemon or shell...
 
         with self.exceptionManager("An error occured during the script "
                                    "execution: "):
+            afile = FileProcedure(filename, granularity=granularity)
             afile.execute(args=(), parameter_container=self.params)

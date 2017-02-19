@@ -18,15 +18,15 @@
 
 from pyshell.register.profile.default import DefaultProfile
 from pyshell.register.profile.exception import RegisterException
-from pyshell.system.manager import isAValidStringPath
-from pyshell.system.parameter import Parameter
+from pyshell.system.manager.abstract import isAValidStringPath
+from pyshell.system.parameter.abstract import Parameter
 from pyshell.utils.raises import raiseIfNotSubclass
 
 
 class ParameterLoaderProfile(DefaultProfile):
 
-    def __init__(self, parameter_definition):
-        DefaultProfile.__init__(self)
+    def __init__(self, parameter_definition, root_profile):
+        DefaultProfile.__init__(self, root_profile)
 
         raiseIfNotSubclass(parameter_definition,
                            "parameter_definition",

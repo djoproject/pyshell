@@ -216,6 +216,12 @@ class TestParameterLocalSettings(object):
         assert gs.isReadOnly()
         assert not gs.isRemovable()
 
+    def test_getLocalFromGlobalLocal(self):
+        ls = ParameterLocalSettings(read_only=True,
+                                    removable=False)
+
+        assert ls is ls.getLocalFromGlobal()
+
 
 class TestParameterGlobalSettings(object):
 

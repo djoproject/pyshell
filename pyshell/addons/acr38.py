@@ -18,10 +18,10 @@
 
 from apdu.readers.acr38u import acr38uAPDUBuilder
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
-from pyshell.arg.argchecker import TokenValueArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
+from pyshell.arg.checker.token43 import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import EngineInterruptionException
 from pyshell.register.command import registerCommand
@@ -29,8 +29,7 @@ from pyshell.register.command import registerSetGlobalPrefix
 from pyshell.register.command import registerSetTempPrefix
 
 
-@shellMethod(anything=ListArgChecker(
-    DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(anything=ListArgChecker(DefaultChecker.getArg()))
 def stopAsMainProcess(anything):
     # TODO in place of printing an error, print a description of the apdu
     # (class, ins, length, ...)

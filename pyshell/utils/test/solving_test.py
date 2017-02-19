@@ -20,15 +20,16 @@ import pytest
 
 from tries import multiLevelTries
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import BooleanValueArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.argchecker import ArgChecker
+from pyshell.arg.checker.boolean import BooleanValueArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiCommand
 from pyshell.command.command import UniCommand
-from pyshell.system.variable import VariableParameter
-from pyshell.system.variable import VariableParameterManager
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.manager.variable import VariableParameterManager
+from pyshell.system.parameter.variable import VariableParameter
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.parsing import Parser
 from pyshell.utils.solving import Solver
@@ -37,8 +38,7 @@ from pyshell.utils.solving import _isValidBooleanValueForChecker
 from pyshell.utils.solving import _removeEveryIndexUnder
 
 
-@shellMethod(
-    param=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def plopMeth(param):
     pass
 
@@ -51,7 +51,7 @@ class TestSolving(object):
         m = UniCommand(plopMeth)
         self.mltries.insert(("plop",), m)
 
-        self.var = VariableParameterManager()
+        self.var = VariableParameterManager(ParentManager())
 
     # ## INIT ## #
 
@@ -516,10 +516,10 @@ class TestSolving(object):
     def test_solvingParams5(self):
         @shellMethod(
             param1=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance(),
+                DefaultChecker.getArg(),
                 maximum_size=3),
             param2=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance()))
+                DefaultChecker.getArg()))
         def tutu(param1, param2):
             pass
 
@@ -559,10 +559,10 @@ class TestSolving(object):
     def test_solvingParams6(self):
         @shellMethod(
             param1=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance(),
+                DefaultChecker.getArg(),
                 maximum_size=3),
             param2=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance()))
+                DefaultChecker.getArg()))
         def tutu(param1, param2):
             pass
 
@@ -601,10 +601,10 @@ class TestSolving(object):
     def test_solvingParams7(self):
         @shellMethod(
             param1=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance(),
+                DefaultChecker.getArg(),
                 maximum_size=3),
             param2=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance()))
+                DefaultChecker.getArg()))
         def tutu(param1, param2):
             pass
 
@@ -643,7 +643,7 @@ class TestSolving(object):
     def test_solvingParams8(self):
         @shellMethod(
             param1=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance(),
+                DefaultChecker.getArg(),
                 maximum_size=3))
         def tutu(param1):
             pass
@@ -680,7 +680,7 @@ class TestSolving(object):
     def test_solvingParams9(self):
         @shellMethod(
             param1=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance(),
+                DefaultChecker.getArg(),
                 maximum_size=3))
         def tutu(param1):
             pass
@@ -716,7 +716,7 @@ class TestSolving(object):
     def test_solvingParams10(self):
         @shellMethod(
             param1=ListArgChecker(
-                DefaultInstanceArgChecker.getArgCheckerInstance(),
+                DefaultChecker.getArg(),
                 maximum_size=3))
         def tutu(param1):
             pass

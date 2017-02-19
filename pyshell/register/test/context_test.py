@@ -22,7 +22,7 @@ from pyshell.register.context import setContextUnloadPriority
 from pyshell.register.loader.context import ContextLoader
 from pyshell.register.utils.addon import AddonLoader
 from pyshell.register.utils.module import getNearestModule
-from pyshell.system.context import ContextParameter
+from pyshell.system.parameter.context import ContextParameter
 
 
 class TestContextRegister(object):

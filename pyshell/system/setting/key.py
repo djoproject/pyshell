@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.system.setting.environment import EnvironmentSettings
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
@@ -25,7 +25,7 @@ from pyshell.system.setting.parameter import ParameterSettings
 
 class KeySettings(EnvironmentSettings):
     def getChecker(self):
-        return DefaultInstanceArgChecker.getKeyChecker()
+        return DefaultChecker.getKey()
 
     def setChecker(self, checker=None):
         pass

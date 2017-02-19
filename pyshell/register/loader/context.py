@@ -18,7 +18,7 @@
 
 from pyshell.register.loader.parameter import ParameterAbstractLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.context import ContextParameter
+from pyshell.system.parameter.context import ContextParameter
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
 
 
@@ -28,5 +28,9 @@ class ContextLoader(ParameterAbstractLoader):
         return CONTEXT_ATTRIBUTE_NAME
 
     @staticmethod
-    def createProfileInstance():
-        return ParameterLoaderProfile(ContextParameter)
+    def getManager(container):
+        return container.getContextManager()
+
+    @staticmethod
+    def createProfileInstance(root_profile):
+        return ParameterLoaderProfile(ContextParameter, root_profile)

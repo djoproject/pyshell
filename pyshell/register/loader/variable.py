@@ -18,7 +18,7 @@
 
 from pyshell.register.loader.parameter import ParameterAbstractLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.variable import VariableParameter
+from pyshell.system.parameter.variable import VariableParameter
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 
 
@@ -29,5 +29,9 @@ class VariableLoader(ParameterAbstractLoader):
         return VARIABLE_ATTRIBUTE_NAME
 
     @staticmethod
-    def createProfileInstance():
-        return ParameterLoaderProfile(VariableParameter)
+    def getManager(container):
+        return container.getVariableManager()
+
+    @staticmethod
+    def createProfileInstance(root_profile):
+        return ParameterLoaderProfile(VariableParameter, root_profile)

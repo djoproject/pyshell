@@ -16,17 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.utils.printing import printShell
 from pyshell.utils.printing import strLength
-from pyshell.utils.string import isString
+from pyshell.utils.string65 import isString
 
 
-@shellMethod(
-    result=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(result=ListArgChecker(DefaultChecker.getArg()))
 def listResultHandler(result):
     if len(result) == 0:
         return result
@@ -39,8 +38,7 @@ def listResultHandler(result):
     return result
 
 
-@shellMethod(
-    result=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(result=ListArgChecker(DefaultChecker.getArg()))
 def listFlatResultHandler(result):
     if len(result) == 0:
         printShell("")
@@ -80,7 +78,7 @@ def printBytesAsString(byte_list):
     return byte_list
 
 
-_defaultArgCheckerInstance = DefaultInstanceArgChecker.getArgCheckerInstance()
+_defaultArgCheckerInstance = DefaultChecker.getArg()
 
 
 @shellMethod(list_of_line=ListArgChecker(_defaultArgCheckerInstance))

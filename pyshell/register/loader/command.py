@@ -22,15 +22,14 @@ from pyshell.register.loader.abstractloader import AbstractLoader
 from pyshell.register.loader.exception import LoadException
 from pyshell.register.loader.exception import UnloadException
 from pyshell.register.profile.command import CommandLoaderProfile
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
 from pyshell.utils.exception import ListOfException
 
 
 class CommandLoader(AbstractLoader):
     @staticmethod
-    def createProfileInstance():
-        return CommandLoaderProfile()
+    def createProfileInstance(root_profile):
+        return CommandLoaderProfile(root_profile)
 
     @classmethod
     def load(cls, profile_object, parameter_container):
@@ -43,13 +42,7 @@ class CommandLoader(AbstractLoader):
                       "parameters")
             raise LoadException(excmsg)
 
-        if not hasattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME):
-            excmsg = ("(CommandLoader) load, fail to load command because"
-                      "container has not attribute '" +
-                      ENVIRONMENT_ATTRIBUTE_NAME+"'")
-            raise LoadException(excmsg)
-
-        env_manager = getattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME)
+        env_manager = parameter_container.getEnvironmentManager()
         param = env_manager.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
                                          perfect_match=True)
 
@@ -117,13 +110,7 @@ class CommandLoader(AbstractLoader):
                       "parameters")
             raise UnloadException(excmsg)
 
-        if not hasattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME):
-            excmsg = ("(CommandLoader) unload, fail to unload command because"
-                      "container has not attribute '" +
-                      ENVIRONMENT_ATTRIBUTE_NAME+"'")
-            raise UnloadException(excmsg)
-
-        env_manager = getattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME)
+        env_manager = parameter_container.getEnvironmentManager()
         param = env_manager.getParameter(ENVIRONMENT_LEVEL_TRIES_KEY,
                                          perfect_match=True)
 

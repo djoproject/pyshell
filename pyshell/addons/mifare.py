@@ -18,8 +18,8 @@
 
 from apdu.tag.mifareUltralight import MifareUltralightAPDUBuilder
 
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix

@@ -39,11 +39,11 @@ import readline
 
 from tries.exception import triesException
 
-from pyshell.arg.argchecker import BooleanValueArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import EnvironmentParameterChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.accessor.environment import EnvironmentAccessor
+from pyshell.arg.checker.boolean import BooleanValueArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import MultiOutput
 from pyshell.register.command import registerCommand
@@ -67,8 +67,7 @@ def exitFun():
     exit()
 
 
-@shellMethod(args=ListArgChecker(
-    DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(args=ListArgChecker(DefaultChecker.getArg()))
 def echo(args):
     "echo all the args"
 
@@ -79,8 +78,7 @@ def echo(args):
     return listFlatResultHandler(s)
 
 
-@shellMethod(args=ListArgChecker(
-    DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(args=ListArgChecker(DefaultChecker.getArg()))
 def echo16(args):
     "echo all the args in hexa"
 
@@ -94,8 +92,7 @@ def echo16(args):
     return listFlatResultHandler(s)
 
 
-@shellMethod(args=ListArgChecker(
-    DefaultInstanceArgChecker.getIntegerArgCheckerInstance()))
+@shellMethod(args=ListArgChecker(DefaultChecker.getInteger()))
 def intToAscii(args):
     "echo all the args into chars"
     s = ""
@@ -109,8 +106,8 @@ def intToAscii(args):
 
 
 @shellMethod(
-    args=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance(), 1),
-    mltries=EnvironmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY))
+    args=ListArgChecker(DefaultChecker.getArg(), 1),
+    mltries=EnvironmentAccessor(ENVIRONMENT_LEVEL_TRIES_KEY))
 def usageFun(args, mltries):
     "print the usage of a fonction"
 
@@ -157,8 +154,8 @@ def usageFun(args, mltries):
 
 
 @shellMethod(
-    mltries=EnvironmentParameterChecker(ENVIRONMENT_LEVEL_TRIES_KEY),
-    args=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()))
+    mltries=EnvironmentAccessor(ENVIRONMENT_LEVEL_TRIES_KEY),
+    args=ListArgChecker(DefaultChecker.getArg()))
 def helpFun(mltries, args=None):
     "print the help"
 
@@ -351,11 +348,11 @@ def generator(start=0, stop=100, step=1, multi_output=True):
 
 
 @shellMethod(
-    use_history=EnvironmentParameterChecker(
+    use_history=EnvironmentAccessor(
         ENVIRONMENT_USE_HISTORY_KEY),
-    parameter_directory=EnvironmentParameterChecker(
+    parameter_directory=EnvironmentAccessor(
         ENVIRONMENT_CONFIG_DIRECTORY_KEY),
-    history_file=EnvironmentParameterChecker(
+    history_file=EnvironmentAccessor(
         ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historyLoad(use_history, parameter_directory, history_file):
     "save readline history"
@@ -377,11 +374,11 @@ def historyLoad(use_history, parameter_directory, history_file):
 
 
 @shellMethod(
-    use_history=EnvironmentParameterChecker(
+    use_history=EnvironmentAccessor(
         ENVIRONMENT_USE_HISTORY_KEY),
-    parameter_directory=EnvironmentParameterChecker(
+    parameter_directory=EnvironmentAccessor(
         ENVIRONMENT_CONFIG_DIRECTORY_KEY),
-    history_file=EnvironmentParameterChecker(
+    history_file=EnvironmentAccessor(
         ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historySave(use_history, parameter_directory, history_file):
     "load readline history"

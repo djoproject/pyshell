@@ -18,8 +18,8 @@
 
 import pytest
 
-from pyshell.arg.argchecker import ArgChecker
 from pyshell.arg.argfeeder import ArgFeeder
+from pyshell.arg.checker.argchecker import ArgChecker
 from pyshell.arg.exception import ArgException
 from pyshell.arg.exception import ArgInitializationException
 

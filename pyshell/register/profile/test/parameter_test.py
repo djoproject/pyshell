@@ -20,7 +20,8 @@ import pytest
 
 from pyshell.register.profile.exception import RegisterException
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.parameter import Parameter
+from pyshell.register.profile.root import RootProfile
+from pyshell.system.parameter.abstract import Parameter
 
 
 class FakeParameter(Parameter):
@@ -35,24 +36,33 @@ class FakeIntParameter(Parameter):
 
 
 class TestParameterInit(object):
+    def setup_method(self, method):
+        self.root_profile = RootProfile()
+        self.root_profile.setName("profile_name")
 
     def test_noClassDeclaration(self):
         with pytest.raises(RegisterException):
-            ParameterLoaderProfile(parameter_definition=42)
+            ParameterLoaderProfile(parameter_definition=42,
+                                   root_profile=self.root_profile)
 
     def test_notClassInheritingFromParameter(self):
         with pytest.raises(RegisterException):
-            ParameterLoaderProfile(parameter_definition=object)
+            ParameterLoaderProfile(parameter_definition=object,
+                                   root_profile=self.root_profile)
 
     def test_successInit(self):
-        ParameterLoaderProfile(parameter_definition=FakeParameter)
+        ParameterLoaderProfile(parameter_definition=FakeParameter,
+                               root_profile=self.root_profile)
 
 
 class TestParameterLoaderAddParameter(object):
 
     def setup_method(self, method):
+        self.root_profile = RootProfile()
+        self.root_profile.setName("profile_name")
         self.loader_profile = ParameterLoaderProfile(
-            parameter_definition=FakeParameter)
+            parameter_definition=FakeParameter,
+            root_profile=self.root_profile)
 
     def test_invalidPath(self):
         with pytest.raises(RegisterException):
@@ -64,7 +74,8 @@ class TestParameterLoaderAddParameter(object):
 
     def test_notAParameterAndCanNotBeUsedAsValue(self):
         profile = ParameterLoaderProfile(
-            parameter_definition=FakeIntParameter)
+            parameter_definition=FakeIntParameter,
+            root_profile=self.root_profile)
         with pytest.raises(RegisterException):
             profile.addParameter("tutu.tata", "plop")
 

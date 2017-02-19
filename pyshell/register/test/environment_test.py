@@ -22,7 +22,7 @@ from pyshell.register.environment import setEnvironmentUnloadPriority
 from pyshell.register.loader.environment import EnvironmentLoader
 from pyshell.register.utils.addon import AddonLoader
 from pyshell.register.utils.module import getNearestModule
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.parameter.environment import EnvironmentParameter
 
 
 class TestEnvironmentRegister(object):

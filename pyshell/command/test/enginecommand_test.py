@@ -18,7 +18,7 @@
 
 import pytest
 
-from pyshell.arg.argchecker import ArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.command import Command
 from pyshell.command.command import MultiCommand
@@ -29,7 +29,7 @@ from pyshell.command.engine import PROCESS_INSTRUCTION
 from pyshell.command.exception import ExecutionException
 
 
-@shellMethod(arg=ArgChecker())
+@shellMethod(arg=DefaultChecker.getArg())
 def plop(arg):
     return arg
 

@@ -28,9 +28,8 @@ from pyshell.command.utils import equalPath
 from pyshell.command.utils import isAValidIndex
 from pyshell.command.utils import raisIfInvalidMap  # TODO fix grammar error
 from pyshell.command.utils import raiseIfInvalidPath
-from pyshell.system.container import ParameterContainer
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.environment import ParametersLocker
+from pyshell.system.parameter.environment import EnvironmentParameter
+from pyshell.system.parameter.environment import ParametersLocker
 from pyshell.utils.synchronized import FAKELOCK
 
 # TODO TO TEST
@@ -103,17 +102,8 @@ class EngineV3(object):
         self.args_list = args_list
         self.cmd_list = cmd_list  # list of MultiCommand
         self.mapped_args_list = mapped_args_list
-
-        # check env variable
-        if env is None:
-            self.env = ParameterContainer()
-        elif isinstance(env, ParameterContainer):
-            self.env = env
-        else:
-            raise ExecutionInitException("(engine) init, env must be an "
-                                         "instance of ParameterContainer or "
-                                         "None, got '"+str(type(env))+"'")
-
+        # TODO env must be a container instance
+        self.env = env
         self.stack = EngineStack()
         self._isInProcess = False
         self.selfkillreason = None

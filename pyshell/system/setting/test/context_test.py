@@ -18,13 +18,12 @@
 
 import pytest
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import EnvironmentParameterChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
-from pyshell.arg.argchecker import StringArgChecker
-from pyshell.system.context import ContextParameter
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.arg.checker.argchecker import ArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
+from pyshell.system.parameter.context import ContextParameter
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.system.setting.context import CONTEXT_DEFAULT_CHECKER
 from pyshell.system.setting.context import ContextGlobalSettings
 from pyshell.system.setting.context import ContextLocalSettings
@@ -48,7 +47,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setIndex with correct value
     def test_localSettings3(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(2)
         settings.tryToSetIndex(1)
@@ -58,7 +57,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setIndex with incorrect value
     def test_localSettings4(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,),
                              settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -69,7 +68,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setIndex with invalid value
     def test_localSettings5(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,),
                              settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -81,7 +80,7 @@ class TestContextLocalSettingsWithContextParameter(object):
     # setIndex with valid value and readonly
     def test_localSettings6(self):
         settings = ContextLocalSettings(read_only=True,
-                                        checker=IntegerArgChecker())
+                                        checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
 
         assert c.getSelectedValue() == 0
@@ -90,7 +89,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetIndex with correct value
     def test_localSettings7(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(2)
         assert c.getSelectedValue() == 0
@@ -99,7 +98,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetIndex with incorrect value
     def test_localSettings8(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(2)
         assert c.getSelectedValue() == 0
@@ -108,7 +107,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetIndex with invalid value
     def test_localSettings9(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(2)
         assert c.getSelectedValue() == 0
@@ -117,7 +116,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetIndex with incorrect value and default value recomputing
     def test_localSettings10(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(2)
         settings.tryToSetIndex(1)
@@ -128,7 +127,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetIndex with valid value and readonly
     def test_localSettings11(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(2)
         settings.setReadOnly(True)
@@ -139,7 +138,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetIndex, create a test to set default_index
     def test_localSettings12(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(1)
         settings.tryToSetIndex(3)
@@ -173,7 +172,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setSelectedValue with a valid value
     def test_localSettings13(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         c = ContextParameter(value=("aa", "bb", "cc", "dd",),
                              settings=settings)
         assert c.getSelectedValue() == "aa"
@@ -182,7 +181,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setSelectedValue with a valid value but inexisting
     def test_localSettings14(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         c = ContextParameter(value=("aa", "bb", "cc", "dd",),
                              settings=settings)
         assert c.getSelectedValue() == "aa"
@@ -191,7 +190,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setSelectedValue with an invalid value
     def test_localSettings15(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         c = ContextParameter(value=("aa", "bb", "cc", "dd",),
                              settings=settings)
         assert c.getSelectedValue() == "aa"
@@ -201,7 +200,7 @@ class TestContextLocalSettingsWithContextParameter(object):
     # setSelectedValue with valid value and readonly
     def test_localSettings16(self):
         settings = ContextLocalSettings(read_only=True,
-                                        checker=StringArgChecker())
+                                        checker=DefaultChecker.getString())
         c = ContextParameter(value=("aa", "bb", "cc", "dd",),
                              settings=settings)
         assert c.getSelectedValue() == "aa"
@@ -210,7 +209,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setDefaultIndex with correct value
     def test_localSettings17(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -220,7 +219,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setDefaultIndex with incorrect value
     def test_localSettings18(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -229,7 +228,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setDefaultIndex with invalid value
     def test_localSettings19(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -238,7 +237,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # setDefaultIndex with valid value and readonly
     def test_localSettings20(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -248,7 +247,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetDefaultIndex with correct value
     def test_localSettings21(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -258,7 +257,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetDefaultIndex with incorrect value
     def test_localSettings22(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -268,7 +267,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetDefaultIndex with invalid value
     def test_localSettings23(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -278,7 +277,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetDefaultIndex with valid value and readonly
     def test_localSettings24(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",),
                          settings=settings)
         settings.tryToSetDefaultIndex(2)
@@ -288,7 +287,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # tryToSetDefaultIndex, create a test to set default_index to zero
     def test_localSettings25(self):
-        settings = ContextLocalSettings(checker=IntegerArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c = ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(3)
         assert settings.getDefaultIndex() == 3
@@ -319,7 +318,7 @@ class TestContextLocalSettingsWithContextParameter(object):
 
     # test reset
     def test_localSettings26(self):
-        settings = ContextLocalSettings(checker=StringArgChecker())
+        settings = ContextLocalSettings(checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",), settings=settings)
         settings.tryToSetDefaultIndex(2)
         settings.tryToSetIndex(1)
@@ -346,7 +345,7 @@ class TestContextLocalSettingsWithContextParameter(object):
         assert settings.getProperties() == props
 
     def test_cloneWithoutSource(self):
-        s = ContextLocalSettings(checker=IntegerArgChecker())
+        s = ContextLocalSettings(checker=DefaultChecker.getInteger())
         ContextParameter(value=(0, 1, 2, 3,), settings=s)
         s.setDefaultIndex(2)
         s.setIndex(1)
@@ -361,12 +360,12 @@ class TestContextLocalSettingsWithContextParameter(object):
         assert sc.values_size == 0
 
     def test_cloneWithSource(self):
-        to_clone = ContextLocalSettings(checker=IntegerArgChecker())
+        to_clone = ContextLocalSettings(checker=DefaultChecker.getInteger())
         ContextParameter(value=(0, 1, 2, 3,), settings=to_clone)
         to_clone.setDefaultIndex(2)
         to_clone.setIndex(1)
 
-        source = ContextLocalSettings(checker=IntegerArgChecker())
+        source = ContextLocalSettings(checker=DefaultChecker.getInteger())
         c2 = ContextParameter(value=(0, 1, 2, 3,), settings=source)
         source.setDefaultIndex(3)
         source.setIndex(2)
@@ -429,7 +428,7 @@ class TestContextSettingsWithoutContextParameter(object):
 
     # arg checker
     def test_contextConstructor2(self):
-        settings = ContextSettings(checker=IntegerArgChecker())
+        settings = ContextSettings(checker=DefaultChecker.getInteger())
         assert settings.isListChecker()
         assert settings.getChecker().minimum_size == 1
         assert settings.getChecker().maximum_size is None
@@ -439,12 +438,12 @@ class TestContextSettingsWithoutContextParameter(object):
     # arg checker with min size of 0
     def test_contextConstructor2b(self):
         with pytest.raises(ParameterException):
-            checker = EnvironmentParameterChecker("plip")
+            checker = ArgChecker(minimum_size=0, maximum_size=0)
             ContextSettings(checker=checker)
 
     # list checker + #list checker with size not adapted to context
     def test_contextConstructor3(self):
-        lt = ListArgChecker(IntegerArgChecker(), 3, 27)
+        lt = ListArgChecker(DefaultChecker.getInteger(), 3, 27)
         settings = ContextSettings(checker=lt)
         assert settings.isListChecker()
         assert settings.getChecker().minimum_size == 1
@@ -462,7 +461,7 @@ class TestContextSettingsWithoutContextParameter(object):
         assert checker is checker2
 
     def test_setCheckerNoneWithPreviousChecker(self):
-        original_checker = ListArgChecker(StringArgChecker())
+        original_checker = ListArgChecker(DefaultChecker.getString())
         settings = ContextSettings(checker=original_checker)
         checker = settings.getChecker()
         assert checker is original_checker
@@ -476,14 +475,14 @@ class TestContextSettingsWithoutContextParameter(object):
 
     def test_setCheckerNotAList(self):
         settings = ContextSettings()
-        checker = StringArgChecker()
+        checker = DefaultChecker.getString()
         settings.setChecker(checker=checker)
         assert settings.isListChecker()
         assert settings.getChecker().checker is checker
 
     def test_setCheckerListWithMinSizeBiggerThanZero(self):
         settings = ContextSettings()
-        original_checker = ListArgChecker(checker=StringArgChecker(),
+        original_checker = ListArgChecker(checker=DefaultChecker.getString(),
                                           minimum_size=14,
                                           maximum_size=56)
         settings.setChecker(original_checker)
@@ -524,7 +523,7 @@ class TestContextSettingsWithoutContextParameter(object):
         assert settings.isListChecker()
 
     def test_cloneWithoutSource(self):
-        zs = ContextSettings(checker=IntegerArgChecker())
+        zs = ContextSettings(checker=DefaultChecker.getInteger())
         zsc = zs.clone()
 
         assert isinstance(zsc, ContextSettings)
@@ -534,7 +533,7 @@ class TestContextSettingsWithoutContextParameter(object):
         assert zsc.values_size == 0
 
     def test_cloneWithSource(self):
-        to_clone = ContextSettings(checker=IntegerArgChecker())
+        to_clone = ContextSettings(checker=DefaultChecker.getInteger())
         source = ContextSettings(checker=None)
         to_clone.clone(source)
 
@@ -564,7 +563,7 @@ class TestContextLocalSettingsWithoutContextParameter(object):
         assert lcs.isTransientIndex()
 
     def test_cloneWithoutSource(self):
-        s = ContextLocalSettings(checker=IntegerArgChecker())
+        s = ContextLocalSettings(checker=DefaultChecker.getInteger())
         sc = s.clone()
 
         assert isinstance(sc, ContextLocalSettings)
@@ -573,8 +572,8 @@ class TestContextLocalSettingsWithoutContextParameter(object):
         assert sc.values_size == 0
 
     def test_cloneWithSource(self):
-        to_clone = ContextLocalSettings(checker=IntegerArgChecker())
-        source = ContextLocalSettings(checker=IntegerArgChecker())
+        to_clone = ContextLocalSettings(checker=DefaultChecker.getInteger())
+        source = ContextLocalSettings(checker=DefaultChecker.getInteger())
         to_clone.clone(source)
 
         assert to_clone is not source
@@ -582,7 +581,7 @@ class TestContextLocalSettingsWithoutContextParameter(object):
         assert source.values_size == 0
 
     def test_getGlobalFromLocal(self):
-        checker = IntegerArgChecker()
+        checker = DefaultChecker.getInteger()
         ls = ContextLocalSettings(read_only=True,
                                   removable=False,
                                   checker=checker)
@@ -633,7 +632,7 @@ class TestContextGlobalSettingsWithContextParameter(object):
                                          removable=True,
                                          transient=True,
                                          transient_index=True,
-                                         checker=StringArgChecker())
+                                         checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",), settings=settings)
         assert settings.isReadOnly()
         assert settings.isRemovable()
@@ -646,7 +645,7 @@ class TestContextGlobalSettingsWithContextParameter(object):
                                          removable=False,
                                          transient=False,
                                          transient_index=False,
-                                         checker=StringArgChecker())
+                                         checker=DefaultChecker.getString())
         ContextParameter(value=("aa", "bb", "cc", "dd",), settings=settings)
         assert not settings.isReadOnly()
         assert not settings.isRemovable()
@@ -685,7 +684,7 @@ class TestContextGlobalSettingsWithContextParameter(object):
         assert settings.getProperties() == props
 
     def test_cloneWithoutSource(self):
-        s = ContextGlobalSettings(checker=IntegerArgChecker())
+        s = ContextGlobalSettings(checker=DefaultChecker.getInteger())
         s.setTransientIndex(True)
         ContextParameter(value=(0, 1, 2, 3,), settings=s)
         s.setDefaultIndex(2)
@@ -702,13 +701,13 @@ class TestContextGlobalSettingsWithContextParameter(object):
         assert s.isTransientIndex()
 
     def test_cloneWithSource(self):
-        to_clone = ContextGlobalSettings(checker=IntegerArgChecker())
+        to_clone = ContextGlobalSettings(checker=DefaultChecker.getInteger())
         to_clone.setTransientIndex(False)
         ContextParameter(value=(0, 1, 2, 3,), settings=to_clone)
         to_clone.setDefaultIndex(2)
         to_clone.setIndex(1)
 
-        source = ContextGlobalSettings(checker=IntegerArgChecker())
+        source = ContextGlobalSettings(checker=DefaultChecker.getInteger())
         source.setTransientIndex(True)
         c2 = ContextParameter(value=(0, 1, 2, 3,), settings=source)
         source.setDefaultIndex(3)
@@ -728,25 +727,25 @@ class TestContextGlobalSettingsWithoutContextParameter(object):
     # test setTransientIndex in readonly mode
     def test_globalSettings3(self):
         settings = ContextGlobalSettings(read_only=True,
-                                         checker=StringArgChecker())
+                                         checker=DefaultChecker.getString())
         with pytest.raises(ParameterException):
             settings.setTransientIndex(True)
 
     # test setTransientIndex with invalid bool
     def test_globalSettings4(self):
-        settings = ContextGlobalSettings(checker=StringArgChecker())
+        settings = ContextGlobalSettings(checker=DefaultChecker.getString())
         with pytest.raises(ParameterException):
             settings.setTransientIndex("plop")
 
     # test setTransientIndex with valid bool
     def test_globalSettings5(self):
-        settings = ContextGlobalSettings(checker=StringArgChecker())
+        settings = ContextGlobalSettings(checker=DefaultChecker.getString())
         assert not settings.isTransientIndex()
         settings.setTransientIndex(True)
         assert settings.isTransientIndex()
 
     def test_cloneWithoutSource(self):
-        s = ContextGlobalSettings(checker=IntegerArgChecker())
+        s = ContextGlobalSettings(checker=DefaultChecker.getInteger())
         s.setTransientIndex(True)
         sc = s.clone()
 
@@ -757,10 +756,10 @@ class TestContextGlobalSettingsWithoutContextParameter(object):
         assert sc.isTransientIndex()
 
     def test_cloneWithSource(self):
-        to_clone = ContextGlobalSettings(checker=IntegerArgChecker())
+        to_clone = ContextGlobalSettings(checker=DefaultChecker.getInteger())
         to_clone.setTransientIndex(False)
 
-        source = ContextGlobalSettings(checker=IntegerArgChecker())
+        source = ContextGlobalSettings(checker=DefaultChecker.getInteger())
         source.setTransientIndex(True)
 
         to_clone.clone(source)
@@ -771,7 +770,7 @@ class TestContextGlobalSettingsWithoutContextParameter(object):
         assert not source.isTransientIndex()
 
     def test_getLocalFromGlobal(self):
-        checker = IntegerArgChecker()
+        checker = DefaultChecker.getInteger()
         gs = ContextGlobalSettings(read_only=True,
                                    removable=False,
                                    transient=True,

@@ -23,9 +23,9 @@ import pytest
 
 from tries import multiLevelTries
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker as DefaultArg
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.exception import ArgException
 from pyshell.command.command import Command
@@ -36,21 +36,17 @@ from pyshell.command.exception import CommandException
 from pyshell.command.exception import EngineInterruptionException
 from pyshell.command.exception import ExecutionException
 from pyshell.command.exception import ExecutionInitException
-from pyshell.system.container import ParameterContainer
-from pyshell.system.context import ContextParameter
-from pyshell.system.context import ContextParameterManager
-from pyshell.system.environment import EnvironmentParameter
-from pyshell.system.environment import EnvironmentParameterManager
+from pyshell.system.manager.parent import ParentManager
+from pyshell.system.parameter.context import ContextParameter
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.system.setting.context import ContextGlobalSettings
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
-from pyshell.system.variable import VariableParameterManager
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
 from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
 from pyshell.utils.constants import CONTEXT_COLORATION_NONE
 from pyshell.utils.constants import CONTEXT_EXECUTION_DAEMON
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
-from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
@@ -65,7 +61,7 @@ RESULT = None
 RESULT_BIS = None
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def plopMeth(param):
     global RESULT
     param.append(threading.current_thread().ident)
@@ -73,7 +69,7 @@ def plopMeth(param):
     return param
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def tutuMeth(param):
     global RESULT_BIS
     param.append(threading.current_thread().ident)
@@ -81,50 +77,58 @@ def tutuMeth(param):
     return param
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc1(param):
     raise ExecutionInitException("test 1")
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc2(param):
     raise ExecutionException("test 2")
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc3(param):
     raise CommandException("test 3")
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc4(param):
     e = EngineInterruptionException("test 4")
     e.abnormal = True
     raise e
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc5(param):
     e = EngineInterruptionException("test 5")
     e.abnormal = False
     raise e
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc6(param):
     raise ArgException("test 6")
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc7(param):
     l = ListOfException()
     l.addException(Exception("test 7"))
     raise l
 
 
-@shellMethod(param=ListArgChecker(DefaultArg.getArgCheckerInstance()))
+@shellMethod(param=ListArgChecker(DefaultChecker.getArg()))
 def raiseExc8(param):
     raise Exception("test 8")
+
+
+class ParentManagerWithMainThread(ParentManager):
+    def __init__(self, *args, **kwargs):
+        ParentManager.__init__(self)
+
+    def isMainThread(self):
+        return True
 
 
 class TestExecuting(object):
@@ -132,22 +136,15 @@ class TestExecuting(object):
     def setup_method(self, method):
         global RESULT, RESULT_BIS
 
-        self.params = ParameterContainer()
-
-        manager = EnvironmentParameterManager(self.params)
-        self.params.registerParameterManager("environment", manager)
-        manager = ContextParameterManager(self.params)
-        self.params.registerParameterManager("context", manager)
-        manager = VariableParameterManager(self.params)
-        self.params.registerParameterManager("variable", manager)
+        self.params = ParentManagerWithMainThread()
 
         self.debugContext = ContextParameter(
             value=tuple(range(0, 91)),
             settings=ContextGlobalSettings(
-                checker=DefaultArg.getIntegerArgCheckerInstance()))
-        self.params.context.setParameter(DEBUG_ENVIRONMENT_NAME,
-                                         self.debugContext,
-                                         local_param=False)
+                checker=DefaultChecker.getInteger()))
+        self.params.getContextManager().setParameter(DEBUG_ENVIRONMENT_NAME,
+                                                     self.debugContext,
+                                                     local_param=False)
         self.debugContext.settings.setTransient(False)
         self.debugContext.settings.setTransientIndex(False)
         self.debugContext.settings.setRemovable(False)
@@ -155,13 +152,12 @@ class TestExecuting(object):
 
         self.shellContext = ContextParameter(
             value=(CONTEXT_EXECUTION_SHELL,
-                   CONTEXT_EXECUTION_SCRIPT,
                    CONTEXT_EXECUTION_DAEMON,),
             settings=ContextGlobalSettings(
-                checker=DefaultArg.getStringArgCheckerInstance()))
-        self.params.context.setParameter(CONTEXT_EXECUTION_KEY,
-                                         self.shellContext,
-                                         local_param=False)
+                checker=DefaultChecker.getString()))
+        self.params.getContextManager().setParameter(CONTEXT_EXECUTION_KEY,
+                                                     self.shellContext,
+                                                     local_param=False)
         self.shellContext.settings.setTransient(True)
         self.shellContext.settings.setTransientIndex(True)
         self.shellContext.settings.setRemovable(False)
@@ -172,10 +168,10 @@ class TestExecuting(object):
                    CONTEXT_COLORATION_DARK,
                    CONTEXT_COLORATION_NONE,),
             settings=ContextGlobalSettings(
-                checker=DefaultArg.getStringArgCheckerInstance()))
-        self.params.context.setParameter(CONTEXT_COLORATION_KEY,
-                                         self.backgroundContext,
-                                         local_param=False)
+                checker=DefaultChecker.getString()))
+        self.params.getContextManager().setParameter(CONTEXT_COLORATION_KEY,
+                                                     self.backgroundContext,
+                                                     local_param=False)
         self.backgroundContext.settings.setTransient(False)
         self.backgroundContext.settings.setTransientIndex(False)
         self.backgroundContext.settings.setRemovable(False)
@@ -185,9 +181,10 @@ class TestExecuting(object):
             value=5,
             settings=EnvironmentGlobalSettings(
                 checker=IntegerArgChecker(0)))
-        self.params.environment.setParameter(ENVIRONMENT_TAB_SIZE_KEY,
-                                             self.spacingContext,
-                                             local_param=False)
+        self.params.getEnvironmentManager().setParameter(
+            ENVIRONMENT_TAB_SIZE_KEY,
+            self.spacingContext,
+            local_param=False)
         self.spacingContext.settings.setTransient(False)
         self.spacingContext.settings.setRemovable(False)
         self.spacingContext.settings.setReadOnly(False)
@@ -197,12 +194,12 @@ class TestExecuting(object):
         m = UniCommand(plopMeth)
         self.mltries.insert(("plop",), m)
 
-        param = self.params.environment.setParameter(
+        param = self.params.getEnvironmentManager().setParameter(
             ENVIRONMENT_LEVEL_TRIES_KEY,
             EnvironmentParameter(
                 value=self.mltries,
                 settings=EnvironmentGlobalSettings(
-                    checker=DefaultArg.getArgCheckerInstance())),
+                    checker=DefaultChecker.getArg())),
             local_param=False)
         param.settings.setTransient(True)
         param.settings.setRemovable(False)
@@ -288,7 +285,8 @@ class TestExecuting(object):
         assert last_exception is None
         assert engine is None
 
-        thread_id = self.params.variable.getParameter("!").getValue()
+        variables = self.params.getVariableManager()
+        thread_id = variables.getParameter("!").getValue()
 
         for t in threading.enumerate():
             if t.ident == thread_id[0]:
@@ -439,7 +437,7 @@ class TestExecuting(object):
 
     def test_generateSuffix1(self):  # test with debug
         self.debugContext.setSelectedValue(1)
-        thread_id = (threading.current_thread().ident, "main",)
+        thread_id = threading.current_thread().ident
         expected = (" (threadId="+str(thread_id)+", "
                     "process='MainThread')")
         assert _generateSuffix(self.params,
@@ -455,8 +453,8 @@ class TestExecuting(object):
         assert _generateSuffix(self.params,
                                (("plop",),),
                                None) is None
-        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
-        thread_id = (threading.current_thread().ident, "main",)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_DAEMON)
+        thread_id = threading.current_thread().ident
         expected = (" (threadId="+str(thread_id)+", "
                     "process='MainThread')")
         assert _generateSuffix(self.params,
@@ -464,16 +462,16 @@ class TestExecuting(object):
                                None) == expected
 
     def test_generateSuffix5(self):  # test without commandNameList
-        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_DAEMON)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
-        thread_id = (threading.current_thread().ident, "main",)
+        thread_id = threading.current_thread().ident
         expected = (" (threadId="+str(thread_id)+", "
                     "process='MainThread')")
         assert _generateSuffix(self.params, None, e) == expected
 
     def test_generateSuffix6(self):  # test with None engine
-        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
-        thread_id = (threading.current_thread().ident, "main",)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_DAEMON)
+        thread_id = threading.current_thread().ident
         expected = (" (threadId="+str(thread_id)+", "
                     "process='MainThread')")
         assert _generateSuffix(self.params,
@@ -481,10 +479,10 @@ class TestExecuting(object):
                                None) == expected
 
     def test_generateSuffix7(self):  # test with empty engine
-        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_DAEMON)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
         del e.stack[:]
-        thread_id = (threading.current_thread().ident, "main",)
+        thread_id = threading.current_thread().ident
         expected = (" (threadId="+str(thread_id)+", "
                     "process='MainThread')")
         assert _generateSuffix(self.params,
@@ -493,9 +491,9 @@ class TestExecuting(object):
 
     # test with valid engine and commandNameList
     def test_generateSuffix8(self):
-        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_SCRIPT)
+        self.shellContext.setSelectedValue(CONTEXT_EXECUTION_DAEMON)
         e = EngineV3([UniCommand(plopMeth)], [["titi"]], ["titi"])
-        thread_id = (threading.current_thread().ident, "main",)
+        thread_id = threading.current_thread().ident
         expected = (" (threadId="+str(thread_id)+", "
                     "process='MainThread', command='plop')")
         assert _generateSuffix(self.params,

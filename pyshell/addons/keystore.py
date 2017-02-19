@@ -16,16 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import BooleanValueArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import EnvironmentParameterChecker
-from pyshell.arg.argchecker import IntegerArgChecker
+from pyshell.arg.accessor.default import DefaultAccessor
+from pyshell.arg.accessor.environment import EnvironmentAccessor
+from pyshell.arg.checker.boolean import BooleanValueArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix
 from pyshell.register.command import registerStopHelpTraversalAt
-from pyshell.register.keystore import registerKey
-from pyshell.utils.constants import KEYSTORE_SECTION_NAME
+from pyshell.register.key import registerKey
+from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
 from pyshell.utils.postprocess import listFlatResultHandler
 from pyshell.utils.postprocess import printColumn
 from pyshell.utils.printing import formatBolt
@@ -35,9 +36,9 @@ from pyshell.utils.printing import formatGreen
 # # DECLARATION PART # #
 
 
-@shellMethod(key_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-             key_instance=DefaultInstanceArgChecker.getKeyChecker(),
-             key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME),
+@shellMethod(key_name=DefaultChecker.getString(),
+             key_instance=DefaultChecker.getKey(),
+             key_store=EnvironmentAccessor(KEY_ATTRIBUTE_NAME),
              transient=BooleanValueArgChecker())
 def setKey(key_name, key_instance, key_store=None, transient=False):
     "set a key"
@@ -45,16 +46,16 @@ def setKey(key_name, key_instance, key_store=None, transient=False):
     key_store.getValue().setkey_instance(key_name, key_instance)
 
 
-@shellMethod(key=DefaultInstanceArgChecker.getKeyTranslatorChecker(),
+@shellMethod(key=DefaultAccessor.getKey(),
              start=IntegerArgChecker(),
              end=IntegerArgChecker(),
-             key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
+             key_store=EnvironmentAccessor(KEY_ATTRIBUTE_NAME))
 def getKey(key, start=0, end=None, key_store=None):
     "get a key"
     return key.getKey(start, end)
 
 
-@shellMethod(key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(key_store=EnvironmentAccessor(KEY_ATTRIBUTE_NAME))
 def listKey(key_store):
     "list available key in the key_store"
 
@@ -80,21 +81,21 @@ def listKey(key_store):
     return to_ret
 
 
-@shellMethod(key_name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-             key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(key_name=DefaultChecker.getString(),
+             key_store=EnvironmentAccessor(KEY_ATTRIBUTE_NAME))
 def unsetKey(key_name, key_store=None):
     "remove a key from the key_store"
     key_store.getValue().unsetKey(key_name)
 
 
-@shellMethod(key_store=EnvironmentParameterChecker(KEYSTORE_SECTION_NAME))
+@shellMethod(key_store=EnvironmentAccessor(KEY_ATTRIBUTE_NAME))
 def cleanKeyStore(key_store=None):
     "remove every keys from the key_store"
     key_store.getValue().removeAll()
 
 
-@shellMethod(key=DefaultInstanceArgChecker.getKeyTranslatorChecker(),
-             state=BooleanValueArgChecker())
+@shellMethod(key=DefaultAccessor.getKey(),
+             state=DefaultChecker.getBoolean())
 def setTransient(key, state):
     key.setTransient(state)
 

@@ -16,11 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import FilePathArgChecker
+from pyshell.arg.checker.file import FilePathArgChecker
 from pyshell.system.setting.environment import EnvironmentSettings
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
 from pyshell.system.setting.parameter import ParameterSettings
+from pyshell.utils.constants import ENABLE_ON_POST_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PRE_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PROCESS
 from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
 from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
 from pyshell.utils.exception import ParameterException
@@ -33,10 +36,6 @@ DEFAULT_CHECKER = FilePathArgChecker(exist=True,
 
 
 class ProcedureSettings(EnvironmentSettings):
-    ENABLE_ON_PRE_PROCESS = "enable_on_pre"
-    ENABLE_ON_PROCESS = "enable_on_pro"
-    ENABLE_ON_POST_PROCESS = "enable_on_post"
-
     def __init__(self, error_granularity=None, enable_on=None):
         self.error_granularity = float("inf")  # stop on any error
 
@@ -46,7 +45,7 @@ class ProcedureSettings(EnvironmentSettings):
         if error_granularity is not None:
             self.setErrorGranularity(error_granularity)
 
-        self.enable_on = ProcedureSettings.ENABLE_ON_PRE_PROCESS
+        self.enable_on = ENABLE_ON_PRE_PROCESS
         if enable_on is not None:
             self.setEnableOn(enable_on)
 
@@ -54,34 +53,34 @@ class ProcedureSettings(EnvironmentSettings):
             self.setReadOnly(True)
 
     def enableOnPreProcess(self):
-        self.setEnableOn(self.ENABLE_ON_PRE_PROCESS)
+        self.setEnableOn(ENABLE_ON_PRE_PROCESS)
 
     def isEnabledOnPreProcess(self):
-        return self.enable_on is self.ENABLE_ON_PRE_PROCESS
+        return self.enable_on is ENABLE_ON_PRE_PROCESS
 
     def enableOnProcess(self):
-        self.setEnableOn(self.ENABLE_ON_PROCESS)
+        self.setEnableOn(ENABLE_ON_PROCESS)
 
     def isEnabledOnProcess(self):
-        return self.enable_on is self.ENABLE_ON_PROCESS
+        return self.enable_on is ENABLE_ON_PROCESS
 
     def enableOnPostProcess(self):
-        self.setEnableOn(self.ENABLE_ON_POST_PROCESS)
+        self.setEnableOn(ENABLE_ON_POST_PROCESS)
 
     def isEnabledOnPostProcess(self):
-        return self.enable_on is self.ENABLE_ON_POST_PROCESS
+        return self.enable_on is ENABLE_ON_POST_PROCESS
 
     def setEnableOn(self, value):
         self._raiseIfReadOnly(self.__class__.__name__, "setEnableOn")
 
-        allowed_values = (self.ENABLE_ON_PRE_PROCESS,
-                          self.ENABLE_ON_PROCESS,
-                          self.ENABLE_ON_POST_PROCESS,)
+        allowed_values = (ENABLE_ON_PRE_PROCESS,
+                          ENABLE_ON_PROCESS,
+                          ENABLE_ON_POST_PROCESS,)
         if value not in allowed_values:
             exc_msg = ("(ProcedureSettings) one of these three value was "
                        "expected: %s, %s, %s. got '%s'." %
-                       (self.ENABLE_ON_PRE_PROCESS, self.ENABLE_ON_PROCESS,
-                        self.ENABLE_ON_POST_PROCESS, str(value)))
+                       (ENABLE_ON_PRE_PROCESS, ENABLE_ON_PROCESS,
+                        ENABLE_ON_POST_PROCESS, str(value)))
             raise ParameterException(exc_msg)
 
         self.enable_on = value

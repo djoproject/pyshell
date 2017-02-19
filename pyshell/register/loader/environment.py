@@ -18,7 +18,7 @@
 
 from pyshell.register.loader.parameter import ParameterAbstractLoader
 from pyshell.register.profile.parameter import ParameterLoaderProfile
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 
 
@@ -28,5 +28,9 @@ class EnvironmentLoader(ParameterAbstractLoader):
         return ENVIRONMENT_ATTRIBUTE_NAME
 
     @staticmethod
-    def createProfileInstance():
-        return ParameterLoaderProfile(EnvironmentParameter)
+    def getManager(container):
+        return container.getEnvironmentManager()
+
+    @staticmethod
+    def createProfileInstance(root_profile):
+        return ParameterLoaderProfile(EnvironmentParameter, root_profile)

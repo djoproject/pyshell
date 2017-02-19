@@ -20,11 +20,14 @@ import pytest
 
 from pyshell.register.profile.dependency import DependencyLoaderProfile
 from pyshell.register.profile.exception import RegisterException
+from pyshell.register.profile.root import RootProfile
 
 
 class TestDependencyLoaderProfile(object):
     def setup_method(self, method):
-        self.p = DependencyLoaderProfile()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        self.p = DependencyLoaderProfile(root_profile)
 
     def test_addDependencyInvalidAddonName(self):
         with pytest.raises(RegisterException):

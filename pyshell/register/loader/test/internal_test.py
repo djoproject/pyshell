@@ -20,25 +20,19 @@ import pytest
 
 from pyshell.register.exception import LoaderException
 from pyshell.register.loader.abstractloader import AbstractLoader
-from pyshell.register.loader.exception import LoadException
-from pyshell.register.loader.exception import UnloadException
 from pyshell.register.loader.internal import InternalLoader
 from pyshell.register.profile.default import DefaultProfile
-from pyshell.register.profile.globale import GlobalProfile
 from pyshell.register.profile.internal import InternalLoaderProfile
+from pyshell.register.profile.root import RootProfile
 from pyshell.register.utils.addon import AddonInformation
-from pyshell.utils.constants import STATE_LOADED
-from pyshell.utils.constants import STATE_LOADED_E
-from pyshell.utils.constants import STATE_UNLOADED
-from pyshell.utils.constants import STATE_UNLOADED_E
 from pyshell.utils.exception import ListOfException
 
 
 class SubAbstractLoader(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return DefaultProfile()
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
 
     @classmethod
     def load(cls, profile_object, parameter_container=None):
@@ -52,8 +46,8 @@ class SubAbstractLoader(AbstractLoader):
 class SubAbstractLoaderWithError(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return DefaultProfile()
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
 
     @classmethod
     def load(cls, profile_object, parameter_container=None):
@@ -67,8 +61,8 @@ class SubAbstractLoaderWithError(AbstractLoader):
 class SubAbstractUnloaderWithError(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return DefaultProfile()
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
 
     @classmethod
     def load(cls, profile_object, parameter_container=None):
@@ -83,12 +77,11 @@ class TestInternalLoader(object):
 
     def setup_method(self, method):
         self.gl = InternalLoader
-        self.profile = self.gl.createProfileInstance()
-        self.profile.setRoot()
-
         self.addon_information = AddonInformation('test.loader.parameter')
-        global_profile = GlobalProfile('profile_name', self.addon_information)
-        self.profile.setGlobalProfile(global_profile)
+        self.root_profile = RootProfile()
+        self.root_profile.setName("profile_name")
+        self.root_profile.setAddonInformations(self.addon_information)
+        self.profile = self.gl.createProfileInstance(self.root_profile)
 
     def test_createProfileInstance(self):
         assert isinstance(self.profile, InternalLoaderProfile)
@@ -106,9 +99,7 @@ class TestInternalLoader(object):
         assert self.gl._innerLoad(method_name="kill",
                                   priority_method_name="getKillPriority",
                                   parameter_container=None,
-                                  profile_object=self.profile,
-                                  next_state=STATE_LOADED,
-                                  next_state_if_error=STATE_LOADED_E) is None
+                                  profile_object=self.profile) is None
 
     # profile is not None, profile is in profile_list,profile in valid state,
     # unknown method name
@@ -118,9 +109,7 @@ class TestInternalLoader(object):
             self.gl._innerLoad(method_name="kill",
                                priority_method_name="getKillPriority",
                                parameter_container=None,
-                               profile_object=self.profile,
-                               next_state=STATE_LOADED,
-                               next_state_if_error=STATE_LOADED_E)
+                               profile_object=self.profile)
 
     # profile is not None, profile is in profile_list,profile in valid state,
     # known method name, with error production
@@ -130,11 +119,7 @@ class TestInternalLoader(object):
             self.gl._innerLoad(method_name="load",
                                priority_method_name="getLoadPriority",
                                parameter_container=None,
-                               profile_object=self.profile,
-                               next_state=STATE_LOADED,
-                               next_state_if_error=STATE_LOADED_E)
-        assert self.addon_information.getLoadedProfileName() is None
-        assert self.profile.getState() == STATE_LOADED_E
+                               profile_object=self.profile)
 
     # profile is not None, profile is in profile_list,profile in valid state,
     # known method name, without error production
@@ -143,20 +128,14 @@ class TestInternalLoader(object):
         self.gl._innerLoad(method_name="load",
                            priority_method_name="getLoadPriority",
                            parameter_container=None,
-                           profile_object=self.profile,
-                           next_state=STATE_LOADED,
-                           next_state_if_error=STATE_LOADED_E)
-        assert self.addon_information.getLoadedProfileName() is None
-        assert self.profile.getState() == STATE_LOADED
+                           profile_object=self.profile)
 
     # profile is None, profile is not in profile_list
     def test_internalLoaderInnerLoad6(self):
         assert self.gl._innerLoad(method_name="kill",
                                   priority_method_name="getKillPriority",
                                   parameter_container=None,
-                                  profile_object=self.profile,
-                                  next_state=STATE_LOADED,
-                                  next_state_if_error=STATE_LOADED_E) is None
+                                  profile_object=self.profile) is None
 
     # profile is None, profile is in profile_list,profile in valid state,
     # unknown method name
@@ -166,9 +145,7 @@ class TestInternalLoader(object):
             self.gl._innerLoad(method_name="kill",
                                priority_method_name="getKillPriority",
                                parameter_container=None,
-                               profile_object=self.profile,
-                               next_state=STATE_LOADED,
-                               next_state_if_error=STATE_LOADED_E)
+                               profile_object=self.profile)
 
     # profile is None, profile is in profile_list,profile in valid state,
     # known method name, without error production
@@ -177,52 +154,19 @@ class TestInternalLoader(object):
         self.gl._innerLoad(method_name="load",
                            priority_method_name="getLoadPriority",
                            parameter_container=None,
-                           profile_object=self.profile,
-                           next_state=STATE_LOADED,
-                           next_state_if_error=STATE_LOADED_E)
-        assert self.addon_information.getLoadedProfileName() is None
-        assert self.profile.getState() == STATE_LOADED
+                           profile_object=self.profile)
 
     # # load # #
     # valid load
     def test_internalLoaderLoad1(self):
         self.profile.addChild(SubAbstractLoader)
         self.gl.load(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is 'profile_name'
-        assert self.profile.getState() == STATE_LOADED
 
     # valid load with error
     def test_internalLoaderLoad2(self):
         self.profile.addChild(SubAbstractLoaderWithError)
         with pytest.raises(ListOfException):
             self.gl.load(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is 'profile_name'
-        assert self.profile.getState() == STATE_LOADED_E
-
-    # invalid load
-    def test_internalLoaderLoad3(self):
-        self.profile.addChild(SubAbstractLoader)
-        self.gl.load(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is 'profile_name'
-        assert self.profile.getState() == STATE_LOADED
-        with pytest.raises(LoadException):
-            self.gl.load(profile_object=self.profile, parameter_container=None)
-        # gl.load(None)
-
-    # invalid load, another profile is loaded
-    def test_internalLoaderLoad3b(self):
-        self.profile.addChild(SubAbstractLoader)
-        self.gl.load(profile_object=self.profile, parameter_container=None)
-
-        profile = self.gl.createProfileInstance()
-        profile.setRoot()
-
-        global_profile = GlobalProfile('profile_name2', self.addon_information)
-        profile.setGlobalProfile(global_profile)
-
-        with pytest.raises(LoadException):
-            self.gl.load(profile_object=profile, parameter_container=None)
-        # gl.load(None)
 
     # # unload # #
     # valid unload
@@ -230,28 +174,12 @@ class TestInternalLoader(object):
         self.profile.addChild(SubAbstractLoader)
         self.gl.load(profile_object=self.profile, parameter_container=None)
         self.gl.unload(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is None
-        assert self.profile.getState() == STATE_UNLOADED
 
     # valid unload with error
     def test_internalLoaderUnload5(self):
         self.profile.addChild(SubAbstractUnloaderWithError)
         self.gl.load(profile_object=self.profile, parameter_container=None)
         with pytest.raises(ListOfException):
-            self.gl.unload(
-                profile_object=self.profile,
-                parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is None
-        assert self.profile.getState() == STATE_UNLOADED_E
-
-    # invalid unload
-    def test_internalLoaderUnload6(self):
-        self.profile.addChild(SubAbstractLoader)
-        self.gl.load(profile_object=self.profile, parameter_container=None)
-        self.gl.unload(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is None
-        assert self.profile.getState() == STATE_UNLOADED
-        with pytest.raises(UnloadException):
             self.gl.unload(
                 profile_object=self.profile,
                 parameter_container=None)
@@ -263,8 +191,8 @@ class RecordLoadOrderAbstractLoader(AbstractLoader):
     unload_list = []
 
     @staticmethod
-    def createProfileInstance():
-        return DefaultProfile()
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
 
     @classmethod
     def load(cls, profile_object, parameter_container):
@@ -283,12 +211,11 @@ class TestInternalLoaderPriority(object):
 
     def setup_method(self, method):
         self.gl = InternalLoader
-        self.profile = self.gl.createProfileInstance()
-        self.profile.setRoot()
-
         self.addon_information = AddonInformation('test.loader.parameter')
-        global_profile = GlobalProfile('profile_name', self.addon_information)
-        self.profile.setGlobalProfile(global_profile)
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        root_profile.setAddonInformations(self.addon_information)
+        self.profile = self.gl.createProfileInstance(root_profile)
 
         del RecordLoadOrderAbstractLoader.load_list[:]
         del RecordLoadOrderAbstractLoader.unload_list[:]

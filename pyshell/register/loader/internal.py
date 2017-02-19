@@ -20,29 +20,21 @@ import heapq
 import traceback
 
 from pyshell.register.loader.abstractloader import AbstractLoader
-from pyshell.register.loader.exception import LoadException
-from pyshell.register.loader.exception import UnloadException
 from pyshell.register.profile.internal import InternalLoaderProfile
-from pyshell.utils.constants import STATE_LOADED
-from pyshell.utils.constants import STATE_LOADED_E
-from pyshell.utils.constants import STATE_UNLOADED
-from pyshell.utils.constants import STATE_UNLOADED_E
 from pyshell.utils.exception import ListOfException
 
 
 class InternalLoader(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return InternalLoaderProfile()
+    def createProfileInstance(root_profile):
+        return InternalLoaderProfile(root_profile)
 
     @staticmethod
     def _innerLoad(method_name,
                    priority_method_name,
                    parameter_container,
-                   profile_object,
-                   next_state,
-                   next_state_if_error):
+                   profile_object):
         exceptions = ListOfException()
         loaders_heap = []
         insert_order = 0
@@ -73,59 +65,18 @@ class InternalLoader(AbstractLoader):
                 exceptions.addException(ex)
 
         if exceptions.isThrowable():
-            profile_object.setState(next_state_if_error)
             raise exceptions
-
-        profile_object.setState(next_state)
 
     @classmethod
     def load(cls, profile_object, parameter_container):
-        global_profile = profile_object.getGlobalProfile()
-        addon_informations = global_profile.getAddonInformations()
-        current_profile_name = global_profile.getName()
-        loaded_profile_name = addon_informations.getLoadedProfileName()
-
-        if profile_object.isRoot():
-            if loaded_profile_name is not None:
-                if loaded_profile_name != current_profile_name:
-                    excmsg = ("(MasterLoader) 'load', the profile '%s' "
-                              "can not be loaded because the profile '%s' "
-                              "is already loaded")
-                    excmsg %= (current_profile_name, loaded_profile_name,)
-                else:
-                    excmsg = ("(MasterLoader) 'load', the profile '%s' is "
-                              "already loaded")
-                    excmsg %= current_profile_name
-
-                raise LoadException(excmsg)
-
-            addon_informations.setLoadedProfileName(current_profile_name)
-
-        cls._innerLoad("load",
-                       "getLoadPriority",
+        cls._innerLoad(method_name="load",
+                       priority_method_name="getLoadPriority",
                        parameter_container=parameter_container,
-                       profile_object=profile_object,
-                       next_state=STATE_LOADED,
-                       next_state_if_error=STATE_LOADED_E)
+                       profile_object=profile_object)
 
     @classmethod
     def unload(cls, profile_object, parameter_container):
-        global_profile = profile_object.getGlobalProfile()
-        addon_informations = global_profile.getAddonInformations()
-        current_profile_name = global_profile.getName()
-        loaded_profile_name = addon_informations.getLoadedProfileName()
-
-        if profile_object.isRoot():
-            if loaded_profile_name != current_profile_name:
-                excmsg = ("(MasterLoader) 'unload', the profile '%s' is not "
-                          "loaded")
-                raise UnloadException(excmsg % current_profile_name)
-
-            addon_informations.unsetLoadedProfileName()
-
-        cls._innerLoad("unload",
-                       "getUnloadPriority",
+        cls._innerLoad(method_name="unload",
+                       priority_method_name="getUnloadPriority",
                        parameter_container=parameter_container,
-                       profile_object=profile_object,
-                       next_state=STATE_UNLOADED,
-                       next_state_if_error=STATE_UNLOADED_E)
+                       profile_object=profile_object)

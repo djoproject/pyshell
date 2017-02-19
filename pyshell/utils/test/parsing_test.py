@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.utils.parsing import Parser, escapeString
+from pyshell.utils.parsing import Parser
 
 
 class TestParser(object):
@@ -364,29 +364,3 @@ class TestParser(object):
         assert len(p) == 2
         assert p == [(('aaa', 'bbb'), (), (),), (('ccc&c',), (), (),)]
         assert not p.isToRunInBackground()
-
-    # ## ESCAPING ## #
-
-    def test_escaping1(self):
-        original = "plop"
-        s = escapeString(original)
-        assert s == "\"plop\""
-        p = Parser(s)
-        p.parse()
-        assert p == [((original,), (), (),)]
-
-    def test_escaping2(self):
-        original = "$p\"l$o\\p"
-        s = escapeString(original)
-        assert s == "\"\\$p\\\"l$o\\\\p\""
-        p = Parser(s)
-        p.parse()
-        assert p == [((original,), (), (),)]
-
-    def test_escaping3(self):
-        original = "-a$b | cde\nfg\\hi& "
-        s = escapeString(original, False)
-        assert s == "\\-a\\$b\\ \\|\\ cde\\\nfg\\\\hi\\&\\ "
-        p = Parser(s)
-        p.parse()
-        assert p == [((original,), (), (),)]

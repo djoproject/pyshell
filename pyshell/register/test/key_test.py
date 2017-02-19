@@ -22,7 +22,7 @@ from pyshell.register.key import setKeyUnloadPriority
 from pyshell.register.loader.keystore import KeyLoader
 from pyshell.register.utils.addon import AddonLoader
 from pyshell.register.utils.module import getNearestModule
-from pyshell.system.key import CryptographicKeyParameter
+from pyshell.system.parameter.key import CryptographicKeyParameter
 
 
 class TestKeyRegister(object):

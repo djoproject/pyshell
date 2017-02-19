@@ -16,8 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import StringArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.system.setting.key import KeyGlobalSettings
 from pyshell.system.setting.key import KeyLocalSettings
 from pyshell.system.setting.key import KeySettings
@@ -28,11 +27,11 @@ from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
 class TestKeySettings(object):
     def test_initSetNoneChecker(self):
         s = KeySettings(checker=None)
-        assert s.getChecker() is DefaultInstanceArgChecker.getKeyChecker()
+        assert s.getChecker() is DefaultChecker.getKey()
 
     def test_initSetAChecker(self):
-        s = KeySettings(checker=StringArgChecker())
-        assert s.getChecker() is DefaultInstanceArgChecker.getKeyChecker()
+        s = KeySettings(checker=DefaultChecker.getString())
+        assert s.getChecker() is DefaultChecker.getKey()
 
     def test_setListChecker(self):
         s = KeySettings()

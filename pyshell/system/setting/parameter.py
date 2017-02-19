@@ -46,7 +46,7 @@ class ParameterSettings(Cloneable):
     def isRemovable(self):
         return True
 
-    # TODO should be a dict...
+    # TODO (create an issue) should return a dict
     def getProperties(self):
         return ((SETTING_PROPERTY_REMOVABLE, self.isRemovable(),),
                 (SETTING_PROPERTY_READONLY, self.isReadOnly(),),

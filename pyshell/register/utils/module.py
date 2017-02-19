@@ -30,6 +30,7 @@ def getNearestModule():
             break
 
     if nearest_frame is None:
+        # there is no way to test this statement
         excmsg = "(module) getNearestModule, fail to find the nearest frame"
         raise LoaderException(excmsg)
 

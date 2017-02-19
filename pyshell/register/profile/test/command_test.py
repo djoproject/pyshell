@@ -21,12 +21,15 @@ import pytest
 from pyshell.command.command import MultiCommand
 from pyshell.register.profile.command import CommandLoaderProfile
 from pyshell.register.profile.exception import RegisterException
+from pyshell.register.profile.root import RootProfile
 
 
 class TestCommandLoaderProfile(object):
 
     def setup_method(self, method):
-        self.cl = CommandLoaderProfile()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        self.cl = CommandLoaderProfile(root_profile)
 
     def test_setInvalidTempPrefix(self):
         with pytest.raises(RegisterException):

@@ -19,30 +19,28 @@
 from tries import multiLevelTries
 
 from pyshell.addons.utils.addon import tryToImportLoaderFromFile
-from pyshell.arg.argchecker import CompleteEnvironmentChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import EnvironmentParameterChecker
-from pyshell.arg.argchecker import FilePathArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
-from pyshell.arg.argchecker import StringArgChecker
+from pyshell.arg.accessor.default import DefaultAccessor
+from pyshell.arg.accessor.environment import EnvironmentAccessor
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.file import FilePathArgChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
+from pyshell.arg.checker.string43 import StringArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
 from pyshell.register.context import registerContext
 from pyshell.register.environment import registerEnvironment
 from pyshell.register.file import enableConfigSaving
-from pyshell.system.context import ContextParameter
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.system.parameter.context import ContextParameter
+from pyshell.system.parameter.environment import EnvironmentParameter
 from pyshell.system.setting.context import ContextGlobalSettings
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
-from pyshell.utils.constants import ADDONLIST_KEY
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
 from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
 from pyshell.utils.constants import CONTEXT_COLORATION_NONE
 from pyshell.utils.constants import CONTEXT_EXECUTION_DAEMON
 from pyshell.utils.constants import CONTEXT_EXECUTION_KEY
-from pyshell.utils.constants import CONTEXT_EXECUTION_SCRIPT
 from pyshell.utils.constants import CONTEXT_EXECUTION_SHELL
 from pyshell.utils.constants import DEBUG_ENVIRONMENT_NAME
 from pyshell.utils.constants import DEFAULT_CONFIG_DIRECTORY
@@ -61,17 +59,14 @@ from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_VALUE
 from pyshell.utils.constants import TAB_SIZE
 from pyshell.utils.exception import ListOfException
+from pyshell.utils.printing import error
 from pyshell.utils.printing import notice
 
 
-default_string_arg_checker = DefaultInstanceArgChecker.\
-    getStringArgCheckerInstance()
-default_arg_checker = DefaultInstanceArgChecker.\
-    getArgCheckerInstance()
-default_boolean_arg_checker = DefaultInstanceArgChecker.\
-    getBooleanValueArgCheckerInstance()
-default_integer_arg_checker = DefaultInstanceArgChecker.\
-    getIntegerArgCheckerInstance()
+default_string_arg_checker = DefaultChecker.getString()
+default_arg_checker = DefaultChecker.getArg()
+default_boolean_arg_checker = DefaultChecker.getBoolean()
+default_integer_arg_checker = DefaultChecker.getInteger()
 
 # # init original params # #
 checker = FilePathArgChecker(exist=None,
@@ -178,16 +173,6 @@ registerEnvironment(ENVIRONMENT_ADDON_TO_LOAD_KEY, param)
 
 ##
 
-settings = EnvironmentGlobalSettings(transient=True,
-                                     read_only=True,
-                                     removable=False,
-                                     checker=default_arg_checker)
-
-param = EnvironmentParameter(value={}, settings=settings)
-registerEnvironment(ADDONLIST_KEY, param)
-
-##
-
 settings = ContextGlobalSettings(removable=False,
                                  read_only=False,
                                  transient=False,
@@ -209,7 +194,6 @@ settings = ContextGlobalSettings(removable=False,
                                  transient_index=True,
                                  checker=default_string_arg_checker)
 values = (CONTEXT_EXECUTION_SHELL,
-          CONTEXT_EXECUTION_SCRIPT,
           CONTEXT_EXECUTION_DAEMON,)
 
 param = ContextParameter(value=values, settings=settings)
@@ -239,30 +223,47 @@ registerContext(CONTEXT_COLORATION_KEY, param)
 ##
 
 
-@shellMethod(name=DefaultInstanceArgChecker.getStringArgCheckerInstance(),
-             sub_addon=StringArgChecker(),
-             parameters=CompleteEnvironmentChecker(),
-             addon_dico=EnvironmentParameterChecker(ADDONLIST_KEY))
-def loadAddonFun(name, parameters, sub_addon=None, addon_dico=None):
+@shellMethod(name=DefaultChecker.getString(),
+             profile_name=StringArgChecker(),
+             parameters=DefaultAccessor.getContainer())
+def loadAddonFun(name, parameters, profile_name=None):
     "load an addon"
 
-    loader = tryToImportLoaderFromFile(name)
+    addon_dico = parameters.getAddonManager()
 
-    # load and register
-    if addon_dico is not None:
-        addon_dico.getValue()[name] = loader
-    loader.load(container=parameters, profile_name=sub_addon)
+    # is it already loaded ?
+    if name in addon_dico:
+        addon_loader = addon_dico[name]
+        loaded_name = addon_loader.getInformations().getLoadedProfileName()
 
-    # TODO shouldn't print the message if the addon is already loaded
+        # no loaded profile ?
+        if loaded_name is not None:
+            # TODO normalize profile_name (see register/utils/addon.py)
+            if profile_name != loaded_name:
+                # TODO improve the error message
+                error("another profile name is already loaded")
+
+            loaded_profile = addon_loader.getRootLoaderProfile(loaded_name)
+            if loaded_profile.isLoaded():
+                notice(name + " already loaded !")
+                return
+            elif loaded_profile.isLoading():
+                notice(name + " already loading !")
+    else:
+        # load and register
+        loader = tryToImportLoaderFromFile(name)
+        addon_dico[name] = loader
+
+    loader.load(container=parameters, profile_name=profile_name)
     notice(name + " loaded !")
 
 
 @shellMethod(
-    addon_list_on_start_up=EnvironmentParameterChecker(
+    addon_list_on_start_up=EnvironmentAccessor(
         ENVIRONMENT_ADDON_TO_LOAD_KEY),
-    params=DefaultInstanceArgChecker.getCompleteEnvironmentChecker(),
-    addon_dico=EnvironmentParameterChecker(ADDONLIST_KEY))
-def loadAddonOnStartUp(addon_list_on_start_up, params, addon_dico=None):
+    params=DefaultAccessor.getContainer())
+# TODO no profile_name argument ?
+def loadAddonOnStartUp(addon_list_on_start_up, params):
 
     if addon_list_on_start_up is None:
         return
@@ -271,7 +272,7 @@ def loadAddonOnStartUp(addon_list_on_start_up, params, addon_dico=None):
     error_list = ListOfException()
     for addon_name in addon_list:
         try:
-            loadAddonFun(addon_name, params, addon_dico=addon_dico)
+            loadAddonFun(addon_name, params)
         except Exception as ex:
             # TODO the information about the failing addon is lost here...
             # E.G. if an addon is already loaded, only the profile name will be

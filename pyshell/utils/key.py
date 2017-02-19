@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.utils.exception import KeyStoreException
-from pyshell.utils.string import isString
+from pyshell.utils.string65 import isString
 
 
 class CryptographicKey(object):

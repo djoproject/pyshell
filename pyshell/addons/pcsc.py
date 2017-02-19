@@ -50,18 +50,19 @@
 
 from apdu.misc.apdu import toHexString
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import EnvironmentParameterChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import ListArgChecker
-from pyshell.arg.argchecker import TokenValueArgChecker
+from pyshell.arg.accessor.environment import EnvironmentAccessor
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
+from pyshell.arg.checker.token43 import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix
 from pyshell.register.command import registerSetTempPrefix
 from pyshell.register.command import registerStopHelpTraversalAt
-from pyshell.register.parameter import registerEnvironment
-from pyshell.system.environment import EnvironmentParameter
+from pyshell.register.environment import registerEnvironment
+from pyshell.system.parameter.environment import EnvironmentParameter
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import LIBRARY_ERROR
 from pyshell.utils.postprocess import printColumn
@@ -248,10 +249,10 @@ def printAtr(bytes):
         printShell('T15 supported: ', atr.isT15Supported())
 
 
-@shellMethod(cards=EnvironmentParameterChecker("pcsc_card_list"),
-             autoload=EnvironmentParameterChecker("pcsc_autoload"),
-             loaded=EnvironmentParameterChecker("pcsc_contextready"),
-             autoconnect=EnvironmentParameterChecker("pcsc_autoconnect"))
+@shellMethod(cards=EnvironmentAccessor("pcsc_card_list"),
+             autoload=EnvironmentAccessor("pcsc_autoload"),
+             loaded=EnvironmentAccessor("pcsc_contextready"),
+             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
 def loadPcsc(cards, autoload, loaded, autoconnect):
     """
     try to load the pcsc context, this method must be called before any
@@ -296,7 +297,7 @@ def loadPcsc(cards, autoload, loaded, autoconnect):
 
 @shellMethod(data=ListArgChecker(IntegerArgChecker(0, 255)),
              connection_index=IntegerArgChecker(0),
-             connections=EnvironmentParameterChecker("pcsc_connexionlist"))
+             connections=EnvironmentAccessor("pcsc_connexionlist"))
 def transmit(data, connection_index=0, connections=None):
     "transmit a list of bytes to a card connection"
 
@@ -324,11 +325,11 @@ def transmit(data, connection_index=0, connections=None):
 
 
 @shellMethod(index=IntegerArgChecker(0),
-             cards=EnvironmentParameterChecker("pcsc_card_list"),
-             connections=EnvironmentParameterChecker("pcsc_connexionlist"),
-             autoload=EnvironmentParameterChecker("pcsc_autoload"),
-             loaded=EnvironmentParameterChecker("pcsc_contextready"),
-             autoconnect=EnvironmentParameterChecker("pcsc_autoconnect"))
+             cards=EnvironmentAccessor("pcsc_card_list"),
+             connections=EnvironmentAccessor("pcsc_connexionlist"),
+             autoload=EnvironmentAccessor("pcsc_autoload"),
+             loaded=EnvironmentAccessor("pcsc_contextready"),
+             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
 def connectCard(index=0, cards=None, connections=None,
                 loaded=False, autoload=False, autoconnect=False):
     "create a connection over a specific card"
@@ -347,11 +348,11 @@ def connectCard(index=0, cards=None, connections=None,
 
 
 @shellMethod(index=IntegerArgChecker(0),
-             cards=EnvironmentParameterChecker("pcsc_card_list"),
-             connections=EnvironmentParameterChecker("pcsc_connexionlist"),
-             autoload=EnvironmentParameterChecker("pcsc_autoload"),
-             loaded=EnvironmentParameterChecker("pcsc_contextready"),
-             autoconnect=EnvironmentParameterChecker("pcsc_autoconnect"))
+             cards=EnvironmentAccessor("pcsc_card_list"),
+             connections=EnvironmentAccessor("pcsc_connexionlist"),
+             autoload=EnvironmentAccessor("pcsc_autoload"),
+             loaded=EnvironmentAccessor("pcsc_contextready"),
+             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
 def connectReader(index=0, cards=None, connections=None,
                   loaded=False, autoload=False, autoconnect=False):
     "create a connection over a specific reader"
@@ -374,7 +375,7 @@ def connectReader(index=0, cards=None, connections=None,
 
 
 @shellMethod(index=IntegerArgChecker(0),
-             connections=EnvironmentParameterChecker("pcsc_connexionlist"))
+             connections=EnvironmentAccessor("pcsc_connexionlist"))
 def disconnect(index=0, connections=None):
     "close a connection"
 
@@ -392,7 +393,7 @@ def disconnect(index=0, connections=None):
         connections.setValue(connection_list)
 
 
-@shellMethod(connections=EnvironmentParameterChecker("pcsc_connexionlist"))
+@shellMethod(connections=EnvironmentAccessor("pcsc_connexionlist"))
 def getConnected(connections):
     "list the existing connection(s)"
 
@@ -431,8 +432,8 @@ def getConnected(connections):
     return to_ret
 
 
-@shellMethod(cards=EnvironmentParameterChecker("pcsc_card_list"),
-             connections=EnvironmentParameterChecker("pcsc_connexionlist"))
+@shellMethod(cards=EnvironmentAccessor("pcsc_card_list"),
+             connections=EnvironmentAccessor("pcsc_connexionlist"))
 def getAvailableCard(cards, connections):
     "list available card(s) on the system connected or not"
 
@@ -468,11 +469,11 @@ def getAvailableCard(cards, connections):
     return to_ret
 
 
-@shellMethod(cards=EnvironmentParameterChecker("pcsc_card_list"),
-             connections=EnvironmentParameterChecker("pcsc_connexionlist"),
-             autoload=EnvironmentParameterChecker("pcsc_autoload"),
-             loaded=EnvironmentParameterChecker("pcsc_contextready"),
-             autoconnect=EnvironmentParameterChecker("pcsc_autoconnect"))
+@shellMethod(cards=EnvironmentAccessor("pcsc_card_list"),
+             connections=EnvironmentAccessor("pcsc_connexionlist"),
+             autoload=EnvironmentAccessor("pcsc_autoload"),
+             loaded=EnvironmentAccessor("pcsc_contextready"),
+             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
 def getAvailableReader(cards, connections, autoload=False,
                        loaded=False, autoconnect=False):
     "list available reader(s)"
@@ -519,7 +520,7 @@ def getAvailableReader(cards, connections, autoload=False,
 
 @shellMethod(
     connexion_index=IntegerArgChecker(0),
-    connections=EnvironmentParameterChecker("pcsc_connexionlist"),
+    connections=EnvironmentAccessor("pcsc_connexionlist"),
     protocol=TokenValueArgChecker({"T0": CardConnection.T0_protocol,
                                    "T1": CardConnection.T1_protocol,
                                    "T15": CardConnection.T15_protocol,
@@ -533,18 +534,16 @@ def setProtocol(connexion_index, protocol, connections):
     connection_to_use.setProtocol(protocol)
 
 
-@shellMethod(
-    value=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance(),
-    autoload=EnvironmentParameterChecker("pcsc_autoload"))
+@shellMethod(value=DefaultChecker.getBoolean(),
+             autoload=EnvironmentAccessor("pcsc_autoload"))
 def setAutoLoad(value, autoload):
     "set auto loadding context on any call to pcsc method"
 
     autoload.setValue(value)
 
 
-@shellMethod(
-    value=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance(),
-    autoconnect=EnvironmentParameterChecker("pcsc_autoconnect"))
+@shellMethod(value=DefaultChecker.getBoolean(),
+             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
 def setAutoConnect(value, autoconnect):
     """
     set auto connection to the first card available and only to the first card
@@ -553,73 +552,62 @@ def setAutoConnect(value, autoconnect):
     autoconnect.setValue(value)
 
 
-@shellMethod(
-    enable=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance())
+@shellMethod(enable=DefaultChecker.getBoolean())
 def monitorCard(enable):
     "enable/disable card monitoring"
     pass  # TODO
 
 
-@shellMethod(
-    enable=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance())
+@shellMethod(enable=DefaultChecker.getBoolean())
 def monitorReader(enable):
     "enable/disable reader monitoring"
     pass  # TODO
 
 
-@shellMethod(
-    enable=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance())
+@shellMethod(enable=DefaultChecker.getBoolean())
 def monitorData(enable):
     "enable/disable data monitoring"
     pass  # TODO
 
 # # register ENVIRONMENT # #
+settings = EnvironmentGlobalSettings(transient=False,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=DefaultChecker.getBoolean())
 
-registerEnvironment(
-    env_key="pcsc_autoload",
-    env=EnvironmentParameter(
-        value=True,
-        typ=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance(),
-        transient=False, readonly=False, removable=False),
-    no_error_if_key_exist=True,
-    override=False)
+registerEnvironment(env_key="pcsc_autoload",
+                    env=EnvironmentParameter(value=True, settings=settings))
 
-registerEnvironment(
-    env_key="pcsc_contextready",
-    env=EnvironmentParameter(
-        value=False,
-        typ=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance(),
-        transient=True, readonly=False, removable=False),
-    no_error_if_key_exist=True,
-    override=True)
+##
 
-registerEnvironment(
-    env_key="pcsc_autoconnect",
-    env=EnvironmentParameter(
-        value=False,
-        typ=DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance(),
-        transient=False, readonly=False, removable=False),
-    no_error_if_key_exist=True,
-    override=False)
+registerEnvironment(env_key="pcsc_autoconnect",
+                    env=EnvironmentParameter(value=False,
+                                             settings=settings.clone()))
 
-registerEnvironment(
-    env_key="pcsc_card_list",
-    env=EnvironmentParameter(
-        value=[],
-        typ=ListArgChecker(
-            DefaultInstanceArgChecker.getArgCheckerInstance()),
-        transient=True, readonly=False, removable=False),
-    no_error_if_key_exist=True,
-    override=True)
+##
 
-registerEnvironment(
-    env_key="pcsc_connexionlist",
-    env=EnvironmentParameter(
-        value=[],
-        typ=ListArgChecker(DefaultInstanceArgChecker.getArgCheckerInstance()),
-        transient=True, readonly=False, removable=False),
-    no_error_if_key_exist=True,
-    override=True)
+settings = EnvironmentGlobalSettings(transient=True,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=DefaultChecker.getBoolean())
+
+registerEnvironment(env_key="pcsc_contextready",
+                    env=EnvironmentParameter(value=False, settings=settings))
+
+##
+checker = ListArgChecker(DefaultChecker.getArg())
+settings = EnvironmentGlobalSettings(transient=True,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=checker)
+
+registerEnvironment(env_key="pcsc_card_list",
+                    env=EnvironmentParameter(value=[], settings=settings))
+
+##
+registerEnvironment(env_key="pcsc_connexionlist",
+                    env=EnvironmentParameter(value=[],
+                                             settings=settings.clone()))
 
 # # register METHOD # #
 

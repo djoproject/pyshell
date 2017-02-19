@@ -29,7 +29,7 @@ class AbstractLoader(object):
         return cls.__module__ + "." + cls.__name__
 
     @staticmethod
-    def createProfileInstance():
+    def createProfileInstance(root_profile):
         pass
 
     @classmethod

@@ -53,6 +53,7 @@ class DefaultPyshellException(PyshellException):
         return str(self.value)
 
 
+# TODO this one should be in pyshell.system
 class ParameterException(PyshellException):
     "Exception used when a error is triggered by the utilisation of parameter"
     def __init__(self, value):

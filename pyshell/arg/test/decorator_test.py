@@ -18,9 +18,9 @@
 
 import pytest
 
-from pyshell.arg.argchecker import ArgChecker
-from pyshell.arg.argchecker import DefaultValueChecker
 from pyshell.arg.argfeeder import ArgFeeder
+from pyshell.arg.checker.argchecker import ArgChecker
+from pyshell.arg.checker.defaultvalue import DefaultValueChecker
 from pyshell.arg.decorator import FunAnalyser
 from pyshell.arg.decorator import shellMethod
 from pyshell.arg.exception import DecoratorException

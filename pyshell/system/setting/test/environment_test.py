@@ -18,8 +18,8 @@
 
 import pytest
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import ListArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.list import ListArgChecker
 from pyshell.system.setting.environment import DEFAULT_CHECKER
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
 from pyshell.system.setting.environment import EnvironmentLocalSettings
@@ -50,7 +50,7 @@ class TestEnvironmentSettings(object):
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_constructorNotNoneChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert s.getChecker() is int_checker
 
@@ -62,12 +62,12 @@ class TestEnvironmentSettings(object):
         s = ReadOnlyEnvironmentSettings(checker=None)
         assert s.getChecker() is DEFAULT_CHECKER
 
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         with pytest.raises(ParameterException):
             s.setChecker(int_checker)
 
     def test_setCheckerNoneChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert s.getChecker() is int_checker
 
@@ -80,7 +80,7 @@ class TestEnvironmentSettings(object):
         assert s.isListChecker()
         sub_default_checker = DEFAULT_CHECKER.checker
 
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         assert not isinstance(int_checker, ListArgChecker)
 
         s.setChecker(checker=int_checker)
@@ -89,11 +89,11 @@ class TestEnvironmentSettings(object):
         assert s.getChecker().checker is not sub_default_checker
 
     def test_setCheckerValidChecker(self):
-        str_checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        str_checker = DefaultChecker.getString()
         s = EnvironmentSettings(checker=str_checker)
         assert s.getChecker() is str_checker
 
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s.setChecker(checker=int_checker)
 
         assert s.getChecker() is int_checker
@@ -105,7 +105,7 @@ class TestEnvironmentSettings(object):
         assert isinstance(DEFAULT_CHECKER, ListArgChecker)
 
     def test_isListCheckerIsNotAListChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert s.getChecker() is int_checker
         assert not s.isListChecker()
@@ -126,7 +126,7 @@ class TestEnvironmentSettings(object):
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_setListCheckerEnableListAndIsNotAList(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert not s.isListChecker()
 
@@ -145,7 +145,7 @@ class TestEnvironmentSettings(object):
         assert s.getChecker() is DEFAULT_CHECKER.checker
 
     def test_setListCheckerDisableListAndNotAList(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert not s.isListChecker()
 
@@ -165,7 +165,7 @@ class TestEnvironmentSettings(object):
                                      (SETTING_PROPERTY_CHECKERLIST, True))
 
     def test_getPropertiesNotAListChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert not s.isListChecker()
 
@@ -176,7 +176,7 @@ class TestEnvironmentSettings(object):
                                      (SETTING_PROPERTY_CHECKERLIST, False))
 
     def test_cloneWithoutSource(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
 
         sc = s.clone()
@@ -185,11 +185,11 @@ class TestEnvironmentSettings(object):
         sc.getChecker() is s.getChecker()
 
     def test_cloneWithSource(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         source = EnvironmentSettings(checker=int_checker)
         source.setListChecker(True)
 
-        str_checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        str_checker = DefaultChecker.getString()
         to_clone = EnvironmentSettings(checker=str_checker)
 
         to_clone.clone(source)
@@ -199,13 +199,13 @@ class TestEnvironmentSettings(object):
         assert hash(to_clone) == hash(source)
 
     def test_cloneWithSourceAndReadOnly(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         source = ReadOnlyEnvironmentSettings(checker=int_checker)
         source.setReadOnly(False)
         source.setListChecker(True)
         source.setReadOnly(True)
 
-        str_checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        str_checker = DefaultChecker.getString()
         to_clone = EnvironmentSettings(checker=str_checker)
 
         to_clone.clone(source)
@@ -220,7 +220,7 @@ class TestEnvironmentSettings(object):
 
 class TestEnvironmentLocalSettings(object):
     def test_constructorReadOnlyProp(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentLocalSettings(read_only=True,
                                      removable=False,
                                      checker=int_checker)
@@ -230,7 +230,7 @@ class TestEnvironmentLocalSettings(object):
         assert s.getChecker() is int_checker
 
     def test_constructorRemovableProp(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentLocalSettings(read_only=False,
                                      removable=True,
                                      checker=int_checker)
@@ -244,7 +244,7 @@ class TestEnvironmentLocalSettings(object):
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_constructorNotNoneChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentLocalSettings(checker=int_checker)
         assert s.getChecker() is int_checker
 
@@ -261,12 +261,12 @@ class TestEnvironmentLocalSettings(object):
         assert hash(s) == hash(sc)
 
     def test_cloneWithSource(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         to_clone = EnvironmentLocalSettings(read_only=False,
                                             removable=False,
                                             checker=int_checker)
 
-        str_checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        str_checker = DefaultChecker.getString()
         source = EnvironmentLocalSettings(read_only=True,
                                           removable=True,
                                           checker=str_checker)
@@ -276,7 +276,7 @@ class TestEnvironmentLocalSettings(object):
         assert hash(to_clone) == hash(source)
 
     def test_getGlobalFromLocal(self):
-        checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        checker = DefaultChecker.getInteger()
         ls = EnvironmentLocalSettings(read_only=True,
                                       removable=False,
                                       checker=checker)
@@ -293,7 +293,7 @@ class TestEnvironmentLocalSettings(object):
 
 class TestEnvironmentGlobalSettings(object):
     def test_constructorReadOnlyProp(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentGlobalSettings(read_only=True,
                                       removable=False,
                                       transient=False,
@@ -305,7 +305,7 @@ class TestEnvironmentGlobalSettings(object):
         assert s.getChecker() is int_checker
 
     def test_constructorRemovableProp(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentGlobalSettings(read_only=False,
                                       removable=True,
                                       transient=False,
@@ -317,7 +317,7 @@ class TestEnvironmentGlobalSettings(object):
         assert s.getChecker() is int_checker
 
     def test_constructorTransientProp(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentGlobalSettings(read_only=False,
                                       removable=False,
                                       transient=True,
@@ -333,7 +333,7 @@ class TestEnvironmentGlobalSettings(object):
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_constructorNotNoneChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = EnvironmentGlobalSettings(checker=int_checker)
         assert s.getChecker() is int_checker
 
@@ -350,13 +350,13 @@ class TestEnvironmentGlobalSettings(object):
         assert hash(s) == hash(sc)
 
     def test_cloneWithSource(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         to_clone = EnvironmentGlobalSettings(read_only=False,
                                              removable=False,
                                              transient=False,
                                              checker=int_checker)
 
-        str_checker = DefaultInstanceArgChecker.getStringArgCheckerInstance()
+        str_checker = DefaultChecker.getString()
         source = EnvironmentGlobalSettings(read_only=True,
                                            removable=True,
                                            transient=True,
@@ -367,7 +367,7 @@ class TestEnvironmentGlobalSettings(object):
         assert hash(to_clone) == hash(source)
 
     def test_getLocalFromGlobal(self):
-        checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        checker = DefaultChecker.getInteger()
         gs = EnvironmentGlobalSettings(read_only=True,
                                        removable=False,
                                        transient=True,

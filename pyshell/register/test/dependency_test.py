@@ -18,7 +18,7 @@
 
 import pytest
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.register.dependency import _localGetAndInitCallerModule
 from pyshell.register.dependency import registerDependOnAddon
 from pyshell.register.dependency import setDependencyLoadPriority
@@ -30,7 +30,7 @@ from pyshell.register.utils.module import getNearestModule
 from pyshell.utils.constants import DEFAULT_PROFILE_NAME
 
 
-DEFAULT_CHECKER = DefaultInstanceArgChecker.getArgCheckerInstance()
+DEFAULT_CHECKER = DefaultChecker.getArg()
 
 
 def loader(profile=None):

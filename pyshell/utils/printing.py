@@ -21,8 +21,7 @@ import re
 import threading
 import traceback
 
-from pyshell.system.container import ParameterContainer
-from pyshell.system.manager import ParameterManager
+from pyshell.system.manager.parent import ParentManager
 from pyshell.utils.abstract.valuable import Valuable
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
@@ -72,9 +71,7 @@ class Printer(object):
 
         self.replWriteFunction = None
         self.promptShowedContext = DefaultValuable(False)
-        self.params = ParameterContainer()
-        self.params.registerParameterManager("environment", ParameterManager())
-        self.params.registerParameterManager("context", ParameterManager())
+        self.params = None
 
     def __enter__(self):
         return Printer._printerLock.__enter__()
@@ -90,9 +87,9 @@ class Printer(object):
         self.replWriteFunction = fun
 
     def setParameters(self, params):
-        if not isinstance(params, ParameterContainer):
+        if not isinstance(params, ParentManager):
             raise Exception("("+self.__class__.__name__+") setParameters, "
-                            "invalid params, a ParameterContainer was expected"
+                            "invalid params, a ParentManager was expected"
                             ", got '"+type(params)+"'")
 
         self.params = params
@@ -106,24 +103,36 @@ class Printer(object):
         self.promptShowedContext = context
 
     def isDarkBackGround(self):
-        param = self.params.context.getParameter(CONTEXT_COLORATION_KEY,
-                                                 perfect_match=True)
+        if self.params is None:
+            return False
+
+        param = self.params.getContextManager().getParameter(
+            CONTEXT_COLORATION_KEY,
+            perfect_match=True)
         if param is not None:
             return param.getSelectedValue() == CONTEXT_COLORATION_DARK
 
         return False
 
     def isLightBackGround(self):
-        param = self.params.context.getParameter(CONTEXT_COLORATION_KEY,
-                                                 perfect_match=True)
+        if self.params is None:
+            return False
+
+        param = self.params.getContextManager().getParameter(
+            CONTEXT_COLORATION_KEY,
+            perfect_match=True)
         if param is not None:
             return param.getSelectedValue() == CONTEXT_COLORATION_LIGHT
 
         return False
 
     def isInShell(self):
-        param = self.params.context.getParameter(CONTEXT_EXECUTION_KEY,
-                                                 perfect_match=True)
+        if self.params is None:
+            return False
+
+        param = self.params.getContextManager().getParameter(
+            CONTEXT_EXECUTION_KEY,
+            perfect_match=True)
         if param is not None:
             return param.getSelectedValue() == CONTEXT_EXECUTION_SHELL
 
@@ -133,24 +142,36 @@ class Printer(object):
         return self.promptShowedContext.getValue()
 
     def isDebugEnabled(self):
-        param = self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                 perfect_match=True)
+        if self.params is None:
+            return False
+
+        param = self.params.getContextManager().getParameter(
+            DEBUG_ENVIRONMENT_NAME,
+            perfect_match=True)
         if param is not None:
             return param.getSelectedValue() > 0
 
         return False
 
     def getDebugLevel(self):
-        param = self.params.context.getParameter(DEBUG_ENVIRONMENT_NAME,
-                                                 perfect_match=True)
+        if self.params is None:
+            return 0
+
+        param = self.params.getContextManager().getParameter(
+            DEBUG_ENVIRONMENT_NAME,
+            perfect_match=True)
         if param is not None:
             return param.getSelectedValue()
 
         return 0
 
     def getSpacingSize(self):
-        param = self.params.environment.getParameter(ENVIRONMENT_TAB_SIZE_KEY,
-                                                     perfect_match=True)
+        if self.params is None:
+            return 0
+
+        param = self.params.getEnvironmentManager().getParameter(
+            ENVIRONMENT_TAB_SIZE_KEY,
+            perfect_match=True)
         if param is not None:
             return param.getValue()
 

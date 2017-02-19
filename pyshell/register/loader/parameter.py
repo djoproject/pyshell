@@ -23,12 +23,11 @@ from pyshell.register.loader.abstractloader import AbstractLoader
 from pyshell.register.loader.exception import LoadException
 from pyshell.register.loader.exception import UnloadException
 from pyshell.register.result.command import CommandResult
-from pyshell.system import getManager
 from pyshell.utils.constants import SETTING_PROPERTY_READONLY
 from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
 from pyshell.utils.exception import ListOfException
 from pyshell.utils.exception import ParameterException
-from pyshell.utils.parsing import escapeString
+from pyshell.utils.string65 import escapeString
 
 
 def _createParameter(parameter_type, parameter_name, parameter_object):
@@ -139,29 +138,22 @@ class ParameterAbstractLoader(AbstractLoader):
         excmsg = "(ParameterAbstractLoader) getManagerName, not implemented"
         raise LoaderException(excmsg)
 
+    @staticmethod
+    def getManager(container):
+        # this raise an exception as in the old time because ABC class does not
+        # seem able to manage abstract static method in a right way.
+        excmsg = "(ParameterAbstractLoader) getManager, not implemented"
+        raise LoaderException(excmsg)
+
     @classmethod
     def load(cls, profile_object, parameter_container):
         if parameter_container is None:
-            excmsg = ("(" + cls.__name__ + ") load, parameter container"
-                      " is not defined.  It is needed to load the parameters")
+            excmsg = ("(%s) load, parameter container is not defined.  It is"
+                      " needed to load the parameters")
+            excmsg %= cls.__name__
             raise LoadException(excmsg)
 
-        manager_name = cls.getManagerName()
-        if hasattr(parameter_container, manager_name):
-            parameter_manager = getattr(parameter_container, manager_name)
-        else:
-            manager_class = getManager(manager_name)
-
-            if manager_class is None:
-                excmsg = ("(" + cls.__name__ + ") load, no class "
-                          "definition exists for the manager '" +
-                          str(manager_name) + "'")
-                raise LoadException(excmsg)
-
-            parameter_manager = manager_class(parameter_container)
-            parameter_container.registerParameterManager(manager_name,
-                                                         parameter_manager)
-
+        parameter_manager = cls.getManager(parameter_container)
         exceptions = ListOfException()
 
         # set value
@@ -195,20 +187,19 @@ class ParameterAbstractLoader(AbstractLoader):
                                                explore_other_scope=False)
 
         if exist:
-            other_addon = parameter_manager.getAssociatedAddon(parameter_name)
-            excmsg = ("(" + cls.__name__ + ") setValueTo, fail to set"
-                      " value with key '" +
-                      str(parameter_name) + "': key already "
-                      "exists in addon '" + str(other_addon) + "'")
+            other_addon = parameter_manager.getLoaderName()
+            excmsg = ("(%s) setValueTo, fail to set value with key '%s': key "
+                      "already exists in addon '%s'")
+            excmsg %= (cls.__name__, str(parameter_name), str(other_addon),)
             return LoadException(excmsg)
 
         try:
-            global_profile = profile_object.getGlobalProfile()
-            addon_name = global_profile.getAddonInformations().getName()
+            root_profile = profile_object.getRootProfile()
+            addon_name = root_profile.getAddonInformations().getName()
             parameter_manager.setParameter(parameter_name,
                                            parameter_object.clone(),
                                            local_param=False,
-                                           origin_addon=addon_name,
+                                           origin_group=addon_name,
                                            freeze=True)
             profile_object.parameter_to_unset.append(parameter_name)
         except ParameterException as pe:
@@ -220,25 +211,18 @@ class ParameterAbstractLoader(AbstractLoader):
     @classmethod
     def unload(cls, profile_object, parameter_container):
         if parameter_container is None:
-            excmsg = ("(" + cls.__name__ + ") unload, parameter "
-                      "container is not defined.  It is needed to unload the "
-                      "parameters")
+            excmsg = ("(%s) unload, parameter container is not defined.  It "
+                      "is needed to unload the parameters")
+            excmsg %= cls.__name__
             raise UnloadException(excmsg)
 
-        manager_name = cls.getManagerName()
-        if not hasattr(parameter_container, manager_name):
-            excmsg = ("(" + cls.__name__ + ") unload, parameter "
-                      "container does not have the attribute '" +
-                      str(manager_name) + "'")
-            raise UnloadException(excmsg)
-
-        parameter_manager = getattr(parameter_container, manager_name)
+        parameter_manager = cls.getManager(parameter_container)
         exceptions = ListOfException()
 
         # get addon name
-        global_profile = profile_object.getGlobalProfile()
-        addon_name = global_profile.getAddonInformations().getName()
-        parameter_list = parameter_manager.getAddonNodes(addon_name)
+        root_profile = profile_object.getRootProfile()
+        addon_name = root_profile.getAddonInformations().getName()
+        parameter_list = parameter_manager.getGroupNodes(addon_name)
 
         instruction_list = []
         # remove object set
@@ -265,18 +249,21 @@ class ParameterAbstractLoader(AbstractLoader):
                     local_param=False,
                     explore_other_scope=False,
                     force=True,
-                    origin_addon=addon_name,
+                    origin_group=addon_name,
                     unfreeze=True)  # try to unfreeze if frozen
             except ParameterException as pe:
-                excmsg = ("(" + cls.__name__ + ") unsetValueTo, "
-                          "fail to unset value with key '" +
-                          str(parameter_node.string_key) + "': " + str(pe))
+                excmsg = ("(%s) unsetValueTo, fail to unset value with key "
+                          "'%s': %s")
+                excmsg %= (cls.__name__,
+                           str(parameter_node.string_key),
+                           str(pe),)
                 exceptions.addException(UnloadException(excmsg))
                 continue
 
-            cls._createParameter(parameter_node.string_key,
-                                 param,
-                                 instruction_list)
+            if not param.settings.isTransient():
+                cls._createParameter(parameter_node.string_key,
+                                     param,
+                                     instruction_list)
 
         parameter_manager.clearFrozenNode(addon_name)
 
@@ -287,9 +274,9 @@ class ParameterAbstractLoader(AbstractLoader):
         if len(instruction_list) > 0:
             result = CommandResult(
                 command_list=instruction_list,
-                section_name="SECTION ABOUT %s" % manager_name,
+                section_name="SECTION ABOUT %s" % cls.getManagerName(),
                 addons_set=set(["pyshell.addons.parameter"]))
-            global_profile.postResult(cls, result)
+            root_profile.postResult(cls, result)
 
         # raise error list
         if exceptions.isThrowable():
@@ -314,9 +301,10 @@ class ParameterAbstractLoader(AbstractLoader):
                                                local_param=False,
                                                explore_other_scope=False)
         if not exist:
-            cls._deleteParameter(parameter_name,
-                                 original_parameter_object,
-                                 instruction_list)
+            if not original_parameter_object.settings.isTransient():
+                cls._deleteParameter(parameter_name,
+                                     original_parameter_object,
+                                     instruction_list)
             return
 
         try:
@@ -325,19 +313,19 @@ class ParameterAbstractLoader(AbstractLoader):
                 local_param=False,
                 explore_other_scope=False,
                 force=True,
-                origin_addon=addon_name,
+                origin_group=addon_name,
                 unfreeze=True)
         except ParameterException as pe:
-            excmsg = ("(" + cls.__name__ + ") unsetValueTo, fail to "
-                      "unset value with key '" + str(parameter_name) + "': " +
-                      str(pe))
+            excmsg = "(%s) unsetValueTo, fail to unset value with key '%s': %s"
+            excmsg %= (cls.__name__, str(parameter_name), str(pe),)
             return UnloadException(excmsg)
 
         if hash(original_parameter_object) != hash(updated_parameter_object):
-            cls._updateParameter(parameter_name,
-                                 original_parameter_object,
-                                 updated_parameter_object,
-                                 instruction_list)
+            if not updated_parameter_object.settings.isTransient():
+                cls._updateParameter(parameter_name,
+                                     original_parameter_object,
+                                     updated_parameter_object,
+                                     instruction_list)
 
     @classmethod
     def _deleteParameter(cls,
@@ -348,9 +336,6 @@ class ParameterAbstractLoader(AbstractLoader):
             this method generates the instructions needed to delete a
             parameter from its corresponding manager.
         """
-
-        if original_parameter_object.settings.isTransient():
-            return
 
         manager_name = cls.getManagerName()
         if not original_parameter_object.settings.isRemovable():
@@ -381,9 +366,6 @@ class ParameterAbstractLoader(AbstractLoader):
             this method generates the instructions needed to update
             the content and the properties of a parameter
         """
-
-        if updated_parameter_object.settings.isTransient():
-            return
 
         # disable readonly if needed
         manager_name = cls.getManagerName()
@@ -447,9 +429,6 @@ class ParameterAbstractLoader(AbstractLoader):
             this method generates the instructions needed to create a
             parameter, its content and its properties
         """
-
-        if parameter_object.settings.isTransient():
-            return
 
         manager_name = cls.getManagerName()
         ins = _createParameter(manager_name,

@@ -20,25 +20,24 @@ import pytest
 
 from pyshell.register.profile.default import DefaultProfile
 from pyshell.register.profile.exception import RegisterException
-from pyshell.register.profile.globale import GlobalProfile
-from pyshell.register.profile.internal import InternalLoaderProfile
+from pyshell.register.profile.root import RootProfile
 
 
 class TestDefaultProfile(object):
-
     def setup_method(self, method):
-        self.p = DefaultProfile()
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        self.p = DefaultProfile(root_profile)
 
-    def test_setGlobalProfileInvalid(self):
+    def test_setRootProfileInvalid(self):
         with pytest.raises(RegisterException):
-            self.p.setGlobalProfile(object)
-        assert self.p.getGlobalProfile() is None
+            DefaultProfile(object)
 
-    def test_setGlobalProfileValid(self):
-        root_profile = InternalLoaderProfile()
-        g = GlobalProfile("profile_name", root_profile)
-        self.p.setGlobalProfile(g)
-        assert self.p.getGlobalProfile() is g
+    def test_setRootProfileValid(self):
+        root_profile = RootProfile()
+        root_profile.setName("profile_name")
+        p = DefaultProfile(root_profile)
+        assert p.getRootProfile() is root_profile
 
     def test_setLoadPriorityInvalid(self):
         assert self.p.getLoadPriority() == 100.0

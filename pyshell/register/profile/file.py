@@ -30,7 +30,8 @@ class FileLoaderProfile(DefaultProfile):
         to create the config file.
     """
 
-    def __init__(self):
+    def __init__(self, root_profile):
         DefaultProfile.__init__(self,
+                                root_profile,
                                 load_priority=float('inf'),
                                 unload_priority=float('inf'))

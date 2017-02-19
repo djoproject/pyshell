@@ -18,31 +18,29 @@
 
 import os
 
+from pyshell.command.procedure import FileProcedure
 from pyshell.register.loader.abstractloader import AbstractLoader
 from pyshell.register.loader.exception import UnloadException
 from pyshell.register.profile.file import FileLoaderProfile
 from pyshell.register.result.command import CommandResult
-from pyshell.system.procedure import FileProcedure
 from pyshell.utils.constants import DEFAULT_CONFIG_DIRECTORY
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
 from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 
 
 class FileLoader(AbstractLoader):
 
     @staticmethod
-    def createProfileInstance():
-        return FileLoaderProfile()
+    def createProfileInstance(root_profile):
+        return FileLoaderProfile(root_profile)
 
     @staticmethod
     def getFilePath(parameter_container, profile_object):
-        global_profile = profile_object.getGlobalProfile()
-        addon_name = global_profile.getAddonInformations().getName()
+        root_profile = profile_object.getRootProfile()
+        addon_name = root_profile.getAddonInformations().getName()
 
         env = None
-        if (parameter_container is not None and
-                hasattr(parameter_container, ENVIRONMENT_ATTRIBUTE_NAME)):
-            env = parameter_container.environment
+        if parameter_container is not None:
+            env = parameter_container.getEnvironmentManager()
             param = env.getParameter(ENVIRONMENT_CONFIG_DIRECTORY_KEY,
                                      perfect_match=True)
         if env is None or param is None:
@@ -52,7 +50,7 @@ class FileLoader(AbstractLoader):
 
         return os.path.join(directory,
                             "%s.%s.pys" % (addon_name,
-                                           global_profile.getName()))
+                                           root_profile.getName()))
 
     @classmethod
     def load(cls, profile_object, parameter_container):
@@ -61,8 +59,7 @@ class FileLoader(AbstractLoader):
         if path is None or not os.path.exists(path):
             return
 
-        afile = FileProcedure(path)
-        afile.settings.neverStopIfErrorOccured()
+        afile = FileProcedure(file_path=path, granularity=-1)
         afile.execute(parameter_container=parameter_container, args=())
 
     @classmethod
@@ -74,8 +71,8 @@ class FileLoader(AbstractLoader):
                       "to generate the parameter file.")
             raise UnloadException(excmsg)
 
-        global_profile = profile_object.getGlobalProfile()
-        results = global_profile.getResult(CommandResult)
+        root_profile = profile_object.getRootProfile()
+        results = root_profile.getResult(CommandResult)
 
         # no result
         if len(results) == 0:

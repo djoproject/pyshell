@@ -17,16 +17,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # TODO use these methods everywhere in the code
+# TODO test everything
 
 from inspect import isclass
 
-from pyshell.utils.string import isString
+from pyshell.utils.string65 import isString
 
 STRING_INSTANCE1 = ("the element, used to check if the variable '%s' is an "
                     "instance, is not a valid class definition.  it "
                     "contains '%s'")
 STRING_INSTANCE2 = ("the variable '%s' does not contain an instance of the "
-                    "class '%s'")
+                    "class '%s'.  It contains an item of type '%s'.")
+
+STRING_SUBINSTANCE = ("the variable '%s' contains an instance of the class "
+                      "'%s' but a subinstance was expected.")
 
 STRING_MSG = ("only string or unicode addon name are allowed for variable '%s'"
               ", got '%s'")
@@ -93,10 +97,28 @@ def raiseIfNotInstance(obj,
         return
 
     type_got = str(type(obj))
-    msg = _buildMessage(STRING_INSTANCE2 % (obj_name, type_got),
+    msg = _buildMessage(STRING_INSTANCE2 % (obj_name,
+                                            classdef.__name__,
+                                            str(type(obj)),),
                         method,
                         context)
     raise exc(msg)
+
+
+def raiseIfNotSubInstance(obj,
+                          obj_name,
+                          classdef,
+                          exc,
+                          method=None,
+                          context=None):
+    raiseIfNotInstance(obj, obj_name, classdef, exc, method, context)
+
+    if obj.__class__.__name__ is classdef.__name__:
+        msg = _buildMessage(STRING_SUBINSTANCE % (obj_name,
+                                                  classdef.__name__,),
+                            method,
+                            context)
+        raise exc(msg)
 
 
 def raiseIfNotString(obj, obj_name, exc, method=None, context=None):

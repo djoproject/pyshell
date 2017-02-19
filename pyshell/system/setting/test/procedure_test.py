@@ -18,11 +18,14 @@
 
 import pytest
 
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.system.setting.procedure import DEFAULT_CHECKER
 from pyshell.system.setting.procedure import ProcedureGlobalSettings
 from pyshell.system.setting.procedure import ProcedureLocalSettings
 from pyshell.system.setting.procedure import ProcedureSettings
+from pyshell.utils.constants import ENABLE_ON_POST_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PRE_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PROCESS
 from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
 from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
 from pyshell.utils.constants import SETTING_PROPERTY_READONLY
@@ -58,8 +61,7 @@ class TestProcedureSettings(object):
             ProcedureSettings(enable_on=42)
 
     def test_initValidEnableOn(self):
-        s = ProcedureSettings(
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+        s = ProcedureSettings(enable_on=ENABLE_ON_POST_PROCESS)
         assert s.isEnabledOnPostProcess()
 
     def test_enableOnPreProcess(self):
@@ -103,14 +105,14 @@ class TestProcedureSettings(object):
     def test_setEnableOnValidValue(self):
         s = ProcedureSettings()
         assert s.isEnabledOnPreProcess()
-        s.setEnableOn(value=ProcedureSettings.ENABLE_ON_PROCESS)
+        s.setEnableOn(value=ENABLE_ON_PROCESS)
         assert s.isEnabledOnProcess()
 
     def test_setEnableOnValidValueReadOnly(self):
         s = ReadOnlyProcedureSettings()
         assert s.isEnabledOnPreProcess()
         with pytest.raises(ParameterException):
-            s.setEnableOn(value=ProcedureSettings.ENABLE_ON_PROCESS)
+            s.setEnableOn(value=ENABLE_ON_PROCESS)
         assert s.isEnabledOnPreProcess()
 
     def test_stopOnFirstError(self):
@@ -176,7 +178,7 @@ class TestProcedureSettings(object):
 
     def test_getProperties(self):
         s = ProcedureSettings(error_granularity=42,
-                              enable_on=ProcedureSettings.ENABLE_ON_PROCESS)
+                              enable_on=ENABLE_ON_PROCESS)
         assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
                                      (SETTING_PROPERTY_READONLY, False),
                                      (SETTING_PROPERTY_TRANSIENT, True),
@@ -189,7 +191,7 @@ class TestProcedureSettings(object):
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_setChecker(self):
-        int_checker = DefaultInstanceArgChecker.getIntegerArgCheckerInstance()
+        int_checker = DefaultChecker.getInteger()
         s = ProcedureSettings()
         assert s.getChecker() is DEFAULT_CHECKER
         s.setChecker(checker=int_checker)
@@ -206,7 +208,7 @@ class TestProcedureSettings(object):
     def test_cloneWithoutParent(self):
         s = ProcedureSettings(
             error_granularity=56,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
         sc = s.clone()
 
         assert isinstance(sc, ProcedureSettings)
@@ -218,11 +220,11 @@ class TestProcedureSettings(object):
     def test_cloneWithParent(self):
         to_clone = ProcedureSettings(
             error_granularity=56,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
 
         source = ProcedureSettings(
             error_granularity=23,
-            enable_on=ProcedureSettings.ENABLE_ON_PRE_PROCESS)
+            enable_on=ENABLE_ON_PRE_PROCESS)
 
         to_clone.clone(source)
 
@@ -239,7 +241,7 @@ class TestProcedureLocalSettings(object):
             read_only=True,
             removable=False,
             error_granularity=33,
-            enable_on=ProcedureSettings.ENABLE_ON_PRE_PROCESS)
+            enable_on=ENABLE_ON_PRE_PROCESS)
 
         assert s.isReadOnly()
         assert not s.isRemovable()
@@ -251,7 +253,7 @@ class TestProcedureLocalSettings(object):
             read_only=True,
             removable=False,
             error_granularity=56,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
         sc = s.clone()
 
         assert isinstance(sc, ProcedureLocalSettings)
@@ -267,11 +269,11 @@ class TestProcedureLocalSettings(object):
             read_only=True,
             removable=False,
             error_granularity=56,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
 
         source = ProcedureLocalSettings(
             error_granularity=23,
-            enable_on=ProcedureSettings.ENABLE_ON_PRE_PROCESS)
+            enable_on=ENABLE_ON_PRE_PROCESS)
 
         to_clone.clone(source)
 
@@ -287,7 +289,7 @@ class TestProcedureLocalSettings(object):
             read_only=True,
             removable=False,
             error_granularity=99,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
 
         gs = ls.getGlobalFromLocal()
 
@@ -305,7 +307,7 @@ class TestProcedureGlobalSettings(object):
             removable=False,
             transient=True,
             error_granularity=66,
-            enable_on=ProcedureSettings.ENABLE_ON_PROCESS)
+            enable_on=ENABLE_ON_PROCESS)
 
         assert s.isReadOnly()
         assert not s.isRemovable()
@@ -316,7 +318,7 @@ class TestProcedureGlobalSettings(object):
     def test_cloneWithoutParent(self):
         s = ProcedureGlobalSettings(
             error_granularity=56,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
         sc = s.clone()
 
         assert isinstance(sc, ProcedureGlobalSettings)
@@ -328,11 +330,11 @@ class TestProcedureGlobalSettings(object):
     def test_cloneWithParent(self):
         to_clone = ProcedureGlobalSettings(
             error_granularity=56,
-            enable_on=ProcedureSettings.ENABLE_ON_POST_PROCESS)
+            enable_on=ENABLE_ON_POST_PROCESS)
 
         source = ProcedureGlobalSettings(
             error_granularity=23,
-            enable_on=ProcedureSettings.ENABLE_ON_PRE_PROCESS)
+            enable_on=ENABLE_ON_PRE_PROCESS)
 
         to_clone.clone(source)
 
@@ -346,7 +348,7 @@ class TestProcedureGlobalSettings(object):
             read_only=True,
             removable=False,
             error_granularity=333,
-            enable_on=ProcedureSettings.ENABLE_ON_PRE_PROCESS)
+            enable_on=ENABLE_ON_PRE_PROCESS)
 
         ls = gs.getLocalFromGlobal()
 

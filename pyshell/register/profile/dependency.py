@@ -22,8 +22,8 @@ from pyshell.utils.raises import raiseIfNotString
 
 
 class DependencyLoaderProfile(DefaultProfile):
-    def __init__(self):
-        DefaultProfile.__init__(self)
+    def __init__(self, root_profile):
+        DefaultProfile.__init__(self, root_profile)
         self.dep = {}
 
     def addDependency(self, addon_name, profile_name=None):

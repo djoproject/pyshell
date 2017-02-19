@@ -17,32 +17,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.register.profile.exception import RegisterException
-from pyshell.register.profile.globale import GlobalProfile
-from pyshell.utils.raises import raiseIfNotInstance
+from pyshell.utils.raises import raiseIfNotSubInstance
 
 
 class DefaultProfile(object):
     def __init__(self,
+                 root_profile,
                  load_priority=100.0,
                  unload_priority=100.0):
+        raiseIfNotSubInstance(root_profile,
+                              "root_profile",
+                              DefaultProfile,
+                              RegisterException,
+                              "__init__",
+                              self.__class__.__name__)
+
         self.load_priority = load_priority
         self.unload_priority = unload_priority
         self.last_exception = None
-        self.save_commands_listener = set()
-        self.global_profile = None
+        self.root_profile = root_profile
 
-    def setGlobalProfile(self, profile):
-        raiseIfNotInstance(profile,
-                           "profile",
-                           GlobalProfile,
-                           RegisterException,
-                           "setGlobalProfile",
-                           self.__class__.__name__)
-
-        self.global_profile = profile
-
-    def getGlobalProfile(self):
-        return self.global_profile
+    def getRootProfile(self):
+        return self.root_profile
 
     def getLoadPriority(self):
         return self.load_priority

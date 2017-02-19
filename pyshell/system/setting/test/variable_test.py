@@ -18,7 +18,7 @@
 
 import pytest
 
-from pyshell.arg.argchecker import StringArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.system.setting.variable import DEFAULT_CHECKER
 from pyshell.system.setting.variable import VariableGlobalSettings
 from pyshell.system.setting.variable import VariableLocalSettings
@@ -39,7 +39,7 @@ class TestVariableSettings(object):
         s = VariableSettings()
         assert s.getChecker() is DEFAULT_CHECKER
 
-        s.setChecker(StringArgChecker())
+        s.setChecker(DefaultChecker.getString())
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_alwaysAListChecker(self):

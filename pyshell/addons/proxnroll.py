@@ -32,20 +32,20 @@
 
 from apdu.readers.proxnroll import ProxnrollAPDUBuilder as ApduBuilder
 
-from pyshell.addons.pcsc import printATR  # FIXME create a dependancy...
-from pyshell.arg.argchecker import BooleanValueArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
-from pyshell.arg.argchecker import IntegerArgChecker
-from pyshell.arg.argchecker import KeyStoreTranslatorArgChecker
-from pyshell.arg.argchecker import ListArgChecker
-from pyshell.arg.argchecker import TokenValueArgChecker
+from pyshell.addons.pcsc import printAtr  # FIXME create a dependancy...
+from pyshell.arg.accessor.key import KeyDynamicAccessor
+from pyshell.arg.checker.boolean import BooleanValueArgChecker
+from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
+from pyshell.arg.checker.list import ListArgChecker
+from pyshell.arg.checker.token43 import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.exception import EngineInterruptionException
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix
 from pyshell.register.command import registerSetTempPrefix
 from pyshell.register.command import registerStopHelpTraversalAt
-from pyshell.register.dependancies import registerDependOnAddon
+from pyshell.register.dependency import registerDependOnAddon
 from pyshell.utils.postprocess import printBytesAsString
 from pyshell.utils.postprocess import printStringCharResult
 from pyshell.utils.printing import printShell
@@ -67,8 +67,7 @@ def setBuzzer(duration=2000):
     return ApduBuilder.setBuzzerDuration(duration)
 
 
-@shellMethod(anything=ListArgChecker(
-    DefaultInstanceArgChecker.getArgCheckerInstance()))
+@shellMethod(anything=ListArgChecker(DefaultChecker.getArg()))
 def stopAsMainProcess(anything):
     # TODO in place of printing an error, print a description of the apdu
     # (class, ins, length, ...)
@@ -94,13 +93,13 @@ def update(datas, address=0):
 @shellMethod(datas=ListArgChecker(IntegerArgChecker(0, 255)),
              expected=IntegerArgChecker(0, 255),
              delay=IntegerArgChecker(0, 255))
-def test(datas, expected=0, delay=0):
+def readerTest(datas, expected=0, delay=0):
     return ApduBuilder.test(expected, delay, datas)
 
 
 @shellMethod(
     datas=ListArgChecker(IntegerArgChecker(0, 255)),
-    protocol_type=TokenValueArgChecker(ApduBuilder.protocol_type),
+    protocol_type=TokenValueArgChecker(ApduBuilder.protocolType),
     timeout_type=TokenValueArgChecker(ApduBuilder.timeout))
 def encapsulateStandard(datas,
                         protocol_type="ISO14443_TCL",
@@ -152,7 +151,7 @@ def setDisable(disable="next"):
 
 
 @shellMethod(key_index=IntegerArgChecker(0, 15),
-             key=KeyStoreTranslatorArgChecker(6),
+             key=KeyDynamicAccessor(6),
              is_type_a=BooleanValueArgChecker("a", "b"),
              in_volatile=BooleanValueArgChecker("volatile", "notvolatile"))
 def mifareLoadKey(key_index, key, is_type_a="a", in_volatile="volatile"):
@@ -170,14 +169,14 @@ def mifareAuthenticate(block_number, key_index, is_type_a="a",
 
 
 @shellMethod(block_number=IntegerArgChecker(0, 0xff),
-             key=KeyStoreTranslatorArgChecker(6))
+             key=KeyDynamicAccessor(6))
 def mifareRead(block_number=0, key=None):
     return ApduBuilder.mifareClassicRead(block_number, key)
 
 
 @shellMethod(datas=ListArgChecker(IntegerArgChecker(0, 255)),
              block_number=IntegerArgChecker(0, 0xff),
-             key=KeyStoreTranslatorArgChecker(6))
+             key=KeyDynamicAccessor(6))
 def mifareUpdate(datas, block_number=0, key=None):
     return ApduBuilder.mifareClassifWrite(block_number, key, datas)
 
@@ -202,7 +201,7 @@ registerCommand(("vendor",),
                 pro=stopAsMainProcess,
                 post=printStringCharResult)
 registerCommand(("test",),
-                pre=test,
+                pre=readerTest,
                 pro=stopAsMainProcess,
                 post=printBytesAsString)
 registerCommand(("read",), pre=read, pro=stopAsMainProcess,
@@ -278,7 +277,7 @@ registerCommand(("shortSerial",),
 registerCommand(("atr",),
                 pre=ApduBuilder.getDataCardATR,
                 pro=stopAsMainProcess,
-                post=printATR)
+                post=printAtr)
 registerStopHelpTraversalAt()
 
 # TRACKING #

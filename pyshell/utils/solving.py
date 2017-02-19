@@ -19,10 +19,10 @@
 from tries import multiLevelTries
 from tries.exception import triesException
 
-from pyshell.arg.argchecker import BooleanValueArgChecker
-from pyshell.arg.argchecker import DefaultInstanceArgChecker
+from pyshell.arg.checker.boolean import BooleanValueArgChecker
+from pyshell.arg.checker.default import DefaultChecker
 from pyshell.command.engine import EMPTY_MAPPED_ARGS
-from pyshell.system.manager import ParameterManager
+from pyshell.system.manager.variable import VariableParameterManager
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import SYSTEM_ERROR
 from pyshell.utils.exception import USER_WARNING
@@ -42,10 +42,10 @@ class Solver(object):
                       "solver, parser object is not yet parsed")
             raise DefaultPyshellException(excmsg, SYSTEM_ERROR)
 
-        if not isinstance(variables_container, ParameterManager):
+        if not isinstance(variables_container, VariableParameterManager):
             excmsg = ("("+self.__class__.__name__+") __init__, fail to init "
-                      "solver, a ParameterManager object was expected, got '" +
-                      str(type(variables_container))+"'")
+                      "solver, a VariableParameterManager object was expected,"
+                      " got '"+str(type(variables_container))+"'")
             raise DefaultPyshellException(excmsg, SYSTEM_ERROR)
 
         if not isinstance(mltries, multiLevelTries):
@@ -340,9 +340,8 @@ def _mapDashedParamsManageParam(input_args,
 
 
 def _isValidBooleanValueForChecker(value):
-    checker = DefaultInstanceArgChecker.getBooleanValueArgCheckerInstance()
     try:
-        checker.getValue(value)
+        DefaultChecker.getBoolean().getValue(value)
         return True
     except Exception:
         return False

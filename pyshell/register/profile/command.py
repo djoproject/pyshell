@@ -25,7 +25,7 @@ from pyshell.utils.raises import raiseIfNotInstance
 
 class CommandLoaderProfile(DefaultProfile):
 
-    def __init__(self):
+    def __init__(self, root_profile):
         # TODO (issue #90) remove unload_priority/load_priority
         # Why load priority at 120.0 ?
         # because parameter priority is 100.0 and the mltries use by command
@@ -37,6 +37,7 @@ class CommandLoaderProfile(DefaultProfile):
         # commands need to be unload before the destruction of the mltries
         # in the environment loader.
         DefaultProfile.__init__(self,
+                                root_profile,
                                 unload_priority=80.0,
                                 load_priority=120.0)
 
