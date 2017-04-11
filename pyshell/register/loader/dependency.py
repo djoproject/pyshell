@@ -61,6 +61,9 @@ class DependencyLoader(AbstractLoader):
         for dep_name, dep_profile in profile_object.dep.items():
             exceptions = ListOfException()
             if not _isAddonLoaded(addon_dico, dep_name, dep_profile):
+                # TODO the dep_profile is not normalized and could be at None
+                #   Value, it is not a bug but the error message is not the
+                #   best...  Try to normalize it.
                 ex = LoadException("(DependanciesLoader) load, addon '" +
                                    str(dep_name) + "', profile '" +
                                    str(dep_profile) + "' is not loaded")

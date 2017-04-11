@@ -59,20 +59,20 @@ class TestFileGetFilePath(object):
     def test_getFilePathNoContainer(self):
         path = FileLoader.getFilePath(parameter_container=None,
                                       profile_object=self.profile)
-        assert path == "/home/djo/.pyshell/test.loader.file.profile_name.pys"
+        assert ".pyshell/test.loader.file.profile_name.pys" in path
 
     """def test_getFilePathNoEnv(self):
         pc = ParentManager()
         path = FileLoader.getFilePath(parameter_container=pc,
                                       profile_object=self.profile)
-        assert path == "/home/djo/.pyshell/test.loader.file.profile_name.pys"
+        assert ".pyshell/test.loader.file.profile_name.pys" in path
     """
 
     def test_getFilePathNoParam(self):
         pc = ParentManager()
         path = FileLoader.getFilePath(parameter_container=pc,
                                       profile_object=self.profile)
-        assert path == "/home/djo/.pyshell/test.loader.file.profile_name.pys"
+        assert ".pyshell/test.loader.file.profile_name.pys" in path
 
     def test_getFilePathNormalCase(self):
         pc = ParentManager()

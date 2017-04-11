@@ -16,24 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO implements these commands
-#   shift args
-#       info in param.var
-#   set args
-#       info in param.var
-#   goto (procedure line)
-#       get procedure from parameterContainer
-#   soft kill (thread id) (level or None)
-#       get procedure from parameterContainer
-#   hard kill
-#       HOWTO ? is it reallistic to implement ?
-#           just manage to kill the thread immediatelly
-#               what about lock in this case ?
-#   list process
-#       get procedure list from parameterContainer
-#   command to startreadline then execute
-#   HOWTO ?
-
 import os
 import readline
 
@@ -51,7 +33,9 @@ from pyshell.register.command import registerStopHelpTraversalAt
 from pyshell.utils.constants import ENVIRONMENT_CONFIG_DIRECTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_HISTORY_FILE_NAME_KEY
 from pyshell.utils.constants import ENVIRONMENT_LEVEL_TRIES_KEY
+from pyshell.utils.constants import ENVIRONMENT_TAB_SIZE_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
+from pyshell.utils.constants import TAB_SIZE
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import USER_ERROR
 from pyshell.utils.exception import USER_WARNING
@@ -105,52 +89,164 @@ def intToAscii(args):
     return listFlatResultHandler((s, ))
 
 
-@shellMethod(
-    args=ListArgChecker(DefaultChecker.getArg(), 1),
-    mltries=EnvironmentAccessor(ENVIRONMENT_LEVEL_TRIES_KEY))
-def usageFun(args, mltries):
-    "print the usage of a fonction"
-
+def _findCommand(args, mltries):
     try:
         search_result = mltries.getValue().advancedSearch(args, False)
     except triesException as te:
-        raise DefaultPyshellException(
-            "failed to find the command '" +
-            str(args) +
-            "', reason: " +
-            str(te))
+        excmsg = "failed to find the command '%s', reason: %s"
+        excmsg %= (args, te,)
+        raise DefaultPyshellException(excmsg)
 
     if search_result.isAmbiguous():
         token_index = len(search_result.existingPath) - 1
         tries = search_result.existingPath[token_index][1].localTries
         keylist = tries.getKeyList(args[token_index])
 
-        raise DefaultPyshellException("ambiguity on command '" +
-                                      " ".join(args) +
-                                      "', token '" +
-                                      str(args[token_index]) +
-                                      "', possible value: " +
-                                      ", ".join(keylist), USER_WARNING)
+        excmsg = "ambiguity on command '%s', token '%s', possible value: %s"
+        excmsg %= (" ".join(args), args[token_index], ", ".join(keylist),)
+        raise DefaultPyshellException(excmsg, USER_WARNING)
 
     if not search_result.isPathFound():
         token_not_found = search_result.getNotFoundTokenList()
-        raise DefaultPyshellException(
-            "command not found, unknown token '" +
-            token_not_found[0] +
-            "'",
-            USER_ERROR)
+        excmsg = "command not found, unknown token '%s'"
+        excmsg %= token_not_found[0]
+        raise DefaultPyshellException(excmsg, USER_ERROR)
 
     if not search_result.isAvalueOnTheLastTokenFound():
-        raise DefaultPyshellException("incomplete command call, no usage "
-                                      "information available, try to complete "
-                                      "the command name",
-                                      USER_WARNING)
+        excmsg = ("incomplete command call, no usage information available, "
+                  "try to complete the command name")
+        raise DefaultPyshellException(excmsg, USER_WARNING)
 
+    return search_result
+
+
+@shellMethod(
+    args=ListArgChecker(DefaultChecker.getArg(), 1),
+    mltries=EnvironmentAccessor(ENVIRONMENT_LEVEL_TRIES_KEY))
+def usageFun(args, mltries):
+    "print the usage of a fonction"
+    search_result = _findCommand(args, mltries)
     cmd = search_result.getLastTokenFoundValue()
+    command_name = search_result.getFoundCompletePath()
+    return " ".join(command_name) + " " + cmd.usage()
 
-    # TODO the command name has been removed, need to add complete command
-    # path + usage
-    return cmd.usage()
+
+@shellMethod(
+    args=ListArgChecker(DefaultChecker.getArg(), 1),
+    mltries=EnvironmentAccessor(ENVIRONMENT_LEVEL_TRIES_KEY),
+    tabsize=EnvironmentAccessor(ENVIRONMENT_TAB_SIZE_KEY))
+def man(args, mltries, tabsize):
+    """ manual for the command """
+    search_result = _findCommand(args, mltries)
+    cmd = search_result.getLastTokenFoundValue()
+    command_name = search_result.getFoundCompletePath()
+    description = cmd.help_message
+
+    if tabsize is None:
+        tabspace = " " * TAB_SIZE
+    else:
+        tabspace = " " * tabsize.getValue()
+
+    return ("Command Name:",
+            "%s%s" % (tabspace, " ".join(command_name),),
+            "",
+            "Description:",
+            "%s%s" % (tabspace, description,),
+            "",
+            "Usage: ",
+            "%s%s %s" % (tabspace, " ".join(command_name), cmd.usage(),),
+            "",)
+
+
+def _checkAmbiguity(mltries, full_args):
+    # manage ambiguity cases
+    advanced_result = mltries.advancedSearch(full_args, False)
+    ambiguity_on_last_token = False
+    if advanced_result.isAmbiguous():
+        token_index = len(advanced_result.existingPath) - 1
+        tries = advanced_result.existingPath[token_index][1].localTries
+        keylist = tries.getKeyList(full_args[token_index])
+
+        # don't care about ambiguity on last token
+        ambiguity_on_last_token = token_index == len(full_args) - 1
+        if not ambiguity_on_last_token:
+            # if ambiguity occurs on an intermediate key, stop the search
+            excmsg = ("Ambiguous value on key index <%s>, possible value: "
+                      "%s")
+            excmsg %= (token_index, ", ".join(keylist),)
+            raise DefaultPyshellException(excmsg, USER_WARNING)
+
+    # manage not found case
+    if not ambiguity_on_last_token and not advanced_result.isPathFound():
+        not_found_token = advanced_result.getNotFoundTokenList()
+        excmsg = "unkwnon token %s: '%s'"
+        excmsg %= (advanced_result.getTokenFoundCount(),
+                   not_found_token[0],)
+        raise DefaultPyshellException(excmsg, USER_ERROR)
+
+
+def _buildHelp(mltries, args, suffix=None, full_args=None):
+    dic = mltries.buildDictionnary(args,
+                                   ignoreStopTraversal=True,
+                                   addPrexix=True,
+                                   onlyPerfectMatch=False)
+
+    stops = {}
+    string_keys = []
+    for k in dic.keys():
+        # the last corresponding token in k must start with the last token of
+        # args => suffix
+        index = len(full_args) - 1
+        if index >= 0 and index < len(k) and not k[index].startswith(suffix):
+            continue
+
+        # is there a disabled token ?
+        for i in range(1, len(k)+1):
+            # the path k[0:i] is disabled, not the first occurence, just save
+            #   the next token to create the stop informations.
+            if k[0:i] in stops:
+                if i < len(k) and k[i] not in stops[k[0:i]]:
+                    stops[k[0:i]].append(k[i])
+
+                break
+
+            # is the path k[0:i] disabled?
+            if i > len(full_args) and mltries.isStopTraversal(k[0:i]):
+                if i == len(k):
+                    stops[k[0:i]] = []
+                else:
+                    stops[k[0:i]] = ([k[i]])
+
+                break
+        else:
+            # this path is not disabled and is a full path, build help line
+            _helpAddLine(string_keys, k, dic[k])
+
+    # build stop path help
+    for stopPath, sub_child in stops.items():
+        if len(sub_child) == 0:
+            continue
+
+        sub_child = sorted(sub_child)
+
+        if len(sub_child) > 3:
+            string = "%s: {%s, ...}"
+        else:
+            string = "%s: {%s}"
+
+        string %= (" ".join(stopPath), ", ".join(sub_child[0:3]),)
+        string_keys.append(string)
+
+    return string_keys
+
+
+def _helpAddLine(strings, key, command):
+    line = " ".join(key)
+    hmess = command.help_message
+    if hmess is not None and len(hmess) > 0:
+        line += ": " + hmess
+
+    strings.append(line)
 
 
 @shellMethod(
@@ -159,180 +255,28 @@ def usageFun(args, mltries):
 def helpFun(mltries, args=None):
     "print the help"
 
+    mltries = mltries.getValue()
+    suffix = ""
+    full_args = ()
+
     if args is None:
         args = ()
 
-    # little hack to be able to get help about for a function who has another
-    # function as suffix
+    # little hack to be able to get help for a function that has another
+    # function path as suffix
     if len(args) > 0:
         full_args = args[:]
         suffix = args[-1]
         args = args[:-1]
-    else:
-        suffix = None
-        full_args = None
+        _checkAmbiguity(mltries, full_args)
 
-    # manage ambiguity cases
-    if full_args is not None:
-        advanced_result = mltries.getValue().advancedSearch(full_args, False)
-        ambiguity_on_last_token = False
-        if advanced_result.isAmbiguous():
-            token_index = len(advanced_result.existingPath) - 1
-            tries = advanced_result.existingPath[token_index][1].localTries
-            keylist = tries.getKeyList(full_args[token_index])
-
-            # don't care about ambiguity on last token
-            ambiguity_on_last_token = token_index == len(full_args) - 1
-            if not ambiguity_on_last_token:
-                # if ambiguity occurs on an intermediate key, stop the search
-                raise DefaultPyshellException(
-                    "Ambiguous value on key index <" +
-                    str(token_index) +
-                    ">, possible value: " +
-                    ", ".join(keylist),
-                    USER_WARNING)
-
-        # manage not found case
-        if not ambiguity_on_last_token and not advanced_result.isPathFound():
-            not_found_token = advanced_result.getNotFoundTokenList()
-            excmsg = ("unkwnon token " +
-                      str(advanced_result.getTokenFoundCount()) +
-                      ": '"+not_found_token[0]+"'")
-            raise DefaultPyshellException(excmsg, USER_ERROR)
-
-    found = []
-    string_keys = []
-    # cmd with stop traversal, this will retrieve every tuple path/value
-    dic = mltries.getValue().buildDictionnary(
-        args,
-        ignoreStopTraversal=False,
-        addPrexix=True,
-        onlyPerfectMatch=False)
-    for k in dic.keys():
-        # if (full_args is None and len(k) < len(args)) or
-        # (full_args is not None and len(k) < len(full_args)):
-        #    continue
-
-        # the last corresponding token in k must start with the last token of
-        # args => suffix
-        if suffix is not None and len(k) >= (
-                len(args) + 1) and not k[len(args)].startswith(suffix):
-            continue
-
-        # is it a hidden cmd ?
-        if mltries.getValue().isStopTraversal(k):
-            continue
-
-        line = " ".join(k)
-        hmess = dic[k].help_message
-        if hmess is not None and len(hmess) > 0:
-            line += ": " + hmess
-
-        found.append((k, hmess,))
-        string_keys.append(line)
-
-    # cmd without stop traversal (parent category only)
-    dic2 = mltries.getValue().buildDictionnary(
-        args, ignoreStopTraversal=True, addPrexix=True, onlyPerfectMatch=False)
-    stop = {}
-    for k in dic2.keys():
-        # if k is in dic, already processed
-        if k in dic:
-            continue
-
-        # if (full_args is None and len(k) < len(args))
-        #   or (full_args is not None and len(k) < len(full_args)):
-        #    continue
-
-        # the last corresponding token in k must start with the last token of
-        # args => suffix
-        if suffix is not None and len(k) >= (
-                len(args) + 1) and not k[len(args)].startswith(suffix):
-            continue
-
-        # is it a hidden cmd ? only for final node, because they don't
-        # appear in dic2
-        # useless, "k in dic" is enough
-        # if mltries.getValue().isStopTraversal(k):
-        #    continue
-
-        # is there a disabled token ?
-        for i in range(1, len(k)):
-            # this level of k is disabled, not the first occurence
-            if k[0:i] in stop:
-                if i == len(k):
-                    break
-
-                if k[i] not in stop[k[0:i]]:
-                    stop[k[0:i]].append(k[i])
-
-                break
-
-            # this level of k is disabled, first occurence
-            if mltries.getValue().isStopTraversal(k[0:i]):
-
-                # if the disabled string token is in the args to print, it is
-                # equivalent to enabled
-                equiv = False
-                if full_args is not None and len(full_args) >= len(k[0:i]):
-                    equiv = True
-                    for j in range(0, min(len(full_args), len(k))):
-                        if not k[j].startswith(full_args[j]):
-                            equiv = False
-
-                # if the args are not a prefix for every corresponding key, is
-                # is disabled
-                if not equiv:
-                    if i == len(k):
-                        stop[k[0:i]] = []
-                    else:
-                        stop[k[0:i]] = ([k[i]])
-
-                    break
-
-            # this path is not disabled and it is the last path, occured with a
-            # not disabled because in the path
-            if i == (len(k) - 1):
-                line = " ".join(k)
-                hmess = dic2[k].help_message
-                if hmess is not None and len(hmess) > 0:
-                    line += ": " + hmess
-
-                found.append((k, hmess,))
-                string_keys.append(line)
+    strings = _buildHelp(mltries, args, suffix, full_args)
 
     # build the "real" help
-    if len(stop) == 0:
-        if len(found) == 0:
-            if len(full_args) > 0:
-                raise DefaultPyshellException(
-                    "unkwnon token 0: '" + full_args[0] + "'", USER_ERROR)
-            else:
-                raise DefaultPyshellException("no help available", WARNING)
+    if len(strings) == 0:
+        raise DefaultPyshellException("no help available", WARNING)
 
-            return ()
-        elif len(found) == 1:
-            if found[0][1] is None:
-                description = "No description"
-            else:
-                description = found[0][1]
-
-            return ("Command Name:", "       " +
-                    " ".join(found[0][0]), "", "Description:",
-                    "       " + description, "", "Usage: ", "       " +
-                    usageFun(found[0][0], mltries), "",)
-
-    for stopPath, subChild in stop.items():
-        if len(subChild) == 0:
-            continue
-
-        string = " ".join(stopPath) + ": {" + ",".join(subChild[0:3])
-        if len(subChild) > 3:
-            string += ",..."
-
-        string_keys.append(string + "}")
-
-    return sorted(string_keys)
+    return sorted(strings)
 
 
 @shellMethod(start=IntegerArgChecker(),
@@ -348,12 +292,9 @@ def generator(start=0, stop=100, step=1, multi_output=True):
 
 
 @shellMethod(
-    use_history=EnvironmentAccessor(
-        ENVIRONMENT_USE_HISTORY_KEY),
-    parameter_directory=EnvironmentAccessor(
-        ENVIRONMENT_CONFIG_DIRECTORY_KEY),
-    history_file=EnvironmentAccessor(
-        ENVIRONMENT_HISTORY_FILE_NAME_KEY))
+    use_history=EnvironmentAccessor(ENVIRONMENT_USE_HISTORY_KEY),
+    parameter_directory=EnvironmentAccessor(ENVIRONMENT_CONFIG_DIRECTORY_KEY),
+    history_file=EnvironmentAccessor(ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historyLoad(use_history, parameter_directory, history_file):
     "save readline history"
 
@@ -374,12 +315,9 @@ def historyLoad(use_history, parameter_directory, history_file):
 
 
 @shellMethod(
-    use_history=EnvironmentAccessor(
-        ENVIRONMENT_USE_HISTORY_KEY),
-    parameter_directory=EnvironmentAccessor(
-        ENVIRONMENT_CONFIG_DIRECTORY_KEY),
-    history_file=EnvironmentAccessor(
-        ENVIRONMENT_HISTORY_FILE_NAME_KEY))
+    use_history=EnvironmentAccessor(ENVIRONMENT_USE_HISTORY_KEY),
+    parameter_directory=EnvironmentAccessor(ENVIRONMENT_CONFIG_DIRECTORY_KEY),
+    history_file=EnvironmentAccessor(ENVIRONMENT_HISTORY_FILE_NAME_KEY))
 def historySave(use_history, parameter_directory, history_file):
     "load readline history"
 
@@ -394,27 +332,18 @@ def historySave(use_history, parameter_directory, history_file):
     file_path = os.path.join(directory_path, file_name)
     readline.write_history_file(file_path)
 
-"""@shellMethod(data = ,
-            from = ,
-            to = )
-def filter(data, from = 0, to=None):
-    pass #TODO"""
-
 # # REGISTER SECTION # #
 
 registerCommand(("exit",), pro=exitFun)
 registerCommand(("quit",), pro=exitFun)
 registerStopHelpTraversalAt(("quit",))
 
-# TODO bof bof d'avoir ces trois là en post, ça crée des trucs bizarres
-# genre: echo16 | prox test -expected 5 1 2 3 4 | pcsc transmit
-# see BRAINSTORMING file
-
 registerCommand(("echo",), post=echo)
 registerCommand(("echo16",), post=echo16)
 registerCommand(("toascii",), post=intToAscii)
 
 registerCommand(("usage",), pro=usageFun, post=listFlatResultHandler)
+registerCommand(("man",), pro=man, post=listResultHandler)
 registerCommand(("help",), pro=helpFun, post=listResultHandler)
 registerCommand(("?",), pro=helpFun, post=listResultHandler)
 registerStopHelpTraversalAt(("?",))

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.arg.accessor.container import ContainerAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterDynamicAccessor
 from pyshell.arg.checker.string43 import StringArgChecker
@@ -24,6 +25,7 @@ from pyshell.utils.key import CryptographicKey
 
 ACCESSOR_TYPENAME = "keyTranslator"
 DYNAMIC_ACCESSO_TYPENAME = "keyTranslator dynamic"
+MANAGER_TYPENAME = "key manager"
 
 
 class AbstractKeyAccessor(StringArgChecker):
@@ -159,3 +161,25 @@ class KeyDynamicAccessor(AbstractParameterDynamicAccessor,
     @classmethod
     def getTypeName(cls):
         return DYNAMIC_ACCESSO_TYPENAME
+
+
+class KeyManagerAccessor(ContainerAccessor):
+    def hasAccessorValue(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return False
+
+        container = ContainerAccessor.getAccessorValue(self)
+
+        return container.getKeyManager() is not None
+
+    def getAccessorValue(self):
+        return ContainerAccessor.getAccessorValue(self).getKeyManager()
+
+    def buildErrorMessage(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return ContainerAccessor.buildErrorMessage(self)
+        return "container provided has no key manager defined"
+
+    @classmethod
+    def getTypeName(cls):
+        return MANAGER_TYPENAME

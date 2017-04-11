@@ -16,29 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import pytest
+
 from pyshell.arg.checker.default import DefaultChecker
 from pyshell.system.setting.key import KeyGlobalSettings
 from pyshell.system.setting.key import KeyLocalSettings
 from pyshell.system.setting.key import KeySettings
 from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
 from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
+from pyshell.utils.exception import ParameterException
 
 
 class TestKeySettings(object):
     def test_initSetNoneChecker(self):
-        s = KeySettings(checker=None)
-        assert s.getChecker() is DefaultChecker.getKey()
-
-    def test_initSetAChecker(self):
-        s = KeySettings(checker=DefaultChecker.getString())
+        s = KeySettings()
         assert s.getChecker() is DefaultChecker.getKey()
 
     def test_setListChecker(self):
         s = KeySettings()
         assert not s.isListChecker()
-        s.setListChecker(True)
-        assert not s.isListChecker()
-        s.setListChecker(False)
+
+        with pytest.raises(ParameterException):
+            s.setListChecker(True)
+
         assert not s.isListChecker()
 
     def test_getProperties(self):
@@ -54,14 +54,6 @@ class TestKeySettings(object):
 
         assert zs is not zsc
         assert hash(zs) == hash(zsc)
-
-    def test_cloneWithSource(self):
-        to_clone = KeySettings()
-        source = KeySettings()
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
 
 
 class TestKeyLocalSettings(object):
@@ -86,14 +78,6 @@ class TestKeyLocalSettings(object):
 
         assert zs is not zsc
         assert hash(zs) == hash(zsc)
-
-    def test_cloneWithSource(self):
-        to_clone = KeyLocalSettings()
-        source = KeyLocalSettings()
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
 
     def test_getGlobalFromLocal(self):
         ls = KeyLocalSettings(read_only=True,
@@ -142,14 +126,6 @@ class TestKeyGlobalSettings(object):
 
         assert zs is not zsc
         assert hash(zs) == hash(zsc)
-
-    def test_cloneWithSource(self):
-        to_clone = KeyGlobalSettings()
-        source = KeyGlobalSettings()
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
 
     def test_getLocalFromGlobal(self):
         gs = KeyGlobalSettings(read_only=True,

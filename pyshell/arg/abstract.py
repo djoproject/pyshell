@@ -16,28 +16,44 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.arg.checker.argchecker import ArgChecker
-
-TYPENAME = "default"
+from abc import ABCMeta, abstractmethod
 
 
-class DefaultValueChecker(ArgChecker):
-    """
-        ATTENTION: this checker was developped to manage a special case into
-        the decorator operation. DO NOT USE into an addon files.
-    """
+class AbstractArg(object):
+    __metaclass__ = ABCMeta
 
-    def __init__(self, value):
-        ArgChecker.__init__(self, 0, 0, False)
-        self.setDefaultValue(value)
+    @abstractmethod
+    def setEngine(self, engine):
+        pass
 
-    def setDefaultValue(self, value, arg_name_to_bind=None):
-        self.hasDefault = True
-        self.default = value  # no check on the value...
+    @abstractmethod
+    def getMaximumSize(self):
+        pass
 
+    @abstractmethod
+    def getMinimumSize(self):
+        pass
+
+    @abstractmethod
     def getValue(self, value, arg_number=None, arg_name_to_bind=None):
-        return self.getDefaultValue(arg_name_to_bind)
+        pass
 
-    @classmethod
-    def getTypeName(cls):
-        return TYPENAME
+    @abstractmethod
+    def isShowInUsage(self):
+        pass
+
+    @abstractmethod
+    def getUsage(self):
+        pass
+
+    @abstractmethod
+    def hasDefaultValue(self, arg_name_to_bind=None):
+        pass
+
+    @abstractmethod
+    def getDefaultValue(self, arg_name_to_bind=None):
+        pass
+
+    @abstractmethod
+    def setDefaultValue(self, value, arg_name_to_bind=None):
+        pass

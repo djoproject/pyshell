@@ -111,3 +111,7 @@ PROCEDURE_ATTRIBUTE_NAME = "procedure"
 ENABLE_ON_PRE_PROCESS = "enable_on_pre"
 ENABLE_ON_PROCESS = "enable_on_pro"
 ENABLE_ON_POST_PROCESS = "enable_on_post"
+
+# ## ADDON ## #
+ADDON_PREFIX = "pyshell.addons."
+ADDON_DIRECTORY = "./pyshell/addons/"

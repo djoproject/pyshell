@@ -335,13 +335,11 @@ class TestContextLocalSettingsWithContextParameter(object):
         settings.tryToSetDefaultIndex(3)
         settings.tryToSetIndex(2)
         settings.setReadOnly(True)
-        props = ((SETTING_PROPERTY_REMOVABLE, False),
-                 (SETTING_PROPERTY_READONLY, True),
-                 (SETTING_PROPERTY_TRANSIENT, True),
-                 (SETTING_PROPERTY_CHECKER, 'any'),
-                 (SETTING_PROPERTY_CHECKERLIST, True),
-                 (SETTING_PROPERTY_TRANSIENTINDEX, True),
-                 (SETTING_PROPERTY_DEFAULTINDEX, 3))
+        props = {SETTING_PROPERTY_REMOVABLE: False,
+                 SETTING_PROPERTY_READONLY: True,
+                 SETTING_PROPERTY_CHECKER: 'any',
+                 SETTING_PROPERTY_CHECKERLIST: True,
+                 SETTING_PROPERTY_DEFAULTINDEX: 3}
         assert settings.getProperties() == props
 
     def test_cloneWithoutSource(self):
@@ -358,25 +356,6 @@ class TestContextLocalSettingsWithContextParameter(object):
         assert sc.getDefaultIndex() == 0
         assert sc.getIndex() == 0
         assert sc.values_size == 0
-
-    def test_cloneWithSource(self):
-        to_clone = ContextLocalSettings(checker=DefaultChecker.getInteger())
-        ContextParameter(value=(0, 1, 2, 3,), settings=to_clone)
-        to_clone.setDefaultIndex(2)
-        to_clone.setIndex(1)
-
-        source = ContextLocalSettings(checker=DefaultChecker.getInteger())
-        c2 = ContextParameter(value=(0, 1, 2, 3,), settings=source)
-        source.setDefaultIndex(3)
-        source.setIndex(2)
-
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) != hash(source)  # because of the indexes
-        assert source.getDefaultIndex() == 3
-        assert source.getIndex() == 2
-        assert source.values_size is len(c2.getValue())
 
 
 class TestContextSettingsWithoutContextParameter(object):
@@ -419,8 +398,8 @@ class TestContextSettingsWithoutContextParameter(object):
     def test_contextConstructor1(self):
         settings = ContextSettings(checker=None)
         assert settings.isListChecker()
-        assert settings.getChecker().minimum_size == 1
-        assert settings.getChecker().maximum_size is None
+        assert settings.getChecker().getMinimumSize() == 1
+        assert settings.getChecker().getMaximumSize() is None
 
         sub_checker = settings.getChecker().checker
         assert sub_checker.__class__.__name__ == ArgChecker.__name__
@@ -430,8 +409,8 @@ class TestContextSettingsWithoutContextParameter(object):
     def test_contextConstructor2(self):
         settings = ContextSettings(checker=DefaultChecker.getInteger())
         assert settings.isListChecker()
-        assert settings.getChecker().minimum_size == 1
-        assert settings.getChecker().maximum_size is None
+        assert settings.getChecker().getMinimumSize() == 1
+        assert settings.getChecker().getMaximumSize() is None
 
         assert isinstance(settings.getChecker().checker, IntegerArgChecker)
 
@@ -446,8 +425,8 @@ class TestContextSettingsWithoutContextParameter(object):
         lt = ListArgChecker(DefaultChecker.getInteger(), 3, 27)
         settings = ContextSettings(checker=lt)
         assert settings.isListChecker()
-        assert settings.getChecker().minimum_size == 1
-        assert settings.getChecker().maximum_size == 27
+        assert settings.getChecker().getMinimumSize() == 1
+        assert settings.getChecker().getMaximumSize() == 27
         assert isinstance(settings.getChecker().checker, IntegerArgChecker)
 
     def test_setCheckerNoneWithoutPreviousChecker(self):
@@ -490,8 +469,8 @@ class TestContextSettingsWithoutContextParameter(object):
         new_checker = settings.getChecker()
 
         assert new_checker is original_checker
-        assert new_checker.minimum_size == 1
-        assert new_checker.maximum_size == 56
+        assert new_checker.getMinimumSize() == 1
+        assert new_checker.getMaximumSize() == 56
 
     def test_setCheckerListWithItemLargerThanOne(self):
         settings = ContextSettings()
@@ -519,7 +498,8 @@ class TestContextSettingsWithoutContextParameter(object):
     def test_setListCheckerFalse(self):
         settings = ContextSettings()
         assert settings.isListChecker()
-        settings.setListChecker(False)
+        with pytest.raises(ParameterException):
+            settings.setListChecker(False)
         assert settings.isListChecker()
 
     def test_cloneWithoutSource(self):
@@ -531,16 +511,6 @@ class TestContextSettingsWithoutContextParameter(object):
         assert hash(zs) == hash(zsc)
         assert zs.getChecker() is zsc.getChecker()
         assert zsc.values_size == 0
-
-    def test_cloneWithSource(self):
-        to_clone = ContextSettings(checker=DefaultChecker.getInteger())
-        source = ContextSettings(checker=None)
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
-        assert to_clone.getChecker() is source.getChecker()
-        assert source.values_size == 0
 
 
 class TestContextLocalSettingsWithoutContextParameter(object):
@@ -557,9 +527,8 @@ class TestContextLocalSettingsWithoutContextParameter(object):
     def test_setTransientIndex(self):
         lcs = ContextLocalSettings()
         assert lcs.isTransientIndex()
-        lcs.setTransientIndex(True)
-        assert lcs.isTransientIndex()
-        lcs.setTransientIndex(False)
+        with pytest.raises(ParameterException):
+            lcs.setTransientIndex(False)
         assert lcs.isTransientIndex()
 
     def test_cloneWithoutSource(self):
@@ -570,15 +539,6 @@ class TestContextLocalSettingsWithoutContextParameter(object):
         assert s is not sc
         assert hash(s) == hash(sc)
         assert sc.values_size == 0
-
-    def test_cloneWithSource(self):
-        to_clone = ContextLocalSettings(checker=DefaultChecker.getInteger())
-        source = ContextLocalSettings(checker=DefaultChecker.getInteger())
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
-        assert source.values_size == 0
 
     def test_getGlobalFromLocal(self):
         checker = DefaultChecker.getInteger()
@@ -602,14 +562,14 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetIndex(2)
         assert not settings.isTransientIndex()
-        props = ((SETTING_PROPERTY_REMOVABLE, True),
-                 (SETTING_PROPERTY_READONLY, False),
-                 (SETTING_PROPERTY_TRANSIENT, False),
-                 (SETTING_PROPERTY_CHECKER, 'any'),
-                 (SETTING_PROPERTY_CHECKERLIST, True),
-                 (SETTING_PROPERTY_TRANSIENTINDEX, False),
-                 (SETTING_PROPERTY_DEFAULTINDEX, 0),
-                 (SETTING_PROPERTY_INDEX, 2))
+        props = {SETTING_PROPERTY_REMOVABLE: True,
+                 SETTING_PROPERTY_READONLY: False,
+                 SETTING_PROPERTY_TRANSIENT: False,
+                 SETTING_PROPERTY_CHECKER: 'any',
+                 SETTING_PROPERTY_CHECKERLIST: True,
+                 SETTING_PROPERTY_TRANSIENTINDEX: False,
+                 SETTING_PROPERTY_DEFAULTINDEX: 0,
+                 SETTING_PROPERTY_INDEX: 2}
         assert settings.getProperties() == props
 
     def test_contextConstructor10b(self):
@@ -617,13 +577,13 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetIndex(2)
         assert settings.isTransientIndex()
-        props = ((SETTING_PROPERTY_REMOVABLE, True),
-                 (SETTING_PROPERTY_READONLY, False),
-                 (SETTING_PROPERTY_TRANSIENT, False),
-                 (SETTING_PROPERTY_CHECKER, 'any'),
-                 (SETTING_PROPERTY_CHECKERLIST, True),
-                 (SETTING_PROPERTY_TRANSIENTINDEX, True),
-                 (SETTING_PROPERTY_DEFAULTINDEX, 0))
+        props = {SETTING_PROPERTY_REMOVABLE: True,
+                 SETTING_PROPERTY_READONLY: False,
+                 SETTING_PROPERTY_TRANSIENT: False,
+                 SETTING_PROPERTY_CHECKER: 'any',
+                 SETTING_PROPERTY_CHECKERLIST: True,
+                 SETTING_PROPERTY_TRANSIENTINDEX: True,
+                 SETTING_PROPERTY_DEFAULTINDEX: 0}
         assert settings.getProperties() == props
 
     # __init__ test each properties, True
@@ -658,14 +618,14 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(3)
         settings.tryToSetIndex(2)
-        props = ((SETTING_PROPERTY_REMOVABLE, True),
-                 (SETTING_PROPERTY_READONLY, False),
-                 (SETTING_PROPERTY_TRANSIENT, False),
-                 (SETTING_PROPERTY_CHECKER, 'any'),
-                 (SETTING_PROPERTY_CHECKERLIST, True),
-                 (SETTING_PROPERTY_TRANSIENTINDEX, False),
-                 (SETTING_PROPERTY_DEFAULTINDEX, 3),
-                 (SETTING_PROPERTY_INDEX, 2))
+        props = {SETTING_PROPERTY_REMOVABLE: True,
+                 SETTING_PROPERTY_READONLY: False,
+                 SETTING_PROPERTY_TRANSIENT: False,
+                 SETTING_PROPERTY_CHECKER: 'any',
+                 SETTING_PROPERTY_CHECKERLIST: True,
+                 SETTING_PROPERTY_TRANSIENTINDEX: False,
+                 SETTING_PROPERTY_DEFAULTINDEX: 3,
+                 SETTING_PROPERTY_INDEX: 2}
         assert settings.getProperties() == props
 
     # test getProperties transient index
@@ -674,13 +634,13 @@ class TestContextGlobalSettingsWithContextParameter(object):
         ContextParameter(value=(0, 1, 2, 3,), settings=settings)
         settings.tryToSetDefaultIndex(3)
         settings.tryToSetIndex(2)
-        props = ((SETTING_PROPERTY_REMOVABLE, True),
-                 (SETTING_PROPERTY_READONLY, False),
-                 (SETTING_PROPERTY_TRANSIENT, False),
-                 (SETTING_PROPERTY_CHECKER, 'any'),
-                 (SETTING_PROPERTY_CHECKERLIST, True),
-                 (SETTING_PROPERTY_TRANSIENTINDEX, True),
-                 (SETTING_PROPERTY_DEFAULTINDEX, 3))
+        props = {SETTING_PROPERTY_REMOVABLE: True,
+                 SETTING_PROPERTY_READONLY: False,
+                 SETTING_PROPERTY_TRANSIENT: False,
+                 SETTING_PROPERTY_CHECKER: 'any',
+                 SETTING_PROPERTY_CHECKERLIST: True,
+                 SETTING_PROPERTY_TRANSIENTINDEX: True,
+                 SETTING_PROPERTY_DEFAULTINDEX: 3}
         assert settings.getProperties() == props
 
     def test_cloneWithoutSource(self):
@@ -699,28 +659,6 @@ class TestContextGlobalSettingsWithContextParameter(object):
         assert sc.getIndex() == 0
         assert sc.values_size == 0
         assert s.isTransientIndex()
-
-    def test_cloneWithSource(self):
-        to_clone = ContextGlobalSettings(checker=DefaultChecker.getInteger())
-        to_clone.setTransientIndex(False)
-        ContextParameter(value=(0, 1, 2, 3,), settings=to_clone)
-        to_clone.setDefaultIndex(2)
-        to_clone.setIndex(1)
-
-        source = ContextGlobalSettings(checker=DefaultChecker.getInteger())
-        source.setTransientIndex(True)
-        c2 = ContextParameter(value=(0, 1, 2, 3,), settings=source)
-        source.setDefaultIndex(3)
-        source.setIndex(2)
-
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) != hash(source)  # because of the indexes
-        assert source.getDefaultIndex() == 3
-        assert source.getIndex() == 2
-        assert source.values_size == len(c2.getValue())
-        assert not source.isTransientIndex()
 
 
 class TestContextGlobalSettingsWithoutContextParameter(object):
@@ -754,20 +692,6 @@ class TestContextGlobalSettingsWithoutContextParameter(object):
         assert hash(s) == hash(sc)
         assert sc.values_size == 0
         assert sc.isTransientIndex()
-
-    def test_cloneWithSource(self):
-        to_clone = ContextGlobalSettings(checker=DefaultChecker.getInteger())
-        to_clone.setTransientIndex(False)
-
-        source = ContextGlobalSettings(checker=DefaultChecker.getInteger())
-        source.setTransientIndex(True)
-
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
-        assert source.values_size == 0
-        assert not source.isTransientIndex()
 
     def test_getLocalFromGlobal(self):
         checker = DefaultChecker.getInteger()

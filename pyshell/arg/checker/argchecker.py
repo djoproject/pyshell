@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.arg.abstract import AbstractArg
 from pyshell.arg.exception import ArgException
 from pyshell.arg.exception import ArgInitializationException
 
 TYPENAME = "any"
 
 
-class ArgChecker(object):
+class ArgChecker(AbstractArg):
     def __init__(self,
                  minimum_size=1,
                  maximum_size=1,
@@ -31,13 +32,21 @@ class ArgChecker(object):
         self.defaultValueEnabled = True
         self.hasDefault = False
         self.default = None
-        self.show_in_usage = show_in_usage
-        self.engine = None
+        self._show_in_usage = show_in_usage
+
+    def getMinimumSize(self):
+        return self._minimum_size
+
+    def getMaximumSize(self):
+        return self._maximum_size
+
+    def isShowInUsage(self):
+        return self._show_in_usage
 
     def setSize(self, minimum_size=None, maximum_size=None):
         self.checkSize(minimum_size, maximum_size)
-        self.minimum_size = minimum_size
-        self.maximum_size = maximum_size
+        self._minimum_size = minimum_size
+        self._maximum_size = maximum_size
 
     def checkSize(self, minimum_size, maximum_size):
         if minimum_size is not None:
@@ -72,13 +81,6 @@ class ArgChecker(object):
             excmsg %= (str(maximum_size), str(minimum_size),)
             self._raiseArgInitializationException(excmsg)
 
-    def isVariableSize(self):
-        return ((self.minimum_size == self.maximum_size is None) or
-                self.minimum_size != self.maximum_size)
-
-    def needData(self):
-        return self.minimum_size is not None and self.minimum_size > 0
-
     def getValue(self, value, arg_number=None, arg_name_to_bind=None):
         return value
 
@@ -99,6 +101,8 @@ class ArgChecker(object):
 
     def setDefaultValue(self, value, arg_name_to_bind=None):
         if not self.defaultValueEnabled:
+            # TODO (issue #41)  use arg_name_to_bind (if not None)
+            #   in the exc msg
             excmsg = ("default value is not allowed with this kind of checker,"
                       " probably because it is a default instance checker")
             self._raiseArgInitializationException(excmsg)
@@ -115,12 +119,8 @@ class ArgChecker(object):
     def setDefaultValueEnable(self, state):
         self.defaultValueEnabled = state
 
-    def erraseDefaultValue(self):
-        self.hasDefault = False
-        self.default = None
-
     def setEngine(self, engine):
-        self.engine = engine
+        pass
 
     def _raiseArgException(self,
                            message,

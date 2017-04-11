@@ -328,9 +328,9 @@ def _mapDashedParamsManageParam(input_args,
         # did we reach max size ?
         # don't care about minimum size, it will be check during
         # execution phase
-        if (current_param.maximum_size is not None and
-           current_param.maximum_size < arg_available_count):
-            pivot = current_index+1+current_param.maximum_size
+        if (current_param.getMaximumSize() is not None and
+           current_param.getMaximumSize() < arg_available_count):
+            pivot = current_index+1+current_param.getMaximumSize()
             param_found[current_name] = tuple(
                 input_args[current_index+1:pivot])
             not_used_args.extend(input_args[pivot:last_index])

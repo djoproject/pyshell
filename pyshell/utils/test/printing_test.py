@@ -78,8 +78,6 @@ class TestPrinting(object):
         self.params.getContextManager().setParameter(DEBUG_ENVIRONMENT_NAME,
                                                      self.debugContext,
                                                      local_param=True)
-        self.debugContext.settings.setTransient(False)
-        self.debugContext.settings.setTransientIndex(False)
         self.debugContext.settings.setRemovable(False)
         self.debugContext.settings.tryToSetDefaultIndex(0)
         self.debugContext.settings.setReadOnly(True)
@@ -95,8 +93,6 @@ class TestPrinting(object):
         self.params.getContextManager().setParameter(CONTEXT_EXECUTION_KEY,
                                                      self.shellContext,
                                                      local_param=True)
-        self.shellContext.settings.setTransient(True)
-        self.shellContext.settings.setTransientIndex(True)
         self.shellContext.settings.setRemovable(False)
         self.shellContext.settings.tryToSetDefaultIndex(0)
         self.shellContext.settings.setReadOnly(True)
@@ -112,8 +108,6 @@ class TestPrinting(object):
         self.params.getContextManager().setParameter(CONTEXT_COLORATION_KEY,
                                                      self.backgroundContext,
                                                      local_param=True)
-        self.backgroundContext.settings.setTransient(False)
-        self.backgroundContext.settings.setTransientIndex(False)
         self.backgroundContext.settings.setRemovable(False)
         self.backgroundContext.settings.tryToSetDefaultIndex(0)
         self.backgroundContext.settings.setReadOnly(True)
@@ -127,7 +121,6 @@ class TestPrinting(object):
             ENVIRONMENT_TAB_SIZE_KEY,
             self.spacingContext,
             local_param=True)
-        self.spacingContext.settings.setTransient(False)
         self.spacingContext.settings.setRemovable(False)
         self.spacingContext.settings.setReadOnly(False)
 

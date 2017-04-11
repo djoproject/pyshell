@@ -40,9 +40,9 @@ class TestParameterSettings(object):
         assert not s.isReadOnly()
         assert s.isRemovable()
         assert s.isTransient()
-        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True, ),
-                                     (SETTING_PROPERTY_READONLY, False, ),
-                                     (SETTING_PROPERTY_TRANSIENT, True, ))
+        assert s.getProperties() == {SETTING_PROPERTY_REMOVABLE: True,
+                                     SETTING_PROPERTY_READONLY: False,
+                                     SETTING_PROPERTY_TRANSIENT: True}
         assert hash(s) == self.setHash
 
     def test_settings2(self):
@@ -51,9 +51,9 @@ class TestParameterSettings(object):
         assert not s.isReadOnly()
         assert s.isRemovable()
         assert s.isTransient()
-        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True, ),
-                                     (SETTING_PROPERTY_READONLY, False, ),
-                                     (SETTING_PROPERTY_TRANSIENT, True, ))
+        assert s.getProperties() == {SETTING_PROPERTY_REMOVABLE: True,
+                                     SETTING_PROPERTY_READONLY: False,
+                                     SETTING_PROPERTY_TRANSIENT: True}
         assert hash(s) == self.setHash
 
     def test_settings3(self):
@@ -62,9 +62,9 @@ class TestParameterSettings(object):
         assert not s.isReadOnly()
         assert s.isRemovable()
         assert s.isTransient()
-        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True, ),
-                                     (SETTING_PROPERTY_READONLY, False, ),
-                                     (SETTING_PROPERTY_TRANSIENT, True, ))
+        assert s.getProperties() == {SETTING_PROPERTY_REMOVABLE: True,
+                                     SETTING_PROPERTY_READONLY: False,
+                                     SETTING_PROPERTY_TRANSIENT: True}
         assert hash(s) == self.setHash
 
     def test_settings4(self):
@@ -102,12 +102,6 @@ class TestParameterSettings(object):
         s.setRemovable(False)
         assert s.isRemovable()
         assert hash(s) == self.setHash
-
-    def test_cloneWithSource(self):
-        source = ParameterSettings()
-        to_clone = ParameterSettings()
-        to_clone.clone(source)
-        assert hash(source) == hash(to_clone)
 
     def test_cloneWithoutSource(self):
         s = ParameterSettings()
@@ -187,18 +181,6 @@ class TestParameterLocalSettings(object):
         with pytest.raises(ParameterException):
             ls._raiseIfReadOnly("plop", "plip")
 
-    def test_cloneWithSource(self):
-        source = ParameterLocalSettings(read_only=True, removable=True)
-        to_clone = ParameterLocalSettings(read_only=True, removable=False)
-
-        assert source.isReadOnly()
-        assert source.isRemovable()
-
-        to_clone.clone(source)
-
-        assert source.isReadOnly()
-        assert not source.isRemovable()
-
     def test_cloneWithoutSource(self):
         gs = ParameterLocalSettings(read_only=False, removable=True)
         gsp = gs.clone()
@@ -277,27 +259,6 @@ class TestParameterGlobalSettings(object):
         gs.setStartingPoint("toto")
         with pytest.raises(ParameterException):
             gs.setStartingPoint("toto")
-
-    def test_cloneWithSource(self):
-        source = ParameterGlobalSettings(read_only=True,
-                                         removable=True,
-                                         transient=False)
-        source.setStartingPoint("source")
-
-        to_clone = ParameterGlobalSettings(read_only=True,
-                                           removable=True,
-                                           transient=True)
-        to_clone.setStartingPoint("to_clone")
-
-        assert not source.isTransient()
-        assert source.isReadOnly()
-
-        to_clone.clone(source)
-
-        assert source.isTransient()
-        assert source.isReadOnly()
-        assert source.isEqualToStartingHash("source")
-        assert source.isRemovable()
 
     def test_cloneWithoutSource(self):
         gs = ParameterGlobalSettings(read_only=False,

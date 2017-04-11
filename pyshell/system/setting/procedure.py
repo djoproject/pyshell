@@ -17,13 +17,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.checker.file import FilePathArgChecker
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.system.setting.environment import EnvironmentSettings
-from pyshell.system.setting.parameter import ParameterGlobalSettings
-from pyshell.system.setting.parameter import ParameterLocalSettings
-from pyshell.system.setting.parameter import ParameterSettings
 from pyshell.utils.constants import ENABLE_ON_POST_PROCESS
 from pyshell.utils.constants import ENABLE_ON_PRE_PROCESS
 from pyshell.utils.constants import ENABLE_ON_PROCESS
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
 from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
 from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
 from pyshell.utils.exception import ParameterException
@@ -37,6 +38,7 @@ DEFAULT_CHECKER = FilePathArgChecker(exist=True,
 
 class ProcedureSettings(EnvironmentSettings):
     def __init__(self, error_granularity=None, enable_on=None):
+        EnvironmentSettings.__init__(self, checker=DEFAULT_CHECKER)
         self.error_granularity = float("inf")  # stop on any error
 
         readonly = self.isReadOnly()
@@ -125,19 +127,23 @@ class ProcedureSettings(EnvironmentSettings):
         return self.error_granularity
 
     def getProperties(self):
-        prop = list(ParameterSettings.getProperties(self))
-        prop.append((SETTING_PROPERTY_GRANULARITY, self.getErrorGranularity()))
-        prop.append((SETTING_PROPERTY_ENABLEON, self.getEnableOn()))
-        return tuple(prop)
-
-    def getChecker(self):
-        return DEFAULT_CHECKER
+        prop = {}
+        prop[SETTING_PROPERTY_GRANULARITY] = self.getErrorGranularity()
+        prop[SETTING_PROPERTY_ENABLEON] = self.getEnableOn()
+        return prop
 
     def setChecker(self, checker=None):
-        pass
+        if self.getChecker() is not None:
+            excmsg = "(%s) setChecker, not allowed on key settings"
+            excmsg %= self.__class__.__name__
+            raise ParameterException(excmsg)
+
+        EnvironmentSettings.setChecker(self, checker)
 
     def setListChecker(self, state):
-        pass  # do nothing, checker must never be a list type
+        excmsg = "(%s) setListChecker, not allowed on key settings"
+        excmsg %= self.__class__.__name__
+        raise ParameterException(excmsg)
 
     def _buildOpposite(self):
         clazz = self._getOppositeSettingClass()
@@ -151,27 +157,12 @@ class ProcedureSettings(EnvironmentSettings):
                      error_granularity=error_granularity,
                      enable_on=enable_on)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ProcedureSettings(
-                error_granularity=self.getErrorGranularity(),
-                enable_on=self.getEnableOn())
-        else:
-            readonly = parent.isReadOnly()
-            parent.setReadOnly(False)
-
-            parent.setEnableOn(self.getEnableOn())
-            parent.setErrorGranularity(self.getErrorGranularity())
-
-            if readonly:
-                parent.setReadOnly(True)
-
-        return EnvironmentSettings.clone(self, parent)
+    def clone(self):
+        return ProcedureSettings(error_granularity=self.getErrorGranularity(),
+                                 enable_on=self.getEnableOn())
 
 
-class ProcedureLocalSettings(ParameterLocalSettings, ProcedureSettings):
-    getProperties = ProcedureSettings.getProperties
-
+class ProcedureLocalSettings(EnvironmentLocalSettings, ProcedureSettings):
     @staticmethod
     def _getOppositeSettingClass():
         return ProcedureGlobalSettings
@@ -182,28 +173,29 @@ class ProcedureLocalSettings(ParameterLocalSettings, ProcedureSettings):
                  error_granularity=None,
                  enable_on=None):
 
-        ParameterLocalSettings.__init__(self,
-                                        read_only=read_only,
-                                        removable=removable)
+        EnvironmentLocalSettings.__init__(self,
+                                          read_only=read_only,
+                                          removable=removable)
         ProcedureSettings.__init__(self,
                                    error_granularity=error_granularity,
                                    enable_on=enable_on)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ProcedureLocalSettings(
-                read_only=self.isReadOnly(),
-                removable=self.isRemovable(),
-                error_granularity=self.getErrorGranularity(),
-                enable_on=self.getEnableOn())
+    def getProperties(self):
+        props = EnvironmentLocalSettings.getProperties(self)
+        props.update(ProcedureSettings.getProperties(self))
+        del props[SETTING_PROPERTY_CHECKER]
+        del props[SETTING_PROPERTY_CHECKERLIST]
+        return props
 
-        ProcedureSettings.clone(self, parent)
-        return ParameterLocalSettings.clone(self, parent)
+    def clone(self):
+        return ProcedureLocalSettings(
+            read_only=self.isReadOnly(),
+            removable=self.isRemovable(),
+            error_granularity=self.getErrorGranularity(),
+            enable_on=self.getEnableOn())
 
 
-class ProcedureGlobalSettings(ParameterGlobalSettings, ProcedureSettings):
-    getProperties = ProcedureSettings.getProperties
-
+class ProcedureGlobalSettings(EnvironmentGlobalSettings, ProcedureSettings):
     @staticmethod
     def _getOppositeSettingClass():
         return ProcedureLocalSettings
@@ -215,23 +207,26 @@ class ProcedureGlobalSettings(ParameterGlobalSettings, ProcedureSettings):
                  error_granularity=None,
                  enable_on=None):
 
-        ParameterGlobalSettings.__init__(self,
-                                         read_only=read_only,
-                                         removable=removable,
-                                         transient=transient)
+        EnvironmentGlobalSettings.__init__(self,
+                                           read_only=read_only,
+                                           removable=removable,
+                                           transient=transient)
 
         ProcedureSettings.__init__(self,
                                    error_granularity=error_granularity,
                                    enable_on=enable_on)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ProcedureGlobalSettings(
-                read_only=self.isReadOnly(),
-                removable=self.isRemovable(),
-                transient=self.isTransient(),
-                error_granularity=self.getErrorGranularity(),
-                enable_on=self.getEnableOn())
+    def getProperties(self):
+        props = EnvironmentGlobalSettings.getProperties(self)
+        props.update(ProcedureSettings.getProperties(self))
+        del props[SETTING_PROPERTY_CHECKER]
+        del props[SETTING_PROPERTY_CHECKERLIST]
+        return props
 
-        ProcedureSettings.clone(self, parent)
-        return ParameterGlobalSettings.clone(self, parent)
+    def clone(self):
+        return ProcedureGlobalSettings(
+            read_only=self.isReadOnly(),
+            removable=self.isRemovable(),
+            transient=self.isTransient(),
+            error_granularity=self.getErrorGranularity(),
+            enable_on=self.getEnableOn())

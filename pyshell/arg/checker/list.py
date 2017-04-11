@@ -32,18 +32,20 @@ class ListArgChecker(ArgChecker):
             self._raiseArgInitializationException(excmsg)
 
         # checker must have a fixed size
-        if (checker.minimum_size != checker.maximum_size or
-           checker.minimum_size is None or
-           checker.minimum_size == 0):
-            if checker.minimum_size is None:
+        checker_minimum_size = checker.getMinimumSize()
+        checker_maximum_size = checker.getMaximumSize()
+        if (checker_minimum_size != checker_maximum_size or
+           checker_minimum_size is None or
+           checker_minimum_size == 0):
+            if checker_minimum_size is None:
                 checker_size = "]-Inf,"
             else:
-                checker_size = "["+str(checker.minimum_size)+","
+                checker_size = "["+str(checker_minimum_size)+","
 
-            if checker.maximum_size is None:
+            if checker_maximum_size is None:
                 checker_size += "+Inf["
             else:
-                checker_size += str(checker.maximum_size)+"]"
+                checker_size += str(checker_maximum_size)+"]"
 
             excmsg = ("checker must have a fixed size bigger than zero, got "
                       "this size : '%s'")
@@ -56,18 +58,20 @@ class ListArgChecker(ArgChecker):
     def checkSize(self, minimum_size, maximum_size):
         ArgChecker.checkSize(self, minimum_size, maximum_size)
 
+        checker_minimum_size = self.checker.getMinimumSize()
         if (minimum_size is not None and
-           (minimum_size % self.checker.minimum_size) != 0):
+           (minimum_size % checker_minimum_size) != 0):
             excmsg = ("the minimum size of the list <%s> is not a multiple of"
                       " the checker size <%s>")
-            excmsg %= (str(minimum_size), str(self.checker.minimum_size),)
+            excmsg %= (str(minimum_size), str(checker_minimum_size),)
             self._raiseArgInitializationException(excmsg)
 
+        checker_maximum_size = self.checker.getMaximumSize()
         if (maximum_size is not None and
-           (maximum_size % self.checker.minimum_size) != 0):
+           (maximum_size % checker_maximum_size) != 0):
             excmsg = ("the maximum size of the list <%s> is not a multiple of"
                       " the checker size <%s>")
-            excmsg %= (str(maximum_size), str(self.checker.minimum_size),)
+            excmsg %= (str(maximum_size), str(checker_maximum_size),)
             self._raiseArgInitializationException(excmsg)
 
     def getValue(self, values, arg_number=None, arg_name_to_bind=None):
@@ -77,58 +81,61 @@ class ListArgChecker(ArgChecker):
 
         # len(values) must always be a multiple of self.checker.minimum_size
         #   even if there is to much data, it is a sign of anomalies
-        if (len(values) % self.checker.minimum_size) != 0:
+        checker_minimum_size = self.checker.getMinimumSize()
+        if (len(values) % checker_minimum_size) != 0:
             excmsg = ("the size of the value list <%s> is not a multiple of "
                       "the checker size <%s>")
-            excmsg %= (str(len(values)), str(self.checker.minimum_size),)
+            excmsg %= (str(len(values)), str(checker_minimum_size),)
             self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
 
         # check the minimal size
         add_at_end = []
-        if self.minimum_size is not None and len(values) < self.minimum_size:
+        minimum_size = self.getMinimumSize()
+        if minimum_size is not None and len(values) < minimum_size:
             # checker has default value ?
             if self.checker.hasDefaultValue(arg_name_to_bind):
                 # build the missing part with the default value
-                add_at_end = (int(self.minimum_size - len(values) /
-                              self.checker.minimum_size) *
+                add_at_end = (int(minimum_size - len(values) /
+                              checker_minimum_size) *
                               [self.checker.getDefaultValue(arg_name_to_bind)])
             else:
                 excmsg = "need at least <%s> items, got <%s>"
-                excmsg %= (str(self.minimum_size), str(len(values)),)
+                excmsg %= (str(minimum_size), str(len(values)),)
                 self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
 
         # build range limite and manage max size
-        if self.maximum_size is not None:
-            if len(values) < self.maximum_size:
+        maximum_size = self.getMaximumSize()
+        if maximum_size is not None:
+            if len(values) < maximum_size:
                 msize = len(values)
             else:
-                msize = self.maximum_size
+                msize = maximum_size
         else:
             msize = len(values)
 
         # check every args
         ret = []
         if arg_number is not None:
-            for i in range(0, msize, self.checker.minimum_size):
-                if self.checker.minimum_size == 1:
+            for i in range(0, msize, checker_minimum_size):
+                if checker_minimum_size == 1:
                     ret.append(self.checker.getValue(values[i],
                                                      arg_number,
                                                      arg_name_to_bind))
                 else:
-                    value_max_index = i+self.checker.minimum_size
+                    value_max_index = i+checker_minimum_size
                     ret.append(self.checker.getValue(values[i:value_max_index],
                                                      arg_number,
                                                      arg_name_to_bind))
 
                 arg_number += 1
         else:
-            for i in range(0, msize, self.checker.minimum_size):
-                if self.checker.minimum_size == 1:
+            for i in range(0, msize, checker_minimum_size):
+                if checker_minimum_size == 1:
                     ret.append(self.checker.getValue(values[i],
                                                      None,
                                                      arg_name_to_bind))
                 else:
-                    value_max_index = i+self.checker.minimum_size
+                    value_max_index = i+checker_minimum_size
                     ret.append(self.checker.getValue(values[i:value_max_index],
                                                      None,
                                                      arg_name_to_bind))
@@ -141,69 +148,73 @@ class ListArgChecker(ArgChecker):
         if self.hasDefault:
             return self.default
 
-        if self.minimum_size is None:
+        minimum_size = self.getMinimumSize()
+        if minimum_size is None:
             return []
 
         if self.checker.hasDefaultValue(arg_name_to_bind):
             return ([self.checker.getDefaultValue(arg_name_to_bind)] *
-                    self.minimum_size)
+                    minimum_size)
 
         excmsg = "getDefaultValue, there is no default value"
         self._raiseArgException(excmsg, None, arg_name_to_bind)
 
     def hasDefaultValue(self, arg_name_to_bind=None):
+        minimum_size = self.getMinimumSize()
         return (self.hasDefault or
-                self.minimum_size is None or
+                minimum_size is None or
                 self.checker.hasDefaultValue(arg_name_to_bind))
 
     def getUsage(self):
-        if self.minimum_size is None:
-            if self.maximum_size is None:
+        minimum_size = self.getMinimumSize()
+        maximum_size = self.getMaximumSize()
+        if minimum_size is None:
+            if maximum_size is None:
                 return ("("+self.checker.getUsage()+" ... " +
                         self.checker.getUsage()+")")
-            elif self.maximum_size == 1:
+            elif maximum_size == 1:
                 return "("+self.checker.getUsage()+")"
-            elif self.maximum_size == 2:
+            elif maximum_size == 2:
                 return ("("+self.checker.getUsage()+"0 " +
                         self.checker.getUsage()+"1)")
 
             return ("("+self.checker.getUsage()+"0 ... " +
-                    self.checker.getUsage()+str(self.maximum_size-1)+")")
+                    self.checker.getUsage()+str(maximum_size-1)+")")
         else:
-            if self.minimum_size == 0 and self.maximum_size == 1:
+            if minimum_size == 0 and maximum_size == 1:
                 return "("+self.checker.getUsage()+")"
 
-            if self.minimum_size == 1:
-                if self.maximum_size == 1:
+            if minimum_size == 1:
+                if maximum_size == 1:
                     return self.checker.getUsage()
 
                 part1 = self.checker.getUsage()+"0"
-            elif self.minimum_size == 2:
+            elif minimum_size == 2:
                 part1 = (self.checker.getUsage()+"0 "+self.checker.getUsage() +
                          "1")
             else:
                 part1 = (self.checker.getUsage()+"0 ... " +
-                         self.checker.getUsage()+str(self.minimum_size-1))
+                         self.checker.getUsage()+str(minimum_size-1))
 
-            if self.maximum_size is None:
+            if maximum_size is None:
                 return part1 + " (... "+self.checker.getUsage()+")"
             else:
-                not_mandatory_space = self.maximum_size - self.minimum_size
+                not_mandatory_space = maximum_size - minimum_size
                 if not_mandatory_space == 0:
                     return part1
                 if not_mandatory_space == 1:
                     return (part1 + " ("+self.checker.getUsage() +
-                            str(self.maximum_size-1)+")")
+                            str(maximum_size-1)+")")
                 elif not_mandatory_space == 2:
                     return (part1 + " ("+self.checker.getUsage() +
-                            str(self.maximum_size-2)+"" +
+                            str(maximum_size-2)+"" +
                             self.checker.getUsage() +
-                            str(self.maximum_size-1)+")")
+                            str(maximum_size-1)+")")
                 else:
                     return (part1+" ("+self.checker.getUsage() +
-                            str(self.minimum_size)+" ... " +
+                            str(minimum_size)+" ... " +
                             self.checker.getUsage() +
-                            str(self.maximum_size-1)+")")
+                            str(maximum_size-1)+")")
 
     def __str__(self):
         return "ListArgChecker : "+str(self.checker)

@@ -18,15 +18,58 @@
 
 import collections
 
+from abc import ABCMeta, abstractmethod
+
 from pyshell.arg.accessor.container import ContainerAccessor
-from pyshell.arg.checker.argchecker import ArgChecker
 from pyshell.utils.string65 import isString
 
 
-# TODO make it abstract
-class AbstractParameterAccessor(ContainerAccessor):
-    def __init__(self, keyname, container_attribute):
+class AbstractParameter(ContainerAccessor):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, container_attribute):
         ContainerAccessor.__init__(self)
+
+        if container_attribute is None or not isString(container_attribute):
+            excmsg = "container_attribute must be a valid string, got '%s'"
+            excmsg %= str(type(container_attribute))
+            self._raiseArgInitializationException(excmsg)
+
+        self.container_attribute = container_attribute
+
+    @abstractmethod
+    def getManager(self, container):
+        pass
+
+    @abstractmethod
+    def getKeyName(self):
+        pass
+
+    def hasAccessorValue(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return False
+
+        container = ContainerAccessor.getAccessorValue(self)
+        manager = self.getManager(container)
+        return manager.hasParameter(self.getKeyName())
+
+    def getAccessorValue(self):
+        container = ContainerAccessor.getAccessorValue(self)
+        manager = self.getManager(container)
+        return manager.getParameter(self.getKeyName())
+
+    def buildErrorMessage(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return ContainerAccessor.buildErrorMessage(self)
+
+        return "the key '%s' is not available but needed" % self.getKeyName()
+
+
+class AbstractParameterAccessor(AbstractParameter):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, keyname, container_attribute):
+        AbstractParameter.__init__(self, keyname)
 
         if (keyname is None or
            not isString(keyname) or
@@ -37,107 +80,57 @@ class AbstractParameterAccessor(ContainerAccessor):
 
         self.keyname = keyname
 
-        if container_attribute is None or not isString(container_attribute):
-            excmsg = "container_attribute must be a valid string, got '%s'"
-            excmsg %= str(type(container_attribute))
-            self._raiseArgInitializationException(excmsg)
-
-        self.container_attribute = container_attribute
-
-    def getManager(self, container):
-        pass  # TODO make it abstract
-
-    def hasAccessorValue(self):
-        if not ContainerAccessor.hasAccessorValue(self):
-            return False
-
-        container = ContainerAccessor.getAccessorValue(self)
-        """if not hasattr(container, self.container_attribute):
-            return False
-
-        manager = getattr(container, self.container_attribute)"""
-        manager = self.getManager(container)
-
-        return manager.hasParameter(self.keyname)
-
-    def getAccessorValue(self):
-        container = ContainerAccessor.getAccessorValue(self)
-        # manager = getattr(container, self.container_attribute)
-        manager = self.getManager(container)
-        return manager.getParameter(self.keyname)
-
-    def buildErrorMessage(self):
-        if not ContainerAccessor.hasAccessorValue(self):
-            return ContainerAccessor.buildErrorMessage(self)
-
-        container = ContainerAccessor.getAccessorValue(self)
-        if not hasattr(container, self.container_attribute):
-            excmsg = "environment container does not have the attribute '%s'"
-            excmsg %= str(self.container_attribute)
-            return excmsg
-
-        return "the key '%s' is not available but needed" % self.keyname
+    def getKeyName(self):
+        return self.keyname
 
 
-class AbstractParameterDynamicAccessor(ArgChecker):
+# TODO (issue #127) should not inherit from ArgChecker
+# TODO (issue #127) BUG seems to not appear in the help message, check why
+# TODO (issue #127) this class (and its children) is between accessor and
+#   checker...
+# TODO (issue #127) what about the arguments of getParameter? (perfect_match,
+#   local_param, explore_other_scope.
+class AbstractParameterDynamicAccessor(AbstractParameter):
     def __init__(self, container_attribute):
-        ArgChecker.__init__(self, 1, 1, False)
+        AbstractParameter.__init__(self, container_attribute)
+        self.default_keyname = None
+        self.getvalue_keyname = None
 
-        if container_attribute is None or not isString(container_attribute):
-            excmsg = "container_attribute must be a valid string, got '%s'"
-            excmsg %= str(type(container_attribute))
-            self._raiseArgInitializationException(excmsg)
+    def _checkKeyName(self, keyname):
+        if (keyname is None or
+           not isString(keyname) or
+           not isinstance(keyname, collections.Hashable)):
+            excmsg = "keyname must be hashable string, got '%s'"
+            excmsg %= str(keyname)
+            self._raiseArgException(excmsg)
 
-        self.container_attribute = container_attribute
+    def getKeyName(self):
+        if self.getvalue_keyname is None:
+            return self.default_keyname
+        return self.getvalue_keyname
 
-    def getManager(self, container):
-        pass  # TODO make it abstract
+    def getMaximumSize(self):
+        return 1
 
-    def _getManager(self, arg_number=None, arg_name_to_bind=None):
-        if not hasattr(self, "engine") or self.engine is None:
-            excmsg = ("can not get container, no engine linked to this "
-                      "argument instance")
-            self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
-
-        if not hasattr(self.engine, "getEnv"):
-            excmsg = ("can not get container, linked engine does not have a "
-                      "method to get the environment")
-            self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
-
-        container = self.engine.getEnv()
-        if container is None:
-            excmsg = ("can not get container, no container linked to the "
-                      "engine")
-            self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
-
-        return self.getManager(container)
-
-        """if not hasattr(container, self.container_attribute):
-            excmsg = "environment container does not have the attribute '%s'"
-            excmsg %= str(self.container_attribute)
-            self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
-
-        return getattr(container, self.container_attribute)"""
+    def getMinimumSize(self):
+        return 1
 
     def getValue(self, value, arg_number=None, arg_name_to_bind=None):
-        if not isinstance(value, collections.Hashable):
-            excmsg = "keyname must be hashable, got '%s'"
-            excmsg %= str(value)
-            self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
+        # TODO not thread safe or thread sharing...
+        # a first thread could set the keyname, then another thread, then
+        # the first thread will call AbstractParameter.getValue
+        self.getvalue_keyname = value
+        try:
+            return AbstractParameter.getValue(
+                self, value, arg_number, arg_name_to_bind)
+        finally:
+            self.getvalue_keyname = None
 
-        manager = self._getManager(arg_number, arg_name_to_bind)
+    def isShowInUsage(self):
+        return True
 
-        if not manager.hasParameter(value):
-            excmsg = "the key '%s' is not available but needed" % str(value)
-            self._raiseArgException(excmsg, arg_number, arg_name_to_bind)
-
-        return manager.getParameter(value)
-
-    def hasDefaultValue(self, arg_name_to_bind=None):
-        return False
+    def getUsage(self):
+        return ""  # TODO (issue #127)
 
     def setDefaultValue(self, value, arg_name_to_bind=None):
-        pass
-
-    def erraseDefaultValue(self):
         pass

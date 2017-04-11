@@ -16,12 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.arg.accessor.container import ContainerAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterDynamicAccessor
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
 
 DYNAMIC_ACCESSOR_TYPENAME = "context dynamic"
 ACCESSOR_TYPENAME = "context"
+MANAGER_TYPENAME = "context manager"
 
 
 class ContextAccessor(AbstractParameterAccessor):
@@ -48,3 +50,25 @@ class ContextDynamicAccessor(AbstractParameterDynamicAccessor):
     @classmethod
     def getTypeName(cls):
         return DYNAMIC_ACCESSOR_TYPENAME
+
+
+class ContextManagerAccessor(ContainerAccessor):
+    def hasAccessorValue(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return False
+
+        container = ContainerAccessor.getAccessorValue(self)
+
+        return container.getContextManager() is not None
+
+    def getAccessorValue(self):
+        return ContainerAccessor.getAccessorValue(self).getContextManager()
+
+    def buildErrorMessage(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return ContainerAccessor.buildErrorMessage(self)
+        return "container provided has no context manager defined"
+
+    @classmethod
+    def getTypeName(cls):
+        return MANAGER_TYPENAME

@@ -255,7 +255,7 @@ class TestParameterLoaderUnload(object):
                              origin_group="test.loader.parameter")
         self.addon_loader.unload(self.container)
 
-        expected = ["parameter create tutu.tata \"42\" -local_var False"]
+        expected = ["parameter create tutu.tata \"42\" -local_param False"]
         self._expectedResult(expected)
 
     def test_notRegisteredParameterReadOnly(self):
@@ -269,7 +269,7 @@ class TestParameterLoaderUnload(object):
         self.addon_loader.unload(self.container)
 
         expected = []
-        expected.append("parameter create tutu.tata \"42\" -local_var False")
+        expected.append("parameter create tutu.tata \"42\" -local_param False")
         expected.append("parameter properties set tutu.tata readOnly True")
         self._expectedResult(expected)
 
@@ -301,7 +301,7 @@ class TestParameterLoaderUnload(object):
         self.addon_loader.unload(self.container)
 
         expected = [("parameter create tutu.tata \"11\" \"22\" \"33\" \"44\" "
-                     "-local_var False")]
+                     "-local_param False")]
         self._expectedResult(expected)
 
     def test_notRegisteredCreatedTransient(self):

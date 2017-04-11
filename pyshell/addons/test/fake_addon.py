@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.addons.utils.addon import formatState
-from pyshell.addons.utils.addon import tryToGetAddonFromDico
-from pyshell.addons.utils.addon import tryToGetAddonFromParameters
-from pyshell.addons.utils.addon import tryToImportLoaderFromFile
+from pyshell.register.environment import registerEnvironment
+
+registerEnvironment("env.fake.nothing", "nothing")

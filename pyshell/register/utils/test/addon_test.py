@@ -33,19 +33,13 @@ class TestAddonInformation(object):
     def test_init(self):
         i = AddonInformation("name")
         assert i.getName() == "name"
-        assert i.getLoadedProfileName() is None
+        assert i.getLastProfileUsed() is None
 
-    def test_setLoadedProfileName(self):
+    def test_setLastProfileUsed(self):
         i = AddonInformation("name")
-        assert i.getLoadedProfileName() is None
-        i.setLoadedProfileName("toto")
-        assert i.getLoadedProfileName() is "toto"
-
-    def test_unsetLoadedProfileName(self):
-        i = AddonInformation("name")
-        i.setLoadedProfileName("toto")
-        i.unsetLoadedProfileName()
-        assert i.getLoadedProfileName() is None
+        assert i.getLastProfileUsed() is None
+        i.setLastProfileUsed("toto")
+        assert i.getLastProfileUsed() is "toto"
 
 
 class LoaderAa(AbstractLoader):

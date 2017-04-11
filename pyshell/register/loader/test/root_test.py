@@ -89,7 +89,7 @@ class TestRootLoader(object):
     def test_internalLoaderLoad1(self):
         self.profile.addChild(SubAbstractLoader)
         self.gl.load(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is 'profile_name'
+        assert self.addon_information.getLastProfileUsed() is self.profile
         assert self.profile.isLoaded() and not self.profile.hasError()
 
     # valid load with error
@@ -97,14 +97,14 @@ class TestRootLoader(object):
         self.profile.addChild(SubAbstractLoaderWithError)
         with pytest.raises(ListOfException):
             self.gl.load(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is 'profile_name'
+        assert self.addon_information.getLastProfileUsed() is self.profile
         assert self.profile.isLoaded() and self.profile.hasError()
 
     # invalid load
     def test_internalLoaderLoad3(self):
         self.profile.addChild(SubAbstractLoader)
         self.gl.load(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is 'profile_name'
+        assert self.addon_information.getLastProfileUsed() is self.profile
         assert self.profile.isLoaded() and not self.profile.hasError()
         with pytest.raises(LoadException):
             self.gl.load(profile_object=self.profile, parameter_container=None)
@@ -128,7 +128,7 @@ class TestRootLoader(object):
         self.profile.addChild(SubAbstractLoader)
         self.gl.load(profile_object=self.profile, parameter_container=None)
         self.gl.unload(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is None
+        assert self.addon_information.getLastProfileUsed() is self.profile
         assert self.profile.isUnloaded() and not self.profile.hasError()
 
     # valid unload with error
@@ -139,7 +139,7 @@ class TestRootLoader(object):
             self.gl.unload(
                 profile_object=self.profile,
                 parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is None
+        assert self.addon_information.getLastProfileUsed() is self.profile
         assert self.profile.isUnloaded() and self.profile.hasError()
 
     # invalid unload
@@ -147,7 +147,7 @@ class TestRootLoader(object):
         self.profile.addChild(SubAbstractLoader)
         self.gl.load(profile_object=self.profile, parameter_container=None)
         self.gl.unload(profile_object=self.profile, parameter_container=None)
-        assert self.addon_information.getLoadedProfileName() is None
+        assert self.addon_information.getLastProfileUsed() is self.profile
         assert self.profile.isUnloaded() and not self.profile.hasError()
         with pytest.raises(UnloadException):
             self.gl.unload(

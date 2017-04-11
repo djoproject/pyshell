@@ -16,4 +16,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.addons.keystore import *
+from pyshell.register.loader.procedure import ProcedureLoader
+from pyshell.register.utils.addon import getOrCreateProfile
+
+
+def _localGetAndInitCallerModule(profile=None):
+    profile_loader = getOrCreateProfile(ProcedureLoader, profile)
+    return profile_loader
+
+
+def setProcedureLoadPriority(value, profile=None):
+    loader_profile = _localGetAndInitCallerModule(profile)
+    loader_profile.setLoadPriority(value)
+
+
+def setProcedureUnloadPriority(value, profile=None):
+    loader_profile = _localGetAndInitCallerModule(profile)
+    loader_profile.setUnloadPriority(value)
+
+
+def registerProcedure(key, obj, profile=None):
+    loader_profile = _localGetAndInitCallerModule(profile)
+    loader_profile.addParameter(key, obj)

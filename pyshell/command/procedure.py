@@ -34,7 +34,7 @@ from pyshell.utils.executing import execute
 from pyshell.utils.setargs import setArgs
 
 
-# TODO move into its own file
+# TODO (issue #126) move into its own file
 class AbstractLevelHandler(object):
     __metaclass__ = ABCMeta
 
@@ -56,10 +56,10 @@ class FileProcedure(UniCommand):
                  file_path,
                  execute_on=ENABLE_ON_PRE_PROCESS,
                  granularity=float("inf")):
-        # TODO check file_path
+        # TODO (issue #126) check file_path
         self._file_path = file_path
 
-        # TODO check granularity
+        # TODO (issue #126) check granularity
         self._granularity = granularity
 
         if execute_on is ENABLE_ON_PRE_PROCESS:
@@ -69,7 +69,7 @@ class FileProcedure(UniCommand):
         elif execute_on is ENABLE_ON_POST_PROCESS:
             UniCommand.__init__(self, post_process=self._internalExecute)
         else:
-            pass  # TODO unknown execute_on
+            pass  # TODO (issue #126) unknown execute_on, raise
 
         # transient var
         self.interrupted = False
@@ -91,7 +91,7 @@ class FileProcedure(UniCommand):
         self.interrupted = True
 
     def execute(self, parameter_container, args):
-        # TODO check if parameter_container is an instance of
+        # TODO (issue #126) check if parameter_container is an instance of
         # AbstractLevelHandler
 
         # incrementing the level will isolate the local parameters of the

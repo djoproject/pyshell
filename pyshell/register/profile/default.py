@@ -78,3 +78,6 @@ class DefaultProfile(object):
 
     def getLastException(self):
         return self.last_exception
+
+    def getContentList(self):
+        return ()

@@ -20,7 +20,7 @@ import os
 
 from pyshell.arg.checker.string43 import StringArgChecker
 
-TYPENAME = "filePath"
+TYPENAME = "file_path"
 
 
 class FilePathArgChecker(StringArgChecker):

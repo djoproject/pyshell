@@ -16,4 +16,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.addons.interactive import *
+from pyshell.arg.checker.argchecker import ArgChecker
+
+TYPENAME = "fixed"
+
+
+class FixedValueChecker(ArgChecker):
+    def __init__(self, value):
+        ArgChecker.__init__(self, 0, 0, False)
+        self.value = value
+
+    def getValue(self, value, arg_number=None, arg_name_to_bind=None):
+        return self.value
+
+    def setDefaultValue(self, value, arg_name_to_bind=None):
+        pass
+
+    def getDefaultValue(self, arg_name_to_bind=None):
+        return self.value
+
+    def hasDefaultValue(self, arg_name_to_bind=None):
+        return True
+
+    @classmethod
+    def getTypeName(cls):
+        return TYPENAME

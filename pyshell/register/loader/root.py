@@ -36,26 +36,24 @@ class RootLoader(InternalLoader):
     @classmethod
     def load(cls, profile_object, parameter_container):
         addon_informations = profile_object.getAddonInformations()
-        current_profile_name = profile_object.getName()
-        loaded_profile_name = addon_informations.getLoadedProfileName()
+        last_profile_used = addon_informations.getLastProfileUsed()
 
-        if loaded_profile_name is not None:
-            if loaded_profile_name != current_profile_name:
-                excmsg = ("(%s) 'load', the profile '%s' can not be loaded "
-                          "because the profile '%s' is already loaded")
-                excmsg %= (cls.__name__,
-                           current_profile_name,
-                           loaded_profile_name,)
-            else:
-                excmsg = "(%s) 'load', the profile '%s' is already loaded"
-                excmsg %= (cls.__name__, current_profile_name,)
+        if (last_profile_used is not None and
+           not last_profile_used.isUnloaded()):
+            excmsg = ("(%s) 'load', the profile '%s' can not be loaded "
+                      "because the profile '%s' is in the state '%s'")
+
+            excmsg %= (cls.__name__,
+                       profile_object.getName(),
+                       last_profile_used.getName(),
+                       last_profile_used.state)
 
             raise LoadException(excmsg)
 
-        # remove results generate during the last unload
+        # remove results generated during the last unload
         profile_object.flush()
 
-        addon_informations.setLoadedProfileName(current_profile_name)
+        addon_informations.setLastProfileUsed(profile_object)
 
         profile_object.setState(STATE_LOADING)
         try:
@@ -69,12 +67,12 @@ class RootLoader(InternalLoader):
     @classmethod
     def unload(cls, profile_object, parameter_container):
         addon_informations = profile_object.getAddonInformations()
-        current_profile_name = profile_object.getName()
-        loaded_profile_name = addon_informations.getLoadedProfileName()
+        last_profile_used = addon_informations.getLastProfileUsed()
 
-        if loaded_profile_name != current_profile_name:
+        if (last_profile_used != profile_object or
+           not profile_object.isLoaded()):
             excmsg = "(%s) 'unload', the profile '%s' is not loaded"
-            excmsg %= (cls.__name__, current_profile_name,)
+            excmsg %= (cls.__name__, profile_object.getName(),)
             raise UnloadException(excmsg)
 
         profile_object.setState(STATE_UNLOADING)
@@ -82,8 +80,6 @@ class RootLoader(InternalLoader):
             InternalLoader.unload(profile_object, parameter_container)
         except:
             profile_object.setState(STATE_UNLOADED_E)
-            addon_informations.unsetLoadedProfileName()
             raise
         else:
             profile_object.setState(STATE_UNLOADED)
-            addon_informations.unsetLoadedProfileName()

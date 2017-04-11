@@ -18,7 +18,6 @@
 
 import pytest
 
-from pyshell.arg.checker.defaultvalue import DefaultValueChecker
 from pyshell.arg.checker.integer import IntegerArgChecker
 from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.checker.string43 import StringArgChecker
@@ -35,8 +34,6 @@ class TestListArgChecker(object):
             ListArgChecker(ListArgChecker(IntegerArgChecker()))
         with pytest.raises(ArgInitializationException):
             ListArgChecker(23)
-        with pytest.raises(ArgInitializationException):
-            ListArgChecker(DefaultValueChecker(42))
         with pytest.raises(ArgInitializationException):
             ListArgChecker("plop")
 
@@ -72,13 +69,13 @@ class TestListArgChecker(object):
         c = ListArgChecker(i, 3, 23)
         assert c.hasDefaultValue()
         defv = c.getDefaultValue()
-        assert len(defv) == c.minimum_size
+        assert len(defv) == c.getMinimumSize()
         for v in defv:
             assert v == 42
 
         # test the completion of the list with default value
         defv = c.getValue(["42"])
-        assert len(defv) == c.minimum_size
+        assert len(defv) == c.getMinimumSize()
         for v in defv:
             assert v == 42
 

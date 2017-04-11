@@ -129,3 +129,17 @@ class CommandLoaderProfile(DefaultProfile):
                               self.__class__.__name__,
                               "hasCmd")
         return tuple(key_list) in self.cmdDict
+
+    def getContentList(self):
+        ret = []
+        for cmd_key in self.cmdDict.keys():
+            final_cmd_key = list(self.prefix)
+            final_cmd_key.extend(cmd_key)
+            ret.append(" ".join(final_cmd_key))
+
+        for stop in self.stopList:
+            final_stop = list(self.prefix)
+            final_stop.extend(stop)
+            ret.append("stop traversal @ '%s'" % " ".join(final_stop))
+
+        return ret

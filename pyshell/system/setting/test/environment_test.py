@@ -26,9 +26,6 @@ from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.system.setting.environment import EnvironmentSettings
 from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
 from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
-from pyshell.utils.constants import SETTING_PROPERTY_READONLY
-from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
-from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 
@@ -158,22 +155,16 @@ class TestEnvironmentSettings(object):
         s = EnvironmentSettings(checker=DEFAULT_CHECKER)
         assert s.isListChecker()
 
-        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
-                                     (SETTING_PROPERTY_READONLY, False),
-                                     (SETTING_PROPERTY_TRANSIENT, True),
-                                     (SETTING_PROPERTY_CHECKER, 'any'),
-                                     (SETTING_PROPERTY_CHECKERLIST, True))
+        assert s.getProperties() == {SETTING_PROPERTY_CHECKER: 'any',
+                                     SETTING_PROPERTY_CHECKERLIST: True}
 
     def test_getPropertiesNotAListChecker(self):
         int_checker = DefaultChecker.getInteger()
         s = EnvironmentSettings(checker=int_checker)
         assert not s.isListChecker()
 
-        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
-                                     (SETTING_PROPERTY_READONLY, False),
-                                     (SETTING_PROPERTY_TRANSIENT, True),
-                                     (SETTING_PROPERTY_CHECKER, 'integer'),
-                                     (SETTING_PROPERTY_CHECKERLIST, False))
+        assert s.getProperties() == {SETTING_PROPERTY_CHECKER: 'integer',
+                                     SETTING_PROPERTY_CHECKERLIST: False}
 
     def test_cloneWithoutSource(self):
         int_checker = DefaultChecker.getInteger()
@@ -183,39 +174,6 @@ class TestEnvironmentSettings(object):
 
         assert isinstance(sc, EnvironmentSettings)
         sc.getChecker() is s.getChecker()
-
-    def test_cloneWithSource(self):
-        int_checker = DefaultChecker.getInteger()
-        source = EnvironmentSettings(checker=int_checker)
-        source.setListChecker(True)
-
-        str_checker = DefaultChecker.getString()
-        to_clone = EnvironmentSettings(checker=str_checker)
-
-        to_clone.clone(source)
-        to_clone.getChecker() is source.getChecker()
-        assert not source.isListChecker()
-        assert source.getChecker() is str_checker
-        assert hash(to_clone) == hash(source)
-
-    def test_cloneWithSourceAndReadOnly(self):
-        int_checker = DefaultChecker.getInteger()
-        source = ReadOnlyEnvironmentSettings(checker=int_checker)
-        source.setReadOnly(False)
-        source.setListChecker(True)
-        source.setReadOnly(True)
-
-        str_checker = DefaultChecker.getString()
-        to_clone = EnvironmentSettings(checker=str_checker)
-
-        to_clone.clone(source)
-        to_clone.getChecker() is source.getChecker()
-        assert not source.isListChecker()
-        assert source.getChecker() is str_checker
-
-        assert source.isReadOnly()
-        source.setReadOnly(False)
-        assert hash(to_clone) == hash(source)
 
 
 class TestEnvironmentLocalSettings(object):
@@ -259,21 +217,6 @@ class TestEnvironmentLocalSettings(object):
         assert isinstance(sc, EnvironmentLocalSettings)
         assert s is not sc
         assert hash(s) == hash(sc)
-
-    def test_cloneWithSource(self):
-        int_checker = DefaultChecker.getInteger()
-        to_clone = EnvironmentLocalSettings(read_only=False,
-                                            removable=False,
-                                            checker=int_checker)
-
-        str_checker = DefaultChecker.getString()
-        source = EnvironmentLocalSettings(read_only=True,
-                                          removable=True,
-                                          checker=str_checker)
-
-        assert hash(to_clone) != hash(source)
-        to_clone.clone(source)
-        assert hash(to_clone) == hash(source)
 
     def test_getGlobalFromLocal(self):
         checker = DefaultChecker.getInteger()
@@ -348,23 +291,6 @@ class TestEnvironmentGlobalSettings(object):
         assert isinstance(sc, EnvironmentGlobalSettings)
         assert s is not sc
         assert hash(s) == hash(sc)
-
-    def test_cloneWithSource(self):
-        int_checker = DefaultChecker.getInteger()
-        to_clone = EnvironmentGlobalSettings(read_only=False,
-                                             removable=False,
-                                             transient=False,
-                                             checker=int_checker)
-
-        str_checker = DefaultChecker.getString()
-        source = EnvironmentGlobalSettings(read_only=True,
-                                           removable=True,
-                                           transient=True,
-                                           checker=str_checker)
-
-        assert hash(to_clone) != hash(source)
-        to_clone.clone(source)
-        assert hash(to_clone) == hash(source)
 
     def test_getLocalFromGlobal(self):
         checker = DefaultChecker.getInteger()

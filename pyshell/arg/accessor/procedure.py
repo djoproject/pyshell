@@ -19,56 +19,56 @@
 from pyshell.arg.accessor.container import ContainerAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterDynamicAccessor
-from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
+from pyshell.utils.constants import PROCEDURE_ATTRIBUTE_NAME
 
-DYNAMIC_ACCESSOR_TYPENAME = "environment dynamic"
-ACCESSOR_TYPENAME = "environment"
-MANAGER_TYPENAME = "environment manager"
+ACCESSOR_TYPENAME = "procedure"
+DYNAMIC_ACCESSOR_TYPENAME = "procedure dynamic"
+MANAGER_TYPENAME = "procedure manager"
 
 
-class EnvironmentAccessor(AbstractParameterAccessor):
-    def __init__(self, environment_string_path):
+class ProcedureAccessor(AbstractParameterAccessor):
+    def __init__(self, procedure_string_path):
         AbstractParameterAccessor.__init__(self,
-                                           environment_string_path,
-                                           ENVIRONMENT_ATTRIBUTE_NAME)
+                                           procedure_string_path,
+                                           PROCEDURE_ATTRIBUTE_NAME)
 
     def getManager(self, container):
-        return container.getEnvironmentManager()
+        return container.getProcedureManager()
 
     @classmethod
     def getTypeName(cls):
         return ACCESSOR_TYPENAME
 
 
-class EnvironmentDynamicAccessor(AbstractParameterDynamicAccessor):
+class ProcedureDynamicAccessor(AbstractParameterDynamicAccessor):
     def __init__(self):
         AbstractParameterDynamicAccessor.__init__(self,
-                                                  ENVIRONMENT_ATTRIBUTE_NAME)
+                                                  PROCEDURE_ATTRIBUTE_NAME)
 
     def getManager(self, container):
-        return container.getEnvironmentManager()
+        return container.getProcedureManager()
 
     @classmethod
     def getTypeName(cls):
         return DYNAMIC_ACCESSOR_TYPENAME
 
 
-class EnvironmentManagerAccessor(ContainerAccessor):
+class ProcedureManagerAccessor(ContainerAccessor):
     def hasAccessorValue(self):
         if not ContainerAccessor.hasAccessorValue(self):
             return False
 
         container = ContainerAccessor.getAccessorValue(self)
 
-        return container.getEnvironmentManager() is not None
+        return container.getProcedureManager() is not None
 
     def getAccessorValue(self):
-        return ContainerAccessor.getAccessorValue(self).getEnvironmentManager()
+        return ContainerAccessor.getAccessorValue(self).getProcedureManager()
 
     def buildErrorMessage(self):
         if not ContainerAccessor.hasAccessorValue(self):
             return ContainerAccessor.buildErrorMessage(self)
-        return "container provided has no environment manager defined"
+        return "container provided has no procedure manager defined"
 
     @classmethod
     def getTypeName(cls):

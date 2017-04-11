@@ -60,9 +60,8 @@ from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix
 from pyshell.register.command import registerSetTempPrefix
 from pyshell.register.command import registerStopHelpTraversalAt
-from pyshell.register.environment import registerEnvironment
-from pyshell.system.parameter.environment import EnvironmentParameter
-from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.register.environment import registerEnvironmentBoolean
+from pyshell.register.environment import registerEnvironmentListAny
 from pyshell.utils.exception import DefaultPyshellException
 from pyshell.utils.exception import LIBRARY_ERROR
 from pyshell.utils.postprocess import printColumn
@@ -249,10 +248,10 @@ def printAtr(bytes):
         printShell('T15 supported: ', atr.isT15Supported())
 
 
-@shellMethod(cards=EnvironmentAccessor("pcsc_card_list"),
-             autoload=EnvironmentAccessor("pcsc_autoload"),
-             loaded=EnvironmentAccessor("pcsc_contextready"),
-             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
+@shellMethod(cards=EnvironmentAccessor("pcsc.cardlist"),
+             autoload=EnvironmentAccessor("pcsc.autoload"),
+             loaded=EnvironmentAccessor("pcsc.contextready"),
+             autoconnect=EnvironmentAccessor("pcsc.autoconnect"))
 def loadPcsc(cards, autoload, loaded, autoconnect):
     """
     try to load the pcsc context, this method must be called before any
@@ -297,7 +296,7 @@ def loadPcsc(cards, autoload, loaded, autoconnect):
 
 @shellMethod(data=ListArgChecker(IntegerArgChecker(0, 255)),
              connection_index=IntegerArgChecker(0),
-             connections=EnvironmentAccessor("pcsc_connexionlist"))
+             connections=EnvironmentAccessor("pcsc.connexionlist"))
 def transmit(data, connection_index=0, connections=None):
     "transmit a list of bytes to a card connection"
 
@@ -325,11 +324,11 @@ def transmit(data, connection_index=0, connections=None):
 
 
 @shellMethod(index=IntegerArgChecker(0),
-             cards=EnvironmentAccessor("pcsc_card_list"),
-             connections=EnvironmentAccessor("pcsc_connexionlist"),
-             autoload=EnvironmentAccessor("pcsc_autoload"),
-             loaded=EnvironmentAccessor("pcsc_contextready"),
-             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
+             cards=EnvironmentAccessor("pcsc.cardlist"),
+             connections=EnvironmentAccessor("pcsc.connexionlist"),
+             autoload=EnvironmentAccessor("pcsc.autoload"),
+             loaded=EnvironmentAccessor("pcsc.contextready"),
+             autoconnect=EnvironmentAccessor("pcsc.autoconnect"))
 def connectCard(index=0, cards=None, connections=None,
                 loaded=False, autoload=False, autoconnect=False):
     "create a connection over a specific card"
@@ -348,11 +347,11 @@ def connectCard(index=0, cards=None, connections=None,
 
 
 @shellMethod(index=IntegerArgChecker(0),
-             cards=EnvironmentAccessor("pcsc_card_list"),
-             connections=EnvironmentAccessor("pcsc_connexionlist"),
-             autoload=EnvironmentAccessor("pcsc_autoload"),
-             loaded=EnvironmentAccessor("pcsc_contextready"),
-             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
+             cards=EnvironmentAccessor("pcsc.cardlist"),
+             connections=EnvironmentAccessor("pcsc.connexionlist"),
+             autoload=EnvironmentAccessor("pcsc.autoload"),
+             loaded=EnvironmentAccessor("pcsc.contextready"),
+             autoconnect=EnvironmentAccessor("pcsc.autoconnect"))
 def connectReader(index=0, cards=None, connections=None,
                   loaded=False, autoload=False, autoconnect=False):
     "create a connection over a specific reader"
@@ -375,7 +374,7 @@ def connectReader(index=0, cards=None, connections=None,
 
 
 @shellMethod(index=IntegerArgChecker(0),
-             connections=EnvironmentAccessor("pcsc_connexionlist"))
+             connections=EnvironmentAccessor("pcsc.connexionlist"))
 def disconnect(index=0, connections=None):
     "close a connection"
 
@@ -393,7 +392,7 @@ def disconnect(index=0, connections=None):
         connections.setValue(connection_list)
 
 
-@shellMethod(connections=EnvironmentAccessor("pcsc_connexionlist"))
+@shellMethod(connections=EnvironmentAccessor("pcsc.connexionlist"))
 def getConnected(connections):
     "list the existing connection(s)"
 
@@ -432,8 +431,8 @@ def getConnected(connections):
     return to_ret
 
 
-@shellMethod(cards=EnvironmentAccessor("pcsc_card_list"),
-             connections=EnvironmentAccessor("pcsc_connexionlist"))
+@shellMethod(cards=EnvironmentAccessor("pcsc.cardlist"),
+             connections=EnvironmentAccessor("pcsc.connexionlist"))
 def getAvailableCard(cards, connections):
     "list available card(s) on the system connected or not"
 
@@ -469,11 +468,11 @@ def getAvailableCard(cards, connections):
     return to_ret
 
 
-@shellMethod(cards=EnvironmentAccessor("pcsc_card_list"),
-             connections=EnvironmentAccessor("pcsc_connexionlist"),
-             autoload=EnvironmentAccessor("pcsc_autoload"),
-             loaded=EnvironmentAccessor("pcsc_contextready"),
-             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
+@shellMethod(cards=EnvironmentAccessor("pcsc.cardlist"),
+             connections=EnvironmentAccessor("pcsc.connexionlist"),
+             autoload=EnvironmentAccessor("pcsc.autoload"),
+             loaded=EnvironmentAccessor("pcsc.contextready"),
+             autoconnect=EnvironmentAccessor("pcsc.autoconnect"))
 def getAvailableReader(cards, connections, autoload=False,
                        loaded=False, autoconnect=False):
     "list available reader(s)"
@@ -520,7 +519,7 @@ def getAvailableReader(cards, connections, autoload=False,
 
 @shellMethod(
     connexion_index=IntegerArgChecker(0),
-    connections=EnvironmentAccessor("pcsc_connexionlist"),
+    connections=EnvironmentAccessor("pcsc.connexionlist"),
     protocol=TokenValueArgChecker({"T0": CardConnection.T0_protocol,
                                    "T1": CardConnection.T1_protocol,
                                    "T15": CardConnection.T15_protocol,
@@ -535,7 +534,7 @@ def setProtocol(connexion_index, protocol, connections):
 
 
 @shellMethod(value=DefaultChecker.getBoolean(),
-             autoload=EnvironmentAccessor("pcsc_autoload"))
+             autoload=EnvironmentAccessor("pcsc.autoload"))
 def setAutoLoad(value, autoload):
     "set auto loadding context on any call to pcsc method"
 
@@ -543,7 +542,7 @@ def setAutoLoad(value, autoload):
 
 
 @shellMethod(value=DefaultChecker.getBoolean(),
-             autoconnect=EnvironmentAccessor("pcsc_autoconnect"))
+             autoconnect=EnvironmentAccessor("pcsc.autoconnect"))
 def setAutoConnect(value, autoconnect):
     """
     set auto connection to the first card available and only to the first card
@@ -570,44 +569,32 @@ def monitorData(enable):
     pass  # TODO
 
 # # register ENVIRONMENT # #
-settings = EnvironmentGlobalSettings(transient=False,
-                                     read_only=False,
-                                     removable=False,
-                                     checker=DefaultChecker.getBoolean())
 
-registerEnvironment(env_key="pcsc_autoload",
-                    env=EnvironmentParameter(value=True, settings=settings))
+param = registerEnvironmentBoolean("pcsc.autoload", True)
+param.settings.setRemovable(False)
 
 ##
 
-registerEnvironment(env_key="pcsc_autoconnect",
-                    env=EnvironmentParameter(value=False,
-                                             settings=settings.clone()))
+param = registerEnvironmentBoolean("pcsc.autoconnect", False)
+param.settings.setRemovable(False)
 
 ##
 
-settings = EnvironmentGlobalSettings(transient=True,
-                                     read_only=False,
-                                     removable=False,
-                                     checker=DefaultChecker.getBoolean())
-
-registerEnvironment(env_key="pcsc_contextready",
-                    env=EnvironmentParameter(value=False, settings=settings))
+param = registerEnvironmentBoolean("pcsc.contextready", False)
+param.settings.setTransient(True)
+param.settings.setRemovable(False)
 
 ##
-checker = ListArgChecker(DefaultChecker.getArg())
-settings = EnvironmentGlobalSettings(transient=True,
-                                     read_only=False,
-                                     removable=False,
-                                     checker=checker)
 
-registerEnvironment(env_key="pcsc_card_list",
-                    env=EnvironmentParameter(value=[], settings=settings))
+param = registerEnvironmentListAny("pcsc.cardlist", [])
+param.settings.setTransient(True)
+param.settings.setRemovable(False)
 
 ##
-registerEnvironment(env_key="pcsc_connexionlist",
-                    env=EnvironmentParameter(value=[],
-                                             settings=settings.clone()))
+
+param = registerEnvironmentListAny("pcsc.connexionlist", [])
+param.settings.setTransient(True)
+param.settings.setRemovable(False)
 
 # # register METHOD # #
 

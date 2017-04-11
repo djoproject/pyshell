@@ -1,7 +1,7 @@
 #!/usr/bin/env python -t
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2015  Jonathan Delvaux <pyshell@djoproject.net>
+# Copyright (C) 2017  Jonathan Delvaux <pyshell@djoproject.net>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,11 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO
-# create an addon "background" to
-#   fire a command on background
-#       like the '&' but the parsing of the command occur later
-# kill a command on background with an id
-#   hard kill
-#   light kill (stop on next command)
-# list all command executing on background
+from pyshell.arg.accessor.command import CommandAccessor
+
+TYPENAME = "exchange"
+
+
+class ExchangeAccessor(CommandAccessor):
+    def getAccessorValue(self):
+        command = CommandAccessor.getAccessorValue(self)
+        return command.dynamic_parameter
+
+    @classmethod
+    def getTypeName(cls):
+        return TYPENAME

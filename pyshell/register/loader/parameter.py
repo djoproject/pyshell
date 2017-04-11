@@ -37,7 +37,7 @@ def _createParameter(parameter_type, parameter_name, parameter_object):
     else:
         value = escapeString(str(parameter_object.getValue()))
 
-    ins = "%s create %s %s -local_var False"
+    ins = "%s create %s %s -local_param False"
     return ins % (parameter_type, parameter_name, value)
 
 
@@ -158,6 +158,7 @@ class ParameterAbstractLoader(AbstractLoader):
 
         # set value
         parameters = profile_object.parameter_to_set.items()
+        del profile_object.parameter_to_unset[:]
         for parameter_name, parameter_object in parameters:
             ex = cls._setParameterIntoManager(parameter_manager,
                                               parameter_name,
@@ -467,8 +468,10 @@ class ParameterAbstractLoader(AbstractLoader):
 
             return: readOnly value if it has been updated.
         """
+        current_pairs = set(current_properties.items())
+        initial_pairs = set(initial_properties.items())
+        properties_to_save = current_pairs - initial_pairs
 
-        properties_to_save = set(current_properties) - set(initial_properties)
         manager_name = cls.getManagerName()
         read_only_value = None
         for property_key, property_value in properties_to_save:

@@ -319,6 +319,7 @@ def formatOrange(text):
     return printer.formatOrange(text)
 
 
+# TODO rename formatPurple
 def formatMauve(text):
     printer = Printer.getInstance()
     return printer.formatMauve(text)
@@ -461,3 +462,45 @@ def formatException(exception,
 
 def strLength(string):
     return len(ANSI_ESCAPE.sub('', str(string)))
+
+
+def reduceFormatedString(string, max_size):
+    if len(string) == 0:
+        return string
+
+    len_without_formating = strLength(string)
+
+    # with hidden symbol, no need to reduce
+    if len_without_formating < max_size:
+        return string
+
+    # no formating found, classic reduce
+    if len(string) == strLength(string):
+        return string[:max_size]
+
+    openclose = 0
+    previous_index = 0
+    size = 0
+    for match in ANSI_ESCAPE.finditer(string):
+        size += match.start(0) - previous_index
+
+        if size >= max_size:
+            final_length = match.start(0) - (size - max_size)
+            string = string[:final_length]
+
+            while openclose > 0:
+                string += ENDC
+                openclose -= 1
+
+            return string
+
+        if match.group(0) == ENDC:
+            openclose = max(0, openclose-1)
+        else:
+            openclose += 1
+
+        previous_index = match.end(0)
+
+    # special case, the char to remove are after every hidden char
+    final_length = len(string) - (len_without_formating - max_size)
+    return string[:final_length]

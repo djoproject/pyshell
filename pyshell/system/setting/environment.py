@@ -30,6 +30,9 @@ from pyshell.utils.exception import ParameterException
 DEFAULT_CHECKER = ListArgChecker(DefaultChecker.getArg())
 
 
+# TODO does really need to inherit from ParameterSettings?
+#   for _buildOpposite, but is it a good idea to keep it in this class and not
+#   in the local/global classes?
 class EnvironmentSettings(ParameterSettings):
 
     def __init__(self, checker=None):
@@ -62,6 +65,8 @@ class EnvironmentSettings(ParameterSettings):
 
         # if the check was previously a listchecker, it must stay a listchecker
         # use setListChecker to convert to not a listchecker
+        # Why ?  Because once a parameter is created, settings set and value
+        # sets, it is never suppose to become a list except voluntary.
         if (self.checker is not None and
            self.isListChecker() and
            not isinstance(checker, ListArgChecker)):
@@ -71,7 +76,7 @@ class EnvironmentSettings(ParameterSettings):
 
     # TODO (issue #105) this method is not a method defined in the mother class
     # setting and so it should never be used outside of the class
-    # system/Environment
+    # system/Environment. So? as almost all the methods in this class...
     def isListChecker(self):
         return isinstance(self.getChecker(), ListArgChecker)
 
@@ -88,17 +93,16 @@ class EnvironmentSettings(ParameterSettings):
             self.checker = self.getChecker().checker
 
     def getProperties(self):
-        prop = list(ParameterSettings.getProperties(self))
+        prop = {}
 
         if self.isListChecker():
-            prop.append((SETTING_PROPERTY_CHECKER,
-                         self.getChecker().checker.getTypeName()))
+            type_name = self.getChecker().checker.getTypeName()
         else:
-            prop.append((SETTING_PROPERTY_CHECKER,
-                         self.getChecker().getTypeName()))
+            type_name = self.getChecker().getTypeName()
 
-        prop.append((SETTING_PROPERTY_CHECKERLIST, self.isListChecker()))
-        return tuple(prop)
+        prop[SETTING_PROPERTY_CHECKER] = type_name
+        prop[SETTING_PROPERTY_CHECKERLIST] = self.isListChecker()
+        return prop
 
     def _buildOpposite(self):
         clazz = self._getOppositeSettingClass()
@@ -110,25 +114,11 @@ class EnvironmentSettings(ParameterSettings):
                      removable=removable,
                      checker=checker)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = EnvironmentSettings(checker=self.getChecker())
-        else:
-            readonly = parent.isReadOnly()
-            parent.setReadOnly(False)
-
-            parent.setChecker(self.getChecker())
-            parent.setListChecker(self.isListChecker())
-
-            if readonly:
-                parent.setReadOnly(True)
-
-        return ParameterSettings.clone(self, parent)
+    def clone(self):
+        return EnvironmentSettings(checker=self.getChecker())
 
 
 class EnvironmentLocalSettings(ParameterLocalSettings, EnvironmentSettings):
-    getProperties = EnvironmentSettings.getProperties
-
     @staticmethod
     def _getOppositeSettingClass():
         return EnvironmentGlobalSettings
@@ -137,20 +127,18 @@ class EnvironmentLocalSettings(ParameterLocalSettings, EnvironmentSettings):
         ParameterLocalSettings.__init__(self, read_only, removable)
         EnvironmentSettings.__init__(self, checker)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = EnvironmentLocalSettings(self.isReadOnly(),
-                                              self.isRemovable(),
-                                              self.getChecker())
+    def getProperties(self):
+        props = ParameterLocalSettings.getProperties(self)
+        props.update(EnvironmentSettings.getProperties(self))
+        return props
 
-        EnvironmentSettings.clone(self, parent)
-
-        return ParameterLocalSettings.clone(self, parent)
+    def clone(self):
+        return EnvironmentLocalSettings(self.isReadOnly(),
+                                        self.isRemovable(),
+                                        self.getChecker())
 
 
 class EnvironmentGlobalSettings(ParameterGlobalSettings, EnvironmentSettings):
-    getProperties = EnvironmentSettings.getProperties
-
     @staticmethod
     def _getOppositeSettingClass():
         return EnvironmentLocalSettings
@@ -163,13 +151,13 @@ class EnvironmentGlobalSettings(ParameterGlobalSettings, EnvironmentSettings):
         ParameterGlobalSettings.__init__(self, read_only, removable, transient)
         EnvironmentSettings.__init__(self, checker)
 
+    def getProperties(self):
+        props = ParameterGlobalSettings.getProperties(self)
+        props.update(EnvironmentSettings.getProperties(self))
+        return props
+
     def clone(self, parent=None):
-        if parent is None:
-            parent = EnvironmentGlobalSettings(self.isReadOnly(),
-                                               self.isRemovable(),
-                                               self.isTransient(),
-                                               self.getChecker())
-
-        EnvironmentSettings.clone(self, parent)
-
-        return ParameterGlobalSettings.clone(self, parent)
+        return EnvironmentGlobalSettings(self.isReadOnly(),
+                                         self.isRemovable(),
+                                         self.isTransient(),
+                                         self.getChecker())

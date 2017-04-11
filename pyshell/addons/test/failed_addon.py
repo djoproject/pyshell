@@ -16,4 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.addons.background import *
+from pyshell.register.environment import registerEnvironment
+from pyshell.register.loader.abstractloader import AbstractLoader
+from pyshell.register.profile.default import DefaultProfile
+from pyshell.utils.exception import DefaultPyshellException
+
+
+registerEnvironment("env.failed.nothing", "nothing")
+
+
+class RaisingOnLoadLoaded(AbstractLoader):
+    @staticmethod
+    def createProfileInstance(root_profile):
+        return DefaultProfile(root_profile)
+
+    @classmethod
+    def load(cls, profile_object, parameter_container):
+        raise DefaultPyshellException("ooops load")
+
+
+_loaders.bindLoaderToProfile(RaisingOnLoadLoaded, None)  # noqa

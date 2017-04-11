@@ -36,6 +36,9 @@ class ParameterLoaderProfile(DefaultProfile):
                            self.__class__.__name__)
 
         self.parameter_to_set = {}
+        # TODO (issue # 83) parameter_to_unset will be useless,
+        #   the parameter to unset will be the same as those to set
+        # TODO should be a set
         self.parameter_to_unset = []
         self.parameter_definition = parameter_definition
 
@@ -66,3 +69,6 @@ class ParameterLoaderProfile(DefaultProfile):
         parameter.enableGlobal()
         self.parameter_to_set[parameter_name] = parameter
         return parameter
+
+    def getContentList(self):
+        return self.parameter_to_set.keys()

@@ -18,7 +18,7 @@
 
 from pyshell.arg.accessor.container import ContainerAccessor
 
-TYPENAME = "addon"
+TYPENAME = "addon manager"
 
 
 class AddonAccessor(ContainerAccessor):
@@ -36,7 +36,7 @@ class AddonAccessor(ContainerAccessor):
     def buildErrorMessage(self):
         if not ContainerAccessor.hasAccessorValue(self):
             return ContainerAccessor.buildErrorMessage(self)
-        return "container provided has no addon list defined"
+        return "container provided has no addon manager defined"
 
     @classmethod
     def getTypeName(cls):

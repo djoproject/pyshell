@@ -16,25 +16,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
 from tries import multiLevelTries
 
-from pyshell.addons.utils.addon import tryToImportLoaderFromFile
+import pyshell.addons
 from pyshell.arg.accessor.default import DefaultAccessor
 from pyshell.arg.accessor.environment import EnvironmentAccessor
 from pyshell.arg.checker.default import DefaultChecker
 from pyshell.arg.checker.file import FilePathArgChecker
 from pyshell.arg.checker.integer import IntegerArgChecker
-from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.checker.string43 import StringArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
-from pyshell.register.context import registerContext
+from pyshell.register.context import registerContextInteger
+from pyshell.register.context import registerContextString
 from pyshell.register.environment import registerEnvironment
+from pyshell.register.environment import registerEnvironmentAny
+from pyshell.register.environment import registerEnvironmentBoolean
+from pyshell.register.environment import registerEnvironmentListString
+from pyshell.register.environment import registerEnvironmentString
 from pyshell.register.file import enableConfigSaving
-from pyshell.system.parameter.context import ContextParameter
 from pyshell.system.parameter.environment import EnvironmentParameter
-from pyshell.system.setting.context import ContextGlobalSettings
 from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.utils.constants import ADDON_PREFIX
 from pyshell.utils.constants import CONTEXT_COLORATION_DARK
 from pyshell.utils.constants import CONTEXT_COLORATION_KEY
 from pyshell.utils.constants import CONTEXT_COLORATION_LIGHT
@@ -59,16 +64,14 @@ from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_KEY
 from pyshell.utils.constants import ENVIRONMENT_USE_HISTORY_VALUE
 from pyshell.utils.constants import TAB_SIZE
 from pyshell.utils.exception import ListOfException
+from pyshell.utils.exception import PyshellException
 from pyshell.utils.printing import error
 from pyshell.utils.printing import notice
+from pyshell.utils.printing import warning
 
 
-default_string_arg_checker = DefaultChecker.getString()
-default_arg_checker = DefaultChecker.getArg()
-default_boolean_arg_checker = DefaultChecker.getBoolean()
-default_integer_arg_checker = DefaultChecker.getInteger()
+# # ENVIRONMENT_CONFIG_DIRECTORY_KEY
 
-# # init original params # #
 checker = FilePathArgChecker(exist=None,
                              readable=True,
                              writtable=None,
@@ -82,19 +85,13 @@ settings = EnvironmentGlobalSettings(transient=True,
 param = EnvironmentParameter(value=DEFAULT_CONFIG_DIRECTORY, settings=settings)
 registerEnvironment(ENVIRONMENT_CONFIG_DIRECTORY_KEY, param)
 
-##
+# # ENVIRONMENT_PROMPT_KEY
 
-settings = EnvironmentGlobalSettings(transient=False,
-                                     read_only=False,
-                                     removable=False,
-                                     checker=default_string_arg_checker)
+param = registerEnvironmentString(ENVIRONMENT_PROMPT_KEY,
+                                  ENVIRONMENT_PROMPT_DEFAULT)
+param.settings.setRemovable(False)
 
-param = EnvironmentParameter(value=ENVIRONMENT_PROMPT_DEFAULT,
-                             settings=settings)
-
-registerEnvironment(ENVIRONMENT_PROMPT_KEY, param)
-
-##
+# # ENVIRONMENT_TAB_SIZE_KEY
 
 settings = EnvironmentGlobalSettings(transient=False,
                                      read_only=False,
@@ -104,128 +101,79 @@ settings = EnvironmentGlobalSettings(transient=False,
 param = EnvironmentParameter(value=TAB_SIZE, settings=settings)
 registerEnvironment(ENVIRONMENT_TAB_SIZE_KEY, param)
 
-##
+# # ENVIRONMENT_LEVEL_TRIES_KEY
 
-param = EnvironmentParameter(
-    value=multiLevelTries(),
-    settings=EnvironmentGlobalSettings(transient=True,
-                                       read_only=True,
-                                       removable=False,
-                                       checker=default_arg_checker))
+param = registerEnvironmentAny(ENVIRONMENT_LEVEL_TRIES_KEY, multiLevelTries())
+param.settings.setRemovable(False)
+param.settings.setTransient(True)
+param.settings.setReadOnly(True)
 
-registerEnvironment(ENVIRONMENT_LEVEL_TRIES_KEY, param)
+# # ENVIRONMENT_SAVE_KEYS_KEY
 
-##
+param = registerEnvironmentBoolean(ENVIRONMENT_SAVE_KEYS_KEY,
+                                   ENVIRONMENT_SAVE_KEYS_DEFAULT)
+param.settings.setRemovable(False)
 
-settings = EnvironmentGlobalSettings(transient=False,
-                                     read_only=False,
-                                     removable=False,
-                                     checker=default_boolean_arg_checker)
-
-param = EnvironmentParameter(value=ENVIRONMENT_SAVE_KEYS_DEFAULT,
-                             settings=settings)
-
-registerEnvironment(ENVIRONMENT_SAVE_KEYS_KEY, param)
-
-##
+# # ENVIRONMENT_HISTORY_FILE_NAME_KEY
 
 checker = FilePathArgChecker(exist=None,
                              readable=True,
                              writtable=None,
                              is_file=True)
 
-settings = EnvironmentGlobalSettings(
-    transient=False,
-    read_only=False,
-    removable=False,
-    checker=checker)
+settings = EnvironmentGlobalSettings(transient=False,
+                                     read_only=False,
+                                     removable=False,
+                                     checker=checker)
 
 param = EnvironmentParameter(value=ENVIRONMENT_HISTORY_FILE_NAME_VALUE,
                              settings=settings)
 
 registerEnvironment(ENVIRONMENT_HISTORY_FILE_NAME_KEY, param)
 
-##
+# # ENVIRONMENT_USE_HISTORY_KEY
 
-settings = EnvironmentGlobalSettings(
-    transient=False,
-    read_only=False,
-    removable=False,
-    checker=default_boolean_arg_checker)
+param = registerEnvironmentBoolean(ENVIRONMENT_USE_HISTORY_KEY,
+                                   ENVIRONMENT_USE_HISTORY_VALUE)
+param.settings.setRemovable(False)
 
-param = EnvironmentParameter(value=ENVIRONMENT_USE_HISTORY_VALUE,
-                             settings=settings)
+# # ENVIRONMENT_ADDON_TO_LOAD_KEY
 
-registerEnvironment(ENVIRONMENT_USE_HISTORY_KEY, param)
 
-##
+param = registerEnvironmentListString(ENVIRONMENT_ADDON_TO_LOAD_KEY,
+                                      ENVIRONMENT_ADDON_TO_LOAD_DEFAULT)
+param.settings.setRemovable(False)
 
-settings = EnvironmentGlobalSettings(
-    transient=False,
-    read_only=False,
-    removable=False,
-    checker=ListArgChecker(default_string_arg_checker))
+# # DEBUG_ENVIRONMENT_NAME
 
-param = EnvironmentParameter(value=ENVIRONMENT_ADDON_TO_LOAD_DEFAULT,
-                             settings=settings)
+param = registerContextInteger(DEBUG_ENVIRONMENT_NAME, tuple(range(0, 5)))
+param.settings.setIndex(1)
+param.settings.setRemovable(False)
+param.settings.setReadOnly(True)
 
-registerEnvironment(ENVIRONMENT_ADDON_TO_LOAD_KEY, param)
+# # CONTEXT_EXECUTION_KEY
 
-##
+values = (CONTEXT_EXECUTION_SHELL, CONTEXT_EXECUTION_DAEMON,)
+param = registerContextString(CONTEXT_EXECUTION_KEY, values)
+param.settings.setRemovable(False)
+param.settings.setTransient(True)
+param.settings.setReadOnly(True)
 
-settings = ContextGlobalSettings(removable=False,
-                                 read_only=False,
-                                 transient=False,
-                                 transient_index=False,
-                                 checker=default_integer_arg_checker)
-
-param = ContextParameter(value=tuple(range(0, 5)), settings=settings)
-settings.setDefaultIndex(0)
-settings.setIndex(1)
-settings.setReadOnly(True)
-
-registerContext(DEBUG_ENVIRONMENT_NAME, param)
-
-##
-
-settings = ContextGlobalSettings(removable=False,
-                                 read_only=False,
-                                 transient=True,
-                                 transient_index=True,
-                                 checker=default_string_arg_checker)
-values = (CONTEXT_EXECUTION_SHELL,
-          CONTEXT_EXECUTION_DAEMON,)
-
-param = ContextParameter(value=values, settings=settings)
-settings.setDefaultIndex(0)
-settings.setReadOnly(True)
-
-registerContext(CONTEXT_EXECUTION_KEY, param)
-
-##
-
-settings = ContextGlobalSettings(removable=False,
-                                 read_only=False,
-                                 transient=False,
-                                 transient_index=False,
-                                 checker=default_string_arg_checker)
+# # CONTEXT_COLORATION_KEY
 
 values = (CONTEXT_COLORATION_LIGHT,
           CONTEXT_COLORATION_DARK,
           CONTEXT_COLORATION_NONE,)
-
-param = ContextParameter(value=values, settings=settings)
-settings.setDefaultIndex(0)
-settings.setReadOnly(True)
-
-registerContext(CONTEXT_COLORATION_KEY, param)
+param = registerContextString(CONTEXT_COLORATION_KEY, values)
+param.settings.setRemovable(False)
+param.settings.setReadOnly(True)
 
 ##
 
 
 @shellMethod(name=DefaultChecker.getString(),
-             profile_name=StringArgChecker(),
-             parameters=DefaultAccessor.getContainer())
+             parameters=DefaultAccessor.getContainer(),
+             profile_name=StringArgChecker())
 def loadAddonFun(name, parameters, profile_name=None):
     "load an addon"
 
@@ -233,55 +181,145 @@ def loadAddonFun(name, parameters, profile_name=None):
 
     # is it already loaded ?
     if name in addon_dico:
-        addon_loader = addon_dico[name]
-        loaded_name = addon_loader.getInformations().getLoadedProfileName()
-
-        # no loaded profile ?
-        if loaded_name is not None:
-            # TODO normalize profile_name (see register/utils/addon.py)
-            if profile_name != loaded_name:
-                # TODO improve the error message
-                error("another profile name is already loaded")
-
-            loaded_profile = addon_loader.getRootLoaderProfile(loaded_name)
-            if loaded_profile.isLoaded():
-                notice(name + " already loaded !")
-                return
-            elif loaded_profile.isLoading():
-                notice(name + " already loading !")
+        loader = addon_dico[name]
     else:
         # load and register
-        loader = tryToImportLoaderFromFile(name)
+        try:
+            mod = __import__(name, fromlist=["_loaders"], level=0)
+        except ImportError as ie:
+            excmsg = "addon '%s', fail to load.  Reason: %s"
+            excmsg %= (str(name), str(ie),)
+            error(excmsg)
+            return
+
+        if not hasattr(mod, "_loaders"):
+            excmsg = ("addon '%s' is not valid, no loader found. don't forget"
+                      " to register something in the addon")
+            excmsg %= str(name)
+            error(excmsg)
+            return
+
+        loader = mod._loaders
         addon_dico[name] = loader
 
-    loader.load(container=parameters, profile_name=profile_name)
-    notice(name + " loaded !")
+    if not loader.hasProfile(profile_name):
+        error("addon '%s' has no profile named '%s'" % (name, profile_name))
+        return
+
+    profile_to_load = loader.getRootLoaderProfile(profile_name)
+
+    if profile_to_load.isLoaded():
+        msg = "addon '%s', profile '%s', is already loaded !"
+        msg %= (name, profile_to_load.getName(),)
+        warning(msg)
+        return
+
+    if profile_to_load.isLoading():
+        msg = "addon '%s', profile '%s', is loading !"
+        msg %= (name, profile_to_load.getName(),)
+        warning(msg)
+        return
+
+    loaded_profile = loader.getInformations().getLastProfileUsed()
+
+    # is another profile loaded/loading ?
+    if loaded_profile is not None and not loaded_profile.isUnloaded():
+        msg = ("failed to load addon '%s' with profile '%s', profile '%s' is "
+               "not unloaded")
+        msg %= (name, profile_to_load.getName(), loaded_profile.getName(),)
+        error(msg)
+        return
+
+    profile_name = profile_to_load.getName()
+    try:
+        loader.load(container=parameters, profile_name=profile_name)
+    except PyshellException:
+        warning("addon '%s', profile '%s', problems encountered during "
+                "loading" % (name, profile_to_load.getName(),))
+        raise
+    else:
+        notice(name + " loaded !")
+
+
+def _isLoaded(addon_manager, addon_name):
+    if addon_name not in addon_manager:
+        return False
+
+    addon_loader = addon_manager[addon_name]
+    profile_object = addon_loader.getInformations().getLastProfileUsed()
+
+    if profile_object is None:
+        return False
+
+    return profile_object.isLoaded()
 
 
 @shellMethod(
-    addon_list_on_start_up=EnvironmentAccessor(
-        ENVIRONMENT_ADDON_TO_LOAD_KEY),
-    params=DefaultAccessor.getContainer())
-# TODO no profile_name argument ?
-def loadAddonOnStartUp(addon_list_on_start_up, params):
+    params=DefaultAccessor.getContainer(),
+    addon_list_on_start_up=EnvironmentAccessor(ENVIRONMENT_ADDON_TO_LOAD_KEY),
+    profile_name=StringArgChecker())
+def loadAddonOnStartUp(params, addon_list_on_start_up, profile_name=None):
+    "load every addon registered to be load at statup"
 
     if addon_list_on_start_up is None:
         return
+
     addon_list = addon_list_on_start_up.getValue()
 
     error_list = ListOfException()
+    addon_manager = params.getAddonManager()
     for addon_name in addon_list:
+        if _isLoaded(addon_manager, addon_name):
+            continue
+
         try:
-            loadAddonFun(addon_name, params)
+            loadAddonFun(addon_name, params, profile_name)
         except Exception as ex:
-            # TODO the information about the failing addon is lost here...
-            # E.G. if an addon is already loaded, only the profile name will be
-            # printed, not the addon name...
             error_list.addException(ex)
 
     if error_list.isThrowable():
         raise error_list
 
+
+@shellMethod(
+    params=DefaultAccessor.getContainer(),
+    addon_list_on_start_up=EnvironmentAccessor(ENVIRONMENT_ADDON_TO_LOAD_KEY),
+    profile_name=StringArgChecker())
+def loadAll(params, addon_list_on_start_up, profile_name=None):
+
+    addon_set = set()
+    addon_directory = os.path.abspath(pyshell.addons.__file__)
+    addon_directory = os.path.dirname(addon_directory)
+    if os.path.exists(addon_directory):
+        for entry in os.listdir(addon_directory):
+            if not os.path.isfile(os.path.join(addon_directory, entry)):
+                continue
+
+            if not entry.endswith(".py") or entry == "__init__.py":
+                continue
+
+            addon_set.add(ADDON_PREFIX + entry[0:-3])
+
+    if addon_list_on_start_up is not None:
+        for addon_name in addon_list_on_start_up.getValue():
+            addon_set.add(addon_name)
+
+    error_list = ListOfException()
+    addon_manager = params.getAddonManager()
+    for addon_name in addon_set:
+        if _isLoaded(addon_manager, addon_name):
+            continue
+
+        try:
+            loadAddonFun(addon_name, params, profile_name)
+        except Exception as ex:
+            error_list.addException(ex)
+
+    if error_list.isThrowable():
+        raise error_list
+
+
 registerCommand(("addon", "load",), pro=loadAddonFun)
+registerCommand(("addon", "load", "all",), pro=loadAll)
 registerCommand(("addon", "onstartup", "load",), pro=loadAddonOnStartUp)
 enableConfigSaving()

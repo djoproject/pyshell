@@ -123,7 +123,7 @@ class CommandExecuter():
 
         with self.exceptionManager("An error occurred during startup addon "
                                    "loading"):
-            system.loadAddonOnStartUp(addon_to_load, self.params)
+            system.loadAddonOnStartUp(self.params, addon_to_load)
 
         # load history
         use_history = env.getParameter(ENVIRONMENT_USE_HISTORY_KEY,
@@ -156,8 +156,14 @@ class CommandExecuter():
         addon_dico = self.params.getAddonManager()
         addon_system = None
         for addon_name, addon_loader in addon_dico.items():
+            # TODO (issue #90) remove this (see next TODO explanation)
             if addon_name == "pyshell.addons.system":
                 addon_system = addon_loader
+                continue
+
+            addon_informations = addon_loader.getInformations()
+            last_used_profile = addon_informations.getLastProfileUsed()
+            if last_used_profile is None or not last_used_profile.isLoaded():
                 continue
 
             error_msg = "fail to unload addon '%s'" % addon_name

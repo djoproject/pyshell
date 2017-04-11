@@ -28,15 +28,19 @@ from pyshell.utils.constants import ENABLE_ON_PRE_PROCESS
 from pyshell.utils.constants import ENABLE_ON_PROCESS
 from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
 from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
-from pyshell.utils.constants import SETTING_PROPERTY_READONLY
-from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
-from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
 from pyshell.utils.exception import ParameterException
 
 
 class ReadOnlyProcedureSettings(ProcedureSettings):
+    def __init__(self):
+        self._read_only_state = True
+        ProcedureSettings.__init__(self)
+
+    def setReadOnly(self, state):
+        self._read_only_state = state
+
     def isReadOnly(self):
-        return True
+        return self._read_only_state
 
 
 class TestProcedureSettings(object):
@@ -179,12 +183,9 @@ class TestProcedureSettings(object):
     def test_getProperties(self):
         s = ProcedureSettings(error_granularity=42,
                               enable_on=ENABLE_ON_PROCESS)
-        assert s.getProperties() == ((SETTING_PROPERTY_REMOVABLE, True),
-                                     (SETTING_PROPERTY_READONLY, False),
-                                     (SETTING_PROPERTY_TRANSIENT, True),
-                                     (SETTING_PROPERTY_GRANULARITY, 42),
-                                     (SETTING_PROPERTY_ENABLEON,
-                                      'enable_on_pro'))
+        expected = {SETTING_PROPERTY_GRANULARITY: 42,
+                    SETTING_PROPERTY_ENABLEON: 'enable_on_pro'}
+        assert s.getProperties() == expected
 
     def test_getChecker(self):
         s = ProcedureSettings()
@@ -194,15 +195,15 @@ class TestProcedureSettings(object):
         int_checker = DefaultChecker.getInteger()
         s = ProcedureSettings()
         assert s.getChecker() is DEFAULT_CHECKER
-        s.setChecker(checker=int_checker)
+        with pytest.raises(ParameterException):
+            s.setChecker(checker=int_checker)
         assert s.getChecker() is DEFAULT_CHECKER
 
     def test_setListChecker(self):
         s = ProcedureSettings()
         assert not s.isListChecker()
-        s.setListChecker(state=True)
-        assert not s.isListChecker()
-        s.setListChecker(state=False)
+        with pytest.raises(ParameterException):
+            s.setListChecker(state=True)
         assert not s.isListChecker()
 
     def test_cloneWithoutParent(self):
@@ -216,23 +217,6 @@ class TestProcedureSettings(object):
         assert hash(s) == hash(sc)
         assert sc.isEnabledOnPostProcess()
         assert sc.getErrorGranularity() == 56
-
-    def test_cloneWithParent(self):
-        to_clone = ProcedureSettings(
-            error_granularity=56,
-            enable_on=ENABLE_ON_POST_PROCESS)
-
-        source = ProcedureSettings(
-            error_granularity=23,
-            enable_on=ENABLE_ON_PRE_PROCESS)
-
-        to_clone.clone(source)
-
-        assert isinstance(source, ProcedureSettings)
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
-        assert source.isEnabledOnPostProcess()
-        assert source.getErrorGranularity() == 56
 
 
 class TestProcedureLocalSettings(object):
@@ -263,26 +247,6 @@ class TestProcedureLocalSettings(object):
         assert not sc.isRemovable()
         assert sc.isEnabledOnPostProcess()
         assert sc.getErrorGranularity() == 56
-
-    def test_cloneWithParent(self):
-        to_clone = ProcedureLocalSettings(
-            read_only=True,
-            removable=False,
-            error_granularity=56,
-            enable_on=ENABLE_ON_POST_PROCESS)
-
-        source = ProcedureLocalSettings(
-            error_granularity=23,
-            enable_on=ENABLE_ON_PRE_PROCESS)
-
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
-        assert source.isReadOnly()
-        assert not source.isRemovable()
-        assert source.isEnabledOnPostProcess()
-        assert source.getErrorGranularity() == 56
 
     def test_getGlobalFromLocal(self):
         ls = ProcedureLocalSettings(
@@ -326,22 +290,6 @@ class TestProcedureGlobalSettings(object):
         assert hash(s) == hash(sc)
         assert sc.isEnabledOnPostProcess()
         assert sc.getErrorGranularity() == 56
-
-    def test_cloneWithParent(self):
-        to_clone = ProcedureGlobalSettings(
-            error_granularity=56,
-            enable_on=ENABLE_ON_POST_PROCESS)
-
-        source = ProcedureGlobalSettings(
-            error_granularity=23,
-            enable_on=ENABLE_ON_PRE_PROCESS)
-
-        to_clone.clone(source)
-
-        assert to_clone is not source
-        assert hash(to_clone) == hash(source)
-        assert source.isEnabledOnPostProcess()
-        assert source.getErrorGranularity() == 56
 
     def test_getGlobalFromLocal(self):
         gs = ProcedureGlobalSettings(

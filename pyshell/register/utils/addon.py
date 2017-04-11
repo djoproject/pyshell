@@ -34,20 +34,18 @@ class AddonInformation(object):
     """
 
     def __init__(self, name):
+        # normalized profile name
         self._name = name
-        self.loaded_profile_name = None
+        self.last_profile_used = None
 
     def getName(self):
         return self._name
 
-    def setLoadedProfileName(self, name):
-        self.loaded_profile_name = name
+    def setLastProfileUsed(self, profile):
+        self.last_profile_used = profile
 
-    def getLoadedProfileName(self):
-        return self.loaded_profile_name
-
-    def unsetLoadedProfileName(self):
-        self.loaded_profile_name = None
+    def getLastProfileUsed(self):
+        return self.last_profile_used
 
 
 class AddonLoader(object):
@@ -59,6 +57,9 @@ class AddonLoader(object):
     @staticmethod
     def getRootLoaderClass():
         return RootLoader
+
+    def getProfileNameList(self):
+        return self._profiles.keys()
 
     def getInformations(self):
         return self._informations
@@ -142,6 +143,16 @@ class AddonLoader(object):
                                             profile_name))
 
         return internal_profile.addChild(loader_class)
+
+    def unbindLoaderToProfile(self, loader_class, profile_name):
+        self._checkLoaderClass("bindLoaderToProfile", loader_class)
+        profile_name = self._checkIfProfileExist(
+            "isLoaderBindedToProfile", profile_name)
+
+        internal_profile = self._profiles[profile_name]
+
+        if internal_profile.hasChild(loader_class):
+            internal_profile.removeChild(loader_class)
 
     def getRootLoaderProfile(self, profile_name):
         profile_name = self._checkIfProfileExist(

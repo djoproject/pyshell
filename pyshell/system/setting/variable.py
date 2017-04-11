@@ -16,30 +16,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pyshell.system.setting.environment import DEFAULT_CHECKER
 from pyshell.system.setting.environment import EnvironmentSettings
 from pyshell.system.setting.parameter import ParameterGlobalSettings
 from pyshell.system.setting.parameter import ParameterLocalSettings
+from pyshell.utils.exception import ParameterException
 
 
 class VariableSettings(EnvironmentSettings):
-    def getProperties(self):
-        return ()
+    def __init__(self):
+        EnvironmentSettings.__init__(self, checker=None)
 
-    def getChecker(self):
-        return DEFAULT_CHECKER
+    def getProperties(self):
+        return {}
 
     def setChecker(self, checker=None):
-        pass
+        if self.getChecker() is not None:
+            excmsg = "(%s) setChecker, not allowed on key settings"
+            excmsg %= self.__class__.__name__
+            raise ParameterException(excmsg)
+
+        EnvironmentSettings.setChecker(self, checker)
 
     def setListChecker(self, state):
-        pass  # do nothing, checker must always be a list type
+        if not state:
+            excmsg = "(%s) setListChecker, not allowed on variable settings"
+            excmsg %= self.__class__.__name__
+            raise ParameterException(excmsg)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = VariableSettings(checker=None)
-
-        return EnvironmentSettings.clone(self, parent)
+    def clone(self):
+        return VariableSettings()
 
     def _buildOpposite(self):
         clazz = self._getOppositeSettingClass()
@@ -49,7 +54,7 @@ class VariableSettings(EnvironmentSettings):
 class VariableLocalSettings(ParameterLocalSettings, VariableSettings):
     isReadOnly = VariableSettings.isReadOnly  # always return False
     isRemovable = VariableSettings.isRemovable  # always return True
-    getProperties = VariableSettings.getProperties  # always return ()
+    getProperties = VariableSettings.getProperties  # always return {}
 
     @staticmethod
     def _getOppositeSettingClass():
@@ -57,15 +62,10 @@ class VariableLocalSettings(ParameterLocalSettings, VariableSettings):
 
     def __init__(self):
         ParameterLocalSettings.__init__(self, read_only=False, removable=True)
-        VariableSettings.__init__(self, checker=None)
+        VariableSettings.__init__(self)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = VariableLocalSettings()
-
-        VariableSettings.clone(self, parent)
-
-        return ParameterLocalSettings.clone(self, parent)
+    def clone(self):
+        return VariableLocalSettings()
 
 
 class VariableGlobalSettings(ParameterGlobalSettings, VariableSettings):
@@ -82,12 +82,7 @@ class VariableGlobalSettings(ParameterGlobalSettings, VariableSettings):
                                          read_only=False,
                                          removable=True,
                                          transient=transient)
-        VariableSettings.__init__(self, checker=None)
+        VariableSettings.__init__(self)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = VariableGlobalSettings(transient=self.isTransient())
-
-        VariableSettings.clone(self, parent)
-
-        return ParameterGlobalSettings.clone(self, parent)
+    def clone(self):
+        return VariableGlobalSettings(transient=self.isTransient())

@@ -22,7 +22,7 @@ from pyshell.arg.checker.argchecker import ArgChecker
 from pyshell.utils.string65 import isString
 
 INTEGERCHECKER_TYPENAME = "integer"
-LIMITEDINTEGERCHECKER_TYPENAME = "limited integer"
+LIMITEDINTEGERCHECKER_TYPENAME = "limited_integer"
 HEXACHECKER_TYPENAME = "hexadecimal"
 BINARYCHECKER_TYPENAME = "binary"
 

@@ -16,12 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO
-#   don't save property that still have default value
+from types import FunctionType
 
 from pyshell.arg.accessor.default import DefaultAccessor
 from pyshell.arg.checker.boolean import BooleanValueArgChecker
 from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.fixedvalue import FixedValueChecker
 from pyshell.arg.checker.list import ListArgChecker
 from pyshell.arg.checker.string43 import StringArgChecker
 from pyshell.arg.checker.token43 import TokenValueArgChecker
@@ -29,981 +29,735 @@ from pyshell.arg.decorator import shellMethod
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetTempPrefix
 from pyshell.register.command import registerStopHelpTraversalAt
-from pyshell.system.parameter.context import ContextParameter
-from pyshell.system.parameter.environment import EnvironmentParameter
-from pyshell.system.parameter.variable import VariableParameter
+from pyshell.system.setting.procedure import DEFAULT_CHECKER as PROC_CHECKER
 from pyshell.utils.constants import CONTEXT_ATTRIBUTE_NAME
+from pyshell.utils.constants import ENABLE_ON_POST_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PRE_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PROCESS
 from pyshell.utils.constants import ENVIRONMENT_ATTRIBUTE_NAME
-from pyshell.utils.constants import PARAMETER_NAME
+from pyshell.utils.constants import KEY_ATTRIBUTE_NAME
+from pyshell.utils.constants import PROCEDURE_ATTRIBUTE_NAME
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
+from pyshell.utils.constants import SETTING_PROPERTY_DEFAULTINDEX
+from pyshell.utils.constants import SETTING_PROPERTY_ENABLEON
+from pyshell.utils.constants import SETTING_PROPERTY_GRANULARITY
+from pyshell.utils.constants import SETTING_PROPERTY_INDEX
+from pyshell.utils.constants import SETTING_PROPERTY_READONLY
+from pyshell.utils.constants import SETTING_PROPERTY_REMOVABLE
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENT
+from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENTINDEX
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 from pyshell.utils.postprocess import listFlatResultHandler
 from pyshell.utils.postprocess import listResultHandler
 from pyshell.utils.postprocess import printColumn
-from pyshell.utils.postprocess import printColumnWithouHeader
 from pyshell.utils.printing import formatBolt
+from pyshell.utils.printing import formatGreen
 from pyshell.utils.printing import formatOrange
+from pyshell.utils.printing import formatRed
 
 # # CONSTANT SECTION # #
-# TODO use settings constants from util.constant
+AVAILABLE_TYPE = {
+    DefaultChecker.getArg().getTypeName(): DefaultChecker.getArg(),
+    DefaultChecker.getBoolean().getTypeName(): DefaultChecker.getBoolean(),
+    DefaultChecker.getFile().getTypeName(): DefaultChecker.getFile(),
+    DefaultChecker.getFloat().getTypeName(): DefaultChecker.getFloat(),
+    DefaultChecker.getInteger().getTypeName(): DefaultChecker.getInteger(),
+    DefaultChecker.getString().getTypeName(): DefaultChecker.getString()}
 
-AVAILABLE_TYPE = {"any":  DefaultChecker.getArg,
-                  "string":  DefaultChecker.getString,
-                  "integer":  DefaultChecker.getInteger,
-                  "boolean":  DefaultChecker.getBoolean,
-                  "float":  DefaultChecker.getFloat,
-                  "filePath":  DefaultChecker.getFile}
+DEFAULT_BOOL = DefaultChecker.getBoolean()
+DEFAULT_INT = DefaultChecker.getInteger()
+DEFAULT_STR = DefaultChecker.getString()
 
-ENVIRONMENT_SET_PROPERTIES = {
-    "readOnly": ("setReadOnly", DefaultChecker.getBoolean(),),
-    "removable": ("setRemovable", DefaultChecker.getBoolean(),),
-    "transient": ("setTransient", DefaultChecker.getBoolean(),)}
+PARAMETER_PROPERTIES = {
+    SETTING_PROPERTY_READONLY: ("setReadOnly", "isReadOnly", DEFAULT_BOOL,),
+    SETTING_PROPERTY_REMOVABLE: ("setRemovable", "isRemovable", DEFAULT_BOOL,),
+    SETTING_PROPERTY_TRANSIENT: ("setTransient", "isTransient", DEFAULT_BOOL,),
+}
 
-CONTEXT_SET_PROPERTIES = {
-    "transientIndex": ("setTransientIndex", DefaultChecker.getBoolean(),),
-    "defaultIndex": ("setDefaultIndex", DefaultChecker.getInteger(),),
-    "index": ("setIndex", DefaultChecker.getInteger(),)}
-CONTEXT_SET_PROPERTIES.update(ENVIRONMENT_SET_PROPERTIES)
+ENVIRONMENT_PROPERTIES = {
+    SETTING_PROPERTY_CHECKER:
+        ("setChecker", "getChecker", TokenValueArgChecker(AVAILABLE_TYPE),),
+    SETTING_PROPERTY_CHECKERLIST:
+        ("setListChecker", "isListChecker", DEFAULT_BOOL,)}
 
-ENVIRONMENT_GET_PROPERTIES = {"readOnly": "isReadOnly",
-                              "removable": "isRemovable",
-                              "transient": "isTransient"}
+ENVIRONMENT_PROPERTIES.update(PARAMETER_PROPERTIES)
 
-CONTEXT_GET_PROPERTIES = {"transientIndex": "isTransientIndex",
-                          "defaultIndex": "getDefaultIndex",
-                          "index": "getIndex"}
-CONTEXT_GET_PROPERTIES.update(ENVIRONMENT_GET_PROPERTIES)
+CONTEXT_PROPERTIES = {
+    SETTING_PROPERTY_TRANSIENTINDEX:
+        ("setTransientIndex", "isTransientIndex", DEFAULT_BOOL,),
+    SETTING_PROPERTY_DEFAULTINDEX:
+        ("setDefaultIndex", "getDefaultIndex", DEFAULT_INT,),
+    SETTING_PROPERTY_INDEX: ("setIndex", "getIndex", DEFAULT_INT,)}
 
-# # FUNCTION SECTION # #
+CONTEXT_PROPERTIES.update(ENVIRONMENT_PROPERTIES)
+
+_ENABLED_ON = {ENABLE_ON_PRE_PROCESS: ENABLE_ON_PRE_PROCESS,
+               ENABLE_ON_PROCESS: ENABLE_ON_PROCESS,
+               ENABLE_ON_POST_PROCESS: ENABLE_ON_POST_PROCESS}
+
+PROCEDURE_PROPERTIES = {
+    SETTING_PROPERTY_ENABLEON:
+        ("setEnableOn", "getEnableOn", TokenValueArgChecker(_ENABLED_ON),),
+    SETTING_PROPERTY_GRANULARITY:
+        ("setErrorGranularity", "getErrorGranularity", DEFAULT_INT,)}
+
+PROCEDURE_PROPERTIES.update(PARAMETER_PROPERTIES)
+
+
+def _clone(origin_fun, new_fun_name, name, extra=None):
+    # update the checkers/accessors dico
+    original_checkers = origin_fun.checker.arg_type_list
+    new_dict = dict(original_checkers)
+
+    if extra is not None:
+        new_dict.update(extra)
+
+    # clone the function
+    new_fun = FunctionType(code=origin_fun.__code__,
+                           globals=origin_fun.__globals__,
+                           name=new_fun_name,
+                           argdefs=origin_fun.__defaults__,
+                           closure=origin_fun.__closure__)
+
+    # apply decorator
+    fun_decorator = shellMethod(**new_dict)
+    fun_decorator(new_fun)
+
+    # updat the docstring
+    new_fun.__doc__ = new_fun.__doc__.replace("environment", name)
+
+    return new_fun
 
 # ################################### GENERIC METHOD ##########################
 
 
+@shellMethod(key=DEFAULT_STR,
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker(),
+             perfect_match=BooleanValueArgChecker())
 def getParameter(key,
-                 parameters,
-                 attribute_type,
+                 manager,
                  start_with_local=True,
                  explore_other_scope=True,
                  perfect_match=False):
-    if not hasattr(parameters, attribute_type):
-        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
-
-    container = getattr(parameters, attribute_type)
-    param = container.getParameter(key,
-                                   perfect_match=perfect_match,
-                                   local_param=start_with_local,
-                                   explore_other_scope=explore_other_scope)
+    """get an environment parameter value"""
+    param = manager.getParameter(key,
+                                 perfect_match=perfect_match,
+                                 local_param=start_with_local,
+                                 explore_other_scope=explore_other_scope)
 
     if param is None:
-        raise Exception("Unknow parameter of type '"+str(attribute_type) +
-                        "' with key '"+str(key)+"'")
+        excmsg = "Unknow parameter of type '%s' with key '%s'"
+        excmsg %= (manager.getLoaderName(), str(key),)
+        raise Exception(excmsg)
 
     return param
 
 
+@shellMethod(key=DEFAULT_STR,
+             property_info=TokenValueArgChecker(ENVIRONMENT_PROPERTIES),
+             property_value=DefaultChecker.getArg(),
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker(),
+             perfect_match=BooleanValueArgChecker())
 def setProperties(key,
                   property_info,
                   property_value,
-                  parameters,
-                  attribute_type,
+                  manager,
                   start_with_local=True,
                   explore_other_scope=True,
                   perfect_match=False):
+    """set environment property"""
 
-    property_name, propertyChecker = property_info
+    property_setter, property_getter, propertyChecker = property_info
     param = getParameter(key,
-                         parameters,
-                         attribute_type,
+                         manager,
                          start_with_local,
                          explore_other_scope,
                          perfect_match)
 
-    # TODO does not work for index and defaultIndex
-    meth = getattr(param.settings, property_name)
+    try:
+        meth = getattr(param.settings, property_setter)
+    except AttributeError:
+        excmsg = "The parameter object '%s' does not have the method '%s'"
+        excmsg %= (key, property_getter,)
+        raise Exception(excmsg)
 
-    if meth is None:
-        # TODO the list is not complete for context
-        raise Exception("Unknown property '"+str(property_name)+"', one of "
-                        "these was expected: readonly/removable/transient/"
-                        "index_transient")
-
-    meth(propertyChecker.getValue(property_value, "value", 0))
+    meth(propertyChecker.getValue(property_value, "property_value", 2))
 
 
+@shellMethod(key=DEFAULT_STR,
+             property_info=TokenValueArgChecker(ENVIRONMENT_PROPERTIES),
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker(),
+             perfect_match=BooleanValueArgChecker())
 def getProperties(key,
-                  property_name,
-                  parameters,
-                  attribute_type,
+                  property_info,
+                  manager,
                   start_with_local=True,
                   explore_other_scope=True,
                   perfect_match=False):
+    """get environment property"""
+
     param = getParameter(key,
-                         parameters,
-                         attribute_type,
+                         manager,
                          start_with_local,
                          explore_other_scope,
                          perfect_match)
 
-    meth = getattr(param, property_name)
+    property_setter, property_getter, propertyChecker = property_info
 
-    if meth is None:
-        raise Exception("Unknown property '"+str(property_name)+"', one of "
-                        "these was expected: readonly/removable/transient/"
-                        "index_transient")
+    try:
+        meth = getattr(param.settings, property_getter)
+    except AttributeError:
+        excmsg = "The parameter object '%s' does not have the method '%s'"
+        excmsg %= (key, property_getter,)
+        raise Exception(excmsg)
 
     return meth()
 
 
+# TODO FIXME when there is an ambiguity on the second level tries
+#   e.g. with pcsc.autoload and pcsc.autoconnect.
+#   list pc.a will raise ambiguityException, the expected result is the two
+#   keys
+# TODO FIXME same issue with properties stat
+@shellMethod(key=DEFAULT_STR,
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker(),
+             perfect_match=BooleanValueArgChecker())
 def listProperties(key,
-                   parameters,
-                   attribute_type,
+                   manager,
                    start_with_local=True,
                    explore_other_scope=True,
                    perfect_match=False):
+    """list every properties from a specific environment object"""
     param = getParameter(key,
-                         parameters,
-                         attribute_type,
+                         manager,
                          start_with_local,
                          explore_other_scope,
                          perfect_match)
-    prop = list(param.settings.getProperties())
+    prop = list(param.settings.getProperties().items())
     prop.insert(0, (formatBolt("Key"), formatBolt("Value")))
     return prop
 
 
+@shellMethod(key=DEFAULT_STR,
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker())
 def removeParameter(key,
-                    parameters,
-                    attribute_type,
+                    manager,
                     start_with_local=True,
                     explore_other_scope=True):
-    if not hasattr(parameters, attribute_type):
-        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
-
-    container = getattr(parameters, attribute_type)
-
-    if not container.hasParameter(key,
-                                  perfect_match=True,
-                                  local_param=start_with_local,
-                                  explore_other_scope=explore_other_scope):
+    """remove an environment parameter"""
+    if not manager.hasParameter(key,
+                                perfect_match=True,
+                                local_param=start_with_local,
+                                explore_other_scope=explore_other_scope):
         return  # no job to do
 
-    container.unsetParameter(
-        key,
-        local_param=start_with_local,
-        explore_other_scope=explore_other_scope)
+    manager.unsetParameter(string_path=key,
+                           local_param=start_with_local,
+                           explore_other_scope=explore_other_scope)
 
 
-def _listGeneric(parameters,
-                 attribute_type,
-                 key,
-                 format_value_fun,
-                 get_title_fun,
-                 start_with_local=True,
-                 explore_other_scope=True):
-    # TODO re-apply a width limit on the printing, too big value will show a
-    # really big print on the terminal
-    #   use it in printing ?
-    #       nope because we maybe want to print something on the several line
-
-    #   an util function allow to retrieve the terminal width
-    #       if in shell only
-    #       or script ? without output redirection
-
-    # TODO try to display if global or local
-    #   don't print that column if explore_other_scope == false
-
-    #   for context and env, use the boolean lockEnabled
-    #       but for the var ?
-
-    if not hasattr(parameters, attribute_type):
-        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
-
-    container = getattr(parameters, attribute_type)
-
+@shellMethod(manager=DefaultAccessor.getEnvironmentManager(),
+             key=StringArgChecker(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker())
+def listParameter(manager,
+                  key=None,
+                  start_with_local=True,
+                  explore_other_scope=True):
+    """list every existing environments"""
     if key is None:
         key = ""
 
     # retrieve all value from corresponding mltries
-    dico = container.buildDictionnary(key,
-                                      start_with_local,
-                                      explore_other_scope)
+    dico = manager.buildDictionnary(key,
+                                    start_with_local,
+                                    explore_other_scope)
 
-    to_ret = []
-    for subk, subv in dico.items():
-        to_ret.append(format_value_fun(subk, subv, formatOrange))
+    if len(dico) == 0:
+        return [(formatOrange("No item available"),)]
 
-    if len(to_ret) == 0:
-        return [("No item available",)]
+    columns = [(formatBolt("Name"), formatBolt("Value"),)]
 
-    to_ret.insert(0, get_title_fun(formatBolt))
-    return to_ret
+    for subk in sorted(dico.keys()):
+        subv = dico[subk]
+        if subv.settings.isListChecker():
+            value = ', '.join(str(x) for x in subv.getValue())
+        else:
+            value = str(subv.getValue())
 
+        columns.append((subk, formatOrange(value),))
 
-def _parameterRowFormating(key, param_item, value_formating_fun):
-
-    if param_item.settings.isListChecker():
-        value = ', '.join(str(x) for x in param_item.getValue())
-    else:
-        value = str(param_item.getValue())
-
-    return ("  " + key, value_formating_fun(value), )
+    return columns
 
 
-def _parameterGetTitle(title_formating_fun):
-    return (" "+title_formating_fun("Name"), title_formating_fun("Value"),)
+def _mergeDico(final_dico, dico_to_merge, scope):
+    for key, value in dico_to_merge.items():
+        if key in final_dico:
+            continue
+        final_dico[key] = (value, scope,)
 
 
-@shellMethod(parameters=DefaultAccessor.getContainer(),
-             key=StringArgChecker())
-def listParameter(parameters, key=None):
-    to_print = []
-    for subcontainername in parameters.parameterManagerList:
-        if not hasattr(parameters, subcontainername):
-            raise Exception("Unknow parameter type '"+str(subcontainername) +
-                            "'")
-
-        to_print.append(formatBolt(subcontainername.upper()))
-        to_print.extend(_listGeneric(parameters,
-                                     subcontainername,
-                                     key,
-                                     _parameterRowFormating,
-                                     _parameterGetTitle))
-
-    return to_print
-
-
-def _createValuesFun(value_type,
-                     key,
-                     values,
-                     class_def,
-                     attribute_type,
-                     no_creation_if_exist,
-                     parameters,
-                     list_enabled,
-                     local_param=True):
-    if not hasattr(parameters, attribute_type):
-        raise Exception("Unknow parameter type '" + str(attribute_type) + "'")
-
-    container = getattr(parameters, attribute_type)
-
-    # build checker
-    if list_enabled:
-        checker = ListArgChecker(value_type(), 1)
-    else:
-        checker = value_type()
-
-    if (container.hasParameter(key,
-                               perfect_match=True,
-                               local_param=local_param,
-                               explore_other_scope=False) and
-       no_creation_if_exist):
-        return
-        # no need to manage readonly or removable setting here, it will be
-        # checked in setParameter
-
-    # check value
-    value = checker.getValue(values,
-                             None,
-                             str(attribute_type).title()+" "+key)
-    container.setParameter(key, class_def(value, checker))
-
-# ################################### env management###########################
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def subtractEnvironmentValuesFun(key,
-                                 values,
-                                 parameters,
-                                 start_with_local=True,
-                                 explore_other_scope=True):
-    "remove some elements from an environment parameter"
-    param = getParameter(key,
-                         parameters,
-                         ENVIRONMENT_ATTRIBUTE_NAME,
-                         start_with_local,
-                         explore_other_scope)
-    param.removeValues(values)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def removeEnvironmentContextValues(key,
-                                   parameters,
-                                   start_with_local=True,
-                                   explore_other_scope=True):
-    "remove an environment parameter"
-    removeParameter(key,
-                    parameters,
-                    ENVIRONMENT_ATTRIBUTE_NAME,
-                    start_with_local,
-                    explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getEnvironmentValues(key,
-                         parameters,
-                         start_with_local=True,
-                         explore_other_scope=True):
-    "get an environment parameter value"
-    return getParameter(key,
-                        parameters,
-                        ENVIRONMENT_ATTRIBUTE_NAME,
-                        start_with_local,
-                        explore_other_scope).getValue()
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg(), 1),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def setEnvironmentValuesFun(key,
-                            values,
-                            parameters,
-                            start_with_local=True,
-                            explore_other_scope=True):
-    "set an environment parameter value"
-
-    env_param = getParameter(key,
-                             parameters,
-                             ENVIRONMENT_ATTRIBUTE_NAME,
-                             start_with_local,
-                             explore_other_scope)
-
-    if env_param.settings.isListChecker():
-        env_param.setValue(values)
-    else:
-        env_param.setValue(values[0])
-
-
-@shellMethod(value_type=TokenValueArgChecker(AVAILABLE_TYPE),
-             key=DefaultChecker.getString(),
-             value=ListArgChecker(DefaultChecker.getArg()),
-             is_list=BooleanValueArgChecker(),
-             no_creation_if_exist=BooleanValueArgChecker(),
-             parameters=DefaultAccessor.getContainer(),
-             local_var=BooleanValueArgChecker())
-def createEnvironmentValueFun(value_type,
-                              key,
-                              value,
-                              is_list=True,
-                              no_creation_if_exist=False,
-                              parameters=None,
-                              local_var=True):
-    "create an environment parameter value"
-    _createValuesFun(value_type,
-                     key,
-                     value,
-                     EnvironmentParameter,
-                     ENVIRONMENT_ATTRIBUTE_NAME,
-                     no_creation_if_exist,
-                     parameters,
-                     is_list,
-                     local_var)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def addEnvironmentValuesFun(key,
-                            values,
-                            parameters,
-                            start_with_local=True,
-                            explore_other_scope=True):
-    "add values to an environment parameter list"
-    param = getParameter(key,
-                         parameters,
-                         ENVIRONMENT_ATTRIBUTE_NAME,
-                         start_with_local,
-                         explore_other_scope)
-    param.addValues(values)
-
-
-def _envRowFormating(key, env_item, value_formating_fun):
-    if env_item.settings.isListChecker():
-        return (key,
-                "true",
-                value_formating_fun(
-                    ', '.join(str(x) for x in env_item.getValue())),)
-    else:
-        return (key, "false", value_formating_fun(str(env_item.getValue())),)
-
-
-def _envGetTitle(title_formating_fun):
-    return (title_formating_fun("Name"),
-            title_formating_fun("is_list"),
-            title_formating_fun("Value(s)"),)
-
-
-@shellMethod(parameter=DefaultAccessor.getContainer(),
+@shellMethod(manager=DefaultAccessor.getEnvironmentManager(),
              key=StringArgChecker(),
              start_with_local=BooleanValueArgChecker(),
              explore_other_scope=BooleanValueArgChecker())
-def listEnvs(parameter,
-             key=None,
-             start_with_local=True,
-             explore_other_scope=True):
-    "list every existing contexts"
-    return _listGeneric(parameter,
-                        ENVIRONMENT_ATTRIBUTE_NAME,
-                        key,
-                        _envRowFormating,
-                        _envGetTitle,
-                        start_with_local,
-                        explore_other_scope)
+def statParameter(manager,
+                  key=None,
+                  start_with_local=True,
+                  explore_other_scope=True):
+    """This command list every settings of every environment parameters"""
+    if key is None:
+        key = ""
+
+    final_dico = {}
+    for case in range(0, 2):
+        if start_with_local:
+            dico = manager.buildDictionnary(key,
+                                            local_param=True,
+                                            explore_other_scope=False)
+
+            _mergeDico(final_dico, dico, formatGreen("local"))
+
+            if not explore_other_scope:
+                break
+        else:
+            dico = manager.buildDictionnary(key,
+                                            local_param=False,
+                                            explore_other_scope=False)
+
+            _mergeDico(final_dico, dico, formatRed("global"))
+
+            if not explore_other_scope:
+                break
+
+        start_with_local = not start_with_local
+
+    if len(final_dico) == 0:
+        return [(formatOrange("No item available"),)]
+
+    # retrieve every existing keys
+    title = set()
+    for subk, (subv, scope,) in final_dico.items():
+        title.update(subv.settings.getProperties().keys())
+
+    # build the table
+    to_ret = []
+    title = sorted(title)
+    for subk in sorted(final_dico.keys()):
+        (subv, scope,) = final_dico[subk]
+        properties = subv.settings.getProperties()
+        line = [subk, scope]
+
+        # properties
+        for k in title:
+            if k in properties:
+                value = properties[k]
+                if type(value) is bool:
+                    if value:
+                        value = formatGreen(str(value))
+                    else:
+                        value = formatRed(str(value))
+                else:
+                    value = formatOrange(str(value))
+            else:
+                value = "-"
+            line.append(value)
+        to_ret.append(line)
+
+    # prepare the titles
+    title.insert(0, "Scope")
+    title.insert(0, "Name")
+    for i in range(0, len(title)):
+        title[i] = formatBolt(title[i])
+
+    to_ret.insert(0, title)
+
+    return to_ret
 
 
-@shellMethod(key=DefaultChecker.getString(),
-             property_name=TokenValueArgChecker(ENVIRONMENT_SET_PROPERTIES),
-             property_value=DefaultChecker.getBoolean(),
-             parameter=DefaultAccessor.getContainer(),
+@shellMethod(key=DEFAULT_STR,
+             values=ListArgChecker(DefaultChecker.getArg(), 1),
+             manager=DefaultAccessor.getEnvironmentManager(),
              start_with_local=BooleanValueArgChecker(),
              explore_other_scope=BooleanValueArgChecker())
-def setEnvironmentProperties(key,
-                             property_name,
-                             property_value,
-                             parameter,
-                             start_with_local=True,
-                             explore_other_scope=True):
-    "set environment property"
-    setProperties(key,
-                  property_name,
-                  property_value,
-                  parameter,
-                  ENVIRONMENT_ATTRIBUTE_NAME,
-                  start_with_local,
-                  explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             property_name=TokenValueArgChecker(ENVIRONMENT_GET_PROPERTIES),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getEnvironmentProperties(key,
-                             property_name,
-                             parameter,
-                             start_with_local=True,
-                             explore_other_scope=True):
-    "get environment property"
-    return getProperties(key,
-                         property_name,
-                         parameter,
-                         ENVIRONMENT_ATTRIBUTE_NAME,
-                         start_with_local,
-                         explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def listEnvironmentProperties(key,
-                              parameter,
-                              start_with_local=True,
-                              explore_other_scope=True):
-    "list every properties from a specific environment object"
-    return listProperties(key,
-                          parameter,
-                          ENVIRONMENT_ATTRIBUTE_NAME,
-                          start_with_local,
-                          explore_other_scope)
-
-# ################################### context management ######################
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def subtractContextValuesFun(key,
-                             values,
-                             parameters,
-                             start_with_local=True,
-                             explore_other_scope=True):
-    "remove some elements from a context parameter"
-    param = getParameter(key,
-                         parameters,
-                         CONTEXT_ATTRIBUTE_NAME,
-                         start_with_local,
-                         explore_other_scope)
+def subtractValues(key,
+                   values,
+                   manager,
+                   start_with_local=True,
+                   explore_other_scope=True):
+    """remove some elements from an environment parameter"""
+    param = getParameter(key, manager, start_with_local, explore_other_scope)
     param.removeValues(values)
 
 
-@shellMethod(value_type=TokenValueArgChecker(AVAILABLE_TYPE),
-             key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             no_creation_if_exist=BooleanValueArgChecker(),
-             parameter=DefaultAccessor.getContainer(),
-             local_var=BooleanValueArgChecker())
-def createContextValuesFun(value_type,
-                           key,
-                           values,
-                           no_creation_if_exist=False,
-                           parameter=None,
-                           local_var=True):
-    "create a context parameter value list"
-    _createValuesFun(value_type,
-                     key,
-                     values,
-                     ContextParameter,
-                     CONTEXT_ATTRIBUTE_NAME,
-                     no_creation_if_exist,
-                     parameter,
-                     True,
-                     local_var)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def removeContextValues(key,
-                        parameter,
-                        start_with_local=True,
-                        explore_other_scope=True):
-    "remove a context parameter"
-    removeParameter(key,
-                    parameter,
-                    CONTEXT_ATTRIBUTE_NAME,
-                    start_with_local,
-                    explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getContextValues(key,
-                     parameter,
-                     start_with_local=True,
-                     explore_other_scope=True):
-    "get a context parameter value"
-    return getParameter(key,
-                        parameter,
-                        CONTEXT_ATTRIBUTE_NAME,
-                        start_with_local, explore_other_scope).getValue()
-
-
-@shellMethod(key=DefaultChecker.getString(),
+@shellMethod(key=DEFAULT_STR,
              values=ListArgChecker(DefaultChecker.getArg(), 1),
-             parameter=DefaultAccessor.getContainer(),
+             manager=DefaultAccessor.getEnvironmentManager(),
              start_with_local=BooleanValueArgChecker(),
              explore_other_scope=BooleanValueArgChecker())
-def setContextValuesFun(key,
-                        values,
-                        parameter,
-                        start_with_local=True,
-                        explore_other_scope=True):
-    "set a context parameter value"
-    getParameter(key,
-                 parameter,
-                 CONTEXT_ATTRIBUTE_NAME,
-                 start_with_local,
-                 explore_other_scope).setValue(values)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def addContextValuesFun(key,
-                        values,
-                        parameters,
-                        start_with_local=True,
-                        explore_other_scope=True):
-    "add values to a context parameter list"
-    param = getParameter(key,
-                         parameters,
-                         CONTEXT_ATTRIBUTE_NAME,
-                         start_with_local,
-                         explore_other_scope)
+def addValues(key,
+              values,
+              manager,
+              start_with_local=True,
+              explore_other_scope=True):
+    """add values to an environment parameter list"""
+    param = getParameter(key, manager, start_with_local, explore_other_scope)
     param.addValues(values)
 
 
-@shellMethod(key=DefaultChecker.getString(),
+@shellMethod(key=DEFAULT_STR,
+             values=ListArgChecker(DefaultChecker.getArg()),
+             value_type=TokenValueArgChecker(AVAILABLE_TYPE),
+             manager=DefaultAccessor.getEnvironmentManager(),
+             list_enabled=BooleanValueArgChecker(),
+             local_param=BooleanValueArgChecker())
+def createValues(key,
+                 values,
+                 value_type=DefaultChecker.getArg().getTypeName(),
+                 manager=None,
+                 list_enabled=True,
+                 local_param=True,
+                 min_size=0):
+    """create an environment parameter value"""
+
+    if not list_enabled:
+        if len(values) == 0:
+            excmsg = "No value provided for the parameter '%s'"
+            excmsg %= key
+            raise Exception(excmsg)
+
+        values = values[0]
+
+    if value_type is not None:
+        if list_enabled:
+            value_type = ListArgChecker(value_type, min_size)
+
+        origin_checker = "%s %s" % (manager.getLoaderName().title(), key,)
+        values = value_type.getValue(values, None, origin_checker)
+
+    param = manager.setParameter(string_path=key,
+                                 param=values,
+                                 local_param=local_param)
+    if value_type is not None:
+        # XXX if a different checker from the default one is used, the value
+        #   need to be rechecked, because it is not checker in the setChecker
+        #   method of settings, settings does not have access to the parameter
+        #   value to check them
+        param.settings.setChecker(value_type)
+
+    if not list_enabled:
+        param.settings.setListChecker(list_enabled)
+
+    if value_type is not None or not list_enabled:
+        param.setValue(values)
+
+
+@shellMethod(key=DEFAULT_STR,
              value=DefaultChecker.getArg(),
-             parameter=DefaultAccessor.getContainer(),
+             value_type=TokenValueArgChecker(AVAILABLE_TYPE),
+             manager=DefaultAccessor.getEnvironmentManager(),
+             local_param=BooleanValueArgChecker())
+def createValue(key,
+                value,
+                value_type=DefaultChecker.getArg().getTypeName(),
+                manager=None,
+                local_param=True):
+    """create an environment parameter value"""
+    if value_type is not None:
+        origin_checker = "%s %s" % (manager.getLoaderName().title(), key,)
+        value = value_type.getValue(value, None, origin_checker)
+
+    param = manager.setParameter(string_path=key,
+                                 param=value,
+                                 local_param=local_param)
+    if value_type is not None:
+        # XXX see explanations in createValues
+        param.settings.setChecker(value_type)
+
+    param.settings.setListChecker(False)
+    param.setValue(value)
+
+
+@shellMethod(key=DEFAULT_STR,
+             values=ListArgChecker(DefaultChecker.getArg()),
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker())
+def setValues(key,
+              values,
+              manager,
+              start_with_local=True,
+              explore_other_scope=True):
+    """set environment parameter values"""
+
+    param = getParameter(key, manager, start_with_local, explore_other_scope)
+
+    if param.settings.isListChecker():
+        param.setValue(values)
+    else:
+        if len(values) < 1:
+            excmsg = "need a value for the parameter '%s'"
+            excmsg %= key
+            raise Exception(excmsg)
+
+        param.setValue(values[0])
+
+
+@shellMethod(key=DEFAULT_STR,
+             value=DefaultChecker.getArg(),
+             manager=DefaultAccessor.getEnvironmentManager(),
+             start_with_local=BooleanValueArgChecker(),
+             explore_other_scope=BooleanValueArgChecker())
+def setValue(key,
+             value,
+             manager,
+             start_with_local=True,
+             explore_other_scope=True):
+    """set an environment parameter value"""
+    param = getParameter(key, manager, start_with_local, explore_other_scope)
+    param.setValue(value)
+
+
+# ################################### env management ##########################
+
+registerSetTempPrefix((ENVIRONMENT_ATTRIBUTE_NAME, ))
+registerCommand(("list",), pro=listParameter, post=printColumn)
+registerCommand(("properties", "stat",), pro=statParameter, post=printColumn)
+registerCommand(("create",), post=createValues)
+registerCommand(("get",), pre=getParameter, pro=listResultHandler)
+registerCommand(("unset",), pro=removeParameter)
+registerCommand(("set",), post=setValues)
+registerCommand(("add",), post=addValues)
+registerCommand(("subtract",), post=subtractValues)
+registerCommand(("properties", "set"), pro=setProperties)
+registerCommand(("properties", "get"),
+                pre=getProperties,
+                pro=listFlatResultHandler)
+registerCommand(("properties", "list"), pre=listProperties, pro=printColumn)
+registerStopHelpTraversalAt(("properties",))
+registerStopHelpTraversalAt()
+
+# ################################### context management ######################
+
+extra = {'manager': DefaultAccessor.getContextManager()}
+registerSetTempPrefix((CONTEXT_ATTRIBUTE_NAME, ))
+
+fun = _clone(removeParameter, "removeContextValues", "context", extra=extra)
+registerCommand(("unset",), pro=fun)
+
+fun = _clone(getParameter, "getContextValues", "context", extra=extra)
+registerCommand(("get",), pre=fun, pro=listResultHandler)
+
+extra["values"] = ListArgChecker(DefaultChecker.getArg(), 1)
+fun = _clone(setValues, "setContextValues", "context", extra=extra)
+registerCommand(("set",), post=fun)
+
+extra["list_enabled"] = FixedValueChecker(True)
+extra["min_size"] = FixedValueChecker(1)
+fun = _clone(createValues, "createContextValues", "context", extra=extra)
+registerCommand(("create",), post=fun)
+del extra["min_size"]
+del extra["values"]
+del extra["list_enabled"]
+
+fun = _clone(addValues, "addContextValues", "context", extra=extra)
+registerCommand(("add",), post=fun)
+
+fun_name = "subtractContextValuesFun"
+fun = _clone(subtractValues, fun_name, "context", extra=extra)
+registerCommand(("subtract",), post=fun)
+
+fun = _clone(listParameter, "listContexts", "context", extra=extra)
+registerCommand(("list",), pre=fun, pro=printColumn)
+
+fun = _clone(statParameter, "statContexts", "context", extra=extra)
+registerCommand(("properties", "stat",), pre=fun, pro=printColumn)
+
+fun_name = "listContextProperties"
+fun = _clone(listProperties, fun_name, "context", extra=extra)
+registerCommand(("properties", "list"), pre=fun, pro=printColumn)
+
+extra['property_info'] = TokenValueArgChecker(CONTEXT_PROPERTIES)
+fun = _clone(setProperties, "setContextProperties", "context", extra=extra)
+registerCommand(("properties", "set"), pro=fun)
+
+fun = _clone(getProperties, "getContextProperties", "context", extra=extra)
+registerCommand(("properties", "get"), pre=fun, pro=listFlatResultHandler)
+
+
+@shellMethod(key=DEFAULT_STR,
+             value=DefaultChecker.getArg(),
+             manager=DefaultAccessor.getContextManager(),
              start_with_local=BooleanValueArgChecker(),
              explore_other_scope=BooleanValueArgChecker())
 def selectValue(key,
                 value,
-                parameter,
+                manager,
                 start_with_local=True,
                 explore_other_scope=True):
     "select the value for the current context"
-    getParameter(key,
-                 parameter,
-                 CONTEXT_ATTRIBUTE_NAME,
-                 start_with_local,
-                 explore_other_scope).setSelectedValue(value)
+    param = getParameter(key, manager, start_with_local, explore_other_scope)
+    param.setSelectedValue(value)
 
 
-@shellMethod(key=DefaultChecker.getString(),
-             index=DefaultChecker.getInteger(),
-             parameter=DefaultAccessor.getContainer(),
+@shellMethod(key=DEFAULT_STR,
+             manager=DefaultAccessor.getContextManager(),
              start_with_local=BooleanValueArgChecker(),
              explore_other_scope=BooleanValueArgChecker())
-def selectValueIndex(key,
-                     index,
-                     parameter,
+def getSelectedValue(key,
+                     manager,
                      start_with_local=True,
                      explore_other_scope=True):
-    "select the value index for the current context"
-    getParameter(key,
-                 parameter,
-                 CONTEXT_ATTRIBUTE_NAME,
-                 start_with_local,
-                 explore_other_scope).settings.setIndex(index)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getSelectedContextValue(key,
-                            parameter,
-                            start_with_local=True,
-                            explore_other_scope=True):
     "get the selected value for the current context"
-    return getParameter(key,
-                        parameter,
-                        CONTEXT_ATTRIBUTE_NAME,
-                        start_with_local,
-                        explore_other_scope).getSelectedValue()
+    param = getParameter(key, manager, start_with_local, explore_other_scope)
+    return param.getSelectedValue()
 
+registerCommand(("value", "get",),
+                pre=getSelectedValue,
+                pro=listFlatResultHandler)
+registerCommand(("value", "select",), post=selectValue)
 
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getSelectedContextIndex(key,
-                            parameter,
-                            start_with_local=True,
-                            explore_other_scope=True):
-    "get the selected value index for the current context"
-    return getParameter(key,
-                        parameter,
-                        CONTEXT_ATTRIBUTE_NAME,
-                        start_with_local,
-                        explore_other_scope).settings.getIndex()
-
-
-def _conRowFormating(key, con_item, value_formating_fun):
-    return (key,
-            str(con_item.settings.getIndex()),
-            value_formating_fun(str(con_item.getSelectedValue())),
-            ', '.join(str(x) for x in con_item.getValue()),)
-
-
-def _conGetTitle(title_formating_fun):
-    return (title_formating_fun("Name"),
-            title_formating_fun("Index"),
-            title_formating_fun("Value"),
-            title_formating_fun("Values"), )
-
-
-@shellMethod(parameter=DefaultAccessor.getContainer(),
-             key=StringArgChecker(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def listContexts(parameter,
-                 key=None,
-                 start_with_local=True,
-                 explore_other_scope=True):
-    "list every existing contexts"
-    return _listGeneric(parameter,
-                        CONTEXT_ATTRIBUTE_NAME, key,
-                        _conRowFormating,
-                        _conGetTitle,
-                        start_with_local,
-                        explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             property_name=TokenValueArgChecker(CONTEXT_SET_PROPERTIES),
-             property_value=DefaultChecker.getArg(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def setContextProperties(key,
-                         property_name,
-                         property_value,
-                         parameter,
-                         start_with_local=True,
-                         explore_other_scope=True):
-    "set a context property"
-    setProperties(key,
-                  property_name,
-                  property_value,
-                  parameter,
-                  CONTEXT_ATTRIBUTE_NAME,
-                  start_with_local,
-                  explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             property_name=TokenValueArgChecker(CONTEXT_GET_PROPERTIES),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getContextProperties(key,
-                         property_name,
-                         parameter,
-                         start_with_local=True,
-                         explore_other_scope=True):
-    "get a context property"
-    return getProperties(key,
-                         property_name,
-                         parameter,
-                         CONTEXT_ATTRIBUTE_NAME,
-                         start_with_local,
-                         explore_other_scope)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def listContextProperties(key,
-                          parameter,
-                          start_with_local=True,
-                          explore_other_scope=True):
-    "list every properties of a specific context object"
-    return listProperties(key,
-                          parameter,
-                          CONTEXT_ATTRIBUTE_NAME,
-                          start_with_local,
-                          explore_other_scope)
+registerStopHelpTraversalAt(("value",))
+registerStopHelpTraversalAt(("properties",))
+registerStopHelpTraversalAt()
 
 # ################################### var management ##########################
 
-# beginning OF POC
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             engine=DefaultAccessor.getEngine(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def preAddValues(key,
-                 values,
-                 engine=None,
-                 start_with_local=True,
-                 explore_other_scope=True):
-
-    cmd = engine.getCurrentCommand()
-    cmd.dynamic_parameter["key"] = key
-    cmd.dynamic_parameter["disabled"] = False
-    cmd.dynamic_parameter["start_with_local"] = start_with_local
-    cmd.dynamic_parameter["explore_other_scope"] = explore_other_scope
-
-    return values
-
-
-@shellMethod(values=ListArgChecker(DefaultChecker.getArg()),
-             engine=DefaultAccessor.getEngine())
-def proAddValues(values, engine):
-
-    # if no previous command, default behaviour
-    if not engine.hasPreviousCommand():
-        return values
-
-    # if not, clone this command and add it at the end of cmd list
-    cmd = engine.getCurrentCommand()
-    cmd_clone = cmd.clone()
-    engine.addCommand(cmd_clone, convertProcessToPreProcess=True)
-
-    for k, v in cmd.dynamic_parameter.items():
-        cmd_clone.dynamic_parameter[k] = v
-
-    cmd.dynamic_parameter["disabled"] = True
-    cmd_clone.dynamic_parameter["disabled"] = True
-
-    # TODO execute previous
-
-    return values
-
-
-@shellMethod(values=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer(),
-             engine=DefaultAccessor.getEngine())
-def postAddValues(values, parameters=None, engine=None):
-    "add values to a var"
-
-    cmd = engine.getCurrentCommand()
-
-    if cmd.dynamic_parameter["disabled"]:
-        return values
-
-    key = cmd.dynamic_parameter["key"]
-
-    if parameters.variable.hasParameter(
-          key,
-          cmd.dynamic_parameter["start_with_local"],
-          cmd.dynamic_parameter["explore_other_scope"]):
-        param = getParameter(key,
-                             parameters,
-                             VARIABLE_ATTRIBUTE_NAME,
-                             cmd.dynamic_parameter["start_with_local"],
-                             cmd.dynamic_parameter["explore_other_scope"])
-        param.addValues(values)
-    else:
-        parameters.variable.setParameter(key, VariableParameter(
-            values), cmd.dynamic_parameter["start_with_local"])
-
-    return values
-
-# END OF POC
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def subtractValuesVar(key,
-                      values,
-                      parameters=None,
-                      start_with_local=True,
-                      explore_other_scope=True):
-    "remove existing value from a variable, remove first occurence met"
-    param = getParameter(
-        key,
-        parameters,
-        VARIABLE_ATTRIBUTE_NAME,
-        start_with_local,
-        explore_other_scope)
-    param.removeValues(values)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             values=ListArgChecker(DefaultChecker.getArg()),
-             parameter=DefaultAccessor.getContainer(),
-             local_var=BooleanValueArgChecker())
-def setVar(key, values, parameter, local_var=True):
-    "assign a value to a variable"
-    parameter.variable.setParameter(key, VariableParameter(values), local_var)
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def getVar(key, parameter, start_with_local=True, explore_other_scope=True):
-    "get the value of a variable"
-    return getParameter(key, parameter, VARIABLE_ATTRIBUTE_NAME,
-                        start_with_local, explore_other_scope).getValue()
-
-
-@shellMethod(key=DefaultChecker.getString(),
-             parameter=DefaultAccessor.getContainer(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def unsetVar(key, parameter, start_with_local=True, explore_other_scope=True):
-    "unset a variable, no error if does not exist"
-    removeParameter(
-        key,
-        parameter,
-        VARIABLE_ATTRIBUTE_NAME,
-        start_with_local,
-        explore_other_scope)
-
-
-def _varRowFormating(key, var_item, value_formating_fun):
-    return (key, value_formating_fun(', '.join(str(x)
-                                               for x in var_item.getValue())),)
-
-
-def _varGetTitle(title_formating_fun):
-    return (title_formating_fun("Name"), title_formating_fun("Values"), )
-
-
-@shellMethod(parameter=DefaultAccessor.getContainer(),
-             key=StringArgChecker(),
-             start_with_local=BooleanValueArgChecker(),
-             explore_other_scope=BooleanValueArgChecker())
-def listVars(parameter,
-             key=None,
-             start_with_local=True,
-             explore_other_scope=True):
-    "list every existing variables"
-    return _listGeneric(parameter,
-                        VARIABLE_ATTRIBUTE_NAME,
-                        key,
-                        _varRowFormating,
-                        _varGetTitle,
-                        start_with_local,
-                        explore_other_scope)
-
-# ################################### REGISTER SECTION ########################
-
-# var
+extra = {'manager': DefaultAccessor.getVariableManager()}
 registerSetTempPrefix((VARIABLE_ATTRIBUTE_NAME, ))
-registerCommand(("set",), post=setVar)
-registerCommand(("create",), post=setVar)  # compatibility issue
-registerCommand(("get",), pre=getVar, pro=listResultHandler)
-registerCommand(("unset",), pro=unsetVar)
-registerCommand(("list",), pre=listVars, pro=printColumn)
-registerCommand(("add",), pre=preAddValues,
-                pro=proAddValues, post=postAddValues)
-registerCommand(("subtract",), post=subtractValuesVar)
+
+fun = _clone(getParameter, "getVar", "variable", extra=extra)
+registerCommand(("get",), pre=fun, pro=listResultHandler)
+
+fun = _clone(removeParameter, "unsetVar", "variable", extra=extra)
+registerCommand(("unset",), pro=fun)
+
+fun = _clone(listParameter, "listVars", "variable", extra=extra)
+registerCommand(("list",), pre=fun, pro=printColumn)
+
+fun = _clone(addValues, "variableAddValues", "variable", extra=extra)
+registerCommand(("add",), post=fun)
+
+fun_name = "variableSubtractValues"
+fun = _clone(subtractValues, fun_name, "variable", extra=extra)
+registerCommand(("subtract",), post=fun)
+
+extra["value_type"] = FixedValueChecker(None)
+extra["list_enabled"] = FixedValueChecker(True)
+fun = _clone(createValues, "setVar", "variable", extra=extra)
+registerCommand(("set",), post=fun)
+registerCommand(("create",), post=fun)  # compatibility issue
+
 registerStopHelpTraversalAt()
 
-# context
-registerSetTempPrefix((CONTEXT_ATTRIBUTE_NAME, ))
-registerCommand(("unset",), pro=removeContextValues)
-registerCommand(("get",), pre=getContextValues, pro=listResultHandler)
-registerCommand(("set",), post=setContextValuesFun)
-registerCommand(("create",), post=createContextValuesFun)
-registerCommand(("add",), post=addContextValuesFun)
-registerCommand(("subtract",), post=subtractContextValuesFun)
-registerCommand(("value",), pre=getSelectedContextValue,
-                pro=listFlatResultHandler)
-registerCommand(("index",), pre=getSelectedContextIndex,
-                pro=listFlatResultHandler)
-registerCommand(("select", "index",), post=selectValueIndex)
-registerCommand(("select", "value",), post=selectValue)
-registerStopHelpTraversalAt(("select",))
-registerCommand(("properties", "list"),
-                pre=listContextProperties, pro=printColumn)
-registerCommand(("list",), pre=listContexts, pro=printColumn)
-registerCommand(("properties", "set"), pro=setContextProperties)
-registerCommand(("properties", "get"), pre=getContextProperties,
-                pro=listFlatResultHandler)
+# ################################### key management ##########################
+
+extra = {'manager': DefaultAccessor.getKeyManager()}
+registerSetTempPrefix((KEY_ATTRIBUTE_NAME, ))
+
+extra["value"] = DefaultChecker.getKey()
+fun = _clone(setValue, "setKey", "key", extra=extra)
+registerCommand(("set",), post=fun)
+del extra["value"]
+
+fun = _clone(getParameter, "getKey", "key", extra=extra)
+registerCommand(("get",), pre=fun, pro=listFlatResultHandler)
+
+fun = _clone(removeParameter, "unsetKey", "key", extra=extra)
+registerCommand(("unset",), pro=fun)
+
+fun = _clone(listParameter, "listKey", "key", extra=extra)
+registerCommand(("list",), pre=fun, pro=printColumn)
+
+fun = _clone(statParameter, "statKey", "key", extra=extra)
+registerCommand(("properties", "stat",), pre=fun, pro=printColumn)
+
+extra['property_info'] = TokenValueArgChecker(PARAMETER_PROPERTIES)
+fun = _clone(setProperties, "setKeyProperties", "key", extra=extra)
+registerCommand(("properties", "set"), pro=fun)
+
+fun = _clone(getProperties, "getKeyProperties", "key", extra=extra)
+registerCommand(("properties", "get"), pre=fun, pro=listFlatResultHandler)
+del extra['property_info']
+
+fun = _clone(listProperties, "listKeyProperties", "key", extra=extra)
+registerCommand(("properties", "list"), pre=fun, pro=printColumn)
+
+
+@shellMethod(manager=DefaultAccessor.getKeyManager(),
+             remove_locals=BooleanValueArgChecker(),
+             remove_globals=BooleanValueArgChecker())
+def cleanKeyStore(manager, remove_locals=True, remove_globals=False):
+    if remove_locals:
+        manager.flush()
+
+    if remove_globals:
+        dico = manager.buildDictionnary(string_path="",
+                                        local_param=False,
+                                        explore_other_scope=False)
+        for key, value in dico.items():
+            manager.unsetParameter(key,
+                                   local_param=False,
+                                   explore_other_scope=False)
+
+
+registerCommand(("clean",), pro=cleanKeyStore)
+
+extra["value_type"] = FixedValueChecker(None)
+fun = _clone(createValue, "createKey", "key", extra=extra)
+registerCommand(("create",), post=fun)
+
 registerStopHelpTraversalAt(("properties",))
 registerStopHelpTraversalAt()
 
-# env
-registerSetTempPrefix((ENVIRONMENT_ATTRIBUTE_NAME, ))
-registerCommand(("list",), pro=listEnvs, post=printColumn)
-registerCommand(("create",), post=createEnvironmentValueFun)
-registerCommand(("get",), pre=getEnvironmentValues, pro=listResultHandler)
-registerCommand(("unset",), pro=removeEnvironmentContextValues)
-registerCommand(("set",), post=setEnvironmentValuesFun)
-registerCommand(("add",), post=addEnvironmentValuesFun)
-registerCommand(("subtract",), post=subtractEnvironmentValuesFun)
-registerCommand(("properties", "set"), pro=setEnvironmentProperties)
-registerCommand(("properties", "get"),
-                pre=getEnvironmentProperties, pro=listFlatResultHandler)
-registerCommand(("properties", "list"),
-                pre=listEnvironmentProperties, pro=printColumn)
-registerStopHelpTraversalAt(("properties",))
-registerStopHelpTraversalAt()
+# ################################### procedure management ####################
 
-# parameter
-registerSetTempPrefix((PARAMETER_NAME, ))
-registerCommand(("list",), pro=listParameter, post=printColumnWithouHeader)
+extra = {'manager': DefaultAccessor.getProcedureManager()}
+registerSetTempPrefix((PROCEDURE_ATTRIBUTE_NAME, ))
+
+extra["value"] = PROC_CHECKER
+fun = _clone(setValue, "setProcedure", "procedure", extra=extra)
+registerCommand(("set",), post=fun)
+del extra["value"]
+
+fun = _clone(getParameter, "getProcedure", "procedure", extra=extra)
+registerCommand(("get",), pre=fun, pro=listFlatResultHandler)
+
+fun = _clone(removeParameter, "unsetProcedure", "procedure", extra=extra)
+registerCommand(("unset",), pro=fun)
+
+fun = _clone(listParameter, "listProcedure", "procedure", extra=extra)
+registerCommand(("list",), pre=fun, pro=printColumn)
+
+fun = _clone(statParameter, "statProcedure", "procedure", extra=extra)
+registerCommand(("properties", "stat",), pre=fun, pro=printColumn)
+
+extra['property_info'] = TokenValueArgChecker(PROCEDURE_PROPERTIES)
+fun = _clone(setProperties, "setProcedureProperties", "procedure", extra=extra)
+registerCommand(("properties", "set"), pro=fun)
+
+fun = _clone(getProperties, "getProcedureProperties", "procedure", extra=extra)
+registerCommand(("properties", "get"), pre=fun, pro=listFlatResultHandler)
+del extra['property_info']
+
+fun = _clone(
+    listProperties, "listProcedureProperties", "procedure", extra=extra)
+registerCommand(("properties", "list"), pre=fun, pro=printColumn)
+
+extra["value_type"] = FixedValueChecker(None)
+fun = _clone(createValue, "createProcedure", "procedure", extra=extra)
+registerCommand(("create",), post=fun)
+
+registerStopHelpTraversalAt(("properties",))
 registerStopHelpTraversalAt()

@@ -48,11 +48,6 @@ class TestArgChecker():
         assert a.hasDefaultValue()
         assert a.getDefaultValue() == "plop"
 
-        a.erraseDefaultValue()
-        assert not a.hasDefaultValue()
-        with pytest.raises(ArgException):
-            a.getDefaultValue()
-
     def test_misc(self):
         a = ArgChecker()
         assert a.getUsage() == "<any>"

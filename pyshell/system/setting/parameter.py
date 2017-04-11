@@ -46,20 +46,17 @@ class ParameterSettings(Cloneable):
     def isRemovable(self):
         return True
 
-    # TODO (create an issue) should return a dict
     def getProperties(self):
-        return ((SETTING_PROPERTY_REMOVABLE, self.isRemovable(),),
-                (SETTING_PROPERTY_READONLY, self.isReadOnly(),),
-                (SETTING_PROPERTY_TRANSIENT, self.isTransient(),))
+        props = {SETTING_PROPERTY_REMOVABLE: self.isRemovable(),
+                 SETTING_PROPERTY_READONLY: self.isReadOnly(),
+                 SETTING_PROPERTY_TRANSIENT: self.isTransient()}
+        return props
 
     def __hash__(self):
-        return hash(self.getProperties())
+        return hash(frozenset(self.getProperties().items()))
 
-    def clone(self, parent=None):
-        if parent is None:
-            return self.__class__()
-
-        return parent
+    def clone(self):
+        return self.__class__()
 
     def _raiseIfReadOnly(self, class_name=None, meth_name=None):
         if self.isReadOnly():
@@ -98,6 +95,11 @@ class ParameterLocalSettings(ParameterSettings):
         self.setRemovable(removable)
         self.setReadOnly(read_only)
 
+    def setTransient(self, state):
+        excmsg = ("(ParameterLocalSettings) setTransient, not allowed on "
+                  "local settings")
+        raise ParameterException(excmsg)
+
     def setReadOnly(self, state):
         if not isinstance(state, bool):
             excmsg = ("(ParameterLocalSettings) setReadOnly, expected a bool "
@@ -122,27 +124,22 @@ class ParameterLocalSettings(ParameterSettings):
     def isRemovable(self):
         return self.removable
 
+    def getProperties(self):
+        props = ParameterSettings.getProperties(self)
+        del props[SETTING_PROPERTY_TRANSIENT]
+        return props
+
     def getGlobalFromLocal(self):
         return self._buildOpposite()
 
     def getLocalFromGlobal(self):
         return self
 
-    def clone(self, parent=None):
-        if parent is None:
-            return ParameterLocalSettings(self.isReadOnly(),
-                                          self.isRemovable())
-        else:
-            read_only = self.isReadOnly()
-            parent.setReadOnly(False)
-            parent.setRemovable(self.isRemovable())
-            parent.setReadOnly(read_only)
-
-        return ParameterSettings.clone(self, parent)
+    def clone(self):
+        return ParameterLocalSettings(self.isReadOnly(), self.isRemovable())
 
 
 class ParameterGlobalSettings(ParameterLocalSettings):
-
     @staticmethod
     def _getOppositeSettingClass():
         return ParameterLocalSettings
@@ -167,6 +164,9 @@ class ParameterGlobalSettings(ParameterLocalSettings):
     def isTransient(self):
         return self.transient
 
+    def getProperties(self):
+        return ParameterSettings.getProperties(self)
+
     def setStartingPoint(self, hashi):
         if self.startingHash is not None:
             excmsg = ("(ParameterGlobalSettings) setStartingPoint, a starting "
@@ -184,18 +184,9 @@ class ParameterGlobalSettings(ParameterLocalSettings):
     def getLocalFromGlobal(self):
         return self._buildOpposite()
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ParameterGlobalSettings(self.isReadOnly(),
-                                             self.isRemovable(),
-                                             self.isTransient())
-        else:
-            read_only = self.isReadOnly()
-            parent.setReadOnly(False)
-            parent.setTransient(self.isTransient())
-            parent.setReadOnly(read_only)
-
+    def clone(self):
+        return ParameterGlobalSettings(self.isReadOnly(),
+                                       self.isRemovable(),
+                                       self.isTransient())
         # starting hash is not copied because it comes from something outside
         # of this class, and it won't be relevant to copy it.
-
-        return ParameterLocalSettings.clone(self, parent)

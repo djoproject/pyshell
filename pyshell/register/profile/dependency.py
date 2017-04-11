@@ -47,3 +47,6 @@ class DependencyLoaderProfile(DefaultProfile):
             raise RegisterException(excmsg)
 
         self.dep[addon_name] = profile_name
+
+    def getContentList(self):
+        return ()  # TODO

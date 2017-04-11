@@ -18,9 +18,9 @@
 
 from pyshell.arg.checker.default import DefaultChecker
 from pyshell.arg.checker.list import ListArgChecker
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.system.setting.environment import EnvironmentSettings
-from pyshell.system.setting.parameter import ParameterGlobalSettings
-from pyshell.system.setting.parameter import ParameterLocalSettings
 from pyshell.utils.constants import SETTING_PROPERTY_DEFAULTINDEX
 from pyshell.utils.constants import SETTING_PROPERTY_INDEX
 from pyshell.utils.constants import SETTING_PROPERTY_TRANSIENTINDEX
@@ -136,10 +136,10 @@ class ContextSettings(EnvironmentSettings):
             checker = CONTEXT_DEFAULT_CHECKER
         else:
             if not isinstance(checker, ListArgChecker):
-                if checker.maximum_size != 1:
+                if checker.getMaximumSize() != 1:
                     exc_msg = ("(ContextParameter) __init__, inner checker "
                                "must have a maximum length of 1, got '" +
-                               str(checker.maximum_size)+"'")
+                               str(checker.getMaximumSize())+"'")
                     raise ParameterException(exc_msg)
 
                 # minimal size = 1, because we need at least one element
@@ -148,28 +148,31 @@ class ContextSettings(EnvironmentSettings):
                                          minimum_size=1,
                                          maximum_size=None)
             else:
-                if checker.checker.maximum_size != 1:
+                if checker.checker.getMaximumSize() != 1:
                     exc_msg = ("(ContextParameter) __init__, inner checker "
                                "must have a maximum length of 1, got '" +
-                               str(checker.checker.maximum_size)+"'")
+                               str(checker.checker.getMaximumSize())+"'")
                     raise ParameterException(exc_msg)
 
-                checker.setSize(1, checker.maximum_size)
+                checker.setSize(1, checker.getMaximumSize())
 
         EnvironmentSettings.setChecker(self, checker)
 
     def setListChecker(self, state):
-        pass  # do nothing, checker must always be a list type
+        if not state:
+            excmsg = "(%s) setListChecker, not allowed on context settings"
+            excmsg %= self.__class__.__name__
+            raise ParameterException(excmsg)
 
     def getProperties(self):
-        prop = list(EnvironmentSettings.getProperties(self))
-        prop.append((SETTING_PROPERTY_TRANSIENTINDEX, self.isTransientIndex()))
-        prop.append((SETTING_PROPERTY_DEFAULTINDEX, self.getDefaultIndex()))
+        prop = {}
+        prop[SETTING_PROPERTY_TRANSIENTINDEX] = self.isTransientIndex()
+        prop[SETTING_PROPERTY_DEFAULTINDEX] = self.getDefaultIndex()
 
         if not self.isTransientIndex():
-            prop.append((SETTING_PROPERTY_INDEX, self.getIndex()))
+            prop[SETTING_PROPERTY_INDEX] = self.getIndex()
 
-        return tuple(prop)
+        return prop
 
     def _buildOpposite(self):
         clazz = self._getOppositeSettingClass()
@@ -190,18 +193,14 @@ class ContextSettings(EnvironmentSettings):
 
         return settings
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ContextSettings(checker=self.getChecker())
-
+    def clone(self):
+        return ContextSettings(checker=self.getChecker())
         # index are not cloned because the settings object do no know yet
         # which will be the related context object.  And maybe it does not
         # hold the same amount of items
 
-        return EnvironmentSettings.clone(self, parent)
 
-
-class ContextLocalSettings(ParameterLocalSettings, ContextSettings):
+class ContextLocalSettings(EnvironmentLocalSettings, ContextSettings):
     getProperties = ContextSettings.getProperties
 
     @staticmethod
@@ -209,20 +208,27 @@ class ContextLocalSettings(ParameterLocalSettings, ContextSettings):
         return ContextGlobalSettings
 
     def __init__(self, read_only=False, removable=True, checker=None):
-        ParameterLocalSettings.__init__(self, read_only, removable)
+        EnvironmentLocalSettings.__init__(self, read_only, removable)
         ContextSettings.__init__(self, checker)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ContextLocalSettings(self.isReadOnly(),
-                                          self.isRemovable())
+    def getProperties(self):
+        props = EnvironmentLocalSettings.getProperties(self)
+        props.update(ContextSettings.getProperties(self))
+        del props[SETTING_PROPERTY_TRANSIENTINDEX]
+        return props
 
-        ContextSettings.clone(self, parent)
+    def setTransientIndex(self, state):
+        excmsg = ("(ContextLocalSettings) setTransientIndex, not allowed on "
+                  "local settings")
+        raise ParameterException(excmsg)
 
-        return ParameterLocalSettings.clone(self, parent)
+    def clone(self):
+        return ContextLocalSettings(read_only=self.isReadOnly(),
+                                    removable=self.isRemovable(),
+                                    checker=self.getChecker())
 
 
-class ContextGlobalSettings(ParameterGlobalSettings, ContextSettings):
+class ContextGlobalSettings(EnvironmentGlobalSettings, ContextSettings):
     getProperties = ContextSettings.getProperties
 
     @staticmethod
@@ -235,12 +241,17 @@ class ContextGlobalSettings(ParameterGlobalSettings, ContextSettings):
                  transient=False,
                  transient_index=False,
                  checker=None):
-        ParameterGlobalSettings.__init__(self, False, removable, transient)
+        EnvironmentGlobalSettings.__init__(self, False, removable, transient)
         ContextSettings.__init__(self, checker)
         self.setTransientIndex(transient_index)
 
         if read_only:
             self.setReadOnly(True)
+
+    def getProperties(self):
+        props = EnvironmentGlobalSettings.getProperties(self)
+        props.update(ContextSettings.getProperties(self))
+        return props
 
     def setTransientIndex(self, state):
         self._raiseIfReadOnly(self.__class__.__name__, "setTransientIndex")
@@ -255,18 +266,9 @@ class ContextGlobalSettings(ParameterGlobalSettings, ContextSettings):
     def isTransientIndex(self):
         return self.transient_index
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = ContextGlobalSettings(self.isReadOnly(),
-                                           self.isRemovable(),
-                                           self.isTransient(),
-                                           self.isTransientIndex())
-        else:
-            read_only = self.isReadOnly()
-            parent.setReadOnly(False)
-            parent.setTransientIndex(self.isTransientIndex())
-            parent.setReadOnly(read_only)
-
-        ContextSettings.clone(self, parent)
-
-        return ParameterGlobalSettings.clone(self, parent)
+    def clone(self):
+        return ContextGlobalSettings(read_only=self.isReadOnly(),
+                                     removable=self.isRemovable(),
+                                     transient=self.isTransient(),
+                                     transient_index=self.isTransientIndex(),
+                                     checker=self.getChecker())

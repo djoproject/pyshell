@@ -68,5 +68,17 @@ class InternalLoaderProfile(DefaultProfile):
 
         return self.children[loader_class_definition]
 
+    def removeChild(self, loader_class_definition):
+        self._raiseIfInvalidClassDefinition("getChild",
+                                            loader_class_definition)
+
+        if loader_class_definition not in self.children:
+            class_name = self.__class__.__name__
+            excmsg = ("("+class_name+") removeChild, '" +
+                      str(loader_class_definition)+"' does not exist")
+            raise LoaderException(excmsg)
+
+        del self.children[loader_class_definition]
+
     def getChildKeys(self):
         return self.children.keys()

@@ -16,11 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO
-#   - comparison between two byte list
-#   - comparison on bit or byte
-#   - look after pattern
-#   - ...
 
 from math import log
 
@@ -44,18 +39,6 @@ from pyshell.utils.printing import warning
              parameters=DefaultAccessor.getContainer(),
              byte_per_line=IntegerArgChecker(4))
 def compareByteList(var_lists, byte_per_line=4, parameters=None):
-    # TODO
-    #   it is possible to inject something else than byte in the list,
-    #   check them
-    #       DONE!
-    #       test it
-
-    #   make an easy way to convert to binary
-    #       replace byte size from 3 to 9
-    #       replace conversion from hex to bin
-    #   replace empty string XX
-    #       coloration must occured on bit not on whole byte
-    #       convert each byte list to binary stream
 
     if len(var_lists) == 0:
         return

@@ -111,15 +111,13 @@ class ControlCenter(ParentAddon, ParentManager, AbstractLevelHandler):
             raise DefaultPyshellException(excmsg)
 
         addon_loader = addons[group_name]
-        loaded_profile = addon_loader.getInformations().getLoadedProfileName()
+        root_profile = addon_loader.getInformations().getLastProfileUsed()
 
-        if loaded_profile is None:
+        if root_profile is None:
             excmsg = ("(%s) checkForSetGlobalParameter, addon '%s' is not "
                       "loaded.")
             excmsg %= (self.__class__.__name__, str(group_name),)
             raise DefaultPyshellException(excmsg)
-
-        root_profile = addon_loader.getRootLoaderProfile(loaded_profile)
 
         if not root_profile.isLoading() and not root_profile.isLoaded():
             excmsg = ("(%s) checkForSetGlobalParameter, addon '%s' is not "
@@ -128,10 +126,11 @@ class ControlCenter(ParentAddon, ParentManager, AbstractLevelHandler):
             raise DefaultPyshellException(excmsg)
 
         # loader is already binded
-        if addon_loader.isLoaderBindedToProfile(loader_class, loaded_profile):
+        profile_name = root_profile.getName()
+        if addon_loader.isLoaderBindedToProfile(loader_class, profile_name):
             return
 
-        addon_loader.bindLoaderToProfile(loader_class, loaded_profile)
+        addon_loader.bindLoaderToProfile(loader_class, root_profile.getName())
 
     def checkForUnsetGlobalParameter(self, group_name, loader_name):
         addons = self.getAddonManager()
@@ -142,15 +141,13 @@ class ControlCenter(ParentAddon, ParentManager, AbstractLevelHandler):
             raise DefaultPyshellException(excmsg)
 
         addon_loader = addons[group_name]
-        loaded_profile = addon_loader.getInformations().getLoadedProfileName()
+        root_profile = addon_loader.getInformations().getLastProfileUsed()
 
-        if loaded_profile is None:
+        if root_profile is None:
             excmsg = ("(%s) checkForUnsetGlobalParameter, addon '%s' is not "
                       "loaded.")
             excmsg %= (self.__class__.__name__, str(group_name),)
             raise DefaultPyshellException(excmsg)
-
-        root_profile = addon_loader.getRootLoaderProfile(loaded_profile)
 
         if not root_profile.isUnloading() and not root_profile.isLoaded():
             excmsg = ("(%s) checkForUnsetGlobalParameter, addon '%s' is not "

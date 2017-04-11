@@ -16,12 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pyshell.arg.accessor.container import ContainerAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterAccessor
 from pyshell.arg.accessor.parameter import AbstractParameterDynamicAccessor
 from pyshell.utils.constants import VARIABLE_ATTRIBUTE_NAME
 
 ACCESSOR_TYPENAME = "variable"
 DYNAMIC_ACCESSOR_TYPENAME = "variable dynamic"
+MANAGER_TYPENAME = "variable manager"
 
 
 class VariableAccessor(AbstractParameterAccessor):
@@ -49,3 +51,25 @@ class VariableDynamicAccessor(AbstractParameterDynamicAccessor):
     @classmethod
     def getTypeName(cls):
         return DYNAMIC_ACCESSOR_TYPENAME
+
+
+class VariableManagerAccessor(ContainerAccessor):
+    def hasAccessorValue(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return False
+
+        container = ContainerAccessor.getAccessorValue(self)
+
+        return container.getVariableManager() is not None
+
+    def getAccessorValue(self):
+        return ContainerAccessor.getAccessorValue(self).getVariableManager()
+
+    def buildErrorMessage(self):
+        if not ContainerAccessor.hasAccessorValue(self):
+            return ContainerAccessor.buildErrorMessage(self)
+        return "container provided has no variable manager defined"
+
+    @classmethod
+    def getTypeName(cls):
+        return MANAGER_TYPENAME

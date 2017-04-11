@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from abc import ABCMeta, abstractmethod
 
 from pyshell.arg.exception import ArgException
 from pyshell.arg.exception import ArgInitializationException
@@ -31,16 +32,19 @@ except:
 # #############################################################################
 class ArgsChecker():
     "abstract arg checker"
+    __metaclass__ = ABCMeta
 
     #
     # @args_list, une liste de string
     # @return, un dico trie des arguments et de leur valeur : <name,value>
     #
+    @abstractmethod
     def checkArgs(self, args_list, engine=None):
-        pass  # XXX to override
+        pass
 
+    @abstractmethod
     def usage(self):
-        pass  # XXX to override
+        pass
 
 
 class ArgFeeder(ArgsChecker):
@@ -59,18 +63,18 @@ class ArgFeeder(ArgsChecker):
         self.arg_type_list = arg_type_list
 
     def manageMappedArg(self, name, checker, args):
-        if (checker.maximum_size is not None and
-           len(args) > checker.maximum_size):
-            args = args[:checker.maximum_size]
+        if (checker.getMaximumSize() is not None and
+           len(args) > checker.getMaximumSize()):
+            args = args[:checker.getMaximumSize()]
 
-        if (checker.minimum_size is not None and
-           len(args) < checker.minimum_size):
+        if (checker.getMinimumSize() is not None and
+           len(args) < checker.getMinimumSize()):
             raise ArgException("(ArgFeeder) not enough data for the dash "
                                "mapped argument '"+name+"', expected at least"
-                               " '"+str(checker.minimum_size)+"', got '" +
+                               " '"+str(checker.getMinimumSize())+"', got '" +
                                str(len(args))+"'")
 
-        if checker.minimum_size == checker.maximum_size == 1:
+        if checker.getMinimumSize() == checker.getMaximumSize() == 1:
             args = args[0]
 
         return checker.getValue(args, None, name)
@@ -108,9 +112,9 @@ class ArgFeeder(ArgsChecker):
                 continue
 
             # is there a minimum limit
-            if checker.minimum_size is not None:
-                # is there at least minimum_size item in the data stream?
-                if len(args_list[data_index:]) < checker.minimum_size:
+            if checker.getMinimumSize() is not None:
+                # is there at least getMinimumSize() item in the data stream?
+                if len(args_list[data_index:]) < checker.getMinimumSize():
                     # no more string token, end of stream ?
                     if len(args_list[data_index:]) == 0:
                         # we will check if there is some default value
@@ -121,7 +125,7 @@ class ArgFeeder(ArgsChecker):
                                            "the argument '"+name+"'")
 
             # is there a maximum limit?
-            if checker.maximum_size is None:
+            if checker.getMaximumSize() is None:
                 # No max limit, it consumes all remaining data
                 ret[name] = checker.getValue(args_list[data_index:],
                                              data_index,
@@ -131,16 +135,16 @@ class ArgFeeder(ArgsChecker):
                 data_index = len(args_list)
             else:
                 # special case: checker only need one item? (most common case)
-                if (checker.minimum_size is not None and
-                   checker.minimum_size == checker.maximum_size == 1):
-                    max_index = data_index+checker.maximum_size
+                if (checker.getMinimumSize() is not None and
+                   checker.getMinimumSize() == checker.getMaximumSize() == 1):
+                    max_index = data_index+checker.getMaximumSize()
                     value = args_list[data_index:max_index][0]
                 else:
-                    max_index = data_index+checker.maximum_size
+                    max_index = data_index+checker.getMaximumSize()
                     value = args_list[data_index:max_index]
 
                 ret[name] = checker.getValue(value, data_index, name)
-                data_index += checker.maximum_size
+                data_index += checker.getMaximumSize()
 
             arg_checker_index += 1
 
@@ -176,7 +180,7 @@ class ArgFeeder(ArgsChecker):
         ret = ""
         first_mandatory = False
         for (name, checker) in self.arg_type_list.items():
-            if not checker.show_in_usage:
+            if not checker.isShowInUsage():
                 continue
 
             if checker.hasDefaultValue(name) and not first_mandatory:

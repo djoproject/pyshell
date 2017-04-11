@@ -16,78 +16,100 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# TODO Brainstorming about procedure
-#   Now there are two procedure object:
-#       - ProcedureParameter: hold every information that can be saved
-#       - ProcedureFile: hold the execution mechanism of a procedure
-#
-#   ProcedureParameter instances should be stored into a parameterManager
-#   and ProcedureFile instances should be stored into a commandManager.
-#   The commandManager does not exist yet (see issue #109)
-#
-#   Not a huge fan to store two different object talking about the same stuff
-#   inside two separate manager.
-#
-#   SOLUTION 1: keep like this in both manager
-#       PRBLM 1.1 had to manage if error occurs in one of the two manager and
-#           the procedure is no more available in the other, really painful...
-#       SOL 1.1 give tools to (re)bind a command to a procedure_parameter
-#
-#   SOLUTION 2: only put in CommandManager
-#       PRBLM 2.1 How to update settings about the command ?
-#       PRBLM 2.2 In case of possibility to update settings, how to save them?
-#           CommandManager is supposed to be transient
-#
-#   SOLUTION 3: only put in ParameterManager
-#       PRBLM 3.1 need to create a special command to run the procedure, not
-#           intuitive, but easy to implement
-#
-#   SOLUTION 4: only put in ParameterManager + create alias to the special
-#       command.
-#       PRBLM 4.1 alias is not implemented
-#       PRBLM 4.2 same issue as SOLUTION 1
-#
-#   SOLUTION 5:
-#
-# TODO there is no registering system for procedure, create it (?)
-# TODO create an issue about all of this ?
-
-
 from pyshell.arg.accessor.default import DefaultAccessor
 from pyshell.arg.checker.default import DefaultChecker
+from pyshell.arg.checker.integer import IntegerArgChecker
 from pyshell.arg.checker.list import ListArgChecker
+from pyshell.arg.checker.token43 import TokenValueArgChecker
 from pyshell.arg.decorator import shellMethod
 from pyshell.command.procedure import FileProcedure
 from pyshell.register.command import registerCommand
 from pyshell.register.command import registerSetGlobalPrefix
 from pyshell.register.command import registerStopHelpTraversalAt
-from pyshell.system.parameter.procedure import ProcedureParameter
+from pyshell.system.setting.procedure import DEFAULT_CHECKER
+from pyshell.utils.constants import ENABLE_ON_POST_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PRE_PROCESS
+from pyshell.utils.constants import ENABLE_ON_PROCESS
+
+
+_ENABLED_ON = {ENABLE_ON_PRE_PROCESS: ENABLE_ON_PRE_PROCESS,
+               ENABLE_ON_PROCESS: ENABLE_ON_PROCESS,
+               ENABLE_ON_POST_PROCESS: ENABLE_ON_POST_PROCESS}
+
 
 # ## COMMAND SECTION ## #
 
-
-def startNamedProcedure(name, args):
-    "start a registered script file"
-    # TODO create a procedure manager + update parameter addons to manage them
-    # TODO retrieve a stored procedure, then call it
-    pass
-
-
-# TODO add granularity argument
-# TODO add ENABLE_ON argument
-@shellMethod(file_path=DefaultChecker.getString(),
+@shellMethod(procedure=DefaultAccessor.getProcedure(),
              args=ListArgChecker(DefaultChecker.getArg()),
-             parameters=DefaultAccessor.getContainer())
-def startProcedure(file_path, args, parameters):
-    "start a script file"
-    procedure = FileProcedure(file_path=file_path)
+             parameters=DefaultAccessor.getContainer(),
+             exchange=DefaultAccessor.getExchange())
+def startNamedProcedure(procedure, args, parameters=None, exchange=None):
+    "start a procedure stored into manager"
+    return startProcedure(file_path=procedure.getValue(),
+                          args=args,
+                          granularity=procedure.settings.getErrorGranularity(),
+                          enable_on=procedure.settings.getEnableOn(),
+                          parameters=parameters,
+                          exchange=exchange)
 
-    # TODO this is wrong, it shouln't call the execute method
-    # but each meths pre/pro/post of the procedure must be called
-    procedure.execute(parameters=parameters, args=args)
+
+@shellMethod(file_path=DEFAULT_CHECKER,
+             args=ListArgChecker(DefaultChecker.getArg()),
+             granularity=IntegerArgChecker(minimum=-1),
+             enable_on=TokenValueArgChecker(_ENABLED_ON),
+             parameters=DefaultAccessor.getContainer(),
+             exchange=DefaultAccessor.getExchange())
+def startProcedure(file_path,
+                   args,
+                   granularity=-1,
+                   enable_on=ENABLE_ON_PROCESS,
+                   parameters=None,
+                   exchange=None):
+    "start a procedure stored into file"
+    procedure = FileProcedure(file_path=file_path,
+                              execute_on=enable_on,
+                              granularity=granularity)
+
+    exchange["procedure"] = procedure
+    exchange["enable_on"] = enable_on
+
+    if exchange["enable_on"] is ENABLE_ON_PRE_PROCESS:
+        return procedure.execute(parameter_container=parameters, args=args)
+
+    return args
+
+
+@shellMethod(args=ListArgChecker(DefaultChecker.getArg()),
+             parameters=DefaultAccessor.getContainer(),
+             exchange=DefaultAccessor.getExchange())
+def _process(args, parameters=None, exchange=None):
+    if exchange["enable_on"] is ENABLE_ON_PROCESS:
+        procedure = exchange["procedure"]
+        return procedure.execute(parameter_container=parameters, args=args)
+
+    return args
+
+
+@shellMethod(args=ListArgChecker(DefaultChecker.getArg()),
+             parameters=DefaultAccessor.getContainer(),
+             exchange=DefaultAccessor.getExchange())
+def _postProcess(args, parameters=None, exchange=None):
+    if exchange["enable_on"] is ENABLE_ON_POST_PROCESS:
+        procedure = exchange["procedure"]
+        return procedure.execute(parameter_container=parameters, args=args)
+
+    return args
 
 # ## REGISTER SECTION ## #
 
 registerSetGlobalPrefix(("procedure", ))
 registerStopHelpTraversalAt()
-registerCommand(("execute",), pro=startProcedure)
+registerCommand(("execute", "file",),
+                pre=startProcedure,
+                pro=_process,
+                post=_postProcess)
+registerCommand(("execute", "name",),
+                pre=startNamedProcedure,
+                pro=_process,
+                post=_postProcess)
+registerStopHelpTraversalAt(("execute",))

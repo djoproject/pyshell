@@ -17,27 +17,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyshell.arg.checker.default import DefaultChecker
+from pyshell.system.setting.environment import EnvironmentGlobalSettings
+from pyshell.system.setting.environment import EnvironmentLocalSettings
 from pyshell.system.setting.environment import EnvironmentSettings
-from pyshell.system.setting.parameter import ParameterGlobalSettings
-from pyshell.system.setting.parameter import ParameterLocalSettings
-from pyshell.system.setting.parameter import ParameterSettings
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKER
+from pyshell.utils.constants import SETTING_PROPERTY_CHECKERLIST
+from pyshell.utils.exception import ParameterException
 
 
 class KeySettings(EnvironmentSettings):
-    def getChecker(self):
-        return DefaultChecker.getKey()
+    def __init__(self):
+        EnvironmentSettings.__init__(self, checker=DefaultChecker.getKey())
 
     def setChecker(self, checker=None):
-        pass
+        if self.getChecker() is not None:
+            excmsg = "(%s) setChecker, not allowed on key settings"
+            excmsg %= self.__class__.__name__
+            raise ParameterException(excmsg)
+
+        EnvironmentSettings.setChecker(self, checker)
 
     def setListChecker(self, state):
-        pass  # do nothing, checker must never be a list type
-
-    def getProperties(self):
-        # use the getProperties method from the class Settings in place of
-        # the getProperties from EnvironmentSettings because there is no need
-        # to return the checker informations
-        return ParameterSettings.getProperties(self)
+        if state:
+            excmsg = "(%s) setListChecker, not allowed on key settings"
+            excmsg %= self.__class__.__name__
+            raise ParameterException(excmsg)
 
     def _buildOpposite(self):
         clazz = self._getOppositeSettingClass()
@@ -46,56 +50,56 @@ class KeySettings(EnvironmentSettings):
 
         return clazz(read_only=read_only, removable=removable)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = KeySettings(checker=None)
+    def getProperties(self):
+        return {}
 
-        return EnvironmentSettings.clone(self, parent)
+    def clone(self):
+        return KeySettings()
 
 
-class KeyLocalSettings(ParameterLocalSettings, KeySettings):
-    getProperties = KeySettings.getProperties
-
+class KeyLocalSettings(EnvironmentLocalSettings, KeySettings):
     @staticmethod
     def _getOppositeSettingClass():
         return KeyGlobalSettings
 
     def __init__(self, read_only=False, removable=True):
-        ParameterLocalSettings.__init__(self,
-                                        read_only=read_only,
-                                        removable=removable)
-        KeySettings.__init__(self, checker=None)
+        EnvironmentLocalSettings.__init__(self,
+                                          read_only=read_only,
+                                          removable=removable)
+        KeySettings.__init__(self)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = KeyLocalSettings(read_only=self.isReadOnly(),
-                                      removable=self.isRemovable())
+    def getProperties(self):
+        props = EnvironmentLocalSettings.getProperties(self)
+        props.update(KeySettings.getProperties(self))
+        del props[SETTING_PROPERTY_CHECKER]
+        del props[SETTING_PROPERTY_CHECKERLIST]
+        return props
 
-        KeySettings.clone(self, parent)
+    def clone(self):
+        return KeyLocalSettings(read_only=self.isReadOnly(),
+                                removable=self.isRemovable())
 
-        return ParameterLocalSettings.clone(self, parent)
 
-
-class KeyGlobalSettings(ParameterGlobalSettings, KeySettings):
-    getProperties = KeySettings.getProperties
-
+class KeyGlobalSettings(EnvironmentGlobalSettings, KeySettings):
     @staticmethod
     def _getOppositeSettingClass():
         return KeyLocalSettings
 
     def __init__(self, read_only=False, removable=True, transient=False):
-        ParameterGlobalSettings.__init__(self,
-                                         read_only=read_only,
-                                         removable=removable,
-                                         transient=transient)
-        KeySettings.__init__(self, checker=None)
+        EnvironmentGlobalSettings.__init__(self,
+                                           read_only=read_only,
+                                           removable=removable,
+                                           transient=transient)
+        KeySettings.__init__(self)
 
-    def clone(self, parent=None):
-        if parent is None:
-            parent = KeyGlobalSettings(read_only=self.isReadOnly(),
-                                       removable=self.isRemovable(),
-                                       transient=self.isTransient())
+    def getProperties(self):
+        props = EnvironmentGlobalSettings.getProperties(self)
+        props.update(KeySettings.getProperties(self))
+        del props[SETTING_PROPERTY_CHECKER]
+        del props[SETTING_PROPERTY_CHECKERLIST]
+        return props
 
-        KeySettings.clone(self, parent)
-
-        return ParameterGlobalSettings.clone(self, parent)
+    def clone(self):
+        return KeyGlobalSettings(read_only=self.isReadOnly(),
+                                 removable=self.isRemovable(),
+                                 transient=self.isTransient())
