@@ -261,14 +261,19 @@ class TestHardReload(object):
 
             if name in self.addons:
                 assert self.addons[name] is not addons[name]
-                _loaders = self.addons[name]
+                l = self.addons[name]
             else:
-                _loaders = addons[name]
+                l = addons[name]
 
-            profile_object = _loaders.getRootLoaderProfile(profile_name=None)
+            if name == "pyshell.addons.test.fake_addon":
+                _loaders = l
+            else:
+                _failers = l
+
+            profile_object = l.getRootLoaderProfile(profile_name=None)
 
             if profile_object.isLoaded():
-                _loaders.unload(self.params)
+                l.unload(self.params)
 
             assert profile_object.isUnloaded() or profile_object.hasNoState()
 

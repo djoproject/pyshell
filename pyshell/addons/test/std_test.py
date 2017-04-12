@@ -151,12 +151,12 @@ class TestUsage(object):
 
     def test_generatorWithMultiOutput(self):
         result = generator(start=0, stop=100, step=1, multi_output=True)
-        assert result == range(0, 100, 1)
+        assert result == list(range(0, 100, 1))
         assert isinstance(result, MultiOutput)
 
     def test_generatorWithoutMultiOutput(self):
         result = generator(start=0, stop=100, step=1, multi_output=False)
-        assert result == range(0, 100, 1)
+        assert result == list(range(0, 100, 1))
         assert not isinstance(result, MultiOutput)
 
 

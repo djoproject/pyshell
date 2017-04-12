@@ -25,4 +25,4 @@ git clone https://github.com/djo938/pyshell.git || quit "Failed to retrieve supe
 rm -rf ../pyshell
 mv ./pyshell/* ../
 rm ../makefile
-quit "Success to install/update, use exec.sh to start the shell"
+quit "Success to install/update, use the command \`python -m pytest\` to start the shell"

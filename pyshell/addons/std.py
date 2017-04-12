@@ -82,7 +82,11 @@ def intToAscii(args):
     s = ""
     for a in args:
         try:
-            s += chr(a)
+            # do not convert unicode, only ascii
+            if a >= 0 and a < 128:
+                s += chr(a)
+            else:
+                s += str(a)
         except ValueError:
             s += str(a)
 
@@ -286,9 +290,9 @@ def helpFun(mltries, args=None):
 def generator(start=0, stop=100, step=1, multi_output=True):
     "generate a list of integer"
     if multi_output:
-        return MultiOutput(range(start, stop, step))
+        return MultiOutput(list(range(start, stop, step)))
     else:
-        return range(start, stop, step)
+        return list(range(start, stop, step))
 
 
 @shellMethod(

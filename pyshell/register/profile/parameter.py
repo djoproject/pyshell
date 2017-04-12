@@ -71,4 +71,4 @@ class ParameterLoaderProfile(DefaultProfile):
         return parameter
 
     def getContentList(self):
-        return self.parameter_to_set.keys()
+        return sorted(self.parameter_to_set.keys())
