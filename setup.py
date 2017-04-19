@@ -26,7 +26,7 @@ setup(name='PyShell',
       description='Easy mapping between python script and a shell',
       author='Jonathan Delvaux',
       author_email='pyshell@djoproject.net',
-      url='https://github.com/djo938/pyshell/',
+      url='https://github.com/djoproject/pyshell/',
       packages=['pyshell'],
       license='GPLv3',
       classifiers=[
@@ -54,6 +54,6 @@ setup(name='PyShell',
         "pytries==1.2"
         ],
       dependency_links=[
-        "git+ssh://git@github.com/djo938/pytries.git@1.2#egg=pytries-1.2"
+        "git+ssh://git@github.com/djoproject/pytries.git@1.2#egg=pytries-1.2"
         ],
       tests_require=['tox'])
